@@ -1,5 +1,12 @@
 import { Link } from "@remix-run/react";
 import { Icons } from "~/components/icons";
+import type { MetaFunction } from "@remix-run/cloudflare";
+export const meta: MetaFunction = () => {
+  return [
+    { title: "Madinah" },
+    { name: "description", content: "Welcome to Madinah!" },
+  ];
+};
 
 const Index = () => {
   return (
@@ -13,7 +20,7 @@ const Index = () => {
             Front-end Developer
           </div>
           <div className="text-sm text-white/75">
-           Worked at Tencent Current working at ByteDance
+            Worked at Tencent Current working at ByteDance
           </div>
           <div className="mt-8 flex gap-x-4 items-center">
             <Link to="https://space.bilibili.com/427444426" target="_blank" rel="noreferrer" className="tooltip" data-tip="bilibili">

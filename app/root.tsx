@@ -5,8 +5,8 @@ import {
   Scripts,
   ScrollRestoration,
 } from "@remix-run/react";
-import type { LinksFunction } from "@remix-run/node";
 import Header from "./layout/header";
+import type { LinksFunction } from "@remix-run/cloudflare";
 
 import "./tailwind.css";
 
@@ -37,7 +37,7 @@ export function Layout(props: { children: React.ReactNode }) {
       </head>
       <body className="h-full">
         <Header />
-        <div className="overflow-y-auto overflow-x-hidden bg-gradient-radial pt-[56px] h-full bg-[rgb(24,23,23)] text-white">
+        <div className="overflow-y-auto overflow-x-hidden bg-gradient-radial pt-[56px] h-full bg-[rgb(24,23,23)] text-white"  >
           <main className="m-auto mx-auto  min-h-full h-full">
             <div className="w-full min-h-full h-full flex-1">
               {children}
