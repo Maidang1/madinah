@@ -1,7 +1,9 @@
 import type { Config } from "tailwindcss";
+import { iconsPlugin, getIconCollections } from "@egoist/tailwindcss-icons";
+
 
 export default {
-  content: ["./app/**/{**,.client,.server}/**/*.{js,jsx,ts,tsx}"],
+  content: ["./app/**/{**,.client,.server}/**/*.{js,jsx,ts,tsx,mdx,md}"],
   theme: {
     extend: {
       fontFamily: {
@@ -18,5 +20,12 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    require("@tailwindcss/typography"),
+    require("daisyui"),
+    iconsPlugin({
+      collections: getIconCollections(["simple-icons"])
+    })
+
+  ],
 } satisfies Config;
