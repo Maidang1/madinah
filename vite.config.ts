@@ -38,19 +38,6 @@ export default defineConfig(async () => {
               defaultOptions: {
                 lib: ["dom", "es2015"],
               },
-              defaultCompilerOptions: {
-                allowSyntheticDefaultImports: true,
-                esModuleInterop: true,
-                target: "ESNext",
-                module: "ESNext",
-                lib: ["dom", "es2015"],
-                jsxImportSource: "react",
-                jsx: "preserve",
-                types: ["vite/client"],
-                paths: {
-                  "~/*": ["./app/*"],
-                },
-              },
             },
           ],
         ]
