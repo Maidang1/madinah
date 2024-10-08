@@ -24,12 +24,7 @@
     "isbot": "^4.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-use": "^17.5.1",
-    "reading-time": "^1.5.0",
-    "rehype-stringify": "^10.0.1",
-    "remark-frontmatter": "^5.0.0",
-    "remark-stringify": "^11.0.0",
-    "vfile-matter": "^5.0.0"
+    "react-use": "^17.5.1"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241004.0",
@@ -64,10 +59,15 @@
     "vite": "^5.1.0",
     "vite-plugin-virtual": "^0.3.0",
     "vite-tsconfig-paths": "^4.2.1",
-    "wrangler": "^3.80.0"
+    "wrangler": "^3.80.0",
+    "remark-frontmatter": "^5.0.0",
+    "reading-time": "^1.5.0",
+    "rehype-stringify": "^10.0.1",
+    "remark-stringify": "^11.0.0",
+    "vfile-matter": "^5.0.0"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": "20.18.0"
   },
   "packageManager": "pnpm@9.11.0"
 }
