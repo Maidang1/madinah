@@ -114,6 +114,9 @@ importers:
       vite:
         specifier: ^5.1.0
         version: 5.4.8(@types/node@22.7.4)
+      vite-plugin-virtual:
+        specifier: ^0.3.0
+        version: 0.3.0(vite@5.4.8(@types/node@22.7.4))
       vite-tsconfig-paths:
         specifier: ^4.2.1
         version: 4.3.2(typescript@5.6.2)(vite@5.4.8(@types/node@22.7.4))
@@ -4139,6 +4142,11 @@ packages:
     resolution: {integrity: sha512-de6HJgzC+TFzOu0NTC4RAIsyf/DY/ibWDYQUcuEA84EMHhcefTUGkjFHKKEJhQN4A+6I0u++kr3l36ZF2d7XRw==}
     engines: {node: ^18.0.0 || >=20.0.0}
     hasBin: true
+
+  vite-plugin-virtual@0.3.0:
+    resolution: {integrity: sha512-TOtrWw6jKrJNXfxhGRUiQzfAP1gRkYkVzMkJNjHUJ8idLuxf8eeeDKZKZHhdeYfaCc/87rv+KvWE2iCy1QInWA==}
+    peerDependencies:
+      vite: ^2.0.0 || ^3.0.0 || ^4.0.0 || ^5.0.0
 
   vite-tsconfig-paths@4.3.2:
     resolution: {integrity: sha512-0Vd/a6po6Q+86rPlntHye7F31zA2URZMbH8M3saAZ/xR9QoGN/L21bxEGfXdWmFdNkqPpRdxFT7nmNe12e9/uA==}
@@ -9334,6 +9342,10 @@ snapshots:
       - sugarss
       - supports-color
       - terser
+
+  vite-plugin-virtual@0.3.0(vite@5.4.8(@types/node@22.7.4)):
+    dependencies:
+      vite: 5.4.8(@types/node@22.7.4)
 
   vite-tsconfig-paths@4.3.2(typescript@5.6.2)(vite@5.4.8(@types/node@22.7.4)):
     dependencies:

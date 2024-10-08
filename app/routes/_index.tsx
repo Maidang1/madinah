@@ -41,7 +41,7 @@ const Index = () => {
           </div>
         </div>
 
-        <img src="https://avatars.githubusercontent.com/u/50993231?v=4" alt="avatar" className="rounded-[50%] w-[200px] h-[200px] lg:w-[300px] lg:h-[300px]" />
+        <img src="https://avatars.githubusercontent.com/u/50993231?v=4" alt="avatar" className="rounded-[50%] w-[200px] h-[200px] lg:w-[300px] lg:h-[300px] select-none" />
       </div>
       <div className="footer absolute bottom-10 left-0 right-0 text-center w-full flex justify-center text-white/75 px-6">
         什么霎那间的永恒，谁咬定自己不是过客 --《摄影艺术 · 许嵩》

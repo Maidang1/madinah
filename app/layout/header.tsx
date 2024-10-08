@@ -105,7 +105,7 @@ const Header = () => {
           className=' mr-4 opacity-50 hover:opacity-80 last:mr-0 dark:opacity-90 dark:hover:opacity-100 cursor-pointer flex items-center text-xl'
           onClick={toggleTheme}
         >
-          <span className='i-circum-light dark:i-circum-dark' />
+          <span className='i-simple-icons-sunrise dark:i-simple-icons-icomoon' />
         </div>
       </div>
     </div>
