@@ -12,7 +12,7 @@ const Index = () => {
   return (
     <div className="relative h-full">
       <div className="main-content flex items-center gap-x-6 justify-around pt-[160px] max-h-full overflow-hidden flex-col gap-y-10 lg:gap-y-0 lg:flex-row lg:pt-[240px]">
-        <div className="flex flex-col gap-y-4 text-center items-center px-6 lg:text-left lg:items-start">
+        <div className="flex flex-col gap-y-4 text-center items-center px-6 lg:text-left lg:items-start text-white">
           <div className='text-3xl'>
             Hey I&apos;m Madinah 🙋
           </div>
