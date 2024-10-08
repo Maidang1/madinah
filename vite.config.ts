@@ -5,12 +5,13 @@ import {
 import { defineConfig } from 'vite';
 import tsconfigPaths from 'vite-tsconfig-paths';
 import mdx from '@mdx-js/rollup';
-import remarkGfm from 'remark-gfm';
 import remarkFrontmatter from 'remark-frontmatter';
 import remarkMdxFrontmatter from 'remark-mdx-frontmatter';
 import virtual from 'vite-plugin-virtual';
 import path from 'path';
 import { getListInfo } from './utils/post-info';
+import rehypeRaw from "rehype-raw"
+import { nodeTypes } from "@mdx-js/mdx"
 import remarkShikiTwoslash from 'remark-shiki-twoslash';
 
 const root = process.cwd();
@@ -22,12 +23,37 @@ export default defineConfig(async () => {
     plugins: [
       remixCloudflareDevProxy(),
       mdx({
+        rehypePlugins: [[rehypeRaw, { passThrough: nodeTypes }]],
         remarkPlugins: [
-          [remarkShikiTwoslash],
-          remarkGfm,
           remarkFrontmatter,
           [remarkMdxFrontmatter, { name: 'matter' }],
-        ],
+          [
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-expect-error
+            remarkShikiTwoslash.default,
+            {
+              disableImplicitReactImport: true,
+              includeJSDocInHover: true,
+              themes: ["github-light", "github-dark"],
+              defaultOptions: {
+                lib: ["dom", "es2015"],
+              },
+              defaultCompilerOptions: {
+                allowSyntheticDefaultImports: true,
+                esModuleInterop: true,
+                target: "ESNext",
+                module: "ESNext",
+                lib: ["dom", "es2015"],
+                jsxImportSource: "react",
+                jsx: "preserve",
+                types: ["vite/client"],
+                paths: {
+                  "~/*": ["./app/*"],
+                },
+              },
+            },
+          ],
+        ]
       }),
       remix({
         future: {

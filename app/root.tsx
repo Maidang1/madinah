@@ -7,7 +7,7 @@ import {
 } from "@remix-run/react";
 import Header from "./layout/header";
 import type { LinksFunction } from "@remix-run/cloudflare";
-// import './base.css'
+import './base.css'
 
 import "./tailwind.css";
 
