@@ -19,7 +19,6 @@ function myUnifiedPluginHandlingYamlMatter() {
 
 export const getListInfo = async (listPath: string, prefix: string) => {
   const result = await fs.readdir(listPath, { encoding: "utf-8" })
-  console.log({ result })
   const formatList = result.filter(list => list.startsWith(prefix))
   const parsedContent = await Promise.all(formatList.map(async list => {
     const fullPath = path.join(listPath, list);
