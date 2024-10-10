@@ -12,14 +12,14 @@ const Index = () => {
   return (
     <div className="relative h-full">
       <div className="main-content flex items-center gap-x-6 justify-around pt-[160px] max-h-full overflow-hidden flex-col gap-y-10 lg:gap-y-0 lg:flex-row lg:pt-[240px]">
-        <div className="flex flex-col gap-y-4 text-center items-center px-6 lg:text-left lg:items-start text-white">
+        <div className="flex flex-col gap-y-4 text-center items-center px-6 lg:text-left lg:items-start text-[#3c3c43] dark:text-[#fffffff2]">
           <div className='text-3xl'>
             Hey I&apos;m Madinah 🙋
           </div>
           <div className="text-4xl">
             Front-end Developer
           </div>
-          <div className="text-sm text-white/75">
+          <div className="text-sm text-[#3c3c43] dark:text-[#fffffff2]">
             Worked at Tencent Current working at ByteDance
           </div>
           <div className="mt-8 flex gap-x-4 items-center">
@@ -43,7 +43,7 @@ const Index = () => {
 
         <img src="https://avatars.githubusercontent.com/u/50993231?v=4" alt="avatar" className="rounded-[50%] w-[200px] h-[200px] lg:w-[300px] lg:h-[300px] select-none" />
       </div>
-      <div className="footer absolute bottom-10 left-0 right-0 text-center w-full flex justify-center text-white/75 px-6">
+      <div className="footer absolute bottom-10 left-0 right-0 text-center w-full flex justify-center text-[#3c3c43] dark:text-[#fffffff2] px-6">
         什么霎那间的永恒，谁咬定自己不是过客 --《摄影艺术 · 许嵩》
       </div>
     </div>

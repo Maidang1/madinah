@@ -84,10 +84,10 @@ const Header = () => {
   };
   return (
     <div
-      className='flex justify-between px-8 py-4 fixed left-0 right-0 text-white/70 z-50 bg-transparent'
+      className='flex justify-between px-8 py-4 fixed left-0 right-0 z-50 bg-transparent'
     >
-      <div className='opacity-50 hover:opacity-80 dark:opacity-90 dark:hover:opacity-100'>
-        <a href='/' className='flex gap-x-2 items-center'>
+      <div className=''>
+        <a href='/' className='flex gap-x-2 items-center text-[#3c3c43] dark:text-[#fffffff2]'>
           <span>Madinah</span>
           <img src="https://avatars.githubusercontent.com/u/50993231?v=4" alt="avatar" className='w-6 h-6 rounded' />
         </a>
@@ -96,13 +96,15 @@ const Header = () => {
         {tabs.map((item) => (
           <div
             key={item.text}
-            className='mr-4 opacity-50 hover:opacity-80 last:mr-0 dark:opacity-90 dark:hover:opacity-100'
+            className='mr-4 last:mr-0'
           >
-            <Link to={item.link}>{item.text}</Link>
+            <Link to={item.link}>{
+              <span className='text-[#3c3c43] dark:text-[#fffffff2]'>{item.text}</span>
+            }</Link>
           </div>
         ))}
         <div
-          className=' mr-4 opacity-50 hover:opacity-80 last:mr-0 dark:opacity-90 dark:hover:opacity-100 cursor-pointer flex items-center text-xl'
+          className='mr-4 last:mr-0 cursor-pointer flex items-center text-xl text-[#3c3c43] dark:text-[#fffffff2]'
           onClick={toggleTheme}
         >
           <span className='i-simple-icons-sunrise dark:i-simple-icons-icomoon' />

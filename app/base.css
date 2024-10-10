@@ -1,15 +1,3 @@
-@media (prefers-color-scheme: light) {
-	.shiki.github-dark {
-		display: none;
-	}
-}
-
-@media (prefers-color-scheme: dark) {
-	.shiki.github-light {
-		display: none;
-	}
-}
-
 pre {
 	/* In theory shiki will overwrite these, but this is to make sure there are defaults regardless */
 	background-color: white;

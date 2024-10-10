@@ -3,6 +3,7 @@ import { iconsPlugin, getIconCollections } from "@egoist/tailwindcss-icons";
 
 
 export default {
+  darkMode:"class",
   content: ["./app/**/{**,.client,.server}/**/*.{js,jsx,ts,tsx,mdx,md}"],
   theme: {
     extend: {
