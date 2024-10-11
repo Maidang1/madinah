@@ -13,6 +13,8 @@ import { getListInfo } from './utils/post-info';
 import rehypeRaw from "rehype-raw"
 import { nodeTypes } from "@mdx-js/mdx"
 import remarkShikiTwoslash from 'remark-shiki-twoslash';
+import rehypeSlug from 'rehype-slug'
+import rehypeAutoLinkHeadings from 'rehype-autolink-headings'
 
 const root = process.cwd();
 const appDir = path.join(root, 'app');
@@ -23,7 +25,18 @@ export default defineConfig(async () => {
     plugins: [
       remixCloudflareDevProxy(),
       mdx({
-        rehypePlugins: [[rehypeRaw, { passThrough: nodeTypes }]],
+        rehypePlugins: [[rehypeRaw, { passThrough: nodeTypes }], rehypeSlug,
+        [
+          rehypeAutoLinkHeadings,
+          {
+            behavior: 'append',
+            properties: { class: 'header-anchor' },
+            content: {
+              type: 'text',
+              value: '#',
+            },
+          },
+        ],],
         remarkPlugins: [
           remarkFrontmatter,
           [remarkMdxFrontmatter, { name: 'matter' }],
@@ -54,10 +67,10 @@ export default defineConfig(async () => {
           routeDir,
           'blogs.'
         )}; export { list }`,
-        'virtual:note-list': `const list = ${await getListInfo(
-          routeDir,
-          'notes.'
-        )}; export { list }`,
+        // 'virtual:note-list': `const list = ${await getListInfo(
+        //   routeDir,
+        //   'notes.'
+        // )}; export { list }`,
       }),
       tsconfigPaths(),
     ],

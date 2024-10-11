@@ -9,6 +9,7 @@ import { matter } from 'vfile-matter'
 import readingTime from 'reading-time';
 import remarkMdx from "remark-mdx"
 import { PostInfo } from '~/types';
+import { toc } from 'mdast-util-toc'
 
 function myUnifiedPluginHandlingYamlMatter() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -16,6 +17,16 @@ function myUnifiedPluginHandlingYamlMatter() {
     matter(file)
   }
 }
+
+
+function unifiedPluginToc() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (tree: any, file: any) => {
+    const result = toc(tree)
+    file.data.toc = result.map?.children
+  }
+}
+
 
 export const getListInfo = async (listPath: string, prefix: string) => {
   const result = await fs.readdir(listPath, { encoding: "utf-8" })
@@ -29,7 +40,10 @@ export const getListInfo = async (listPath: string, prefix: string) => {
       .use(remarkStringify)
       .use(remarkFrontmatter)
       .use(myUnifiedPluginHandlingYamlMatter)
+      .use(unifiedPluginToc)
       .process(content);
+
+    console.log("file", JSON.stringify(file.data, null, 2))
     const filename = list.replace(prefix, '').split(".")[0];
     return {
       filename,
