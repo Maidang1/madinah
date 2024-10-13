@@ -15,16 +15,46 @@ import { nodeTypes } from "@mdx-js/mdx"
 import remarkShikiTwoslash from 'remark-shiki-twoslash';
 import rehypeSlug from 'rehype-slug'
 import rehypeAutoLinkHeadings from 'rehype-autolink-headings'
+import fs from "fs"
+import type { Plugin } from 'vite'
 
 const root = process.cwd();
 const appDir = path.join(root, 'app');
 const routeDir = path.join(appDir, 'routes');
 
+
+
+
+function excalidraw(): Plugin {
+  return {
+    name: "excalidraw",
+    resolveId(id: string) {
+      if (id.endsWith(".excalidraw")) {
+        return id
+      }
+    },
+    load(id) {
+      if (!id.endsWith(".excalidraw")) {
+        return null
+
+      }
+      const content = fs.readFileSync(id, {
+        encoding: 'utf-8'
+      })
+
+      return `const data = ${content}; export default data`;
+    },
+  }
+}
+
+
 export default defineConfig(async () => {
   return {
     plugins: [
       remixCloudflareDevProxy(),
+      excalidraw(),
       mdx({
+        providerImportSource: "@mdx-js/react",
         rehypePlugins: [[rehypeRaw, { passThrough: nodeTypes }], rehypeSlug,
         [
           rehypeAutoLinkHeadings,
@@ -67,10 +97,6 @@ export default defineConfig(async () => {
           routeDir,
           'blogs.'
         )}; export { list }`,
-        // 'virtual:note-list': `const list = ${await getListInfo(
-        //   routeDir,
-        //   'notes.'
-        // )}; export { list }`,
       }),
       tsconfigPaths(),
     ],
@@ -80,6 +106,9 @@ export default defineConfig(async () => {
     },
     optimizeDeps: {
       include: ['react-use'],
+    },
+    define: {
+      "process.env.IS_PREACT": JSON.stringify("true"),
     },
   };
 });

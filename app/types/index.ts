@@ -8,4 +8,5 @@ export interface PostInfo {
   readingTime: ReadTimeResults,
   filename: string
   url: string
+  toc: { url: string, value: string }[]
 }

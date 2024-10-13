@@ -7,11 +7,14 @@ import {
 } from '@remix-run/react';
 import Header from './layout/header';
 import type { LinksFunction } from '@remix-run/cloudflare';
+import { MDXProvider } from '@mdx-js/react';
+import { ClientOnly } from "remix-utils/client-only"
 import './font.css';
 import './base.css';
 import './tailwind.css';
 import './theme-dark.less';
 import './theme-light.less';
+// import ExcalidrawComponent from './components/ExcalidrawComponent';
 
 export const links: LinksFunction = () => [
   { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
@@ -39,7 +42,7 @@ export function Layout(props: { children: React.ReactNode }) {
       </head>
       <body className='h-full'>
         <Header />
-        <div className='overflow-y-auto overflow-x-hidden bg-gradient-radial pt-[56px] h-full dark:bg-[rgb(24,23,23)] bg-white text-[#3c3c43] dark:text-[#fffffff2]'>
+        <div className='overflow-y-auto bg-gradient-radial pt-[56px] h-full dark:bg-[rgb(24,23,23)] bg-white text-[#3c3c43] dark:text-[#fffffff2] scroll-container'>
           <main className='mx-auto min-h-full h-full'>
             <div className='w-full min-h-full h-full flex-1 mx-auto'>
               {children}
@@ -53,6 +56,14 @@ export function Layout(props: { children: React.ReactNode }) {
   );
 }
 
+
 export default function App() {
-  return <Outlet />;
+  return (
+    <MDXProvider components={{
+      ClientOnly,
+      // ExcalidrawComponent
+    }}>
+      <Outlet />
+    </MDXProvider>
+  );
 }

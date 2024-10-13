@@ -10,6 +10,8 @@ import readingTime from 'reading-time';
 import remarkMdx from "remark-mdx"
 import { PostInfo } from '~/types';
 import { toc } from 'mdast-util-toc'
+import { extractTocItems } from './toc';
+
 
 function myUnifiedPluginHandlingYamlMatter() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -23,7 +25,7 @@ function unifiedPluginToc() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (tree: any, file: any) => {
     const result = toc(tree)
-    file.data.toc = result.map?.children
+    file.data.toc = extractTocItems(result.map?.children ?? [])
   }
 }
 
@@ -43,14 +45,14 @@ export const getListInfo = async (listPath: string, prefix: string) => {
       .use(unifiedPluginToc)
       .process(content);
 
-    console.log("file", JSON.stringify(file.data, null, 2))
     const filename = list.replace(prefix, '').split(".")[0];
     return {
       filename,
       // @ts-expect-error
       ...file.data.matter,
       readingTime: readingTime(file.toString()),
-      url: `/blogs/${filename}`
+      url: `/blogs/${filename}`,
+      toc: file.data.toc
     };
   })) as PostInfo[];
 

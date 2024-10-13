@@ -84,7 +84,7 @@ const Header = () => {
   };
   return (
     <div
-      className='flex justify-between px-8 py-4 fixed left-0 right-0 z-50 bg-transparent'
+      className='flex justify-between px-8 py-4 fixed left-0 right-0 z-50 dark:bg-[rgb(24,23,23)] bg-white'
     >
       <div className=''>
         <a href='/' className='flex gap-x-2 items-center text-[#3c3c43] dark:text-[#fffffff2]'>
