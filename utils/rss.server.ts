@@ -3,11 +3,11 @@ import * as Rss from "rss";
 
 export function generateRssFeed(posts: any[]) {
   const feed = new Rss.default({
-    title: "Your Site Title",
-    description: "Your Site Description",
+    title: "Madinah",
+    description: "A blog about programming, technology, and life.",
     language: "en",
     copyright: "All rights reserved 2024, Madinah",
-    generator: "Remix",
+    generator: "madinah",
     feed_url: "https://madinah.felixwliu.cn/rss.xml",
     site_url: "https://madinah.felixwliu.cn",
   });
