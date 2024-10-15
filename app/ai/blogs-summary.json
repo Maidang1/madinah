@@ -1,0 +1,1 @@
+{"/blogs/hello":"The development of Chrome extensions, especially those using Vite5, poses several challenges such as frequent manual reloading, asset loading limitations, WebSocket usage restrictions, and inadequate runtime APIs that hinder developers in creating a seamless experience, leading to the need for improved extension DX solutions."}

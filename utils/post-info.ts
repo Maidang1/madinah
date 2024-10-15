@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import fs from 'fs/promises'
 import path from 'path'
@@ -11,6 +12,7 @@ import remarkMdx from "remark-mdx"
 import { PostInfo } from '~/types';
 import { toc } from 'mdast-util-toc'
 import { extractTocItems } from './toc';
+import { getSummary } from "./ollama"
 
 
 function myUnifiedPluginHandlingYamlMatter() {
@@ -32,6 +34,8 @@ function unifiedPluginToc() {
 
 export const getListInfo = async (listPath: string, prefix: string) => {
   const result = await fs.readdir(listPath, { encoding: "utf-8" })
+  const aiBogsSummaryJsonPath = path.join(process.cwd(), 'app/ai/blogs-summary.json')
+  const summaryJson = JSON.parse(await fs.readFile(aiBogsSummaryJsonPath, { encoding: "utf8" }))
   const formatList = result.filter(list => list.startsWith(prefix))
   const parsedContent = await Promise.all(formatList.map(async list => {
     const fullPath = path.join(listPath, list);
@@ -44,17 +48,27 @@ export const getListInfo = async (listPath: string, prefix: string) => {
       .use(myUnifiedPluginHandlingYamlMatter)
       .use(unifiedPluginToc)
       .process(content);
-
     const filename = list.replace(prefix, '').split(".")[0];
+
+    const url = `/blogs/${filename}`
+    const summary = summaryJson[url] as string;
+    if (!summary) {
+      const summary = await getSummary(content);
+      summaryJson[url] = summary;
+    }
+
     return {
       filename,
       // @ts-expect-error
       ...file.data.matter,
       readingTime: readingTime(file.toString()),
-      url: `/blogs/${filename}`,
-      toc: file.data.toc
+      url,
+      toc: file.data.toc,
+      summary
     };
   })) as PostInfo[];
+
+  await fs.writeFile(aiBogsSummaryJsonPath, JSON.stringify(summaryJson))
 
   parsedContent.sort((a, b) => new Date(a.time).getSeconds() - new Date(b.time).getSeconds())
   return JSON.stringify(parsedContent);
