@@ -17,6 +17,7 @@ import rehypeSlug from 'rehype-slug'
 import rehypeAutoLinkHeadings from 'rehype-autolink-headings'
 import fs from "fs"
 import type { Plugin } from 'vite'
+import commonjs from "vite-plugin-commonjs"
 
 const root = process.cwd();
 const appDir = path.join(root, 'app');
@@ -53,6 +54,7 @@ export default defineConfig(async () => {
     plugins: [
       remixCloudflareDevProxy(),
       excalidraw(),
+      commonjs(),
       mdx({
         providerImportSource: "@mdx-js/react",
         rehypePlugins: [[rehypeRaw, { passThrough: nodeTypes }], rehypeSlug,

@@ -64,7 +64,10 @@ export const getListInfo = async (listPath: string, prefix: string) => {
       readingTime: readingTime(file.toString()),
       url,
       toc: file.data.toc,
-      summary
+      summary,
+      content: file.toString(),
+      // @ts-expect-error
+      title: file?.data?.matter.title ?? '',
     };
   })) as PostInfo[];
 
