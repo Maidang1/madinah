@@ -11,6 +11,10 @@ const tabs = [
     text: 'Projects',
     link: '/projects',
   },
+  {
+    text: 'Rust',
+    link: '/rust',
+  },
 ];
 const Header = () => {
   const [localDark, setLocalDark] = useLocalStorage(

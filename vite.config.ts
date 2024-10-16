@@ -99,6 +99,10 @@ export default defineConfig(async () => {
           routeDir,
           'blogs.'
         )}; export { list }`,
+        'virtual:rust-list': `const list = ${await getListInfo(
+          routeDir,
+          'rusts.'
+        )}; export { list }`,
       }),
       tsconfigPaths(),
     ],

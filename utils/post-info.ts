@@ -50,10 +50,11 @@ export const getListInfo = async (listPath: string, prefix: string) => {
       .process(content);
     const filename = list.replace(prefix, '').split(".")[0];
 
-    const url = `/blogs/${filename}`
+    const url = `/${prefix.replace('.', '')}/${filename}`
     const summary = summaryJson[url] as string;
     if (!summary) {
       const summary = await getSummary(content);
+      console.log("summary", summary);
       summaryJson[url] = summary;
     }
 
