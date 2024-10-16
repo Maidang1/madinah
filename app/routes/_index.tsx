@@ -32,10 +32,10 @@ const Index = () => {
             <Link to="https://github.com/Maidang1" target="_blank" rel="noreferrer" className="tooltip" data-tip="Github">
               <Icons iconName="i-simple-icons-github" iconColor="bg-black" />
             </Link>
-            <Link to="https://github.com/Maidang1" target="_blank" rel="noreferrer" className="tooltip" data-tip="RSS">
+            <Link to="/rss.xml" target="_blank" rel="noreferrer" className="tooltip" data-tip="RSS">
               <Icons iconName="i-simple-icons-rss" iconColor="bg-[rgb(255,135,73)]" />
             </Link>
-            <Link to="https://github.com/Maidang1" target="_blank" rel="noreferrer" className="tooltip" data-tip="X">
+            <Link to="https://x.com/felixwliu" target="_blank" rel="noreferrer" className="tooltip" data-tip="X">
               <Icons iconName="i-simple-icons-x" iconColor="bg-[rgb(29,145,200)]" />
             </Link>
           </div>

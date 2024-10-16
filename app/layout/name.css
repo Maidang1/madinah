@@ -49,7 +49,7 @@ html.dark {
     fill: #fdfdfd;
     stroke-dasharray: 3000;
     stroke-dashoffset: 8000;
-    animation: drawSignatureDark 8s linear infinite;
+    animation: drawSignatureDark 12s linear infinite;
   }
 }
 
@@ -60,7 +60,7 @@ html {
     fill: #303030;
     stroke-dasharray: 3000;
     stroke-dashoffset: 8000;
-    animation: drawSignatureLight 8s linear infinite;
+    animation: drawSignatureLight 12s linear infinite;
   }
 }
 
