@@ -7,10 +7,10 @@ const tabs = [
     text: 'Blog',
     link: '/blog',
   },
-  {
-    text: 'Projects',
-    link: '/projects',
-  },
+  // {
+  //   text: 'Projects',
+  //   link: '/projects',
+  // },
   {
     text: 'Rust',
     link: '/rust',

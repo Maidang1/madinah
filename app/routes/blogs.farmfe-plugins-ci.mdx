@@ -1,0 +1,300 @@
+---
+title: Introduce farm plugins ci
+author: Madinah
+tags:
+  - ci
+  - github actions
+time: 2024-10-19 16:42:00
+---
+
+Recently, I have been working on a project that requires me to support both JavaScript and Rust plugins. I have been using GitHub Actions to deploy the plugins, and I wanted to share how I managed to support both JavaScript and Rust plugins in the same repository.
+
+## Rust Plugins
+
+### Building Rust Plugins
+
+Bacause of rust plugin need support multi-platform, so we should build in multi-platform before deploy to npm registry.
+
+```yaml
+name: Building Rust Binding And Upload Artifacts
+on: workflow_call
+
+jobs:
+  build:
+    name: Build and Upload Artifacts - ${{ matrix.settings.abi }}
+    runs-on: ${{ matrix.settings.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        settings:
+          - os: ubuntu-latest
+            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
+            abi: linux-x64-gnu
+            build: >-
+              git config --global --add safe.directory /build &&
+              set -e &&
+              unset CC_x86_64_unknown_linux_gnu &&
+              unset CC &&
+              pnpm --filter "{rust-plugins}[HEAD~1]" --sequential build --target x86_64-unknown-linux-gnu --abi linux-x64-gnu
+          - os: ubuntu-latest
+            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
+            abi: linux-x64-musl
+            build: >-
+              git config --global --add safe.directory /build &&
+              set -e &&
+              unset CC_x86_64_unknown_linux_musl &&
+              unset CC &&
+              pnpm  --filter "{rust-plugins}[HEAD~1]" --sequential build --target x86_64-unknown-linux-musl --abi linux-x64-musl
+          - os: windows-latest
+            abi: win32-x64-msvc
+          - os: macos-latest
+            abi: darwin-arm64
+          - os: macos-13
+            abi: darwin-x64
+          # cross compile
+          # windows. Note swc plugins is not supported on ia32 and arm64
+          - os: windows-latest
+            abi: win32-ia32-msvc
+            target: i686-pc-windows-msvc
+            build: |
+              export CARGO_PROFILE_RELEASE_LTO=false
+              cargo install cargo-xwin --locked
+              pnpm --filter "{rust-plugins}[HEAD~1]" --sequential build --target i686-pc-windows-msvc --abi win32-ia32-msvc --cargo-flags="--no-default-features"
+          - os: windows-latest
+            abi: win32-arm64-msvc
+            target: aarch64-pc-windows-msvc
+            build: |
+              export CARGO_PROFILE_RELEASE_CODEGEN_UNITS=256
+              export CARGO_PROFILE_RELEASE_LTO=false
+              cargo install cargo-xwin --locked
+              pnpm --filter "{rust-plugins}[HEAD~1]" --sequential build --target aarch64-pc-windows-msvc --abi win32-arm64-msvc --cargo-flags="--no-default-features"
+
+          # linux
+          - os: ubuntu-latest
+            abi: linux-arm64-musl
+            target: aarch64-unknown-linux-musl
+            zig: true
+          - os: ubuntu-latest
+            abi: linux-arm64-gnu
+            target: aarch64-unknown-linux-gnu
+            zig: true
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+      # - run: |
+      # git fetch --no-tags --prune --depth=1 origin +refs/heads/main:refs/remotes/HEAD~1
+
+      - name: Cache rust artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rust-build-${{ matrix.settings.abi }}
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - name: Install Dependencies
+        run: npm config set registry https://registry.npmmirror.com && npm install -g pnpm@9.1.0 && pnpm i --frozen-lockfile
+      - run: rustup target add ${{ matrix.settings.target }}
+        if: ${{ matrix.settings.target }}
+      # Use the v1 of this action
+      - uses: mbround18/setup-osxcross@v1
+        if: ${{ matrix.settings.osxcross }}
+        # This builds executables & sets env variables for rust to consume.
+        with:
+          osx-version: '12.3'
+      - uses: goto-bus-stop/setup-zig@v2
+        if: ${{ matrix.settings.zig }}
+      - name: Build in docker
+        uses: addnab/docker-run-action@v3
+        if: ${{ matrix.settings.docker }}
+        with:
+          image: ${{ matrix.settings.docker }}
+          options: -v ${{ env.HOME }}/.cargo/git:/root/.cargo/git -v ${{ env.HOME }}/.cargo/registry:/root/.cargo/registry -v ${{ github.workspace }}:/build -w /build
+          run: ${{ matrix.settings.build }}
+      - name: Default Build
+        if: ${{ !matrix.settings.docker && !matrix.settings.build }}
+        run: |
+          pnpm --filter "{rust-plugins}[HEAD~1]" --sequential build --abi ${{ matrix.settings.abi }} ${{ matrix.settings.target && format('--target {0}', matrix.settings.target) || '' }} ${{ matrix.settings.zig && '--zig' || '' }}
+        shell: bash
+      - name: Build
+        if: ${{ !matrix.settings.docker && matrix.settings.build }}
+        run: ${{ matrix.settings.build }}
+        shell: bash
+      - name: Upload Plugin dsv
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ github.sha }}-${{ matrix.settings.abi }}-dsv
+          path: ./rust-plugins/dsv/npm/${{ matrix.settings.abi }}/index.farm
+          if-no-files-found: ignore
+      # other packages upload
+```
+
+In the above ci config, first we build defferent platform rust plugins. But in then build step, we use `pnpm --filter "{rust-plugins}[HEAD~1]"` to build only changed rust plugins. This is very important, because we don't want to build all rust plugins every time. Then filter only build changed rust plugins under `rust-plugins` directory.
+
+### Deploying Rust Plugins
+
+```yaml
+name: Publish packages and crates
+on:
+  push:
+    branches:
+      - main
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  call-rust-build:
+    if: contains(github.event.head_commit.message, 'rust-plugins') || contains(github.event.head_commit.message, 'all')
+    uses: ./.github/workflows/build.yaml
+
+  release:
+    name: Release
+    if: contains(github.event.head_commit.message, 'rust-plugins') || contains(github.event.head_commit.message, 'all')
+    needs: [call-rust-build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+      - run: |
+          git fetch --no-tags --prune --depth=1 origin +refs/heads/main:refs/remotes/HEAD~1
+
+      - name: Setup Node.js 18.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18.x
+
+      # batch download artifacts
+      - uses: actions/download-artifact@v3
+        with:
+          path: /tmp/artifacts
+      - name: Move Artifacts
+        run: |
+          for abi in linux-x64-gnu linux-x64-musl darwin-x64 win32-x64-msvc linux-arm64-musl linux-arm64-gnu darwin-arm64 win32-ia32-msvc win32-arm64-msvc
+          do
+             for package in dsv react-components virtual yaml strip image url icons auto-import mdx
+              do
+                folder_path="/tmp/artifacts/${{github.sha}}-${abi}-${package}"
+                if [ -d "${folder_path}" ] && [ -n "$(ls -A $folder_path)" ]; then
+                  mv /tmp/artifacts/${{ github.sha }}-${abi}-${package}/* ./packages/${package}/npm/${abi}
+                  ls -R $folder_path
+                  ls -R ./packages/${package}/npm/${abi}
+                  test -f ./packages/${package}/npm/${abi}/index.farm
+                else
+                  echo "${folder_path} is empty"
+                fi
+              done
+          done
+
+      - name: Install Dependencies
+        run: npm install -g pnpm@9.1.0 && pnpm i --frozen-lockfile
+
+      - name: Publish to npm
+        run: |
+          npm set //registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }} && npm config set access public && pnpm --filter "{rust-plugins}[HEAD~1]" publish --no-git-checks
+```
+
+In the above ci config, we use `contains` to determine whether to run the ci. If the commit message contains `rust-plugins` or `all`, then we run the ci. In the `release` job, we first download the artifacts that we built in the previous ci. Then we move the artifacts to the corresponding directory. Finally, we publish the rust plugins to the npm registry.
+
+## JavaScript Plugins
+
+### Building JavaScript Plugins
+
+```yaml
+name: PR build plugins
+on: workflow_call
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: release
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+      # - run: |
+      # git fetch --no-tags --prune --depth=1 origin +refs/heads/main:refs/remotes/HEAD~1
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org/
+
+      - name: Enable Corepack
+        id: pnpm-setup
+        run: |
+          corepack enable
+
+      - name: Initliaze .npmrc
+        run: >
+          echo -e "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}\n$(cat .npmrc)" > .npmrc
+          && cat -n .npmrc
+
+      - name: pnpm install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Packages
+        run: |
+          pnpm --filter "{js-plugins}[HEAD~1]" build
+```
+
+the config is as same as rust plugins, but we use `pnpm --filter "{js-plugins}[HEAD~1]" build` to build only changed js plugins.
+
+### Deploying JavaScript Plugins
+
+```yaml
+name: Release Packages
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.message, 'js-plugins') || contains(github.event.head_commit.message, 'all')
+    name: release
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org/
+
+      - name: Enable Corepack
+        id: pnpm-setup
+        run: |
+          corepack enable
+
+      - name: Initliaze .npmrc
+        run: >
+          echo -e "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}\n$(cat .npmrc)" > .npmrc
+          && cat -n .npmrc
+
+      - name: pnpm install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Packages
+        run: |
+          pnpm --filter "{js-plugins}[HEAD~1]" build
+
+      - name: Release and Publish Packages
+        run: |
+          npm set //registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }} && npm config set access public && pnpm --filter "{js-plugins}[HEAD~1]" publish --no-git-checks
+```
+
+the relase config is as same as rust plugins too.
+
+
+### Summary
+
+- use `pnpm --filter "{xx}[HEAD~1]"` to build only changed to reduce build time.
+- use `contains` to determine whether to run the ci.
