@@ -8,7 +8,7 @@ import {
 import Header from './layout/header';
 import type { LinksFunction } from '@remix-run/cloudflare';
 import { MDXProvider } from '@mdx-js/react';
-import { ClientOnly } from "remix-utils/client-only"
+import { ClientOnly } from 'remix-utils/client-only';
 import './font.css';
 import './base.css';
 import './tailwind.css';
@@ -42,9 +42,9 @@ export function Layout(props: { children: React.ReactNode }) {
       </head>
       <body className='h-full'>
         <Header />
-        <div className='overflow-y-auto bg-gradient-radial pt-[56px] h-full dark:bg-[rgb(24,23,23)] bg-white text-[#3c3c43] dark:text-[#fffffff2] scroll-container'>
-          <main className='mx-auto min-h-full h-full'>
-            <div className='w-full min-h-full h-full flex-1 mx-auto'>
+        <div className='overflow-y-auto bg-gradient-radial pt-[56px] h-full dark:bg-[rgb(24,23,23)] bg-white text-[#3c3c43] dark:text-[#fffffff2] scroll-container max-w-full'>
+          <main className='mx-auto min-h-full h-full max-w-full'>
+            <div className='w-full min-h-full h-full flex-1 mx-auto max-w-full'>
               {children}
               <ScrollRestoration />
               <Scripts />
@@ -56,13 +56,14 @@ export function Layout(props: { children: React.ReactNode }) {
   );
 }
 
-
 export default function App() {
   return (
-    <MDXProvider components={{
-      ClientOnly,
-      // ExcalidrawComponent
-    }}>
+    <MDXProvider
+      components={{
+        ClientOnly,
+        // ExcalidrawComponent
+      }}
+    >
       <Outlet />
     </MDXProvider>
   );
