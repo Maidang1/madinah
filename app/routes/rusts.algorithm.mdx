@@ -1,0 +1,58 @@
+---
+title: Rust algorithm
+author: Madinah
+tags:
+  - rust
+time: 2024-10-24 00:34:00
+---
+
+## 寻找独特数字卡片
+
+在一个班级中，每位同学都拿到了一张卡片，上面有一个整数。有趣的是，除了一个数字之外，所有的数字都恰好出现了两次。现在需要你帮助班长小 C 快速找到那个拿了独特数字卡片的同学手上的数字是什么
+
+```rust
+fn solution(inp: Vec<i32>) -> i32 {
+    let mut result = 0;
+    for i in inp.iter() {
+        result = result ^ i;
+    }
+    result
+}
+```
+
+## 数字分组求偶数和
+
+小 M 面对一组从 1 到 9 的数字，这些数字被分成多个小组，并从每个小组中选择一个数字组成一个新的数。目标是使得这个新数的各位数字之和为偶数。任务是计算出有多少种不同的分组和选择方法可以达到这一目标。
+numbers: 一个由多个整数字符串组成的列表，每个字符串可以视为一个数字组。小 M 需要从每个数字组中选择一个数字。
+例如对于[123, 456, 789]，14 个符合条件的数为：147 149 158 167 169 248 257 259 268 347 349 358 367 369
+
+```rust
+fn solution(numbers: &[i32]) -> i32 {
+  let mut groups = Vec::new();
+  for num in numbers.iter() {
+      let chats_arr: Vec<i32> = num
+          .to_string()
+          .chars()
+          .map(|c| c.to_digit(10).unwrap() as i32)
+          .collect::<Vec<i32>>();
+      groups.push(chats_arr);
+  }
+
+  fn calc_nums(group: &Vec<Vec<i32>>, index: usize, current_sum: i32, count: &mut i32) {
+      if index == group.len() {
+          if current_sum % 2 == 0 {
+              *count = *count + 1;
+          }
+          return;
+      }
+      for &num in group[index].iter() {
+          calc_nums(group, index + 1, num + current_sum, count);
+      }
+  }
+
+  let mut count = 0;
+  calc_nums(&mut groups, 0, 0, &mut count);
+
+  return count;
+}
+```
