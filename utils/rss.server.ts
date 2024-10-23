@@ -4,7 +4,7 @@ import * as Rss from "rss";
 export function generateRssFeed(posts: any[]) {
   const feed = new Rss.default({
     title: "Madinah",
-    description: "A blog about programming, technology, and life.",
+    description: "A blog about programming, technology, and life. feedId:71423989551395840+userId:41703785056535552",
     language: "en",
     copyright: "All rights reserved 2024, Madinah",
     generator: "madinah",
