@@ -39,6 +39,7 @@ export function Layout(props: { children: React.ReactNode }) {
         <Meta />
         <Links />
         <title>Madinah</title>
+        <script src='/dark-check'></script>
       </head>
       <body className='h-full'>
         <Header />

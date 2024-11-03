@@ -79,7 +79,7 @@ export default defineConfig(async () => {
             {
               disableImplicitReactImport: true,
               includeJSDocInHover: true,
-              themes: ["github-light", "github-dark"],
+              themes: ["github-dark"],
               defaultOptions: {
                 lib: ["dom", "es2015"],
               },
