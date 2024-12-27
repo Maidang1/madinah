@@ -2,6 +2,7 @@ import { Link } from '@remix-run/react';
 import { useEffectOnce, useLocalStorage } from 'react-use';
 import { Name } from './name';
 
+import { MoonIcon, SunIcon } from "lucide-react"
 const tabs = [
   {
     text: 'Blog',
@@ -68,7 +69,7 @@ const Header = () => {
           <div key={item.text} className='mr-4 last:mr-0'>
             <Link to={item.link}>
               {
-                <span className='text-[#3c3c43] dark:text-[#fffffff2]'>
+                <span className='text-[#3c3c43] dark:text-[#fffffff2] opacity-70 hover:opacity-100 duration-75'>
                   {item.text}
                 </span>
               }
@@ -76,10 +77,12 @@ const Header = () => {
           </div>
         ))}
         <div
-          className='mr-4 last:mr-0 cursor-pointer flex items-center text-xl text-[#3c3c43] dark:text-[#fffffff2]'
+          className='mr-4 last:mr-0 cursor-pointer flex items-center text-xl text-[#3c3c43] dark:text-[#fffffff2] opacity-70 hover:opacity-100'
           onClick={toggleTheme}
         >
-          <span className='i-simple-icons-sunrise dark:i-simple-icons-icomoon' />
+          {
+            localDark ? <SunIcon size={20} /> : <MoonIcon size={20} />
+          }
         </div>
       </div>
     </div>

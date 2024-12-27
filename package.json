@@ -24,12 +24,14 @@
     "clsx": "^2.1.1",
     "dayjs": "^1.11.13",
     "isbot": "^4.1.0",
+    "lucide-react": "^0.469.0",
     "ollama": "^0.5.9",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-use": "^17.5.1",
     "remix-utils": "^7.7.0",
     "rss": "^1.2.2",
+    "tailwindcss-animate": "^1.0.7",
     "vite-plugin-commonjs": "^0.10.3"
   },
   "devDependencies": {
