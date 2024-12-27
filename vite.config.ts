@@ -116,5 +116,10 @@ export default defineConfig(async () => {
     define: {
       "process.env.IS_PREACT": JSON.stringify("true"),
     },
+    server: {
+      warmup: {
+        clientFiles: ['app/**/*.tsx'],
+      },
+    },
   };
 });
