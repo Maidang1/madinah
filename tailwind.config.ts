@@ -23,7 +23,6 @@ export default {
 	},
 	plugins: [
 		require("@tailwindcss/typography"),
-		require("daisyui"),
 		iconsPlugin({
 			collections: getIconCollections(["simple-icons"])
 		}),
