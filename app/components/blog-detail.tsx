@@ -51,7 +51,7 @@ export default function BlogsDetail({ list }: BlogsDetailProps) {
                   <li key={toc.url} className="mb-1">
                     <NavLink
                       className={`text-base block mx-4 no-underline dark:text-[#fffff5db] text-[#3c3c43] hover:!text-[#646cff] ${
-                        activeUrl === toc.url ? '!text-[#646cff]' : ''
+                        activeUrl === toc.url ? 'text-[#646cff]!' : ''
                       }`}
                       to={toc.url}
                       onClick={(e) => {
@@ -91,7 +91,7 @@ export default function BlogsDetail({ list }: BlogsDetailProps) {
                     </div>
                     <div className='overflow-hidden'>
                       <div className='overflow-hidden'>
-                        <div className='!m-0 text-sm leading-loose text-[#3c3c43] dark:text-[#fffffff2]'>
+                        <div className='m-0! text-sm leading-loose text-[#3c3c43] dark:text-[#fffffff2]'>
                           {summary}
                         </div>
                       </div>

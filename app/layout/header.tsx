@@ -53,7 +53,7 @@ const Header = () => {
   };
 
   return (
-    <div className='flex justify-between items-center px-4 sm:px-8 py-3 sm:py-4 fixed left-0 right-0 z-50 dark:bg-[rgb(24,23,23)] bg-white shadow-sm'>
+    <div className='flex justify-between items-center px-4 sm:px-8 py-3 sm:py-4 fixed left-0 right-0 z-50 dark:bg-[rgb(24,23,23)] bg-white shadow-xs'>
       <div className='flex items-center'>
         <Link
           to='/'
@@ -65,7 +65,7 @@ const Header = () => {
           <img
             src='https://avatars.githubusercontent.com/u/50993231?v=4'
             alt='avatar'
-            className='w-6 h-6 rounded'
+            className='w-6 h-6 rounded-sm'
           />
         </Link>
       </div>

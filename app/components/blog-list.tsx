@@ -22,7 +22,7 @@ export default function BaseBlogList({ list }: BaseBlogListProps) {
                 <span>{dayjs(li.time).format('YYYY-MM-DD')}</span>
                 <span className='flex flex-wrap items-center gap-x-1 gap-y-1'>
                   {li.tags.map((tag) => (
-                    <span key={tag} className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded"># {tag}</span>
+                    <span key={tag} className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-sm"># {tag}</span>
                   ))}
                 </span>
               </div>
