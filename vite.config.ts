@@ -19,6 +19,7 @@ import fs from "fs"
 import type { Plugin } from 'vite'
 import commonjs from "vite-plugin-commonjs"
 
+
 const root = process.cwd();
 const appDir = path.join(root, 'app');
 const routeDir = path.join(appDir, 'routes');

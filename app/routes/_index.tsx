@@ -11,18 +11,18 @@ export const meta: MetaFunction = () => {
 const Index = () => {
   return (
     <div className="relative h-full">
-      <div className="main-content flex items-center gap-x-6 justify-around pt-[160px] max-h-full overflow-hidden flex-col gap-y-10 lg:gap-y-0 lg:flex-row lg:pt-[240px]">
-        <div className="flex flex-col gap-y-4 text-center items-center px-6 lg:text-left lg:items-start text-[#3c3c43] dark:text-[#fffffff2]">
-          <div className='text-3xl'>
+      <div className="main-content flex items-center gap-x-6 justify-around pt-[100px] sm:pt-[160px] max-h-full overflow-hidden flex-col gap-y-10 lg:gap-y-0 lg:flex-row lg:pt-[240px] px-4 sm:px-6">
+        <div className="flex flex-col gap-y-4 text-center items-center lg:text-left lg:items-start text-[#3c3c43] dark:text-[#fffffff2] order-2 lg:order-1">
+          <div className='text-2xl sm:text-3xl'>
             Hey I&apos;m Madinah 🙋
           </div>
-          <div className="text-4xl">
+          <div className="text-3xl sm:text-4xl">
             Front-end Developer
           </div>
-          <div className="text-sm text-[#3c3c43] dark:text-[#fffffff2]">
+          <div className="text-sm sm:text-base text-[#3c3c43] dark:text-[#fffffff2]">
             Worked at Tencent Current working at ByteDance
           </div>
-          <div className="mt-8 flex gap-x-4 items-center">
+          <div className="mt-6 sm:mt-8 flex gap-x-4 items-center">
             <Link to="https://space.bilibili.com/427444426" target="_blank" rel="noreferrer" className="tooltip" data-tip="bilibili">
               <Icons iconName="i-simple-icons-bilibili" iconColor="bg-[rgb(242,93,142)]" />
             </Link>
@@ -41,13 +41,19 @@ const Index = () => {
           </div>
         </div>
 
-        <img src="https://avatars.githubusercontent.com/u/50993231?v=4" alt="avatar" className="rounded-[50%] w-[200px] h-[200px] lg:w-[300px] lg:h-[300px] select-none" />
+        <div className="order-1 lg:order-2">
+          <img 
+            src="https://avatars.githubusercontent.com/u/50993231?v=4" 
+            alt="avatar" 
+            className="rounded-[50%] w-[160px] h-[160px] sm:w-[200px] sm:h-[200px] lg:w-[300px] lg:h-[300px] select-none" 
+          />
+        </div>
       </div>
-      <div className="footer absolute bottom-10 left-0 right-0 text-center w-full flex justify-center text-[#3c3c43] dark:text-[#fffffff2] px-6">
+
+      <div className="footer fixed sm:absolute bottom-6 sm:bottom-10 left-0 right-0 text-center w-full flex justify-center text-[#3c3c43] dark:text-[#fffffff2] px-6 text-sm sm:text-base">
         什么霎那间的永恒，谁咬定自己不是过客 --《摄影艺术 · 许嵩》
       </div>
     </div>
-
   );
 };
 
