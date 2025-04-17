@@ -22,12 +22,10 @@ export default {
 		},
 	},
 	plugins: [
-		require("@tailwindcss/typography"),
-		require("daisyui"),
+		// @ts-ignore
 		iconsPlugin({
 			collections: getIconCollections(["simple-icons"])
 		}),
-		require("tailwindcss-animate")
 
 	],
 } satisfies Config;
