@@ -3,7 +3,7 @@ import { useEffectOnce, useLocalStorage } from 'react-use';
 import { Name } from './name';
 import { useState } from 'react';
 
-import { MoonIcon, SunIcon } from "lucide-react"
+import { MoonIcon, SunIcon } from 'lucide-react';
 const tabs = [
   {
     text: 'Blog',
@@ -53,35 +53,59 @@ const Header = () => {
   };
 
   return (
-    <div className='flex justify-between items-center px-4 sm:px-8 py-3 sm:py-4 fixed left-0 right-0 z-50 dark:bg-[rgb(24,23,23)] bg-white shadow-sm'>
+    <div className='relative flex justify-between items-center px-4 sm:px-8 py-3 sm:py-4 left-0 right-0 z-50 dark:bg-[rgb(24,23,23)] bg-white shadow-xs border-none'>
+      <span className='md:rounded-full bg-gradient-to-t md:bg-gradient-to-r from-sky-400 to-teal-300 opacity-40 aspect-square blur-3xl absolute  w-[150%] md:w-full bottom-[calc(100%-120px)] left-1/2 -translate-x-1/2 md:left-0 md:translate-x-0 z-100' />
+
       <div className='flex items-center'>
         <Link
           to='/'
           className='flex gap-x-2 items-center text-[#3c3c43] dark:text-[#fffffff2]'
         >
-          <span className="hidden sm:block">
+          <span className='hidden sm:block'>
             <Name />
           </span>
           <img
             src='https://avatars.githubusercontent.com/u/50993231?v=4'
             alt='avatar'
-            className='w-6 h-6 rounded'
+            className='w-6 h-6 rounded-sm'
           />
         </Link>
       </div>
 
       {/* Mobile menu button */}
       <button
-        className="lg:hidden text-[#3c3c43] dark:text-[#fffffff2]"
+        className='lg:hidden text-[#3c3c43] dark:text-[#fffffff2]'
         onClick={() => setIsMenuOpen(!isMenuOpen)}
       >
         {isMenuOpen ? (
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          <svg
+            xmlns='http://www.w3.org/2000/svg'
+            className='h-6 w-6'
+            fill='none'
+            viewBox='0 0 24 24'
+            stroke='currentColor'
+          >
+            <path
+              strokeLinecap='round'
+              strokeLinejoin='round'
+              strokeWidth={2}
+              d='M6 18L18 6M6 6l12 12'
+            />
           </svg>
         ) : (
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          <svg
+            xmlns='http://www.w3.org/2000/svg'
+            className='h-6 w-6'
+            fill='none'
+            viewBox='0 0 24 24'
+            stroke='currentColor'
+          >
+            <path
+              strokeLinecap='round'
+              strokeLinejoin='round'
+              strokeWidth={2}
+              d='M4 6h16M4 12h16M4 18h16'
+            />
           </svg>
         )}
       </button>
@@ -106,21 +130,23 @@ const Header = () => {
       </div>
 
       {/* Mobile menu */}
-      <div 
+      <div
         className={`lg:hidden fixed inset-x-0 top-[53px] bg-white dark:bg-[rgb(24,23,23)] shadow-lg transition-all duration-300 ease-in-out transform ${
-          isMenuOpen ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0 pointer-events-none'
+          isMenuOpen
+            ? 'translate-y-0 opacity-100'
+            : '-translate-y-2 opacity-0 pointer-events-none'
         }`}
       >
-        <div className="px-4 py-3 space-y-1">
+        <div className='px-4 py-3 space-y-1'>
           {tabs.map((item) => (
-            <div 
-              key={item.text} 
-              className="active:bg-gray-100 dark:active:bg-gray-800 rounded-lg"
+            <div
+              key={item.text}
+              className='active:bg-gray-100 dark:active:bg-gray-800 rounded-lg'
             >
-              <Link 
+              <Link
                 to={item.link}
                 onClick={() => setIsMenuOpen(false)}
-                className="block py-3 px-4"
+                className='block py-3 px-4'
               >
                 <span className='text-[#3c3c43] dark:text-[#fffffff2] opacity-70 hover:opacity-100 duration-150 text-lg'>
                   {item.text}
@@ -135,17 +161,17 @@ const Header = () => {
               setIsMenuOpen(false);
             }}
           >
-            <div className="py-3 px-4 cursor-pointer">
-              <span className="flex items-center gap-x-3 text-[#3c3c43] dark:text-[#fffffff2] opacity-70 hover:opacity-100">
+            <div className='py-3 px-4 cursor-pointer'>
+              <span className='flex items-center gap-x-3 text-[#3c3c43] dark:text-[#fffffff2] opacity-70 hover:opacity-100'>
                 {localDark ? (
                   <>
                     <SunIcon size={20} />
-                    <span className="text-lg">Light Mode</span>
+                    <span className='text-lg'>Light Mode</span>
                   </>
                 ) : (
                   <>
                     <MoonIcon size={20} />
-                    <span className="text-lg">Dark Mode</span>
+                    <span className='text-lg'>Dark Mode</span>
                   </>
                 )}
               </span>

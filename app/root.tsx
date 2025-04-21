@@ -43,7 +43,7 @@ export function Layout(props: { children: React.ReactNode }) {
       </head>
       <body className='h-full'>
         <Header />
-        <div className='overflow-y-auto bg-gradient-radial pt-[56px] h-full dark:bg-[rgb(24,23,23)] bg-white text-[#3c3c43] dark:text-[#fffffff2] scroll-container max-w-full'>
+        <div className='overflow-y-auto bg-gradient-radial pt-[56px] h-full dark:bg-[rgb(24,23,23)] text-[#3c3c43] dark:text-[#fffffff2] scroll-container max-w-full relative'>
           <main className='mx-auto min-h-full h-full max-w-[1200px] px-4 sm:px-6 lg:px-8'>
             <div className='w-full min-h-full h-full flex-1 mx-auto'>
               {children}
