@@ -5,7 +5,6 @@ import {
   Scripts,
   ScrollRestoration,
 } from '@remix-run/react';
-import Header from './layout/header';
 import type { LinksFunction } from '@remix-run/cloudflare';
 import { MDXProvider } from '@mdx-js/react';
 import { ClientOnly } from 'remix-utils/client-only';
@@ -14,7 +13,9 @@ import './base.css';
 import './tailwind.css';
 import './theme-dark.less';
 import './theme-light.less';
-// import ExcalidrawComponent from './components/ExcalidrawComponent';
+import { cn } from './lib/utils';
+import { AnimatedGridPattern } from '@components/magicui/animated-grid-pattern';
+import { Menu } from '~/layout/menu';
 
 export const links: LinksFunction = () => [
   { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
@@ -41,17 +42,25 @@ export function Layout(props: { children: React.ReactNode }) {
         <title>Madinah</title>
         <script src='/dark-check'></script>
       </head>
-      <body className='h-full'>
-        <Header />
-        <div className='overflow-y-auto bg-gradient-radial pt-[56px] h-full dark:bg-[rgb(24,23,23)] text-[#3c3c43] dark:text-[#fffffff2] scroll-container max-w-full relative'>
-          <main className='mx-auto min-h-full h-full max-w-[1200px] px-4 sm:px-6 lg:px-8'>
-            <div className='w-full min-h-full h-full flex-1 mx-auto'>
-              {children}
-              <ScrollRestoration />
-              <Scripts />
-            </div>
+      <body className='min-h-screen flex flex-col'>
+        <div className="flex-1 relative">
+          <AnimatedGridPattern
+            numSquares={30}
+            maxOpacity={0.1}
+            duration={3}
+            repeatDelay={1}
+            className={cn(
+              "fixed inset-0 -z-10 [mask-image:radial-gradient(500px_circle_at_center,white,transparent)]",
+            )}
+          />
+          <main className="container mx-auto px-4 py-20">
+            {children}
+            <ScrollRestoration />
+            <Scripts />
           </main>
         </div>
+        <Menu />
+
       </body>
     </html>
   );
