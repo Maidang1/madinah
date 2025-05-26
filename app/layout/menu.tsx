@@ -66,7 +66,7 @@ export function Menu({ className }: MenuProps) {
           active={isActive("/rust")}
           activeClassName="bg-gray-300/50 dark:bg-gray-600/50"
         >
-          <CodeIcon size={16} />
+          <span className="i-simple-icons-rust text-[16px]"></span>
         </DockIcon>
         <div className="mx-1 h-8 w-px bg-gray-200 dark:bg-gray-700" />
         <DockIcon
