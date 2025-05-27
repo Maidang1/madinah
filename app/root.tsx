@@ -50,7 +50,7 @@ export function Layout(props: { children: React.ReactNode }) {
             duration={3}
             repeatDelay={1}
             className={cn(
-              "fixed inset-0 -z-10 [mask-image:radial-gradient(500px_circle_at_center,white,transparent)]",
+              "fixed inset-0 z-[9999] [mask-image:radial-gradient(500px_circle_at_center,white,transparent)]",
             )}
           />
           <main className="container mx-auto px-4 py-20">

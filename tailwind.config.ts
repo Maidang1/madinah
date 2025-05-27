@@ -24,7 +24,7 @@ export default {
 	plugins: [
 		require("@tailwindcss/typography"),
 		iconsPlugin({
-			collections: getIconCollections(["simple-icons"])
+			collections: getIconCollections(["simple-icons", "simple-line-icons"])
 		}),
 		require("tailwindcss-animate")
 

@@ -90,6 +90,9 @@ importers:
       '@iconify-json/simple-icons':
         specifier: ^1.2.32
         version: 1.2.32
+      '@iconify-json/simple-line-icons':
+        specifier: ^1.2.1
+        version: 1.2.1
       '@mdx-js/mdx':
         specifier: ^3.1.0
         version: 3.1.0(acorn@8.14.0)
@@ -1084,6 +1087,9 @@ packages:
 
   '@iconify-json/simple-icons@1.2.32':
     resolution: {integrity: sha512-gxgLq0raip7SJaeJ0302vwhsqupQttS21B93Ci1kA/++B+hIgGw71HzTOWQoUhwjlrdWcoVUxSvpPJoMs7oURg==}
+
+  '@iconify-json/simple-line-icons@1.2.1':
+    resolution: {integrity: sha512-MxgGNPpjiruoKqoefyluJtyq3ebwxqIfngJDFx6wIe/YNOIIyT7LTGKS7kh4Az3PDfefh5Z9OkxGTLExx8WfKg==}
 
   '@iconify/types@2.0.0':
     resolution: {integrity: sha512-+wluvCrRhXrhyOmRDJ3q8mux9JkKy5SJ/v8ol2tu4FVjyYvtEzkc/3pK15ET6RKg4b4w4BmTk1+gsCUhf21Ykg==}
@@ -6331,6 +6337,10 @@ snapshots:
   '@humanwhocodes/retry@0.4.2': {}
 
   '@iconify-json/simple-icons@1.2.32':
+    dependencies:
+      '@iconify/types': 2.0.0
+
+  '@iconify-json/simple-line-icons@1.2.1':
     dependencies:
       '@iconify/types': 2.0.0
 
