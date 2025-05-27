@@ -6,6 +6,9 @@ export default {
 	darkMode: "class",
 	content: ["./app/**/{**,.client,.server}/**/*.{js,jsx,ts,tsx,mdx,md}"],
 	theme: {
+		colors: {
+			"purple": "#646cff",
+		},
 		extend: {
 			fontFamily: {
 				sans: [
