@@ -68,6 +68,13 @@ export function Menu({ className }: MenuProps) {
         >
           <span className="i-simple-icons-rust text-[16px]"></span>
         </DockIcon>
+        <DockIcon
+          onClick={() => navigate("/projects")}
+          active={isActive("/projects")}
+          activeClassName="bg-gray-300/50 dark:bg-gray-600/50"
+        >
+          <CodeIcon size={16} />
+        </DockIcon>
         <div className="mx-1 h-8 w-px bg-gray-200 dark:bg-gray-700" />
         <DockIcon
           onClick={(e) => {
