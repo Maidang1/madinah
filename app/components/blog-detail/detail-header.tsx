@@ -30,23 +30,28 @@ export function DetailHeader({ title, summary, className }: BlogContentProps) {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className='bg-gradient-to-r from-primary/5 to-primary/10 border-l-4 border-primary p-6 rounded-r-lg mb-8 not-prose'
+                className='relative overflow-hidden bg-gradient-to-br from-blue-50/80 via-indigo-50/60 to-purple-50/80 dark:from-blue-950/20 dark:via-indigo-950/30 dark:to-purple-950/20 border border-blue-200/50 dark:border-blue-800/30 p-6 rounded-2xl mb-8 not-prose shadow-sm backdrop-blur-sm'
               >
-                <div className='flex items-start gap-3'>
-                  <div className='bg-primary/10 p-2 rounded-lg text-primary'>
-                    <span className='i-lucide-sparkles w-5 h-5 block' />
+                <div className='absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-blue-400/10 to-purple-400/10 rounded-full blur-xl'></div>
+                <div className='absolute bottom-0 left-0 w-16 h-16 bg-gradient-to-tr from-indigo-400/10 to-blue-400/10 rounded-full blur-lg'></div>
+                <div className='relative z-10'>
+                  <div className='flex items-center gap-3 mb-4'>
+                    <div className='flex items-center justify-center w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg shadow-sm'>
+                      <span className='i-simple-icons-openai text-white w-4 h-4 block' />
+                    </div>
+                    <div className='flex flex-col'>
+                      <span className='text-sm font-semibold text-blue-700 dark:text-blue-300'>AI 摘要</span>
+                      <span className='text-xs text-blue-600/70 dark:text-blue-400/70'>智能生成</span>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className='font-medium text-lg flex items-center gap-2 mb-2'>
-                      <span>AI 摘要</span>
-                      <span className='text-xs px-2 py-0.5 bg-primary/10 text-primary rounded-full'>
-                        Beta
-                      </span>
-                    </h3>
-                    <p className='text-muted-foreground text-sm leading-relaxed'>
-                      {summary}
-                    </p>
-                  </div>
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.4 }}
+                    className='text-slate-700 dark:text-slate-300 text-sm leading-relaxed font-medium'
+                  >
+                    {summary}
+                  </motion.p>
                 </div>
               </motion.div>
             )}
