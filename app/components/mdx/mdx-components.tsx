@@ -216,7 +216,7 @@ export const A = ({ children, href, className, ...props }: LinkProps & any) => {
     <a
       href={href}
       className={cn(
-        'text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300',
+        'text-primary hover:text-primary-dark dark:text-primary-light dark:hover:text-primary',
         'underline decoration-blue-300 dark:decoration-blue-600 decoration-1',
         'underline-offset-2 hover:decoration-2',
         'transition-all duration-200 ease-out',
@@ -437,7 +437,7 @@ interface CalloutProps {
 
 export const Callout = ({ type = 'info', children, title, className }: CalloutProps) => {
   const typeStyles = {
-    info: 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200',
+    info: 'bg-primary/5 dark:bg-primary/10 border-primary/20 dark:border-primary/30 text-primary dark:text-primary-light',
     warning: 'bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-200',
     error: 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-200',
     success: 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200',

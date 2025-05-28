@@ -22,7 +22,7 @@ const Index = () => {
           transition={{ duration: 0.5 }}
           className="flex flex-col gap-y-6 text-center items-center lg:text-left lg:items-start text-foreground order-2 lg:order-1"
         >
-          <div className='text-2xl sm:text-4xl min-h-[80px] font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent'>
+          <div className='text-2xl sm:text-4xl min-h-[80px] font-bold bg-gradient-to-r from-primary to-primary-light bg-clip-text text-transparent'>
             <TypingAnimation>Hey I&apos;m Madinah</TypingAnimation>
           </div>
           <motion.div
@@ -93,7 +93,7 @@ const Index = () => {
           transition={{ duration: 0.5, delay: 0.3 }}
           className="relative order-1 lg:order-2 group"
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full opacity-0 group-hover:opacity-70 blur-xl transition-opacity duration-500 animate-pulse"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-primary to-primary-light rounded-full opacity-0 group-hover:opacity-70 blur-xl transition-opacity duration-500 animate-pulse"></div>
           <div className="relative">
             <img
               src="https://avatars.githubusercontent.com/u/50993231?v=4"

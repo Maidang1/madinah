@@ -1,6 +1,6 @@
 import { useTableOfContents } from '~/hooks/use-table-of-contents';
 import { TocItem } from '~/types';
-import { Tocs } from '../tocs';
+import { Tocs } from './tocs';
 
 interface TableOfContentsProps {
   tocs: TocItem[];

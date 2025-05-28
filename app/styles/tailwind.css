@@ -54,7 +54,7 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --primary: oklch(0.488 0.243 264.376);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -91,8 +91,8 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
+  --primary: oklch(0.488 0.243 264.376);
+  --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
@@ -156,12 +156,12 @@
 
   /* 选择文本样式 */
   ::selection {
-    @apply bg-blue-100 dark:bg-blue-900/30 text-blue-900 dark:text-blue-100;
+    @apply bg-primary/20 dark:bg-primary/30 text-primary-foreground;
   }
 
   /* Focus 样式增强 */
   a:focus-visible,
   button:focus-visible {
-    @apply outline-2 outline-blue-500 outline-offset-2;
+    @apply outline-2 outline-primary outline-offset-2;
   }
 }
