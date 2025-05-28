@@ -1,9 +1,9 @@
 import { Link } from "@remix-run/react";
-import { Icons } from "~/components/icons";
+import { Icons } from "~/components/common/icons";
 import type { MetaFunction } from "@remix-run/cloudflare";
-import { TypingAnimation } from "~/magicui/typing-animation";
+import { TypingAnimation } from "~/components/magicui/typing-animation";
 import { motion } from "motion/react";
-import { cn } from "~/lib/utils";
+import { cn } from "~/utils";
 
 export const meta: MetaFunction = () => {
   return [

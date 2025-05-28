@@ -8,14 +8,12 @@ import {
 import type { LinksFunction } from '@remix-run/cloudflare';
 import { MDXProvider } from '@mdx-js/react';
 import { ClientOnly } from 'remix-utils/client-only';
-import './font.css';
-import './base.css';
-import './tailwind.css';
-import './theme-dark.less';
-import './theme-light.less';
-import { cn } from './lib/utils';
-import { AnimatedGridPattern } from '@components/magicui/animated-grid-pattern';
-import { Menu } from '~/layout/menu';
+import { cn } from './utils';
+import { AnimatedGridPattern } from '~/components/magicui/animated-grid-pattern';
+import { Menu } from '~/components/blog-list/menu';
+
+import './styles/tailwind.css';
+import './styles/theme.less';
 
 export const links: LinksFunction = () => [
   { rel: 'preconnect', href: 'https://fonts.googleapis.com' },

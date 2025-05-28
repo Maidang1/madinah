@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { SCROLL_CONFIG } from '../config/scroll-config';
+import { SCROLL_CONFIG } from '~/config/scroll-config';
 import { TocItem } from '../types';
-import { scrollToElement, getScrollPosition, throttle } from '../utils/scroll-utils';
+import { scrollToElement, getScrollPosition, throttle } from '~/utils/scroll-utils';
 
 interface UseTableOfContentsProps {
   tocs: TocItem[];

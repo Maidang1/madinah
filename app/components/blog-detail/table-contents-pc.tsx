@@ -1,6 +1,6 @@
-import { useTableOfContents } from './hooks/use-table-of-contents';
-import { TocItem } from './types';
-import { Tocs } from './tocs';
+import { useTableOfContents } from '~/hooks/use-table-of-contents';
+import { TocItem } from '~/types';
+import { Tocs } from '../tocs';
 
 interface TableOfContentsProps {
   tocs: TocItem[];
@@ -8,7 +8,7 @@ interface TableOfContentsProps {
   showProgress?: boolean;
 }
 
-export function TableOfContents({ tocs, className, showProgress = true }: TableOfContentsProps) {
+export function TableOfContentsPC({ tocs, className, showProgress = true }: TableOfContentsProps) {
   const { activeId, handleClick } = useTableOfContents({ tocs });
 
   if (tocs.length === 0) {

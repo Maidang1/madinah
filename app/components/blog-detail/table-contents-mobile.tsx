@@ -1,17 +1,16 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { NavLink } from '@remix-run/react';
-import { cn } from '~/lib/utils';
-import { useTableOfContents } from './hooks/use-table-of-contents';
-import { TocItem } from './types';
-import { Tocs } from './tocs';
+import { cn } from '~/utils';
+import { useTableOfContents } from '~/hooks/use-table-of-contents';
+import { TocItem } from '~/types';
+import { Tocs } from '../tocs';
 
 interface MobileTableOfContentsProps {
   tocs: TocItem[];
   className?: string;
 }
 
-export function MobileTableOfContents({ tocs, className }: MobileTableOfContentsProps) {
+export function TableOfContentsMobile({ tocs, className }: MobileTableOfContentsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { activeId, handleClick } = useTableOfContents({ tocs });
 

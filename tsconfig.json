@@ -9,7 +9,7 @@
     "**/.client/**/*.tsx",
     "app/routes/_index.tsx",
     "app/**/*.d.ts",
-    "app/global.d.ts"
+    "app/types/global.d.ts"
   ],
   "compilerOptions": {
     "lib": ["DOM", "DOM.Iterable", "ES2022"],

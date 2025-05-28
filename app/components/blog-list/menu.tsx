@@ -7,7 +7,7 @@ import {
   BookOpenIcon,
   CodeIcon,
 } from "lucide-react";
-import { Dock, DockIcon } from "@components/magicui/dock";
+import { Dock, DockIcon } from "~/components/magicui/dock";
 
 interface MenuProps {
   className?: string;

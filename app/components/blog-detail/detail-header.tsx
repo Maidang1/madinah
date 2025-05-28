@@ -7,11 +7,9 @@ interface BlogContentProps {
   title?: string;
   summary?: string;
   className?: string;
-  readingTime?: ReadTimeResults; // 预计阅读时间，单位为分钟
-  tags?: string[]; // 文章标签
 }
 
-export function BlogContent({ title, summary, className, readingTime, tags }: BlogContentProps) {
+export function DetailHeader({ title, summary, className }: BlogContentProps) {
   return (
     <div className={`flex-1 min-w-0 ${className || ''}`}>
       <motion.article

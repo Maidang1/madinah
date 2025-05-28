@@ -6,12 +6,10 @@ import {
   MotionProps,
   MotionValue,
   useMotionValue,
-  useSpring,
-  useTransform,
 } from "motion/react";
 import React, { PropsWithChildren, useRef } from "react";
 
-import { cn } from "~/lib/utils";
+import { cn } from "~/utils";
 
 export interface DockProps extends VariantProps<typeof dockVariants> {
   className?: string;

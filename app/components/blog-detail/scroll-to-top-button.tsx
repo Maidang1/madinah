@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowUp } from 'lucide-react';
-import { SCROLL_CONFIG } from './config/scroll-config';
-import { getScrollPosition, scrollToTop, throttle } from './utils/scroll-utils';
+import { SCROLL_CONFIG } from '../../config/scroll-config';
+import { getScrollPosition, scrollToTop, throttle } from '../../utils/scroll-utils';
 
 interface ScrollToTopButtonProps {
   threshold?: number;

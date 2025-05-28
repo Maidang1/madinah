@@ -1,6 +1,6 @@
 import { NavLink } from "@remix-run/react";
-import { cn } from "~/lib/utils";
-import { TocItem } from "./types";
+import { cn } from "~/utils";
+import { TocItem } from "~/types";
 
 interface TocsProps {
   tocs: TocItem[];

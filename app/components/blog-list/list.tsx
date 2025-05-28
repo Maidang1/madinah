@@ -1,15 +1,14 @@
 import { PostInfo } from "~/types";
 import { Link } from "@remix-run/react";
-import dayjs from "dayjs";
 import { motion } from "motion/react";
-import { cn } from "~/lib/utils";
-import { Time } from "./time";
+import { cn } from "~/utils";
+import { Time } from "../common/time";
 
 interface BaseBlogListProps {
   list: PostInfo[];
 }
 
-export default function BaseBlogList({ list }: BaseBlogListProps) {
+export default function List({ list }: BaseBlogListProps) {
   return (
     <div className="mx-auto max-w-4xl px-4 pt-[60px] sm:px-6 sm:pt-[100px]">
       <div className="grid gap-6 md:gap-8">

@@ -34,7 +34,7 @@ function unifiedPluginToc() {
 
 export const getListInfo = async (listPath: string, prefix: string) => {
   const result = await fs.readdir(listPath, { encoding: "utf-8" })
-  const aiBogsSummaryJsonPath = path.join(process.cwd(), 'app/ai/blogs-summary.json')
+  const aiBogsSummaryJsonPath = path.join(process.cwd(), 'app/summary/blogs-summary.json')
   const summaryJson = JSON.parse(await fs.readFile(aiBogsSummaryJsonPath, { encoding: "utf8" }))
   const formatList = result.filter(list => list.startsWith(prefix))
   const parsedContent = await Promise.all(formatList.map(async list => {
