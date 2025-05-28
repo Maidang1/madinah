@@ -11,9 +11,11 @@ import { ClientOnly } from 'remix-utils/client-only';
 import { cn } from './utils';
 import { AnimatedGridPattern } from '~/components/magicui/animated-grid-pattern';
 import { Menu } from '~/components/blog-list/menu';
+import { mdxComponents } from '~/components/mdx/mdx-components';
 
 import './styles/tailwind.css';
 import './styles/theme.less';
+import './styles/mdx.css';
 
 export const links: LinksFunction = () => [
   { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
@@ -68,6 +70,7 @@ export default function App() {
   return (
     <MDXProvider
       components={{
+        ...mdxComponents,
         ClientOnly,
         // ExcalidrawComponent
       }}

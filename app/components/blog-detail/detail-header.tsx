@@ -1,6 +1,7 @@
 import { Outlet } from '@remix-run/react';
 import { motion } from 'motion/react';
 import type { ReadTimeResults } from "reading-time"
+import { MDXWrapper } from '~/components/mdx/mdx-wrapper';
 
 
 interface BlogContentProps {
@@ -16,7 +17,7 @@ export function DetailHeader({ title, summary, className }: BlogContentProps) {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className='prose dark:prose-invert max-w-none prose-headings:font-semibold prose-h1:text-3xl sm:prose-h1:text-4xl prose-h1:mb-6 prose-img:rounded-xl prose-img:shadow-lg'
+        className='max-w-none'
       >
         {(title || summary) && (
           <header className='mb-8'>
@@ -57,9 +58,9 @@ export function DetailHeader({ title, summary, className }: BlogContentProps) {
             )}
           </header>
         )}
-        <div className='mt-8 pb-[800px]'>
+        <MDXWrapper className='mt-8 pb-[800px]'>
           <Outlet />
-        </div>
+        </MDXWrapper>
       </motion.article>
     </div>
   );

@@ -1,0 +1,119 @@
+---
+title: MDX 样式展示
+author: Madinah
+tags:
+  - 样式
+  - 设计
+time: 2024-12-17 15:30:00
+summary: 展示新的 antfu.me 风格 MDX 组件效果
+---
+
+# 新的 MDX 样式展示
+
+这是一个展示新 MDX 组件样式的示例页面，采用了类似 antfu.me 的简洁设计风格。
+
+## 基本排版
+
+这是一个普通的段落。文字应该有舒适的行高和间距，在深色和浅色主题下都有良好的可读性。链接会有优雅的下划线效果，比如这个 [内部链接](#基本排版) 和这个 [外部链接](https://antfu.me)。
+
+### 列表样式
+
+无序列表：
+- 第一项内容
+- 第二项内容
+- 第三项内容，这里有一个 [链接示例](https://github.com)
+
+有序列表：
+1. 第一步操作
+2. 第二步操作  
+3. 第三步操作
+
+## 代码展示
+
+行内代码：`console.log('Hello World')`
+
+代码块：
+
+```javascript
+function greet(name) {
+  return `Hello, ${name}!`;
+}
+
+const message = greet('世界');
+console.log(message);
+```
+
+```typescript
+interface User {
+  id: number;
+  name: string;
+  email: string;
+}
+
+const users: User[] = [
+  { id: 1, name: 'Alice', email: 'alice@example.com' },
+  { id: 2, name: 'Bob', email: 'bob@example.com' }
+];
+```
+
+## 引用块
+
+> 这是一个引用块示例。它应该有优雅的左边框和柔和的背景色。
+> 
+> 引用块可以包含多行内容，并且在深色主题下也应该保持良好的可读性。
+
+## 提示框组件
+
+<Callout type="info" title="信息提示">
+这是一个信息提示框，用于展示重要信息。
+</Callout>
+
+<Callout type="warning" title="警告">
+这是一个警告提示框，用于提醒用户注意事项。
+</Callout>
+
+<Callout type="success" title="成功">
+这是一个成功提示框，用于展示成功操作的结果。
+</Callout>
+
+<Callout type="error" title="错误">
+这是一个错误提示框，用于展示错误信息。
+</Callout>
+
+## 表格
+
+| 名称 | 描述 | 状态 |
+|------|------|------|
+| React | 用户界面库 | ✅ 活跃 |
+| Vue | 渐进式框架 | ✅ 活跃 |
+| Angular | 应用平台 | ✅ 活跃 |
+
+## 分割线
+
+---
+
+## 更多标题层级
+
+#### 四级标题
+##### 五级标题
+###### 六级标题
+
+每个标题都有悬停时显示的锚点链接，方便用户分享和导航。
+
+### 链接测试
+
+- [GitHub 仓库](https://github.com/Maidang1)
+- [邮箱联系](mailto:test@example.com)
+- [相对链接](/blog)
+
+## 结语
+
+这套新的 MDX 样式组件提供了：
+
+1. **简洁的视觉设计** - 类似 antfu.me 的现代化风格
+2. **良好的可读性** - 舒适的字体大小和行间距
+3. **交互体验** - 悬停效果和锚点链接
+4. **主题适配** - 深色和浅色主题完美支持
+5. **特殊组件** - 提示框等增强内容表达
+
+希望您喜欢这个新的样式！
