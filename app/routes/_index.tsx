@@ -22,7 +22,7 @@ const Index = () => {
           transition={{ duration: 0.5 }}
           className="flex flex-col gap-y-6 text-center items-center lg:text-left lg:items-start text-foreground order-2 lg:order-1"
         >
-          <div className='text-2xl sm:text-4xl min-h-[80px] font-bold bg-gradient-to-r from-primary to-primary-light bg-clip-text text-transparent'>
+          <div className='text-2xl sm:text-4xl min-h-[80px] font-bold bg-gradient-to-r from-primary to-primary-light bg-clip-text text-primary'>
             <TypingAnimation>Hey I&apos;m Madinah</TypingAnimation>
           </div>
           <motion.div

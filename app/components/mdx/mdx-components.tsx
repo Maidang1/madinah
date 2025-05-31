@@ -161,8 +161,8 @@ export const A = ({ children, href, className, ...props }: LinkProps & any) => {
     <a
       href={href}
       className={cn(
-        'text-primary hover:text-primary-dark dark:text-primary-light dark:hover:text-primary',
-        'underline decoration-blue-300 dark:decoration-blue-600 decoration-1',
+        'text-main hover:text-main-500 dark:text-main-light dark:hover:text-main-500',
+        'underline decoration-main dark:decoration-main-500 decoration-1',
         'underline-offset-2 hover:decoration-2',
         'transition-all duration-200 ease-out',
         'font-medium inline-flex items-center gap-1',
@@ -248,8 +248,8 @@ export const Blockquote = ({ children, className, ...props }: BlockquoteProps & 
 export const Code = ({ children, className, ...props }: CodeProps & any) => (
   <code
     className={cn(
-      'bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200',
-      'p-0 border-0 rounded text-sm font-mono',
+      'dark:bg-main-500/35 bg-main-500/50  text-zinc-800 dark:text-zinc-200',
+      'px-1 py-0.5 border-0 rounded text-sm font-mono',
       className
     )}
     {...props}

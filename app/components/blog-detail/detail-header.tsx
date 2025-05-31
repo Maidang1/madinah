@@ -1,8 +1,7 @@
-import { Outlet } from '@remix-run/react';
-import { motion } from 'motion/react';
-import type { ReadTimeResults } from "reading-time"
-import { MDXWrapper } from '~/components/mdx/mdx-wrapper';
-
+import { Outlet } from "@remix-run/react";
+import { motion } from "motion/react";
+import type { ReadTimeResults } from "reading-time";
+import { MDXWrapper } from "~/components/mdx/mdx-wrapper";
 
 interface BlogContentProps {
   title?: string;
@@ -12,17 +11,17 @@ interface BlogContentProps {
 
 export function DetailHeader({ title, summary, className }: BlogContentProps) {
   return (
-    <div className={`flex-1 min-w-0 ${className || ''}`}>
+    <div className={`min-w-0 flex-1 ${className || ""}`}>
       <motion.article
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className='max-w-none'
+        className="max-w-none"
       >
         {(title || summary) && (
-          <header className='mb-8'>
+          <header className="mb-8">
             {title && (
-              <h1 className='text-3xl sm:text-4xl font-bold mb-6 text-center'>
+              <h1 className="mb-6 text-center text-3xl font-bold sm:text-4xl">
                 {title}
               </h1>
             )}
@@ -31,25 +30,27 @@ export function DetailHeader({ title, summary, className }: BlogContentProps) {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className='relative overflow-hidden bg-gradient-to-br from-primary/5 via-primary/3 to-primary/5 dark:from-primary/10 dark:via-primary/15 dark:to-primary/10 border border-primary/20 dark:border-primary/30 p-6 rounded-2xl mb-8 not-prose shadow-sm backdrop-blur-sm'
+                className="border-main-500 not-prose text-muted-foreground relative mb-8 overflow-hidden rounded-2xl border border-solid p-6 shadow-sm backdrop-blur-sm"
               >
-                <div className='absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-primary/10 to-primary-light/10 rounded-full blur-xl'></div>
-                <div className='absolute bottom-0 left-0 w-16 h-16 bg-gradient-to-tr from-primary/10 to-primary-light/10 rounded-full blur-lg'></div>
-                <div className='relative z-10'>
-                  <div className='flex items-center gap-3 mb-4'>
-                    <div className='flex items-center justify-center w-8 h-8 bg-gradient-to-br from-primary to-primary-dark rounded-lg shadow-sm'>
-                      <span className='i-simple-icons-openai text-white w-4 h-4 block' />
+                <div className="relative z-10 ">
+                  <div className="mb-4 flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg shadow-sm">
+                      <span className="i-simple-icons-openai block h-4 w-4 text-main-500" />
                     </div>
-                    <div className='flex flex-col'>
-                      <span className='text-sm font-semibold text-primary dark:text-primary-light'>AI 摘要</span>
-                      <span className='text-xs text-primary/70 dark:text-primary-light/70'>智能生成</span>
+                    <div className="flex flex-col">
+                      <span className="text-main-500 text-sm font-semibold">
+                        AI 摘要
+                      </span>
+                      <span className="text-main-500 text-xs">
+                        智能生成
+                      </span>
                     </div>
                   </div>
                   <motion.p
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.4 }}
-                    className='text-slate-700 dark:text-slate-300 text-sm leading-relaxed font-medium'
+                    className="text-sm leading-relaxed !text-muted-foreground"
                   >
                     {summary}
                   </motion.p>
@@ -58,7 +59,7 @@ export function DetailHeader({ title, summary, className }: BlogContentProps) {
             )}
           </header>
         )}
-        <MDXWrapper className='mt-8 pb-[800px]'>
+        <MDXWrapper className="mt-8 pb-[800px]">
           <Outlet />
         </MDXWrapper>
       </motion.article>

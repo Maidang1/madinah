@@ -1,9 +1,7 @@
-import { Link } from "@remix-run/react";
 import type { MetaFunction } from "@remix-run/cloudflare";
 import { motion } from "motion/react";
-import { ExternalLink, Github, Star, GitFork, Search } from "lucide-react";
+import { ExternalLink, Github, Star, GitFork } from "lucide-react";
 import { cn } from "~/utils";
-import { useState } from "react";
 
 export const meta: MetaFunction = () => {
   return [
@@ -140,7 +138,7 @@ function ProjectCard({ project, featured = false, delay = 0 }: ProjectCardProps)
       className={cn(
         "group relative overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700",
         "bg-white dark:bg-gray-800/50 backdrop-blur-sm",
-        "hover:border-primary/50 hover:shadow-xl hover:shadow-primary/10",
+        "hover:border-main-500/50 hover:shadow-xl hover:shadow-main-500/10",
         "transition-all duration-300",
         featured && "md:col-span-1"
       )}
@@ -165,11 +163,11 @@ function ProjectCard({ project, featured = false, delay = 0 }: ProjectCardProps)
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h3 className="text-lg font-bold text-black dark:text-white mb-1 group-hover:text-primary transition-colors">
+            <h3 className="text-lg font-bold text-black dark:text-white mb-1 group-hover:text-main-500 transition-colors">
               {project.name}
             </h3>
             {project.category && (
-              <span className="text-sm text-primary font-medium">
+              <span className="text-sm text-main-500 font-medium">
                 {project.category}
               </span>
             )}
@@ -215,7 +213,7 @@ function ProjectCard({ project, featured = false, delay = 0 }: ProjectCardProps)
               href={project.github}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-black/70 dark:text-white/70 hover:text-primary transition-colors"
+              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-black/70 dark:text-white/70 hover:text-main-500 transition-colors"
             >
               <Github size={16} />
               Source
@@ -226,7 +224,7 @@ function ProjectCard({ project, featured = false, delay = 0 }: ProjectCardProps)
               href={project.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-3 py-2 text-sm font-medium  text-[#3c3c43] dark:text-white rounded-lg transition-colors"
+              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-black/70 dark:text-white/70 hover:text-main-500 transition-colors"
             >
               <ExternalLink size={16} />
               Live Demo
@@ -234,9 +232,6 @@ function ProjectCard({ project, featured = false, delay = 0 }: ProjectCardProps)
           )}
         </div>
       </div>
-
-      {/* Hover Effect */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-primary-light/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
     </motion.div>
   );
 }

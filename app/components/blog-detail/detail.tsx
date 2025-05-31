@@ -25,13 +25,14 @@ export default function Detail({ list }: BlogsDetailProps) {
     <div className='container mx-auto mt-4 pt-6 sm:pt-12 px-4 sm:px-6'>
       <ScrollRestoration />
       <TableOfContentsMobile tocs={tocs} />
+
       <div className='flex flex-col lg:flex-row gap-8 relative'>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
           className='lg:w-64 xl:w-80 shrink-0 hidden lg:block mt-[64px]'>
-          <div className='sticky top-24 space-y-6 max-h-[calc(100vh-6rem)] overflow-y-auto'>
+          <div className='sticky top-24 space-y-6 max-h-[calc(100vh-6rem)] overflow-y-auto opacity-50 hover:opacity-100 transition-opacity duration-400'>
             <div className='pb-6 border-b border-border/50'>
               <TableOfContentsPC tocs={tocs} className="w-full" />
             </div>
