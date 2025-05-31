@@ -1,4 +1,4 @@
-import { createCookie } from '@remix-run/node';
+import { createCookie } from '@remix-run/cloudflare';
 
 export const userTheme = createCookie('user-theme', {
   maxAge: 60 * 60 * 24 * 365, // 1 year
