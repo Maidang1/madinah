@@ -41,9 +41,6 @@ export function DetailHeader({ title, summary, className }: BlogContentProps) {
                       <span className="text-main-500 text-sm font-semibold">
                         AI 摘要
                       </span>
-                      <span className="text-main-500 text-xs">
-                        智能生成
-                      </span>
                     </div>
                   </div>
                   <motion.p

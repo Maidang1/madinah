@@ -3,10 +3,9 @@ import { LoaderFunction } from '@remix-run/cloudflare';
 
 import { generateRssFeed } from '../../utils/rss-server';
 import { list } from 'virtual:blog-list';
-import { list as rustList } from 'virtual:rust-list';
 
 export const loader: LoaderFunction = async ({ request }) => {
-  const rss = generateRssFeed(list.concat(rustList));
+  const rss = generateRssFeed(list);
 
   return new Response(rss, {
     headers: {

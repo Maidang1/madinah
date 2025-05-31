@@ -3,8 +3,8 @@ import {
   MoonIcon,
   SunIcon,
   HouseIcon,
-  BookOpenIcon,
-  CodeIcon,
+  FileIcon,
+  WandIcon,
 } from "lucide-react";
 import { Dock, DockIcon } from "~/components/magicui/dock";
 import { Theme } from "~/utils/theme-sync";
@@ -32,38 +32,31 @@ export function Menu({ onThemeToggle, theme }: MenuProps) {
         <DockIcon
           onClick={() => navigate("/")}
           active={isActive("/")}
-          activeClassName="bg-gray-300/50 dark:bg-gray-600/50"
+          activeClassName="bg-main-500"
         >
           <HouseIcon size={16} />
         </DockIcon>
         <DockIcon
           onClick={() => navigate("/blog")}
           active={isActive("/blog")}
-          activeClassName="bg-gray-300/50 dark:bg-gray-600/50"
+          activeClassName="bg-main-500"
         >
-          <BookOpenIcon size={16} />
-        </DockIcon>
-        <DockIcon
-          onClick={() => navigate("/rust")}
-          active={isActive("/rust")}
-          activeClassName="bg-gray-300/50 dark:bg-gray-600/50"
-        >
-          <span className="i-simple-icons-rust text-[16px]"></span>
+          <FileIcon size={16} />
         </DockIcon>
         <DockIcon
           onClick={() => navigate("/projects")}
           active={isActive("/projects")}
-          activeClassName="bg-gray-300/50 dark:bg-gray-600/50"
+          activeClassName="bg-main-500"
         >
-          <CodeIcon size={16} />
+          <WandIcon size={16} />
         </DockIcon>
-        <div className="mx-1 h-8 w-px bg-gray-200 dark:bg-gray-700" />
+        <div className="mx-1 h-3 w-px bg-gray-700 dark:bg-white" />
         <DockIcon
           onClick={(e) => {
             e.preventDefault();
             onThemeToggle?.();
           }}
-          activeClassName="bg-gray-300/50 dark:bg-gray-600/50"
+          activeClassName="bg-main-500"
         >
           {theme === "dark" ? <SunIcon size={16} /> : <MoonIcon size={16} />}
         </DockIcon>

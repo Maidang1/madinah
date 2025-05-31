@@ -24,9 +24,6 @@ const root = process.cwd();
 const appDir = path.join(root, 'app');
 const routeDir = path.join(appDir, 'routes');
 
-
-
-
 function excalidraw(): Plugin {
   return {
     name: "excalidraw",
@@ -80,6 +77,7 @@ export default defineConfig(async () => {
               defaultOptions: {
                 lib: ["dom", "es2015"],
               },
+              langs: ["typescript", "javascript", "tsx", "jsx", "rust"],
             },
           ],
         ]
@@ -94,11 +92,7 @@ export default defineConfig(async () => {
       virtual({
         'virtual:blog-list': `const list = ${await getListInfo(
           routeDir,
-          'blogs.'
-        )}; export { list }`,
-        'virtual:rust-list': `const list = ${await getListInfo(
-          routeDir,
-          'rusts.'
+          ['blogs.']
         )}; export { list }`,
       }),
       tsconfigPaths(),

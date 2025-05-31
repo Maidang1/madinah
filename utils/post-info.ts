@@ -32,11 +32,14 @@ function unifiedPluginToc() {
 }
 
 
-export const getListInfo = async (listPath: string, prefix: string) => {
+export const getListInfo = async (listPath: string, prefix: string | string[]) => {
   const result = await fs.readdir(listPath, { encoding: "utf-8" })
+  if (!Array.isArray(prefix)) {
+    prefix = [prefix];
+  }
   const aiBogsSummaryJsonPath = path.join(process.cwd(), 'app/summary/blogs-summary.json')
   const summaryJson = JSON.parse(await fs.readFile(aiBogsSummaryJsonPath, { encoding: "utf8" }))
-  const formatList = result.filter(list => list.startsWith(prefix))
+  const formatList = result.filter(list => prefix.some(p => list.startsWith(p)))
   const parsedContent = await Promise.all(formatList.map(async list => {
     const fullPath = path.join(listPath, list);
     const content = await fs.readFile(fullPath, "utf8");
@@ -48,9 +51,11 @@ export const getListInfo = async (listPath: string, prefix: string) => {
       .use(myUnifiedPluginHandlingYamlMatter)
       .use(unifiedPluginToc)
       .process(content);
-    const filename = list.replace(prefix, '').split(".")[0];
 
-    const url = `/${prefix.replace('.', '')}/${filename}`
+    const targetPrefix = prefix.find(p => list.startsWith(p)) ?? '';
+    const filename = list.replace(targetPrefix, '').split(".")[0];
+
+    const url = `/${targetPrefix.replace('.', '')}/${filename}`
     const summary = summaryJson[url] as string;
     if (!summary) {
       const summary = await getSummary(content);

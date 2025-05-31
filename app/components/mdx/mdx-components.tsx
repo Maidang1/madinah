@@ -1,5 +1,8 @@
 import { ReactNode, useState } from 'react';
 import { cn } from '~/utils';
+import { Heading2, Heading3, Heading4, Heading5, Heading6 } from "lucide-react"
+
+
 
 // 类型定义
 interface HeadingProps {
@@ -61,15 +64,17 @@ export const H2 = ({ children, className, id, ...props }: HeadingProps & any) =>
   <h2
     id={id}
     className={cn(
-      'text-2xl md:text-3xl font-semibold mb-6 mt-10',
+      'text-2xl md:text-3xl font-semibold mb-6 mt-10 group',
       'text-zinc-800 dark:text-zinc-200',
       'tracking-tight leading-snug',
       'group heading-group relative',
+      "flex items-center gap-1",
       className
     )}
     {...props}
   >
     {children}
+    <Heading2 className="text-2xl text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
 
   </h2>
 );
@@ -82,11 +87,13 @@ export const H3 = ({ children, className, id, ...props }: HeadingProps & any) =>
       'text-zinc-800 dark:text-zinc-200',
       'tracking-tight',
       'group heading-group relative',
+      "flex items-center gap-1",
       className
     )}
     {...props}
   >
     {children}
+    <Heading3 className="text-xl text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
   </h3>
 );
 
@@ -98,11 +105,13 @@ export const H4 = ({ children, className, id, ...props }: HeadingProps & any) =>
       'text-zinc-700 dark:text-zinc-300',
       'tracking-tight',
       'group heading-group',
+      "flex items-center gap-1",
       className
     )}
     {...props}
   >
     {children}
+    <Heading4 className="text-lg text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
   </h4>
 );
 
@@ -113,11 +122,14 @@ export const H5 = ({ children, className, id, ...props }: HeadingProps & any) =>
       'text-base md:text-lg font-medium mb-3 mt-5',
       'text-zinc-700 dark:text-zinc-300',
       'group heading-group',
+      "flex items-center gap-1",
       className
     )}
     {...props}
   >
     {children}
+    <Heading5 className="text-base text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+
   </h5>
 );
 
@@ -129,11 +141,13 @@ export const H6 = ({ children, className, id, ...props }: HeadingProps & any) =>
       'text-zinc-600 dark:text-zinc-400',
       'uppercase tracking-wider',
       'group heading-group',
+      "flex items-center gap-1",
       className
     )}
     {...props}
   >
     {children}
+    <Heading6 className="text-sm text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
   </h6>
 );
 
@@ -161,7 +175,7 @@ export const A = ({ children, href, className, ...props }: LinkProps & any) => {
     <a
       href={href}
       className={cn(
-        'text-main hover:text-main-500 dark:text-main-light dark:hover:text-main-500',
+        'text-main-500/90 hover:text-main-500 dark:text-main-light dark:hover:text-main-500',
         'underline decoration-main dark:decoration-main-500 decoration-1',
         'underline-offset-2 hover:decoration-2',
         'transition-all duration-200 ease-out',
@@ -259,47 +273,49 @@ export const Code = ({ children, className, ...props }: CodeProps & any) => (
 );
 
 // 代码块 - 现代化的设计
-export const Pre = ({ children, className, ...props }: PreProps & any) => {
-  const [copied, setCopied] = useState(false);
+// export const Pre = ({ children, className, ...props }: PreProps & any) => {
+//   const [copied, setCopied] = useState(false);
 
-  const handleCopy = async () => {
-    const codeElement = props.children?.props?.children;
-    if (typeof codeElement === 'string') {
-      try {
-        await navigator.clipboard.writeText(codeElement);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      } catch (err) {
-        console.error('Failed to copy text: ', err);
-      }
-    }
-  };
+//   console.log('Pre component rendered', children, className, props);
 
-  return (
-    <div className="relative mb-6 group code-block-wrapper">
-      <pre
-        className={cn(
-          'bg-zinc-900 dark:bg-zinc-950 text-zinc-100',
-          'p-4 rounded-lg overflow-x-auto',
-          'border border-zinc-200 dark:border-zinc-800',
-          'font-mono text-sm leading-6',
-          'shadow-lg',
-          className
-        )}
-        {...props}
-      >
-        {children}
-      </pre>
-      <button
-        onClick={handleCopy}
-        className="copy-code-button"
-        title="复制代码"
-      >
-        {copied ? '已复制!' : '复制'}
-      </button>
-    </div>
-  );
-};
+//   const handleCopy = async () => {
+//     const codeElement = props.children?.props?.children;
+//     if (typeof codeElement === 'string') {
+//       try {
+//         await navigator.clipboard.writeText(codeElement);
+//         setCopied(true);
+//         setTimeout(() => setCopied(false), 2000);
+//       } catch (err) {
+//         console.error('Failed to copy text: ', err);
+//       }
+//     }
+//   };
+
+//   return (
+//     <div className="relative mb-6 group code-block-wrapper">
+//       <pre
+//         className={cn(
+//           'bg-zinc-900 dark:bg-zinc-950 text-zinc-100',
+//           'p-4 rounded-lg overflow-x-auto',
+//           'border border-zinc-200 dark:border-zinc-800',
+//           'font-mono text-sm leading-6',
+//           'shadow-lg',
+//           className
+//         )}
+//         {...props}
+//       >
+//         {children}
+//       </pre>
+//       <button
+//         onClick={handleCopy}
+//         className="copy-code-button"
+//         title="复制代码"
+//       >
+//         {copied ? '已复制!' : '复制'}
+//       </button>
+//     </div>
+//   );
+// };
 
 // 水平分割线
 export const HR = ({ className, ...props }: any) => (
@@ -470,7 +486,7 @@ export const mdxComponents = {
   li: LI,
   blockquote: Blockquote,
   code: Code,
-  pre: Pre,
+  // pre: Pre,
   hr: HR,
   img: Img,
   table: Table,

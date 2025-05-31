@@ -9,7 +9,7 @@ export default {
 		extend: {
 			colors: {
 				main: {
-					DEFAULT: "#fbc2eb",
+					DEFAULT: "#a18cd1",
 					500: "#a18cd1",
 				},
 			},
