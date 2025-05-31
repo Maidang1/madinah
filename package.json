@@ -83,7 +83,7 @@
     "typescript": "^5.8.3",
     "unified": "^11.0.5",
     "vfile-matter": "^5.0.1",
-    "vite": "^6.3.2",
+    "vite": "npm:rolldown-vite@latest",
     "vite-plugin-virtual": "^0.3.0",
     "vite-tsconfig-paths": "^5.1.4",
     "wrangler": "^3.114.6"

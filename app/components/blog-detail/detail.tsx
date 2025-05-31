@@ -7,6 +7,7 @@ import { TableOfContentsMobile } from './table-contents-mobile';
 import { DetailHeader } from './detail-header';
 import { ScrollToTopButton } from './scroll-to-top-button';
 import { motion } from 'motion/react';
+import { CaseSensitive, Hourglass } from 'lucide-react';
 
 interface BlogsDetailProps {
   list: PostInfo[];
@@ -37,9 +38,9 @@ export default function Detail({ list }: BlogsDetailProps) {
             <div className='flex items-center justify-start text-sm text-muted-foreground'>
               {
                 readingTime && (
-                  <span>
-                    共有 {readingTime.words} 词, 预计需要阅读 {Math.ceil(readingTime.minutes)} 分钟
-                  </span>
+                  <div className='flex items-center gap-2'>
+                    <CaseSensitive /> {readingTime.words} , <Hourglass className='text-xs w-4 h-4' /> {Math.ceil(readingTime.minutes)} min
+                  </div>
                 )
               }
             </div>
