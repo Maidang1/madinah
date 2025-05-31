@@ -54,15 +54,6 @@ export const H1 = ({ children, className, id, ...props }: HeadingProps & any) =>
     {...props}
   >
     {children}
-    {id && (
-      <a 
-        href={`#${id}`} 
-        className="heading-anchor text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
-        aria-label={`链接到 ${children}`}
-      >
-        #
-      </a>
-    )}
   </h1>
 );
 
@@ -78,17 +69,8 @@ export const H2 = ({ children, className, id, ...props }: HeadingProps & any) =>
     )}
     {...props}
   >
-    <span className="absolute -left-4 opacity-0 group-hover:opacity-50 transition-opacity text-zinc-400">#</span>
     {children}
-    {id && (
-      <a 
-        href={`#${id}`} 
-        className="heading-anchor text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
-        aria-label={`链接到 ${children}`}
-      >
-        #
-      </a>
-    )}
+
   </h2>
 );
 
@@ -104,17 +86,7 @@ export const H3 = ({ children, className, id, ...props }: HeadingProps & any) =>
     )}
     {...props}
   >
-    <span className="absolute -left-3 opacity-0 group-hover:opacity-50 transition-opacity text-zinc-400 text-base">##</span>
     {children}
-    {id && (
-      <a 
-        href={`#${id}`} 
-        className="heading-anchor text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
-        aria-label={`链接到 ${children}`}
-      >
-        #
-      </a>
-    )}
   </h3>
 );
 
@@ -131,15 +103,6 @@ export const H4 = ({ children, className, id, ...props }: HeadingProps & any) =>
     {...props}
   >
     {children}
-    {id && (
-      <a 
-        href={`#${id}`} 
-        className="heading-anchor text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
-        aria-label={`链接到 ${children}`}
-      >
-        #
-      </a>
-    )}
   </h4>
 );
 
@@ -155,15 +118,6 @@ export const H5 = ({ children, className, id, ...props }: HeadingProps & any) =>
     {...props}
   >
     {children}
-    {id && (
-      <a 
-        href={`#${id}`} 
-        className="heading-anchor text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
-        aria-label={`链接到 ${children}`}
-      >
-        #
-      </a>
-    )}
   </h5>
 );
 
@@ -180,15 +134,6 @@ export const H6 = ({ children, className, id, ...props }: HeadingProps & any) =>
     {...props}
   >
     {children}
-    {id && (
-      <a 
-        href={`#${id}`} 
-        className="heading-anchor text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
-        aria-label={`链接到 ${children}`}
-      >
-        #
-      </a>
-    )}
   </h6>
 );
 
@@ -211,7 +156,7 @@ export const P = ({ children, className, ...props }: ParagraphProps & any) => (
 export const A = ({ children, href, className, ...props }: LinkProps & any) => {
   const isExternal = href?.startsWith('http') || href?.startsWith('//');
   const isEmail = href?.startsWith('mailto:');
-  
+
   return (
     <a
       href={href}
@@ -304,8 +249,7 @@ export const Code = ({ children, className, ...props }: CodeProps & any) => (
   <code
     className={cn(
       'bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200',
-      'px-1.5 py-0.5 rounded text-sm font-mono',
-      'border border-zinc-200 dark:border-zinc-700',
+      'p-0 border-0 rounded text-sm font-mono',
       className
     )}
     {...props}
@@ -317,7 +261,7 @@ export const Code = ({ children, className, ...props }: CodeProps & any) => (
 // 代码块 - 现代化的设计
 export const Pre = ({ children, className, ...props }: PreProps & any) => {
   const [copied, setCopied] = useState(false);
-  
+
   const handleCopy = async () => {
     const codeElement = props.children?.props?.children;
     if (typeof codeElement === 'string') {
@@ -483,7 +427,7 @@ interface CodeGroupProps {
 
 export const CodeGroup = ({ children, titles = [], className }: CodeGroupProps) => {
   const [activeTab, setActiveTab] = useState(0);
-  
+
   return (
     <div className={cn('mb-6', className)}>
       {titles.length > 0 && (

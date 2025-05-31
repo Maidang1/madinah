@@ -64,10 +64,6 @@ export default defineConfig(async () => {
           {
             behavior: 'append',
             properties: { class: 'header-anchor' },
-            content: {
-              type: 'text',
-              value: '#',
-            },
           },
         ],],
         remarkPlugins: [
@@ -80,7 +76,7 @@ export default defineConfig(async () => {
             {
               disableImplicitReactImport: true,
               includeJSDocInHover: true,
-              themes: ["github-dark"],
+              themes: ["vitesse-light", "vitesse-dark"],
               defaultOptions: {
                 lib: ["dom", "es2015"],
               },

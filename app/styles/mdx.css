@@ -18,12 +18,14 @@
   content: counter(mdx-list) ".";
   position: absolute;
   left: 0;
-  color: rgb(113 113 122); /* zinc-500 */
+  color: rgb(113 113 122);
+  /* zinc-500 */
   font-weight: 500;
 }
 
 .dark .mdx-content ol li::before {
-  color: rgb(161 161 170); /* zinc-400 */
+  color: rgb(161 161 170);
+  /* zinc-400 */
 }
 
 /* 移除默认的列表点样式 */
@@ -31,12 +33,14 @@
   content: "•";
   position: absolute;
   left: 0;
-  color: rgb(161 161 170); /* zinc-400 */
+  color: rgb(161 161 170);
+  /* zinc-400 */
   font-weight: bold;
 }
 
 .dark .mdx-content ul li::before {
-  color: rgb(113 113 122); /* zinc-500 */
+  color: rgb(113 113 122);
+  /* zinc-500 */
 }
 
 /* 代码块复制按钮样式 */
@@ -116,29 +120,35 @@
 }
 
 .mdx-content ::-webkit-scrollbar-track {
-  background: rgb(244 244 245); /* zinc-100 */
+  background: rgb(244 244 245);
+  /* zinc-100 */
   border-radius: 4px;
 }
 
 .dark .mdx-content ::-webkit-scrollbar-track {
-  background: rgb(39 39 42); /* zinc-800 */
+  background: rgb(39 39 42);
+  /* zinc-800 */
 }
 
 .mdx-content ::-webkit-scrollbar-thumb {
-  background: rgb(161 161 170); /* zinc-400 */
+  background: rgb(161 161 170);
+  /* zinc-400 */
   border-radius: 4px;
 }
 
 .mdx-content ::-webkit-scrollbar-thumb:hover {
-  background: rgb(113 113 122); /* zinc-500 */
+  background: rgb(113 113 122);
+  /* zinc-500 */
 }
 
 .dark .mdx-content ::-webkit-scrollbar-thumb {
-  background: rgb(113 113 122); /* zinc-500 */
+  background: rgb(113 113 122);
+  /* zinc-500 */
 }
 
 .dark .mdx-content ::-webkit-scrollbar-thumb:hover {
-  background: rgb(161 161 170); /* zinc-400 */
+  background: rgb(161 161 170);
+  /* zinc-400 */
 }
 
 /* 表格响应式样式 */
@@ -158,13 +168,15 @@
   top: -0.5rem;
   left: -0.75rem;
   font-size: 3rem;
-  color: rgb(212 212 216); /* zinc-300 */
+  color: rgb(212 212 216);
+  /* zinc-300 */
   font-family: serif;
   line-height: 1;
 }
 
 .dark .blockquote-decoration::before {
-  color: rgb(82 82 91); /* zinc-600 */
+  color: rgb(82 82 91);
+  /* zinc-600 */
 }
 
 /* 图片懒加载模糊效果 */
@@ -181,13 +193,15 @@
 .math-inline {
   display: inline-block;
   padding: 0.125rem 0.25rem;
-  background: rgb(244 244 245); /* zinc-100 */
+  background: rgb(244 244 245);
+  /* zinc-100 */
   border-radius: 0.25rem;
   font-family: 'KaTeX_Main', 'Times New Roman', serif;
 }
 
 .dark .math-inline {
-  background: rgb(39 39 42); /* zinc-800 */
+  background: rgb(39 39 42);
+  /* zinc-800 */
 }
 
 .math-display {
@@ -196,12 +210,21 @@
   text-align: center;
   overflow-x: auto;
   padding: 1rem;
-  background: rgb(249 250 251); /* gray-50 */
+  background: rgb(249 250 251);
+  /* gray-50 */
   border-radius: 0.5rem;
-  border: 1px solid rgb(229 231 235); /* gray-200 */
+  border: 1px solid rgb(229 231 235);
+  /* gray-200 */
 }
 
 .dark .math-display {
-  background: rgb(24 24 27); /* zinc-900 */
-  border-color: rgb(63 63 70); /* zinc-700 */
+  background: rgb(24 24 27);
+  /* zinc-900 */
+  border-color: rgb(63 63 70);
+  /* zinc-700 */
+}
+
+/* 代码块语言标识 */
+.language-id {
+  display: none;
 }
