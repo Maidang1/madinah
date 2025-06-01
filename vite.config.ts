@@ -76,8 +76,7 @@ export default defineConfig(async () => {
               themes: ["vitesse-light", "vitesse-dark"],
               defaultOptions: {
                 lib: ["dom", "es2015"],
-              },
-              langs: ["typescript", "javascript", "tsx", "jsx", "rust"],
+              }
             },
           ],
         ]

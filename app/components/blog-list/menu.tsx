@@ -7,7 +7,7 @@ import {
   WandIcon,
 } from "lucide-react";
 import { Dock, DockIcon } from "~/components/magicui/dock";
-import { Theme } from "~/utils/theme-sync";
+import { Theme } from "~/types";
 
 
 interface MenuProps {

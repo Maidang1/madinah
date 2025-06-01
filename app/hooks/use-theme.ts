@@ -1,11 +1,13 @@
 import { atom, useAtom } from "jotai";
 import { useFetcher } from "@remix-run/react";
-import { type Theme } from "~/utils/theme-sync";
+import { useHydrateAtoms } from "jotai/utils";
 
 import { useEffect } from "react";
+import { Theme } from "~/types";
 export const themeAtom = atom<Theme>("light")
 
-export const useTheme = () => {
+export const useTheme = (initTheme: Theme) => {
+  useHydrateAtoms([[themeAtom, initTheme]]);
   const [theme, setTheme] = useAtom(themeAtom);
   const fetcher = useFetcher();
 

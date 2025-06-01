@@ -20,13 +20,13 @@ import { FirefliesBackground } from '~/components/magicui/fireflies-background';
 import { Menu } from '~/components/blog-list/menu';
 import { mdxComponents } from '~/components/mdx/mdx-components';
 import { userTheme } from './cookies.server';
-import { type Theme } from './utils/theme-sync';
 import { useTheme } from './hooks/use-theme';
 import { useMemo, useState } from 'react';
 import { useEffectOnce } from 'react-use';
 import './styles/tailwind.css';
 import './styles/theme.less';
 import './styles/mdx.css';
+import { Theme } from './types';
 
 export const links: LinksFunction = () => [
   { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
@@ -52,7 +52,7 @@ export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData();
   const theme = formData.get("theme") as Theme;
 
-  if (!theme || !["light", "dark", "auto"].includes(theme)) {
+  if (!theme || !["light", "dark", "system"].includes(theme)) {
     return json({ error: "Invalid theme" }, { status: 400 });
   }
 
@@ -75,7 +75,7 @@ export function Layout(props: { children: React.ReactNode }) {
     setTheme,
     toggleTheme,
     theme,
-  } = useTheme();
+  } = useTheme(serverTheme);
 
   useEffectOnce(() => {
     setTheme(serverTheme);
@@ -83,7 +83,7 @@ export function Layout(props: { children: React.ReactNode }) {
   });
 
   const actualTheme = useMemo(() => {
-    if (serverTheme === 'auto' || theme === 'auto') {
+    if (serverTheme === 'system' || theme === 'system') {
       return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
     return initTheme ? theme : serverTheme;

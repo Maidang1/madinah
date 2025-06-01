@@ -30,3 +30,5 @@ export interface ScrollOptions {
   highlightBuffer?: number;
   behavior?: ScrollBehavior;
 }
+
+export type Theme = "light" | "dark" | "system";
