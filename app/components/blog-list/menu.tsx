@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "@remix-run/react";
 import {
   MoonIcon,
@@ -7,15 +8,13 @@ import {
   WandIcon,
 } from "lucide-react";
 import { Dock, DockIcon } from "~/components/magicui/dock";
-import { Theme } from "~/utils/theme-sync";
-
 
 interface MenuProps {
-  onThemeToggle?: () => void;
-  theme?: Theme;
+  className?: string;
 }
 
-export function Menu({ onThemeToggle, theme }: MenuProps) {
+export function Menu({ className }: MenuProps) {
+  const [localDark, setLocalDark] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -24,6 +23,25 @@ export function Menu({ onThemeToggle, theme }: MenuProps) {
       return location.pathname === path;
     }
     return location.pathname.startsWith(path);
+  };
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("madinah_blog_theme");
+    if (savedTheme) {
+      setLocalDark(JSON.parse(savedTheme));
+    } else {
+      const prefersDark = window.matchMedia(
+        "(prefers-color-scheme: dark)",
+      ).matches;
+      setLocalDark(prefersDark);
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = !localDark;
+    setLocalDark(newTheme);
+    localStorage.setItem("madinah_blog_theme", JSON.stringify(newTheme));
+    document.documentElement.classList.toggle("dark");
   };
 
   return (
@@ -54,11 +72,11 @@ export function Menu({ onThemeToggle, theme }: MenuProps) {
         <DockIcon
           onClick={(e) => {
             e.preventDefault();
-            onThemeToggle?.();
+            toggleTheme();
           }}
           activeClassName="bg-main-500"
         >
-          {theme === "dark" ? <SunIcon size={16} /> : <MoonIcon size={16} />}
+          {localDark ? <SunIcon size={16} /> : <MoonIcon size={16} />}
         </DockIcon>
       </Dock>
     </div>
