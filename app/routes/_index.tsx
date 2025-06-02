@@ -29,7 +29,7 @@ const Index = () => {
             transition={{ delay: 0.5, duration: 0.5 }}
             className="font-light text-xl text-black/70 dark:text-white/70"
           >
-            A Frontend Developer
+            A Frontend Developer，Rust, AI Enthusiast.
           </motion.div>
           <motion.div
             transition={{ delay: 0.8, duration: 0.5 }}
@@ -66,7 +66,7 @@ const Index = () => {
                 icon: 'i-simple-icons-x',
                 color: 'bg-[rgb(29,145,200)]'
               },
-            ].map((item, index) => (
+            ].map((item) => (
               <Link
                 key={item.name}
                 to={item.url}
