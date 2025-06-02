@@ -6,6 +6,7 @@ import { TableOfContentsPC } from './table-contents-pc';
 import { TableOfContentsMobile } from './table-contents-mobile';
 import { DetailHeader } from './detail-header';
 import { ScrollToTopButton } from './scroll-to-top-button';
+import { BlogNavigation } from './blog-navigation';
 import { motion } from 'motion/react';
 import { CaseSensitive, Hourglass } from 'lucide-react';
 
@@ -48,7 +49,14 @@ export default function Detail({ list }: BlogsDetailProps) {
 
           </div>
         </motion.div>
-        <DetailHeader title={title} summary={summary} />
+        <div className="min-w-0 flex-1">
+          <DetailHeader title={title} summary={summary} />
+          
+          {/* 博客导航组件 */}
+          <div className="mt-16 mb-8">
+            <BlogNavigation list={list} />
+          </div>
+        </div>
         <ScrollToTopButton />
       </div>
     </div>

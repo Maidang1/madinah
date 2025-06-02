@@ -56,7 +56,7 @@ export function DetailHeader({ title, summary, className }: BlogContentProps) {
             )}
           </header>
         )}
-        <MDXWrapper className="mt-8 pb-[800px]">
+        <MDXWrapper className="mt-8">
           <Outlet />
         </MDXWrapper>
       </motion.article>
