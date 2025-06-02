@@ -16,7 +16,7 @@ import { MDXProvider } from '@mdx-js/react';
 import { ClientOnly } from 'remix-utils/client-only';
 import { cn } from './utils';
 import { AnimatedGridPattern } from '~/components/magicui/animated-grid-pattern';
-import { FirefliesBackground } from '~/components/magicui/fireflies-background';
+// import { FirefliesBackground } from '~/components/magicui/fireflies-background';
 import { Menu } from '~/components/blog-list/menu';
 import { mdxComponents } from '~/components/mdx/mdx-components';
 import { userTheme } from './cookies.server';
@@ -109,13 +109,13 @@ export function Layout(props: { children: React.ReactNode }) {
               "fixed inset-0 z-[9999] [mask-image:radial-gradient(500px_circle_at_center,white,transparent)]",
             )}
           />
-          <FirefliesBackground
+          {/* <FirefliesBackground
             count={60}
             className="fixed inset-0 z-[10000]"
             color={
               theme === 'dark' ? 'rgba(255, 255, 255, 0.8)' : 'transparent'
             }
-          />
+          /> */}
           <main className="container mx-auto px-4 py-20">
             {children}
             <ScrollRestoration />

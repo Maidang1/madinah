@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 import { LoaderFunction } from '@remix-run/cloudflare';
 
 import { generateRssFeed } from '../../utils/rss-server';

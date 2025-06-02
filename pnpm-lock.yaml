@@ -11,6 +11,9 @@ importers:
       '@excalidraw/excalidraw':
         specifier: ^0.17.6
         version: 0.17.6(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      '@iconify-json/streamline-ultimate-color':
+        specifier: ^1.2.0
+        version: 1.2.0
       '@mdx-js/react':
         specifier: ^3.1.0
         version: 3.1.0(@types/react@19.1.2)(react@19.1.0)
@@ -1093,6 +1096,9 @@ packages:
 
   '@iconify-json/simple-line-icons@1.2.1':
     resolution: {integrity: sha512-MxgGNPpjiruoKqoefyluJtyq3ebwxqIfngJDFx6wIe/YNOIIyT7LTGKS7kh4Az3PDfefh5Z9OkxGTLExx8WfKg==}
+
+  '@iconify-json/streamline-ultimate-color@1.2.0':
+    resolution: {integrity: sha512-7RuZmOOMcSsPz80dG4T8Hemlmy16Bx9On5Um0Zgz+LCJsFqReamvN4r7UdY4vOjz35Q/Msi6qlEajV5oMNSwnw==, tarball: https://r.cnpmjs.org/@iconify-json/streamline-ultimate-color/-/streamline-ultimate-color-1.2.0.tgz}
 
   '@iconify/types@2.0.0':
     resolution: {integrity: sha512-+wluvCrRhXrhyOmRDJ3q8mux9JkKy5SJ/v8ol2tu4FVjyYvtEzkc/3pK15ET6RKg4b4w4BmTk1+gsCUhf21Ykg==}
@@ -6436,6 +6442,10 @@ snapshots:
       '@iconify/types': 2.0.0
 
   '@iconify-json/simple-line-icons@1.2.1':
+    dependencies:
+      '@iconify/types': 2.0.0
+
+  '@iconify-json/streamline-ultimate-color@1.2.0':
     dependencies:
       '@iconify/types': 2.0.0
 

@@ -1,5 +1,5 @@
 {
-  "cSpell.words": [
-    "Madinah"
-  ]
+  "cSpell.words": ["Madinah"],
+  "prettier.enable": true,
+  "editor.formatOnSave": true
 }
