@@ -78,10 +78,13 @@ const Index = () => {
                 )}
                 aria-label={item.name}
               >
-                <Icons
-                  iconName={item.icon}
-                  iconColor={item.color}
-                />
+                <div className="tooltip tooltip-bottom" data-tip={item.name}>
+                  <Icons
+                    iconName={item.icon}
+                    iconColor={item.color}
+                  />
+                </div>
+
               </Link>
             ))}
           </motion.div>

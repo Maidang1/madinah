@@ -34,21 +34,28 @@ export function Menu({ onThemeToggle, theme }: MenuProps) {
           active={isActive("/")}
           activeClassName="bg-main-500"
         >
-          <HouseIcon size={16} />
+          <div className="tooltip tooltip-top" data-tip="主页">
+            <HouseIcon size={16} />
+          </div>
         </DockIcon>
         <DockIcon
           onClick={() => navigate("/blog")}
           active={isActive("/blog")}
           activeClassName="bg-main-500"
         >
-          <FileIcon size={16} />
+          <div className="tooltip tooltip-top" data-tip="博客">
+            <FileIcon size={16} />
+          </div>
         </DockIcon>
         <DockIcon
           onClick={() => navigate("/projects")}
           active={isActive("/projects")}
           activeClassName="bg-main-500"
         >
-          <WandIcon size={16} />
+          <div className="tooltip tooltip-top" data-tip="项目">
+            <WandIcon size={16} />
+          </div>
+
         </DockIcon>
         <div className="mx-1 h-3 w-px bg-gray-700 dark:bg-white" />
         <DockIcon
