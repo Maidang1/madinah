@@ -38,7 +38,7 @@ export const getListInfo = async (listPath: string, prefix: string | string[]) =
     prefix = [prefix];
   }
   const aiBogsSummaryJsonPath = path.join(process.cwd(), 'app/summary/blogs-summary.json')
-  const summaryJson = JSON.parse(await fs.readFile(aiBogsSummaryJsonPath, { encoding: "utf8" }))
+  const summaryJson = (JSON.parse(await fs.readFile(aiBogsSummaryJsonPath, { encoding: "utf8" })) ?? {}) as Record<string, string>
   const formatList = result.filter(list => prefix.some(p => list.startsWith(p)))
   const parsedContent = await Promise.all(formatList.map(async list => {
     const fullPath = path.join(listPath, list);
@@ -59,8 +59,10 @@ export const getListInfo = async (listPath: string, prefix: string | string[]) =
     const summary = summaryJson[url] as string;
     if (!summary) {
       const summary = await getSummary(content);
-      console.log("summary", summary);
-      summaryJson[url] = summary;
+      if (summary.ok) {
+        summaryJson[url] = summary.unwrap();
+
+      }
     }
 
     return {

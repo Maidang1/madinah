@@ -21,6 +21,7 @@ export const extractTocItems = (data: List) => {
     if (level > 4) {
       return [];
     }
+
     if (Array.isArray(node)) {
       return node.flatMap(child => traverse(child, level));
     }

@@ -22,6 +22,7 @@
     "@remix-run/node": "^2.16.5",
     "@remix-run/react": "^2.16.5",
     "@remix-run/serve": "^2.16.5",
+    "better-typescript-lib": "^2.11.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cobe": "^0.6.3",
@@ -38,6 +39,8 @@
     "rss": "^1.2.2",
     "tailwind-merge": "^3.2.0",
     "tailwindcss-animate": "^1.0.7",
+    "ts-pattern": "^5.7.1",
+    "ts-results": "^3.3.0",
     "vite-plugin-commonjs": "^0.10.4"
   },
   "devDependencies": {
