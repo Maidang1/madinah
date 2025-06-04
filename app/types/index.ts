@@ -9,6 +9,8 @@ export interface PostInfo {
   filename: string
   url: string
   toc: { url: string, value: string }[]
+  date: string
+  content: string
 }
 
 export interface TocItem {

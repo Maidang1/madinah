@@ -1,5 +1,5 @@
 import { Ollama } from "ollama";
-import { Result, Ok, Err } from "ts-results"
+import { Result, Ok, Err } from "ts-results-es"
 
 
 export async function getSummary(content: string): Promise<Result<string, string>> {

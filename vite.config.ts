@@ -111,5 +111,10 @@ export default defineConfig(async () => {
         clientFiles: ['app/**/*.tsx'],
       },
     },
+    build: {
+      commonjsOptions: {
+        transformMixedEsModules: true,
+      }
+    }
   };
 });
