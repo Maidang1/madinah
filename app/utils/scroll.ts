@@ -4,7 +4,7 @@ import { SCROLL_CONFIG } from '../config/scroll-config';
  * 滚动到指定元素
  */
 export function scrollToElement(
-  targetId: string, 
+  targetId: string,
   options: {
     offset?: number;
     behavior?: ScrollBehavior;
@@ -46,7 +46,7 @@ export function scrollToElement(
  */
 export function getScrollPosition(container?: Element | null) {
   const scrollContainer = container || document.querySelector('.scroll-container') || window;
-  
+
   if (scrollContainer === window) {
     return window.pageYOffset;
   } else {
@@ -67,7 +67,7 @@ export function scrollToTop(options: {
   } = options;
 
   const scrollContainer = container || document.querySelector('.scroll-container') || window;
-  
+
   if (scrollContainer === window) {
     window.scrollTo({
       top: 0,
@@ -81,20 +81,7 @@ export function scrollToTop(options: {
   }
 }
 
-/**
- * 防抖函数
- */
-export function debounce<T extends (...args: any[]) => any>(
-  func: T,
-  wait: number
-): (...args: Parameters<T>) => void {
-  let timeout: NodeJS.Timeout;
-  
-  return (...args: Parameters<T>) => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func(...args), wait);
-  };
-}
+
 
 /**
  * 节流函数
@@ -104,7 +91,7 @@ export function throttle<T extends (...args: any[]) => any>(
   limit: number
 ): (...args: Parameters<T>) => void {
   let inThrottle: boolean;
-  
+
   return (...args: Parameters<T>) => {
     if (!inThrottle) {
       func(...args);

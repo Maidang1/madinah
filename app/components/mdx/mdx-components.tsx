@@ -1,8 +1,6 @@
 import { ReactNode, useState } from 'react';
 import { cn } from '~/utils';
-import { Heading2, Heading3, Heading4, Heading5, Heading6 } from "lucide-react"
-
-
+import { Heading2, Heading3, Heading4, Heading5, Heading6 } from 'lucide-react';
 
 // 类型定义
 interface HeadingProps {
@@ -43,16 +41,21 @@ interface PreProps {
 }
 
 // 标题组件 - 简洁的层次设计
-export const H1 = ({ children, className, id, ...props }: HeadingProps & any) => (
+export const H1 = ({
+  children,
+  className,
+  id,
+  ...props
+}: HeadingProps & any) => (
   <h1
     id={id}
     className={cn(
-      'text-3xl md:text-4xl font-bold mb-8 mt-12 first:mt-0',
+      'mt-12 mb-8 text-3xl font-bold first:mt-0 md:text-4xl',
       'text-zinc-900 dark:text-zinc-100',
-      'tracking-tight leading-tight',
-      'border-b border-zinc-200/50 dark:border-zinc-700/50 pb-4',
+      'leading-tight tracking-tight',
+      'border-b border-zinc-200/50 pb-4 dark:border-zinc-700/50',
       'group heading-group',
-      className
+      className,
     )}
     {...props}
   >
@@ -60,94 +63,117 @@ export const H1 = ({ children, className, id, ...props }: HeadingProps & any) =>
   </h1>
 );
 
-export const H2 = ({ children, className, id, ...props }: HeadingProps & any) => (
+export const H2 = ({
+  children,
+  className,
+  id,
+  ...props
+}: HeadingProps & any) => (
   <h2
     id={id}
     className={cn(
-      'text-2xl md:text-3xl font-semibold mb-6 mt-10 group',
+      'group mt-10 mb-6 text-2xl font-semibold md:text-3xl',
       'text-zinc-800 dark:text-zinc-200',
-      'tracking-tight leading-snug',
+      'leading-snug tracking-tight',
       'group heading-group relative',
-      "flex items-center gap-1",
-      className
+      'flex items-center gap-1',
+      className,
     )}
     {...props}
   >
     {children}
-    <Heading2 className="text-2xl text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-
+    <Heading2 className="text-muted-foreground text-2xl opacity-0 transition-opacity group-hover:opacity-100" />
   </h2>
 );
 
-export const H3 = ({ children, className, id, ...props }: HeadingProps & any) => (
+export const H3 = ({
+  children,
+  className,
+  id,
+  ...props
+}: HeadingProps & any) => (
   <h3
     id={id}
     className={cn(
-      'text-xl md:text-2xl font-semibold mb-4 mt-8',
+      'mt-8 mb-4 text-xl font-semibold md:text-2xl',
       'text-zinc-800 dark:text-zinc-200',
       'tracking-tight',
       'group heading-group relative',
-      "flex items-center gap-1",
-      className
+      'flex items-center gap-1',
+      className,
     )}
     {...props}
   >
     {children}
-    <Heading3 className="text-xl text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+    <Heading3 className="text-muted-foreground text-xl opacity-0 transition-opacity group-hover:opacity-100" />
   </h3>
 );
 
-export const H4 = ({ children, className, id, ...props }: HeadingProps & any) => (
+export const H4 = ({
+  children,
+  className,
+  id,
+  ...props
+}: HeadingProps & any) => (
   <h4
     id={id}
     className={cn(
-      'text-lg md:text-xl font-medium mb-3 mt-6',
+      'mt-6 mb-3 text-lg font-medium md:text-xl',
       'text-zinc-700 dark:text-zinc-300',
       'tracking-tight',
       'group heading-group',
-      "flex items-center gap-1",
-      className
+      'flex items-center gap-1',
+      className,
     )}
     {...props}
   >
     {children}
-    <Heading4 className="text-lg text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+    <Heading4 className="text-muted-foreground text-lg opacity-0 transition-opacity group-hover:opacity-100" />
   </h4>
 );
 
-export const H5 = ({ children, className, id, ...props }: HeadingProps & any) => (
+export const H5 = ({
+  children,
+  className,
+  id,
+  ...props
+}: HeadingProps & any) => (
   <h5
     id={id}
     className={cn(
-      'text-base md:text-lg font-medium mb-3 mt-5',
+      'mt-5 mb-3 text-base font-medium md:text-lg',
       'text-zinc-700 dark:text-zinc-300',
       'group heading-group',
-      "flex items-center gap-1",
-      className
+      'flex items-center gap-1',
+      className,
     )}
     {...props}
   >
     {children}
-    <Heading5 className="text-base text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-
+    <Heading5 className="text-muted-foreground text-base opacity-0 transition-opacity group-hover:opacity-100" />
   </h5>
 );
 
-export const H6 = ({ children, className, id, ...props }: HeadingProps & any) => (
+export const H6 = ({
+  children,
+  className,
+  id,
+  ...props
+}: HeadingProps & any) => (
   <h6
     id={id}
     className={cn(
-      'text-sm md:text-base font-medium mb-2 mt-4',
+      'mt-4 mb-2 text-sm font-medium md:text-base',
       'text-zinc-600 dark:text-zinc-400',
-      'uppercase tracking-wider',
+      'tracking-wider uppercase',
       'group heading-group',
-      "flex items-center gap-1",
-      className
+      'flex items-center gap-1',
+      className,
     )}
     {...props}
   >
     {children}
-    <Heading6 className="text-sm text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+    <Heading6 className="text-muted-foreground text-sm opacity-0 transition-opacity group-hover:opacity-100" />
   </h6>
 );
 
@@ -155,10 +181,10 @@ export const H6 = ({ children, className, id, ...props }: HeadingProps & any) =>
 export const P = ({ children, className, ...props }: ParagraphProps & any) => (
   <p
     className={cn(
-      'text-base md:text-lg leading-7 md:leading-8 mb-6',
+      'mb-6 text-base leading-7 md:text-lg md:leading-8',
       'text-zinc-700 dark:text-zinc-300',
       'font-normal',
-      className
+      className,
     )}
     {...props}
   >
@@ -176,27 +202,19 @@ export const A = ({ children, href, className, ...props }: LinkProps & any) => {
       href={href}
       className={cn(
         'text-main-500/90 hover:text-main-500 dark:text-main-light dark:hover:text-main-500',
-        'underline decoration-main dark:decoration-main-500 decoration-1',
+        'decoration-main dark:decoration-main-500 underline decoration-1',
         'underline-offset-2 hover:decoration-2',
         'transition-all duration-200 ease-out',
-        'font-medium inline-flex items-center gap-1',
-        className
+        'inline-flex items-center gap-1 font-medium',
+        className,
       )}
       target={isExternal ? '_blank' : undefined}
       rel={isExternal ? 'noopener noreferrer' : undefined}
       {...props}
     >
       {children}
-      {isExternal && (
-        <span className="text-xs opacity-70">
-          ↗
-        </span>
-      )}
-      {isEmail && (
-        <span className="text-xs opacity-70">
-          ✉
-        </span>
-      )}
+      {isExternal && <span className="text-xs opacity-70">↗</span>}
+      {isEmail && <span className="text-xs opacity-70">✉</span>}
     </a>
   );
 };
@@ -205,9 +223,9 @@ export const A = ({ children, href, className, ...props }: LinkProps & any) => {
 export const UL = ({ children, className, ...props }: ListProps & any) => (
   <ul
     className={cn(
-      'list-none mb-6 pl-0 space-y-2',
+      'mb-6 list-none space-y-2 pl-0',
       'text-zinc-700 dark:text-zinc-300',
-      className
+      className,
     )}
     {...props}
   >
@@ -218,9 +236,9 @@ export const UL = ({ children, className, ...props }: ListProps & any) => (
 export const OL = ({ children, className, ...props }: ListProps & any) => (
   <ol
     className={cn(
-      'list-none mb-6 pl-0 space-y-2 mdx-content',
+      'mdx-content mb-6 list-none space-y-2 pl-0',
       'text-zinc-700 dark:text-zinc-300',
-      className
+      className,
     )}
     {...props}
   >
@@ -232,9 +250,9 @@ export const LI = ({ children, className, ...props }: any) => (
   <li
     className={cn(
       'relative pl-6 leading-7',
-      'before:content-["•"] before:absolute before:left-0 before:text-zinc-400 before:font-bold',
+      'before:absolute before:left-0 before:font-bold before:text-zinc-400 before:content-["•"]',
       '[ol_&]:before:content-none', // 移除有序列表中的点
-      className
+      className,
     )}
     {...props}
   >
@@ -243,14 +261,18 @@ export const LI = ({ children, className, ...props }: any) => (
 );
 
 // 引用块 - 优雅的左边框设计
-export const Blockquote = ({ children, className, ...props }: BlockquoteProps & any) => (
+export const Blockquote = ({
+  children,
+  className,
+  ...props
+}: BlockquoteProps & any) => (
   <blockquote
     className={cn(
-      'border-l-4 border-zinc-300 dark:border-zinc-600 pl-6 py-2 mb-6',
-      'bg-zinc-50/50 dark:bg-zinc-800/20 rounded-r-lg',
-      'text-zinc-600 dark:text-zinc-400 italic',
-      'font-medium text-lg leading-relaxed',
-      className
+      'mb-6 border-l-4 border-zinc-300 py-2 pl-6 dark:border-zinc-600',
+      'rounded-r-lg bg-zinc-50/50 dark:bg-zinc-800/20',
+      'text-zinc-600 italic dark:text-zinc-400',
+      'text-lg leading-relaxed font-medium',
+      className,
     )}
     {...props}
   >
@@ -262,9 +284,9 @@ export const Blockquote = ({ children, className, ...props }: BlockquoteProps & 
 export const Code = ({ children, className, ...props }: CodeProps & any) => (
   <code
     className={cn(
-      'dark:bg-main-500/35 bg-main-500/50  text-zinc-800 dark:text-zinc-200',
-      'px-1 py-0.5 border-0 rounded text-sm font-mono',
-      className
+      'dark:bg-main-500/35 bg-main-500/50 text-zinc-800 dark:text-zinc-200',
+      'rounded border-0 px-1 py-0.5 font-mono text-sm',
+      className,
     )}
     {...props}
   >
@@ -321,9 +343,9 @@ export const Code = ({ children, className, ...props }: CodeProps & any) => (
 export const HR = ({ className, ...props }: any) => (
   <hr
     className={cn(
-      'border-none h-px bg-gradient-to-r from-transparent via-zinc-300 to-transparent dark:via-zinc-600',
-      'my-12 mx-auto w-1/2',
-      className
+      'h-px border-none bg-gradient-to-r from-transparent via-zinc-300 to-transparent dark:via-zinc-600',
+      'mx-auto my-12 w-1/2',
+      className,
     )}
     {...props}
   />
@@ -333,9 +355,9 @@ export const HR = ({ className, ...props }: any) => (
 export const Img = ({ className, alt, ...props }: any) => (
   <img
     className={cn(
-      'rounded-lg shadow-md max-w-full h-auto mb-6',
+      'mb-6 h-auto max-w-full rounded-lg shadow-md',
       'border border-zinc-200 dark:border-zinc-700',
-      className
+      className,
     )}
     alt={alt}
     {...props}
@@ -344,14 +366,14 @@ export const Img = ({ className, alt, ...props }: any) => (
 
 // 表格组件
 export const Table = ({ children, className, ...props }: any) => (
-  <div className="overflow-x-auto mb-6">
+  <div className="mb-6 overflow-x-auto">
     <table
       className={cn(
         'w-full border-collapse',
         'bg-white dark:bg-zinc-900',
-        'border border-zinc-200 dark:border-zinc-700 rounded-lg',
+        'rounded-lg border border-zinc-200 dark:border-zinc-700',
         'shadow-sm',
-        className
+        className,
       )}
       {...props}
     >
@@ -363,10 +385,10 @@ export const Table = ({ children, className, ...props }: any) => (
 export const TH = ({ children, className, ...props }: any) => (
   <th
     className={cn(
-      'border-b border-zinc-200 dark:border-zinc-700 px-4 py-3',
+      'border-b border-zinc-200 px-4 py-3 dark:border-zinc-700',
       'text-left font-semibold text-zinc-800 dark:text-zinc-200',
       'bg-zinc-50 dark:bg-zinc-800/50',
-      className
+      className,
     )}
     {...props}
   >
@@ -377,9 +399,9 @@ export const TH = ({ children, className, ...props }: any) => (
 export const TD = ({ children, className, ...props }: any) => (
   <td
     className={cn(
-      'border-b border-zinc-100 dark:border-zinc-800 px-4 py-3',
+      'border-b border-zinc-100 px-4 py-3 dark:border-zinc-800',
       'text-zinc-700 dark:text-zinc-300',
-      className
+      className,
     )}
     {...props}
   >
@@ -395,12 +417,20 @@ interface CalloutProps {
   className?: string;
 }
 
-export const Callout = ({ type = 'info', children, title, className }: CalloutProps) => {
+export const Callout = ({
+  type = 'info',
+  children,
+  title,
+  className,
+}: CalloutProps) => {
   const typeStyles = {
     info: 'bg-primary/5 dark:bg-primary/10 border-primary/20 dark:border-primary/30 text-primary dark:text-primary-light',
-    warning: 'bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-200',
-    error: 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-200',
-    success: 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200',
+    warning:
+      'bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-200',
+    error:
+      'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-200',
+    success:
+      'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200',
     note: 'bg-gray-50 dark:bg-gray-950/20 border-gray-200 dark:border-gray-800 text-gray-800 dark:text-gray-200',
   };
 
@@ -415,21 +445,19 @@ export const Callout = ({ type = 'info', children, title, className }: CalloutPr
   return (
     <div
       className={cn(
-        'relative p-4 mb-6 border rounded-lg',
+        'relative mb-6 rounded-lg border p-4',
         'backdrop-blur-sm',
         typeStyles[type],
-        className
+        className,
       )}
     >
       {title && (
-        <div className="flex items-center gap-2 mb-2 font-semibold">
+        <div className="mb-2 flex items-center gap-2 font-semibold">
           <span>{icons[type]}</span>
           <span>{title}</span>
         </div>
       )}
-      <div className="prose prose-sm max-w-none">
-        {children}
-      </div>
+      <div className="prose prose-sm max-w-none">{children}</div>
     </div>
   );
 };
@@ -441,22 +469,26 @@ interface CodeGroupProps {
   className?: string;
 }
 
-export const CodeGroup = ({ children, titles = [], className }: CodeGroupProps) => {
+export const CodeGroup = ({
+  children,
+  titles = [],
+  className,
+}: CodeGroupProps) => {
   const [activeTab, setActiveTab] = useState(0);
 
   return (
     <div className={cn('mb-6', className)}>
       {titles.length > 0 && (
-        <div className="flex border-b border-zinc-200 dark:border-zinc-700 mb-0">
+        <div className="mb-0 flex border-b border-zinc-200 dark:border-zinc-700">
           {titles.map((title, index) => (
             <button
               key={index}
               onClick={() => setActiveTab(index)}
               className={cn(
-                'px-4 py-2 text-sm font-medium border-b-2 transition-colors',
+                'border-b-2 px-4 py-2 text-sm font-medium transition-colors',
                 activeTab === index
                   ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                  : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'
+                  : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300',
               )}
             >
               {title}
@@ -465,6 +497,7 @@ export const CodeGroup = ({ children, titles = [], className }: CodeGroupProps) 
         </div>
       )}
       <div className="relative">
+        {/* @ts-ignore */}
         {Array.isArray(children) ? children[activeTab] : children}
       </div>
     </div>

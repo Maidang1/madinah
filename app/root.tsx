@@ -10,13 +10,12 @@ import {
 import type {
   LinksFunction,
   LoaderFunctionArgs,
-  ActionFunctionArgs
+  ActionFunctionArgs,
 } from '@remix-run/cloudflare';
 import { MDXProvider } from '@mdx-js/react';
 import { ClientOnly } from 'remix-utils/client-only';
 import { cn } from './utils';
 import { AnimatedGridPattern } from '~/components/magicui/animated-grid-pattern';
-// import { FirefliesBackground } from '~/components/magicui/fireflies-background';
 import { Menu } from '~/components/blog-list/menu';
 import { mdxComponents } from '~/components/mdx/mdx-components';
 import { userTheme } from './cookies.server';
@@ -42,27 +41,27 @@ export const links: LinksFunction = () => [
 ];
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const cookieHeader = request.headers.get("Cookie");
-  const theme = (await userTheme.parse(cookieHeader)) as Theme || "light";
+  const cookieHeader = request.headers.get('Cookie');
+  const theme = ((await userTheme.parse(cookieHeader)) as Theme) || 'light';
 
   return json({ theme });
 }
 
 export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData();
-  const theme = formData.get("theme") as Theme;
+  const theme = formData.get('theme') as Theme;
 
-  if (!theme || !["light", "dark", "system"].includes(theme)) {
-    return json({ error: "Invalid theme" }, { status: 400 });
+  if (!theme || !['light', 'dark', 'system'].includes(theme)) {
+    return json({ error: 'Invalid theme' }, { status: 400 });
   }
 
   return json(
     { success: true },
     {
       headers: {
-        "Set-Cookie": await userTheme.serialize(theme),
+        'Set-Cookie': await userTheme.serialize(theme),
       },
-    }
+    },
   );
 }
 
@@ -71,11 +70,7 @@ export function Layout(props: { children: React.ReactNode }) {
   const { theme: serverTheme } = useLoaderData<typeof loader>();
   const [initTheme, setInitTheme] = useState(false);
 
-  const {
-    setTheme,
-    toggleTheme,
-    theme,
-  } = useTheme(serverTheme);
+  const { setTheme, toggleTheme, theme } = useTheme(serverTheme);
 
   useEffectOnce(() => {
     setTheme(serverTheme);
@@ -84,29 +79,31 @@ export function Layout(props: { children: React.ReactNode }) {
 
   const actualTheme = useMemo(() => {
     if (serverTheme === 'system' || theme === 'system') {
-      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      return window.matchMedia('(prefers-color-scheme: dark)').matches
+        ? 'dark'
+        : 'light';
     }
     return initTheme ? theme : serverTheme;
   }, [serverTheme, theme, initTheme]);
 
   return (
-    <html lang='en' className={cn("h-full", actualTheme)}>
+    <html lang="en" className={cn('h-full', actualTheme)}>
       <head>
-        <meta charSet='utf-8' />
-        <meta name='viewport' content='width=device-width, initial-scale=1' />
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
         <title>Madinah</title>
       </head>
-      <body className='min-h-screen flex flex-col'>
-        <div className="flex-1 relative">
+      <body className="flex min-h-screen flex-col">
+        <div className="relative flex-1">
           <AnimatedGridPattern
             numSquares={30}
             maxOpacity={0.1}
             duration={3}
             repeatDelay={1}
             className={cn(
-              "fixed inset-0 z-[9999] [mask-image:radial-gradient(500px_circle_at_center,white,transparent)]",
+              'fixed inset-0 z-[9999] [mask-image:radial-gradient(500px_circle_at_center,white,transparent)]',
             )}
           />
           {/* <FirefliesBackground
@@ -122,11 +119,7 @@ export function Layout(props: { children: React.ReactNode }) {
             <Scripts />
           </main>
         </div>
-        <Menu
-          onThemeToggle={toggleTheme}
-          theme={actualTheme}
-        />
-
+        <Menu onThemeToggle={toggleTheme} theme={actualTheme} />
       </body>
     </html>
   );

@@ -2,6 +2,7 @@
 import * as Rss from "rss";
 
 import { PostInfo } from "~/types"
+
 export function generateRssFeed(posts: PostInfo[]) {
   const feed = new Rss.default({
     title: "Madinah",

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { SCROLL_CONFIG } from '~/config/scroll-config';
 import { TocItem } from '../types';
-import { scrollToElement, getScrollPosition, throttle } from '~/utils/scroll-utils';
+import { scrollToElement, getScrollPosition, throttle } from '~/utils/scroll';
 
 interface UseTableOfContentsProps {
   tocs: TocItem[];
@@ -9,8 +9,8 @@ interface UseTableOfContentsProps {
   highlightBuffer?: number;
 }
 
-export function useTableOfContents({ 
-  tocs, 
+export function useTableOfContents({
+  tocs,
   offset = SCROLL_CONFIG.HEADING_HIGHLIGHT_OFFSET,
   highlightBuffer = SCROLL_CONFIG.HIGHLIGHT_BUFFER
 }: UseTableOfContentsProps) {
@@ -43,11 +43,11 @@ export function useTableOfContents({
 
       // 找到当前视窗内的标题
       let currentActiveId = '';
-      
+
       for (const element of headingElements) {
         const rect = element.getBoundingClientRect();
-        const elementTop = scrollContainer === window 
-          ? rect.top + scrollTop 
+        const elementTop = scrollContainer === window
+          ? rect.top + scrollTop
           : rect.top + scrollTop - containerTop;
 
         // 如果标题在视窗上方一定距离内，则认为是当前活跃的

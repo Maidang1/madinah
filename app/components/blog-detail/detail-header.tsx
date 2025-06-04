@@ -1,7 +1,7 @@
-import { Outlet } from "@remix-run/react";
-import { motion } from "motion/react";
-import type { ReadTimeResults } from "reading-time";
-import { MDXWrapper } from "~/components/mdx/mdx-wrapper";
+import { Outlet } from '@remix-run/react';
+import { motion } from 'motion/react';
+import type { ReadTimeResults } from 'reading-time';
+import { MDXWrapper } from '~/components/mdx/mdx-wrapper';
 
 interface BlogContentProps {
   title?: string;
@@ -11,7 +11,7 @@ interface BlogContentProps {
 
 export function DetailHeader({ title, summary, className }: BlogContentProps) {
   return (
-    <div className={`min-w-0 flex-1 ${className || ""}`}>
+    <div className={`min-w-0 flex-1 ${className || ''}`}>
       <motion.article
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -32,10 +32,10 @@ export function DetailHeader({ title, summary, className }: BlogContentProps) {
                 transition={{ delay: 0.2 }}
                 className="border-main-500 not-prose text-muted-foreground relative mb-8 overflow-hidden rounded-2xl border border-solid p-6 shadow-sm backdrop-blur-sm"
               >
-                <div className="relative z-10 ">
+                <div className="relative z-10">
                   <div className="mb-4 flex items-center gap-3">
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg shadow-sm">
-                      <span className="i-simple-icons-openai block h-4 w-4 text-main-500" />
+                      <span className="i-simple-icons-openai text-main-500 block h-4 w-4" />
                     </div>
                     <div className="flex flex-col">
                       <span className="text-main-500 text-sm font-semibold">
@@ -47,7 +47,7 @@ export function DetailHeader({ title, summary, className }: BlogContentProps) {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.4 }}
-                    className="text-sm leading-relaxed !text-muted-foreground"
+                    className="!text-muted-foreground text-sm leading-relaxed"
                   >
                     {summary}
                   </motion.p>

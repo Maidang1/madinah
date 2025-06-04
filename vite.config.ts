@@ -9,7 +9,7 @@ import remarkFrontmatter from 'remark-frontmatter';
 import remarkMdxFrontmatter from 'remark-mdx-frontmatter';
 import virtual from 'vite-plugin-virtual';
 import path from 'path';
-import { getListInfo } from './utils/post-info';
+import { generatePostsMetadata } from './utils/post';
 import rehypeRaw from "rehype-raw"
 import { nodeTypes } from "@mdx-js/mdx"
 import remarkShikiTwoslash from 'remark-shiki-twoslash';
@@ -89,7 +89,7 @@ export default defineConfig(async () => {
         },
       }),
       virtual({
-        'virtual:blog-list': `const list = ${await getListInfo(
+        'virtual:blog-list': `const list = ${await generatePostsMetadata(
           routeDir,
           ['blogs.']
         )}; export { list }`,

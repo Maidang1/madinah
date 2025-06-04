@@ -1,8 +1,8 @@
-import { Link, useLocation } from "@remix-run/react";
-import { motion } from "motion/react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { PostInfo } from "~/types";
-import { cn } from "~/utils";
+import { Link, useLocation } from '@remix-run/react';
+import { motion } from 'motion/react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { PostInfo } from '~/types';
+import { cn } from '~/utils';
 
 interface BlogNavigationProps {
   list: PostInfo[];
@@ -14,40 +14,41 @@ export function BlogNavigation({ list, className }: BlogNavigationProps) {
 
   const currentIndex = list.findIndex((item) => item.url === pathname);
   const prevPost = currentIndex > 0 ? list[currentIndex - 1] : null;
-  const nextPost = currentIndex < list.length - 1 ? list[currentIndex + 1] : null;
+  const nextPost =
+    currentIndex < list.length - 1 ? list[currentIndex + 1] : null;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className={cn("w-full space-y-6", className)}
+      className={cn('w-full space-y-6', className)}
     >
       {(prevPost || nextPost) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {/* 上一篇 */}
           <div className="flex justify-start">
             {prevPost ? (
               <Link
                 to={prevPost.url}
                 className={cn(
-                  "group flex items-center gap-3 p-4 rounded-xl",
-                  "bg-gradient-to-r from-muted/50 to-transparent",
-                  "border border-border/30 hover:border-border/60",
-                  "transition-all duration-300",
-                  "hover:bg-gradient-to-r hover:from-muted/80 hover:to-muted/20",
-                  "transform hover:-translate-y-1 hover:shadow-lg",
-                  "max-w-sm w-full"
+                  'group flex items-center gap-3 rounded-xl p-4',
+                  'from-muted/50 bg-gradient-to-r to-transparent',
+                  'border-border/30 hover:border-border/60 border',
+                  'transition-all duration-300',
+                  'hover:from-muted/80 hover:to-muted/20 hover:bg-gradient-to-r',
+                  'transform hover:-translate-y-1 hover:shadow-lg',
+                  'w-full max-w-sm',
                 )}
               >
                 <div className="flex-shrink-0">
-                  <ChevronLeft className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                  <ChevronLeft className="text-muted-foreground group-hover:text-foreground h-5 w-5 transition-colors" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-xs text-muted-foreground font-medium mb-1">
+                <div className="min-w-0 flex-1">
+                  <div className="text-muted-foreground mb-1 text-xs font-medium">
                     上一篇
                   </div>
-                  <div className="text-sm font-medium group-hover:text-main-500 transition-colors truncate">
+                  <div className="group-hover:text-main-500 truncate text-sm font-medium transition-colors">
                     {prevPost.title}
                   </div>
                 </div>
@@ -63,25 +64,25 @@ export function BlogNavigation({ list, className }: BlogNavigationProps) {
               <Link
                 to={nextPost.url}
                 className={cn(
-                  "group flex items-center gap-3 p-4 rounded-xl",
-                  "bg-gradient-to-l from-muted/50 to-transparent",
-                  "border border-border/30 hover:border-border/60",
-                  "transition-all duration-300",
-                  "hover:bg-gradient-to-l hover:from-muted/80 hover:to-muted/20",
-                  "transform hover:-translate-y-1 hover:shadow-lg",
-                  "max-w-sm w-full text-right"
+                  'group flex items-center gap-3 rounded-xl p-4',
+                  'from-muted/50 bg-gradient-to-l to-transparent',
+                  'border-border/30 hover:border-border/60 border',
+                  'transition-all duration-300',
+                  'hover:from-muted/80 hover:to-muted/20 hover:bg-gradient-to-l',
+                  'transform hover:-translate-y-1 hover:shadow-lg',
+                  'w-full max-w-sm text-right',
                 )}
               >
-                <div className="flex-1 min-w-0">
-                  <div className="text-xs text-muted-foreground font-medium mb-1">
+                <div className="min-w-0 flex-1">
+                  <div className="text-muted-foreground mb-1 text-xs font-medium">
                     下一篇
                   </div>
-                  <div className="text-sm font-medium group-hover:text-main-500 transition-colors truncate">
+                  <div className="group-hover:text-main-500 truncate text-sm font-medium transition-colors">
                     {nextPost.title}
                   </div>
                 </div>
                 <div className="flex-shrink-0">
-                  <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                  <ChevronRight className="text-muted-foreground group-hover:text-foreground h-5 w-5 transition-colors" />
                 </div>
               </Link>
             ) : (

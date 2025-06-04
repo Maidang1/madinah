@@ -1,6 +1,6 @@
 import { LoaderFunction } from '@remix-run/cloudflare';
 
-import { generateRssFeed } from '../../utils/rss-server';
+import { generateRssFeed } from '../../utils/rss';
 import { list } from 'virtual:blog-list';
 
 export const loader: LoaderFunction = async ({ request }) => {
