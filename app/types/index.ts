@@ -11,6 +11,7 @@ export interface PostInfo {
   toc: { url: string, value: string }[]
   date: string
   content: string
+  status?: "WIP" | "ready"
 }
 
 export interface TocItem {

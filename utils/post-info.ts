@@ -59,7 +59,7 @@ export const getListInfo = async (listPath: string, prefix: string | string[]) =
     const summary = summaryJson[url] as string;
     if (!summary) {
       const summary = await getSummary(content);
-      if (summary.ok) {
+      if (summary.isOk()) {
         summaryJson[url] = summary.unwrap();
 
       }
@@ -81,6 +81,8 @@ export const getListInfo = async (listPath: string, prefix: string | string[]) =
 
   await fs.writeFile(aiBogsSummaryJsonPath, JSON.stringify(summaryJson))
 
-  parsedContent.sort((a, b) => new Date(a.time).getSeconds() - new Date(b.time).getSeconds())
-  return JSON.stringify(parsedContent);
+  const readyPosts = parsedContent
+    .filter(post => post.status !== 'WIP');
+  readyPosts.sort((a, b) => new Date(a.time).getSeconds() - new Date(b.time).getSeconds())
+  return JSON.stringify(readyPosts);
 }
