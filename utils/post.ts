@@ -6,6 +6,7 @@ import { unified } from "unified"
 import remarkParse from 'remark-parse'
 import remarkFrontmatter from "remark-frontmatter"
 import remarkStringify from "remark-stringify"
+import remarkHTML from "remark-html"
 import { matter } from 'vfile-matter'
 import readingTime from 'reading-time'
 import remarkMdx from "remark-mdx"
@@ -61,6 +62,7 @@ export const generatePostsMetadata = async (postsDirectory: string, filePrefix: 
         existingSummaries[postUrl] = postSummary
       }
     }
+    const htmlContent = await unified().use(remarkParse).use(remarkHTML).process(processedFile.toString())
 
     return {
       filename: baseName,
@@ -70,7 +72,7 @@ export const generatePostsMetadata = async (postsDirectory: string, filePrefix: 
       url: postUrl,
       toc: processedFile.data.toc,
       summary: postSummary,
-      content: processedFile.toString(),
+      content: htmlContent.toString(),
       // @ts-expect-error
       title: processedFile?.data?.matter.title ?? '',
     }
