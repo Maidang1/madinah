@@ -58,7 +58,19 @@ const projects: Project[] = [
     url: "https://pixel.felixwliu.cn/",
     icon: "i-streamline-ultimate-color-picture-double-landscape",
   },
+  {
+    id: "reminders",
+    name: "Reminders",
+    description: "一个提醒 app 定时提醒你喝水",
+    github: "https://github.com/Maidang1/reminders",
+    language: "Rust",
+    status: "active",
+    category: "Rust",
+    featured: false,
+    icon: "i-streamline-ultimate-color-time-clock-hand-1",
+  },
 ];
+
 
 export default function Projects() {
   return (
