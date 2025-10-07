@@ -1,14 +1,14 @@
-import { useNavigate, useLocation } from "@remix-run/react";
+import { useNavigate, useLocation } from '@remix-run/react';
 import {
   MoonIcon,
   SunIcon,
   HouseIcon,
   FileIcon,
   WandIcon,
-} from "lucide-react";
-import { Dock, DockIcon } from "~/components/magicui/dock";
-import { Theme } from "~/types";
-
+  BookOpenIcon,
+} from 'lucide-react';
+import { Dock, DockIcon } from '~/components/magicui/dock';
+import { Theme } from '~/types';
 
 interface MenuProps {
   onThemeToggle?: () => void;
@@ -20,7 +20,7 @@ export function Menu({ onThemeToggle, theme }: MenuProps) {
   const location = useLocation();
 
   const isActive = (path: string) => {
-    if (path === "/") {
+    if (path === '/') {
       return location.pathname === path;
     }
     return location.pathname.startsWith(path);
@@ -30,8 +30,8 @@ export function Menu({ onThemeToggle, theme }: MenuProps) {
     <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2">
       <Dock direction="middle">
         <DockIcon
-          onClick={() => navigate("/")}
-          active={isActive("/")}
+          onClick={() => navigate('/')}
+          active={isActive('/')}
           activeClassName="bg-main-500"
         >
           <div className="tooltip tooltip-top" data-tip="主页">
@@ -39,8 +39,8 @@ export function Menu({ onThemeToggle, theme }: MenuProps) {
           </div>
         </DockIcon>
         <DockIcon
-          onClick={() => navigate("/blog")}
-          active={isActive("/blog")}
+          onClick={() => navigate('/blog')}
+          active={isActive('/blog')}
           activeClassName="bg-main-500"
         >
           <div className="tooltip tooltip-top" data-tip="博客">
@@ -48,14 +48,22 @@ export function Menu({ onThemeToggle, theme }: MenuProps) {
           </div>
         </DockIcon>
         <DockIcon
-          onClick={() => navigate("/projects")}
-          active={isActive("/projects")}
+          onClick={() => navigate('/books')}
+          active={isActive('/books')}
+          activeClassName="bg-main-500"
+        >
+          <div className="tooltip tooltip-top" data-tip="书籍">
+            <BookOpenIcon size={16} />
+          </div>
+        </DockIcon>
+        <DockIcon
+          onClick={() => navigate('/projects')}
+          active={isActive('/projects')}
           activeClassName="bg-main-500"
         >
           <div className="tooltip tooltip-top" data-tip="项目">
             <WandIcon size={16} />
           </div>
-
         </DockIcon>
         <div className="mx-1 h-3 w-px bg-gray-700 dark:bg-white" />
         <DockIcon
@@ -65,7 +73,7 @@ export function Menu({ onThemeToggle, theme }: MenuProps) {
           }}
           activeClassName="bg-main-500"
         >
-          {theme === "dark" ? <SunIcon size={16} /> : <MoonIcon size={16} />}
+          {theme === 'dark' ? <SunIcon size={16} /> : <MoonIcon size={16} />}
         </DockIcon>
       </Dock>
     </div>

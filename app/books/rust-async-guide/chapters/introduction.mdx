@@ -1,0 +1,22 @@
+---
+title: 异步编程简介
+order: 1
+summary: 了解同步与异步的差异，并熟悉 Rust async/await 的基本语法。
+---
+
+# 为什么需要异步？
+
+在网络或 I/O 密集型的应用中，等待外部资源的时间往往远超过 CPU 执行计算的时间。传统的同步模型会让线程在等待时阻塞，造成资源浪费。
+
+异步模型让任务在等待时让出执行权，其他任务得以继续推进。Rust 的所有权系统确保即便在这种高并发场景下也能安全地共享数据。
+
+## async/await 的基本语法
+
+```rust
+async fn fetch_user() -> Result<User, Error> {
+    let response = http_client::get("https://example.com/user").await?;
+    parse_response(response)
+}
+```
+
+`async` 关键字让函数返回一个实现 `Future` 的类型，而 `await` 则在任务可以安全继续执行时恢复控制权。理解 `Future` 的状态机实现对于后续章节至关重要。

@@ -10,6 +10,7 @@ import remarkMdxFrontmatter from 'remark-mdx-frontmatter';
 import virtual from 'vite-plugin-virtual';
 import path from 'path';
 import { generatePostsMetadata } from './utils/post';
+import { booksVirtualPlugin } from './utils/book';
 import rehypeRaw from "rehype-raw"
 import { nodeTypes } from "@mdx-js/mdx"
 import remarkShikiTwoslash from 'remark-shiki-twoslash';
@@ -88,6 +89,7 @@ export default defineConfig(async () => {
           v3_throwAbortReason: true,
         },
       }),
+      booksVirtualPlugin(),
       virtual({
         'virtual:blog-list': `const list = ${await generatePostsMetadata(
           routeDir,

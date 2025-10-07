@@ -35,3 +35,23 @@ export interface ScrollOptions {
 }
 
 export type Theme = "light" | "dark" | "system";
+
+export interface BookChapterInfo {
+  id: string;
+  title: string;
+  order: number;
+  summary: string;
+}
+
+export interface BookSummaryInfo {
+  id: string;
+  title: string;
+  description: string;
+  author: string;
+  coverImage: string | null;
+  tags: string[];
+  defaultChapterId: string | null;
+  hasOverview: boolean;
+  chapterCount: number;
+  chapters: BookChapterInfo[];
+}
