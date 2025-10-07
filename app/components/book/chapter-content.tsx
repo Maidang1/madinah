@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { BookChapterInfo, BookSummaryInfo } from '~/types';
+import { LicenseNotice } from '../blog-detail/license-notice';
 
 interface BookChapterContentProps {
   book: BookSummaryInfo;
@@ -24,6 +25,7 @@ export function BookChapterContent({
         ) : null}
       </header>
       <div>{children}</div>
+      <LicenseNotice />
     </article>
   );
 }

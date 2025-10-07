@@ -2,6 +2,7 @@ import { Outlet } from '@remix-run/react';
 import { motion } from 'motion/react';
 import type { ReadTimeResults } from 'reading-time';
 import { MDXWrapper } from '~/components/mdx/mdx-wrapper';
+import { LicenseNotice } from './license-notice';
 
 interface BlogContentProps {
   title?: string;
@@ -59,6 +60,7 @@ export function DetailHeader({ title, summary, className }: BlogContentProps) {
         <MDXWrapper className="mt-8">
           <Outlet />
         </MDXWrapper>
+        <LicenseNotice />
       </motion.article>
     </div>
   );
