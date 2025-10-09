@@ -95,8 +95,8 @@ export function Layout(props: { children: React.ReactNode }) {
         <Links />
         <title>Madinah</title>
       </head>
-      <body className="flex min-h-screen flex-col">
-        <div className="relative flex-1">
+      <body className="flex h-full max-h-full min-h-screen flex-col overflow-hidden">
+        <div className="relative h-full max-h-full flex-1 overflow-hidden">
           <AnimatedGridPattern
             numSquares={30}
             maxOpacity={0.1}
@@ -106,14 +106,7 @@ export function Layout(props: { children: React.ReactNode }) {
               'fixed inset-0 z-[9999] [mask-image:radial-gradient(500px_circle_at_center,white,transparent)]',
             )}
           />
-          {/* <FirefliesBackground
-            count={60}
-            className="fixed inset-0 z-[10000]"
-            color={
-              theme === 'dark' ? 'rgba(255, 255, 255, 0.8)' : 'transparent'
-            }
-          /> */}
-          <main className="container mx-auto px-4 py-20">
+          <main className="container mx-auto h-full max-h-full overflow-hidden px-4 py-20">
             {children}
             <ScrollRestoration />
             <Scripts />

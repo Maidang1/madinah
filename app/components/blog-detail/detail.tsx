@@ -23,11 +23,11 @@ export default function Detail({ list }: BlogsDetailProps) {
   const readingTime = listItem?.readingTime;
 
   return (
-    <div className="container mx-auto mt-4 px-4 pt-6 sm:px-6 sm:pt-12">
+    <div className="container mx-auto mt-4 h-full max-h-full overflow-hidden px-4 pt-6 sm:px-6 sm:pt-12">
       <ScrollRestoration />
       <TableOfContentsMobile tocs={tocs} />
 
-      <div className="relative flex flex-col gap-8 lg:flex-row">
+      <div className="relative flex h-full flex-col gap-8 lg:flex-row">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -49,7 +49,7 @@ export default function Detail({ list }: BlogsDetailProps) {
             </div>
           </div>
         </motion.div>
-        <div className="min-w-0 flex-1">
+        <div className="blog-detail-scroll-container h-full max-h-full min-w-0 flex-1 overflow-auto">
           <DetailHeader title={title} summary={summary} />
 
           {/* 博客导航组件 */}

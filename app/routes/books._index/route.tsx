@@ -24,13 +24,7 @@ export default function BooksIndexRoute() {
   return (
     <div className="space-y-8">
       <header className="space-y-2 text-center">
-        <p className="text-main-500 text-sm tracking-wide uppercase">
-          精选阅读
-        </p>
         <h1 className="text-foreground text-3xl font-bold">Books</h1>
-        <p className="text-muted-foreground text-sm">
-          聚合长期整理的系列文章，按照章节阅读，更体系化地学习。
-        </p>
       </header>
       <BookList books={books} />
     </div>

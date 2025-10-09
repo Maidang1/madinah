@@ -14,7 +14,7 @@ export function BookChapterContent({
   children,
 }: BookChapterContentProps) {
   return (
-    <article className="prose prose-neutral border-border/60 bg-background/80 dark:prose-invert dark:bg-background/60 max-w-none rounded-2xl border p-8 shadow-sm transition">
+    <article className="prose prose-neutral bg-background/80 dark:prose-invert dark:bg-background/60 max-w-none rounded-2xl pb-36 shadow-sm transition">
       <header className="mb-8 flex flex-col gap-2">
         <p className="text-main-500 text-xs font-medium tracking-wide uppercase">
           {book.title}

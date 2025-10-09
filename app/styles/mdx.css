@@ -1,3 +1,17 @@
+/* 全局隐藏滚动条 */
+* {
+  /* Webkit browsers (Chrome, Safari, Edge) */
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* Internet Explorer 10+ */
+}
+
+*::-webkit-scrollbar {
+  display: none;
+  /* Webkit browsers */
+}
+
 /* MDX 组件自定义样式 */
 .mdx-content {
   /* 有序列表计数器 */

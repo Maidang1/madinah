@@ -62,9 +62,6 @@ export function BookList({ books }: BookListProps) {
             ) : null}
 
             <div className="mt-auto flex items-center justify-between pt-2">
-              <span className="text-main-500 text-sm font-medium">
-                探索章节
-              </span>
               <Link
                 to={`/books/${book.id}`}
                 className={cn(
@@ -73,9 +70,6 @@ export function BookList({ books }: BookListProps) {
                 )}
               >
                 开始阅读
-                <span aria-hidden className="text-base">
-                  →
-                </span>
               </Link>
             </div>
           </div>

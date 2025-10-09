@@ -31,7 +31,9 @@ export function scrollToElement(
     });
   } else {
     const containerElement = scrollContainer as HTMLElement;
-    scrollTop = targetElement.getBoundingClientRect().top + containerElement.scrollTop - offset;
+    const containerRect = containerElement.getBoundingClientRect();
+    const targetRect = targetElement.getBoundingClientRect();
+    scrollTop = containerElement.scrollTop + (targetRect.top - containerRect.top) - offset;
     containerElement.scrollTo({
       top: scrollTop,
       behavior,

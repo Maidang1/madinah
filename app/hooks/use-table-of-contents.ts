@@ -19,7 +19,11 @@ export function useTableOfContents({
   const handleClick = useCallback((e: React.MouseEvent<HTMLAnchorElement>, url: string) => {
     e.preventDefault();
     const targetId = url.slice(1);
-    scrollToElement(targetId, { offset });
+    const scrollContainer = document.querySelector('.blog-detail-scroll-container');
+    scrollToElement(targetId, {
+      offset,
+      container: scrollContainer
+    });
   }, [offset]);
 
   useEffect(() => {
@@ -34,7 +38,7 @@ export function useTableOfContents({
       if (headingElements.length === 0) return;
 
       const scrollTop = getScrollPosition();
-      const scrollContainer = document.querySelector('.scroll-container') || window;
+      const scrollContainer = document.querySelector('.blog-detail-scroll-container') || window;
       let containerTop = 0;
 
       if (scrollContainer !== window) {
@@ -72,7 +76,7 @@ export function useTableOfContents({
     handleScroll();
 
     // 监听滚动事件
-    const scrollContainer = document.querySelector('.scroll-container') || window;
+    const scrollContainer = document.querySelector('.blog-detail-scroll-container') || window;
     scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
 
     return () => {
