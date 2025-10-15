@@ -3,7 +3,7 @@ import type { LoaderFunctionArgs, MetaFunction } from '@remix-run/cloudflare';
 import { Suspense, lazy, useMemo } from 'react';
 import type { ComponentType } from 'react';
 import { useLoaderData, useOutletContext } from '@remix-run/react';
-import { BookChapterContent } from '~/components/book/chapter-content';
+import { BookChapterContent } from '~/features/books/components/chapter-content';
 import type { BookChapterInfo, BookSummaryInfo } from '~/types';
 import type { BookRouteContext } from '../books_.$bookId/route';
 // eslint-disable-next-line import/no-unresolved

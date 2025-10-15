@@ -9,8 +9,8 @@ import { matter } from 'vfile-matter';
 import type { Plugin } from 'vite';
 
 const rootDir = process.cwd();
-const booksDir = path.join(rootDir, 'app', 'books');
-const booksAppPath = path.posix.join('app', 'books');
+const booksDir = path.join(rootDir, 'app', 'features', 'books', 'content');
+const booksAppPath = path.posix.join('app', 'features', 'books', 'content');
 
 interface BookChapterMeta {
   id: string;

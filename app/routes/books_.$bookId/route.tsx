@@ -1,9 +1,9 @@
 import { json } from '@remix-run/cloudflare';
 import type { LoaderFunctionArgs } from '@remix-run/cloudflare';
 import { Outlet, useLoaderData } from '@remix-run/react';
-import { BookChapterSidebar } from '~/components/book/chapter-sidebar';
-import { BookLayout } from '~/components/book/book-layout';
-import { BookOverviewCard } from '~/components/book/book-overview-card';
+import { BookChapterSidebar } from '~/features/books/components/chapter-sidebar';
+import { BookLayout } from '~/features/books/components/book-layout';
+import { BookOverviewCard } from '~/features/books/components/book-overview-card';
 import type { BookSummaryInfo } from '~/types';
 // eslint-disable-next-line import/no-unresolved
 import { getSerializedBook } from 'virtual:book-data';

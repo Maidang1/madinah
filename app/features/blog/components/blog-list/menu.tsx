@@ -1,0 +1,81 @@
+import { useNavigate, useLocation } from '@remix-run/react';
+import {
+  MoonIcon,
+  SunIcon,
+  HouseIcon,
+  FileIcon,
+  WandIcon,
+  BookOpenIcon,
+} from 'lucide-react';
+import { Dock, DockIcon } from '~/core/ui/magic/dock';
+import { Theme } from '~/types';
+
+interface MenuProps {
+  onThemeToggle?: () => void;
+  theme?: Theme;
+}
+
+export function Menu({ onThemeToggle, theme }: MenuProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const isActive = (path: string) => {
+    if (path === '/') {
+      return location.pathname === path;
+    }
+    return location.pathname.startsWith(path);
+  };
+
+  return (
+    <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2">
+      <Dock direction="middle">
+        <DockIcon
+          onClick={() => navigate('/')}
+          active={isActive('/')}
+          activeClassName="bg-main-500"
+        >
+          <div className="tooltip tooltip-top" data-tip="主页">
+            <HouseIcon size={16} />
+          </div>
+        </DockIcon>
+        <DockIcon
+          onClick={() => navigate('/blog')}
+          active={isActive('/blog')}
+          activeClassName="bg-main-500"
+        >
+          <div className="tooltip tooltip-top" data-tip="博客">
+            <FileIcon size={16} />
+          </div>
+        </DockIcon>
+        <DockIcon
+          onClick={() => navigate('/books')}
+          active={isActive('/books')}
+          activeClassName="bg-main-500"
+        >
+          <div className="tooltip tooltip-top" data-tip="书籍">
+            <BookOpenIcon size={16} />
+          </div>
+        </DockIcon>
+        <DockIcon
+          onClick={() => navigate('/projects')}
+          active={isActive('/projects')}
+          activeClassName="bg-main-500"
+        >
+          <div className="tooltip tooltip-top" data-tip="项目">
+            <WandIcon size={16} />
+          </div>
+        </DockIcon>
+        <div className="mx-1 h-3 w-px bg-gray-700 dark:bg-white" />
+        <DockIcon
+          onClick={(e) => {
+            e.preventDefault();
+            onThemeToggle?.();
+          }}
+          activeClassName="bg-main-500"
+        >
+          {theme === 'dark' ? <SunIcon size={16} /> : <MoonIcon size={16} />}
+        </DockIcon>
+      </Dock>
+    </div>
+  );
+}

@@ -1,6 +1,6 @@
 import type { MetaFunction } from "@remix-run/cloudflare";
 import { motion } from "motion/react";
-import { cn } from "~/utils";
+import { cn } from "~/core/utils";
 
 export const meta: MetaFunction = () => {
   return [

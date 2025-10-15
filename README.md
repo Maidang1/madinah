@@ -41,8 +41,8 @@ This template comes with [Tailwind CSS](https://tailwindcss.com/) already config
 
 ## Books Module
 
-The `/books` section is generated automatically from MDX sources under `app/books`. Each book folder contains a `book.mdx` overview and a `chapters/` directory with numbered chapter files. A custom Vite plugin scans these directories at startup to expose structured data and lazy chapter loaders through the `virtual:book-data` module.
+The `/books` section is generated automatically from MDX sources under `app/features/books/content`. Each book folder contains a `book.mdx` overview and a `chapters/` directory with numbered chapter files. A custom Vite plugin scans these directories at startup to expose structured data and lazy chapter loaders through the `virtual:book-data` module.
 
-- Add a new book by creating `app/books/<book-id>/book.mdx` and placing chapter files in `app/books/<book-id>/chapters/`.
+- Add a new book by creating `app/features/books/content/<book-id>/book.mdx` and placing chapter files in `app/features/books/content/<book-id>/chapters/`.
 - Frontmatter fields such as `title`, `description`, `author`, `tags`, and `order` control the UI presentation.
 - Restart the dev server or touch the files to trigger hot updates when adding or removing books.

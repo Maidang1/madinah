@@ -32,7 +32,7 @@ export const generatePostsMetadata = async (postsDirectory: string, filePrefix: 
   const allFiles = await fs.readdir(postsDirectory, { encoding: "utf-8" })
   const normalizedPrefix = Array.isArray(filePrefix) ? filePrefix : [filePrefix]
 
-  const summaryFilePath = path.join(process.cwd(), 'app/summary/blogs-summary.json')
+  const summaryFilePath = path.join(process.cwd(), 'app/features/blog/data/blogs-summary.json')
   const existingSummaries = (JSON.parse(await fs.readFile(summaryFilePath, { encoding: "utf8" })) ?? {}) as Record<string, string>
 
   const filteredPosts = allFiles.filter(fileName => normalizedPrefix.some(prefix => fileName.startsWith(prefix)))

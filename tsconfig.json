@@ -28,7 +28,7 @@
     "baseUrl": ".",
     "paths": {
       "~/*": ["./app/*"],
-      "@components/*": ["./components/*"]
+      "@components/*": ["./app/core/ui/*"]
     },
     "libReplacement": true,
     "noEmit": true

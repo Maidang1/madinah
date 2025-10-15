@@ -14,12 +14,12 @@ import type {
 } from '@remix-run/cloudflare';
 import { MDXProvider } from '@mdx-js/react';
 import { ClientOnly } from 'remix-utils/client-only';
-import { cn } from './utils';
-import { AnimatedGridPattern } from '~/components/magicui/animated-grid-pattern';
-import { Menu } from '~/components/blog-list/menu';
-import { mdxComponents } from '~/components/mdx/mdx-components';
+import { cn } from '~/core/utils';
+import { AnimatedGridPattern } from '~/core/ui/magic/animated-grid-pattern';
+import { Menu } from '~/features/blog/components/blog-list/menu';
+import { mdxComponents } from '~/core/mdx/mdx-components';
 import { userTheme } from './cookies.server';
-import { useTheme } from './hooks/use-theme';
+import { useTheme } from '~/core/hooks/use-theme';
 import { useMemo, useState } from 'react';
 import { useEffectOnce } from 'react-use';
 import './styles/tailwind.css';

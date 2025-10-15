@@ -1,6 +1,6 @@
 // eslint-disable-next-line import/no-unresolved
 import { list } from 'virtual:blog-list';
-import BaseBlogList from '~/components/blog-list/list';
+import BaseBlogList from '~/features/blog/components/blog-list/list';
 
 export default function BlogList() {
   return <BaseBlogList list={list} />;
