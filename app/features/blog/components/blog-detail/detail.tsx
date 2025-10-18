@@ -9,6 +9,7 @@ import { ScrollToTopButton } from './scroll-to-top';
 import { BlogNavigation } from './blog-navigation';
 import { motion } from 'motion/react';
 import { CaseSensitive, Hourglass } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
 interface BlogsDetailProps {
   list: PostInfo[];
@@ -22,10 +23,49 @@ export default function Detail({ list }: BlogsDetailProps) {
   const summary = listItem?.summary;
   const readingTime = listItem?.readingTime;
 
+  const [showStickyHeader, setShowStickyHeader] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer || !headerRef.current) return;
+
+    const handleScroll = () => {
+      const headerRect = headerRef.current?.getBoundingClientRect();
+      if (headerRect) {
+        // Show sticky header when original header is scrolled out of view
+        setShowStickyHeader(headerRect.bottom < 0);
+      }
+    };
+
+    scrollContainer.addEventListener('scroll', handleScroll);
+    return () => scrollContainer.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
     <div className="container mx-auto mt-4 h-full max-h-full overflow-hidden px-4 pt-6 sm:px-6 sm:pt-12">
       <ScrollRestoration />
       <TableOfContentsMobile tocs={tocs} />
+      
+      {/* Sticky Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ 
+          opacity: showStickyHeader ? 1 : 0,
+          y: showStickyHeader ? 0 : -20
+        }}
+        transition={{ duration: 0.2 }}
+        className={`fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-700 ${
+          showStickyHeader ? 'pointer-events-auto' : 'pointer-events-none'
+        }`}
+      >
+        <div className="container mx-auto px-4 py-3 sm:px-6">
+          <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+            {title}
+          </h1>
+        </div>
+      </motion.div>
 
       <div className="relative flex h-full flex-col gap-8 lg:flex-row">
         <motion.div
@@ -49,8 +89,11 @@ export default function Detail({ list }: BlogsDetailProps) {
             </div>
           </div>
         </motion.div>
-        <div className="blog-detail-scroll-container h-full max-h-full min-w-0 flex-1 overflow-auto">
-          <DetailHeader title={title} summary={summary} />
+        <div 
+          ref={scrollContainerRef}
+          className="blog-detail-scroll-container h-full max-h-full min-w-0 flex-1 overflow-auto"
+        >
+          <DetailHeader ref={headerRef} title={title} summary={summary} />
 
           {/* 博客导航组件 */}
           <div className="mt-16 mb-8">

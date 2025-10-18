@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import type { ReadTimeResults } from 'reading-time';
 import { MDXWrapper } from '~/core/mdx/mdx-wrapper';
 import { LicenseNotice } from '~/core/ui/common/license-notice';
+import { forwardRef } from 'react';
 
 interface BlogContentProps {
   title?: string;
@@ -10,7 +11,7 @@ interface BlogContentProps {
   className?: string;
 }
 
-export function DetailHeader({ title, summary, className }: BlogContentProps) {
+export const DetailHeader = forwardRef<HTMLElement, BlogContentProps>(function DetailHeader({ title, summary, className }, ref) {
   return (
     <div className={`min-w-0 flex-1 ${className || ''}`}>
       <motion.article
@@ -20,7 +21,7 @@ export function DetailHeader({ title, summary, className }: BlogContentProps) {
         className="max-w-none"
       >
         {(title || summary) && (
-          <header className="mb-8">
+          <header ref={ref} className="mb-8">
             {title && (
               <h1 className="mb-6 text-center text-3xl font-bold sm:text-4xl">
                 {title}
@@ -64,4 +65,4 @@ export function DetailHeader({ title, summary, className }: BlogContentProps) {
       </motion.article>
     </div>
   );
-}
+});

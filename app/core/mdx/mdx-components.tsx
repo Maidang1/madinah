@@ -284,8 +284,9 @@ export const Blockquote = ({
 export const Code = ({ children, className, ...props }: CodeProps & any) => (
   <code
     className={cn(
-      'dark:bg-main-500/35 bg-main-500/50 text-zinc-800 dark:text-zinc-200',
       'rounded border-0 px-1 py-0.5 font-mono text-sm',
+      '!dark:bg-purple-900/30 !dark:text-purple-300 !bg-purple-100/80 !text-purple-800',
+      'border border-purple-200 dark:border-purple-700/50',
       className,
     )}
     {...props}
