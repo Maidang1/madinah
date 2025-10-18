@@ -359,10 +359,14 @@ pre .code-container:hover a {
   opacity: 1;
 }
 
+pre .code-container>code {
+  background: transparent !important;
+  border: none !important;
+}
+
 pre code {
   font-size: 15px;
   font-family: "JetBrains Mono", Menlo, Monaco, Consolas, Courier New, monospace;
-  ;
   white-space: pre;
   -webkit-overflow-scrolling: touch;
 }
@@ -514,37 +518,6 @@ data-lsp {
 /** Annotations support, providing a tool for meta commentary */
 .tag-container {
   position: relative;
-}
-
-.tag-container .twoslash-annotation {
-  position: absolute;
-  font-family: "JetBrains Mono", Menlo, Monaco, Consolas, Courier New, monospace;
-  right: -10px;
-  /** Default annotation text to 200px */
-  width: 200px;
-  color: #187abf;
-  background-color: #fcf3d9 bb;
-}
-
-.tag-container .twoslash-annotation p {
-  text-align: left;
-  font-size: 0.8rem;
-  line-height: 0.9rem;
-}
-
-.tag-container .twoslash-annotation svg {
-  float: left;
-  margin-left: -44px;
-}
-
-.tag-container .twoslash-annotation.left {
-  right: auto;
-  left: -200px;
-}
-
-.tag-container .twoslash-annotation.left svg {
-  float: right;
-  margin-right: -5px;
 }
 
 /** Support for showing console log/warn/errors inline */
