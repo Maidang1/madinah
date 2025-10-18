@@ -1,7 +1,7 @@
-import { Link } from '@remix-run/react';
-import { motion } from 'motion/react';
-import { cn } from '~/core/utils';
-import type { BookSummaryInfo } from '~/types';
+import { Link } from "@remix-run/react";
+import { motion } from "motion/react";
+import { cn } from "~/core/utils";
+import type { BookSummaryInfo } from "~/types";
 
 interface BookListProps {
   books: BookSummaryInfo[];
@@ -65,8 +65,8 @@ export function BookList({ books }: BookListProps) {
               <Link
                 to={`/books/${book.id}`}
                 className={cn(
-                  'bg-main-500 inline-flex items-center gap-1 rounded-full px-4 py-2 text-sm font-semibold text-white transition',
-                  'group-hover:translate-x-1',
+                  "bg-main-500 inline-flex items-center gap-1 rounded-full px-4 py-2 text-sm font-semibold text-white transition",
+                  "group-hover:translate-x-1",
                 )}
               >
                 开始阅读

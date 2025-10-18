@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react';
-import { LicenseNotice } from '~/core/ui/common/license-notice';
-import type { BookChapterInfo, BookSummaryInfo } from '~/types';
+import type { ReactNode } from "react";
+import { LicenseNotice } from "~/core/ui/common/license-notice";
+import type { BookChapterInfo, BookSummaryInfo } from "~/types";
 
 interface BookChapterContentProps {
   book: BookSummaryInfo;

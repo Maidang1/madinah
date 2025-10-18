@@ -86,7 +86,13 @@ function buildRuntimeChapter(chapter: BookChapterMeta) {
     title: ${JSON.stringify(chapter.title)},
     order: ${chapter.order},
     summary: ${JSON.stringify(chapter.summary)},
-    module: () => import(${JSON.stringify(chapter.importer)})
+    load: async () => {
+      const mod = await import(${JSON.stringify(chapter.importer)});
+      return {
+        module: mod.default,
+        frontmatter: mod.frontmatter ?? mod.attributes ?? mod.metadata ?? null,
+      };
+    }
   }`;
 }
 
@@ -102,7 +108,13 @@ function buildRuntimeBook(book: BookBuildMeta) {
     tags: ${JSON.stringify(book.tags)},
     defaultChapterId: ${book.defaultChapterId ? JSON.stringify(book.defaultChapterId) : 'null'},
     directoryName: ${JSON.stringify(book.directoryName)},
-    overviewModule: ${book.overviewImporter ? `() => import(${JSON.stringify(book.overviewImporter)})` : 'null'},
+    loadOverview: ${book.overviewImporter ? `async () => {
+      const mod = await import(${JSON.stringify(book.overviewImporter)});
+      return {
+        module: mod.default,
+        frontmatter: mod.frontmatter ?? mod.attributes ?? mod.metadata ?? null,
+      };
+    }` : 'null'},
     chapters: [${chaptersCode}]
   }`;
 }
@@ -142,7 +154,7 @@ export const booksSerialized = books.map((book) => ({
   coverImage: book.coverImage,
   tags: book.tags,
   defaultChapterId: book.defaultChapterId,
-  hasOverview: Boolean(book.overviewModule),
+  hasOverview: Boolean(book.loadOverview),
   chapterCount: book.chapters.length,
   chapters: book.chapters.map((chapter) => ({
     id: chapter.id,
@@ -189,23 +201,15 @@ export async function loadChapterModule(bookId, chapterId) {
   if (!chapter) {
     return null;
   }
-  const mod = await chapter.module();
-  return {
-    module: mod.default,
-    frontmatter: mod.frontmatter ?? mod.attributes ?? mod.metadata ?? null,
-  };
+  return chapter.load();
 }
 
 export async function loadBookOverview(bookId) {
   const book = getBook(bookId);
-  if (!book?.overviewModule) {
+  if (!book?.loadOverview) {
     return null;
   }
-  const mod = await book.overviewModule();
-  return {
-    module: mod.default,
-    frontmatter: mod.frontmatter ?? mod.attributes ?? mod.metadata ?? null,
-  };
+  return book.loadOverview();
 }
 
 export default booksSerialized;

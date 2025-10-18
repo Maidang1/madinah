@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
-import type { BookSummaryInfo } from '~/types';
+import type { ReactNode } from "react";
+import type { BookSummaryInfo } from "~/types";
 
 interface BookOverviewCardProps {
   book: BookSummaryInfo;

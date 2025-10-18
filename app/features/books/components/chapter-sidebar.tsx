@@ -1,17 +1,19 @@
-import { Link, useParams } from '@remix-run/react';
-import { cn } from '~/core/utils';
-import type { BookSummaryInfo } from '~/types';
+import { Link, useParams } from "@remix-run/react";
+import { cn } from "~/core/utils";
+import type { BookSummaryInfo } from "~/types";
 
 interface BookChapterSidebarProps {
   book: BookSummaryInfo;
   activeChapterId?: string | null;
+  onNavigate?: () => void;
 }
 
 export function BookChapterSidebar({
   book,
   activeChapterId,
+  onNavigate,
 }: BookChapterSidebarProps) {
-  const params = useParams();
+  const params = useParams<{ chapterId?: string }>();
   const currentChapter =
     activeChapterId ?? params.chapterId ?? book.defaultChapterId ?? null;
 
@@ -37,11 +39,12 @@ export function BookChapterSidebar({
             <li key={chapter.id}>
               <Link
                 to={`/books/${book.id}/${chapter.id}`}
+                onClick={onNavigate}
                 className={cn(
-                  'flex items-center gap-3 rounded-xl border border-transparent px-3 py-2 text-left transition',
+                  "flex items-center gap-3 rounded-xl border border-transparent px-3 py-2 text-left transition",
                   isActive
-                    ? 'border-main-500 bg-main-500/10 text-main-500 dark:text-main-400'
-                    : 'hover:border-main-500/40 hover:bg-main-500/5 text-muted-foreground',
+                    ? "border-main-500 bg-main-500/10 text-main-500 dark:text-main-400"
+                    : "text-muted-foreground hover:border-main-500/40 hover:bg-main-500/5",
                 )}
                 prefetch="intent"
               >
