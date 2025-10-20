@@ -46,7 +46,7 @@ export function BookLayout({ sidebar, overview, children }: BookLayoutProps) {
   const sidebarClasses = useMemo(
     () =>
       cn(
-        'fixed inset-y-0 left-0 z-50 w-80 transform bg-white shadow-xl transition-transform duration-300 ease-in-out dark:bg-zinc-900 lg:hidden',
+        'fixed inset-y-0 left-0 z-50 w-80 transform bg-white shadow-xl transition-transform duration-300 ease-in-out dark:bg-zinc-900 xl:hidden',
         isSidebarOpen ? 'translate-x-0' : '-translate-x-full',
       ),
     [isSidebarOpen],
@@ -55,7 +55,7 @@ export function BookLayout({ sidebar, overview, children }: BookLayoutProps) {
   const overlayClasses = useMemo(
     () =>
       cn(
-        'fixed inset-0 z-40 bg-black/30 transition-opacity lg:hidden',
+        'fixed inset-0 z-40 bg-black/30 transition-opacity xl:hidden',
         isSidebarOpen
           ? 'opacity-100 backdrop-blur'
           : 'pointer-events-none opacity-0',
@@ -74,13 +74,13 @@ export function BookLayout({ sidebar, overview, children }: BookLayoutProps) {
   );
 
   return (
-    <div className="relative h-full max-h-full overflow-hidden">
+    <div className="relative">
       <div
         id={sidebarId}
         aria-hidden={!isSidebarOpen}
         className={sidebarClasses}
       >
-        <div className="flex h-full flex-col gap-6 overflow-y-auto p-6">
+        <div className="flex h-full flex-col gap-6 overflow-y-auto p-6 pb-20">
           {renderedOverview}
           {renderedSidebar}
         </div>
@@ -122,7 +122,7 @@ export function BookLayout({ sidebar, overview, children }: BookLayoutProps) {
         type="button"
         aria-controls={sidebarId}
         aria-expanded={isSidebarOpen}
-        className="focus-visible:ring-main-500 fixed top-4 left-4 z-30 rounded-md bg-white p-2 opacity-60 shadow-md transition hover:opacity-100 focus:outline-none focus-visible:ring-2 lg:hidden"
+        className="focus-visible:ring-main-500 fixed top-4 left-4 z-30 rounded-md bg-white p-2 opacity-70 shadow-md transition hover:opacity-100 focus:outline-none focus-visible:ring-2 xl:hidden"
         onClick={openSidebar}
       >
         <span className="sr-only">打开章节导航</span>
@@ -141,18 +141,24 @@ export function BookLayout({ sidebar, overview, children }: BookLayoutProps) {
         </svg>
       </button>
 
-      <div className="hidden h-full max-h-full gap-8 overflow-hidden lg:grid lg:grid-cols-[minmax(260px,320px)_1fr]">
-        <div className="sticky top-0 h-screen space-y-6 overflow-y-auto">
-          {renderedOverview}
-          {renderedSidebar}
-        </div>
-        <div className="h-full max-h-full space-y-6 overflow-auto">
-          {children}
-        </div>
-      </div>
+      <div className="relative mx-auto w-full max-w-5xl px-4 pt-6 pb-16 sm:px-6 lg:px-8">
+        <div className="relative grid grid-cols-1 gap-12 xl:grid-cols-[minmax(0,1fr)_18rem]">
+          <div className="min-w-0 space-y-10">
+            <div className="grid gap-6 xl:hidden">
+              {renderedOverview}
+            </div>
+            {children}
+          </div>
 
-      <div className="h-full max-h-full overflow-auto lg:hidden">
-        <div className="px-4 pt-16">{children}</div>
+          <aside className="relative hidden xl:block">
+            <div className="sticky top-28 flex max-h-[calc(100vh-7rem)] flex-col gap-6">
+              {renderedOverview}
+              <div className="flex-1 overflow-y-auto pr-1">
+                {renderedSidebar}
+              </div>
+            </div>
+          </aside>
+        </div>
       </div>
     </div>
   );

@@ -15,8 +15,6 @@ import type {
 import { MDXProvider } from '@mdx-js/react';
 import { ClientOnly } from 'remix-utils/client-only';
 import { cn } from '~/core/utils';
-import { AnimatedGridPattern } from '~/core/ui/magic/animated-grid-pattern';
-import { Menu } from '~/features/blog/components/blog-list/menu';
 import { mdxComponents } from '~/core/mdx/mdx-components';
 import { userTheme } from './cookies.server';
 import { useTheme } from '~/core/hooks/use-theme';
@@ -26,6 +24,8 @@ import './styles/tailwind.css';
 import './styles/theme.less';
 import './styles/mdx.css';
 import { Theme } from './types';
+import { SiteHeader } from '~/core/ui/layout/site-header';
+import { SiteFooter } from '~/core/ui/layout/site-footer';
 
 export const links: LinksFunction = () => [
   { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
@@ -77,13 +77,19 @@ export function Layout(props: { children: React.ReactNode }) {
     setInitTheme(true);
   });
 
-  const actualTheme = useMemo(() => {
-    if (serverTheme === 'system' || theme === 'system') {
-      return window.matchMedia('(prefers-color-scheme: dark)').matches
-        ? 'dark'
-        : 'light';
+  const actualTheme = useMemo<Theme>(() => {
+    const candidate = initTheme ? theme : serverTheme;
+
+    if (candidate === 'system') {
+      if (typeof window !== 'undefined') {
+        return window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark'
+          : 'light';
+      }
+      return 'light';
     }
-    return initTheme ? theme : serverTheme;
+
+    return candidate ?? 'light';
   }, [serverTheme, theme, initTheme]);
 
   return (
@@ -95,24 +101,19 @@ export function Layout(props: { children: React.ReactNode }) {
         <Links />
         <title>Madinah</title>
       </head>
-      <body className="flex h-full max-h-full min-h-screen flex-col overflow-hidden">
-        <div className="relative h-full max-h-full flex-1 overflow-hidden">
-          <AnimatedGridPattern
-            numSquares={30}
-            maxOpacity={0.1}
-            duration={3}
-            repeatDelay={1}
-            className={cn(
-              'fixed inset-0 z-[9999] [mask-image:radial-gradient(500px_circle_at_center,white,transparent)]',
-            )}
-          />
-          <main className="container mx-auto h-full max-h-full overflow-hidden px-4 py-20">
-            {children}
-            <ScrollRestoration />
-            <Scripts />
+      <body className="bg-background text-foreground min-h-screen antialiased">
+        <div className="flex min-h-screen flex-col">
+          <SiteHeader theme={actualTheme} onThemeToggle={toggleTheme} />
+          <main
+            id="main-content"
+            className="mx-auto w-full flex-1 px-4 py-12 sm:py-16"
+          >
+            <div className="space-y-12">{children}</div>
           </main>
+          <SiteFooter />
         </div>
-        <Menu onThemeToggle={toggleTheme} theme={actualTheme} />
+        <ScrollRestoration />
+        <Scripts />
       </body>
     </html>
   );

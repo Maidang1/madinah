@@ -128,7 +128,7 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground text-base leading-relaxed;
   }
 
   /* 自定义计数器样式 */
@@ -152,6 +152,7 @@
 
   /* 平滑滚动 */
   html {
+    font-size: 16px;
     scroll-behavior: smooth;
   }
 

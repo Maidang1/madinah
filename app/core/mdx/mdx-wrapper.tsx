@@ -14,7 +14,6 @@ export function MDXWrapper({ children, className }: MDXWrapperProps) {
         'text-zinc-700 dark:text-zinc-300',
         'scroll-smooth',
         'mx-auto',
-        'px-4 sm:px-6 lg:px-8',
         className,
       )}
     >

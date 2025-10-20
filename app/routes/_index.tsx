@@ -1,110 +1,183 @@
-import { Link } from "@remix-run/react";
-import { Icons } from "~/core/ui/common/icons";
-import type { MetaFunction } from "@remix-run/cloudflare";
-import { TypingAnimation } from "~/core/ui/magic/typing-animation";
-import { motion } from "motion/react";
-import { cn } from "~/core/utils";
+import type { MetaFunction } from '@remix-run/cloudflare';
+import { Link } from '@remix-run/react';
+import { useMemo } from 'react';
+// eslint-disable-next-line import/no-unresolved
+import { list as blogList } from 'virtual:blog-list';
 
 export const meta: MetaFunction = () => {
   return [
-    { title: "Madinah" },
-    { name: "description", content: "Welcome to Madinah!" },
+    { title: 'Madinah' },
+    { name: 'description', content: 'Welcome to Madinah!' },
   ];
 };
 
 const Index = () => {
+  const socialLinks = [
+    {
+      label: 'Bilibili',
+      href: 'https://space.bilibili.com/427444426',
+      external: true,
+    },
+    {
+      label: 'Telegram',
+      href: 'https://t.me/maidang606',
+      external: true,
+    },
+    {
+      label: 'GitHub',
+      href: 'https://github.com/Maidang1',
+      external: true,
+    },
+    {
+      label: 'RSS',
+      href: '/rss.xml',
+      external: false,
+    },
+    {
+      label: 'X',
+      href: 'https://x.com/felixwliu',
+      external: true,
+    },
+  ];
+
+  const focusAreas = [
+    'Designing thoughtful front-end experiences with Remix & Tailwind.',
+    'Exploring Rust and WebAssembly for developer tooling.',
+    'Sketching AI-powered workflows that automate the boring parts.',
+  ];
+
+  const latestPosts = useMemo(() => {
+    const sorted = [...blogList].sort((a, b) => {
+      const getTime = (value?: string) => {
+        if (!value) return 0;
+        const parsed = new Date(value);
+        return Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
+      };
+      return getTime(b.time ?? b.date) - getTime(a.time ?? a.date);
+    });
+    return sorted.slice(0, 2);
+  }, []);
+
+  const formatDate = (value?: string) => {
+    if (!value) return '';
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return value;
+    }
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    }).format(parsed);
+  };
+
   return (
-    <div className="relative h-full overflow-hidden">
-      <div className="bg-transparent main-content relative flex items-center gap-x-6 justify-around pt-[100px] sm:pt-[160px] max-h-full overflow-hidden flex-col gap-y-10 lg:gap-y-0 lg:flex-row lg:pt-[240px] px-4 sm:px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="flex flex-col gap-y-6 text-center items-center lg:text-left lg:items-start text-foreground order-2 lg:order-1"
-        >
-          <div className='text-2xl sm:text-4xl min-h-[80px] font-bold text-main'>
-            <TypingAnimation>Hey I&apos;m Madinah</TypingAnimation>
-          </div>
-          <motion.div
-            transition={{ delay: 0.5, duration: 0.5 }}
-            className="font-light text-xl text-black/70 dark:text-white/70"
-          >
-            A Frontend Developer，Rust, AI Enthusiast.
-          </motion.div>
-          <motion.div
-            transition={{ delay: 0.8, duration: 0.5 }}
-            className="mt-2 flex gap-x-6 items-center"
-          >
-            {[
-              {
-                name: 'bilibili',
-                url: 'https://space.bilibili.com/427444426',
-                icon: 'i-simple-icons-bilibili',
-                color: 'bg-[rgb(242,93,142)]'
-              },
-              {
-                name: 'Telegram',
-                url: 'https://t.me/maidang606',
-                icon: 'i-simple-icons-telegram',
-                color: 'bg-[rgb(0,136,204)]'
-              },
-              {
-                name: 'GitHub',
-                url: 'https://github.com/Maidang1',
-                icon: 'i-simple-icons-github',
-                color: 'bg-foreground dark:bg-black'
-              },
-              {
-                name: 'RSS',
-                url: '/rss.xml',
-                icon: 'i-simple-icons-rss',
-                color: 'bg-[rgb(255,135,73)]'
-              },
-              {
-                name: 'X',
-                url: 'https://x.com/felixwliu',
-                icon: 'i-simple-icons-x',
-                color: 'bg-[rgb(29,145,200)]'
-              },
-            ].map((item) => (
-              <Link
-                key={item.name}
-                to={item.url}
-                target="_blank"
-                rel="noreferrer"
-                className={cn(
-                  "p-[2px] rounded-[6px] transition-colors duration-300 hover:scale-110",
-                  item.color
-                )}
-                aria-label={item.name}
-              >
-                <div className="tooltip tooltip-bottom" data-tip={item.name}>
-                  <Icons
-                    iconName={item.icon}
-                    iconColor={item.color}
-                  />
-                </div>
-
-              </Link>
-            ))}
-          </motion.div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="relative order-1 lg:order-2 group"
-        >
+    <div className="relative mx-auto flex w-full max-w-5xl flex-col gap-16 px-4 py-12 sm:px-6 lg:px-8">
+      <section className="grid gap-8 rounded-3xl border border-border/70 bg-background/80 p-8 shadow-sm backdrop-blur">
+        <div className="flex flex-col items-center gap-6 text-center sm:flex-row sm:items-start sm:gap-10 sm:text-left">
           <div className="relative">
+            <span className="absolute inset-0 rounded-full bg-gradient-to-br from-main-500/40 to-transparent blur-2xl" />
             <img
               src="https://avatars.githubusercontent.com/u/50993231?v=4"
-              alt="avatar"
-              className="rounded-full w-[160px] h-[160px] sm:w-[200px] sm:h-[200px] lg:w-[300px] lg:h-[300px] select-none border-4 border-background shadow-xl transition-all duration-500 group-hover:scale-105"
+              alt="Madinah avatar"
+              className="relative border border-border/80 object-cover shadow-lg shadow-main-500/20 h-32 w-32 rounded-full sm:h-40 sm:w-40"
             />
           </div>
-        </motion.div>
-      </div>
+
+          <div className="space-y-6">
+            <div className="space-y-3">
+              <p className="text-main-500 text-xs font-semibold uppercase tracking-widest">
+                Frontend · Rust · AI
+              </p>
+              <h1 className="text-balance text-foreground text-3xl font-semibold tracking-tight sm:text-4xl">
+                你好，我是 Madinah。
+              </h1>
+              <p className="text-muted-foreground text-base leading-relaxed">
+                Frontend developer, Rust tinkerer, and AI enthusiast building in
+                public.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap justify-center gap-2 sm:justify-start">
+              {socialLinks.map((link) => {
+                const linkProps = link.external
+                  ? { target: '_blank', rel: 'noreferrer' }
+                  : {};
+                return (
+                  <a
+                    key={link.label}
+                    href={link.href}
+                    className="border-border/70 text-muted-foreground hover:border-main-500/70 hover:text-main-500 inline-flex items-center rounded-full border px-4 py-2 text-sm font-medium transition-colors"
+                    {...linkProps}
+                  >
+                    {link.label}
+                  </a>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-3">
+          {focusAreas.map((item) => (
+            <div
+              key={item}
+              className="border-border/60 bg-muted/50 text-muted-foreground rounded-2xl border px-4 py-6 text-sm leading-relaxed shadow-sm dark:bg-background/60"
+            >
+              {item}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="grid gap-8">
+        <div className="flex flex-col gap-2">
+          <h2 className="text-xl font-semibold tracking-tight text-foreground">
+            快速导航
+          </h2>
+          <p className="text-muted-foreground text-sm">
+            最新两篇博客，快速浏览最近的思考与笔记。
+          </p>
+        </div>
+
+        <div className="grid gap-6 sm:grid-cols-2">
+          {latestPosts.map((post) => {
+            const postDate = formatDate(post.time ?? post.date);
+            return (
+              <Link
+                key={post.url}
+                to={post.url}
+                className="border-border/70 hover:border-main-500/60 hover:shadow-main-500/10 group flex h-full flex-col gap-4 rounded-2xl border p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <h3 className="text-lg font-semibold text-foreground line-clamp-2">
+                    {post.title}
+                  </h3>
+                  <span className="text-main-500 transition group-hover:translate-x-1">
+                    →
+                  </span>
+                </div>
+                {post.summary ? (
+                  <p className="text-muted-foreground line-clamp-4 text-sm leading-relaxed">
+                    {post.summary}
+                  </p>
+                ) : null}
+                <div className="text-muted-foreground flex flex-wrap items-center gap-3 text-xs uppercase tracking-wide">
+                  {postDate && <span>{postDate}</span>}
+                  {post.tags?.slice(0, 2).map((tag) => (
+                    <span
+                      key={tag}
+                      className="border-border/60 bg-muted/40 text-muted-foreground/80 inline-flex items-center rounded-full border px-2 py-1"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
     </div>
   );
 };

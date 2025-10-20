@@ -1,15 +1,18 @@
 'use client';
 
 import { ScrollRestoration, useLocation } from '@remix-run/react';
-import { PostInfo } from '~/types';
-import { TableOfContentsPC } from './table-contents-pc';
-import { TableOfContentsMobile } from './table-contents-mobile';
-import { DetailHeader } from './detail-header';
-import { ScrollToTopButton } from './scroll-to-top';
-import { BlogNavigation } from './blog-navigation';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { CaseSensitive, Hourglass } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { BlogNavigation } from './blog-navigation';
+import { DetailHeader } from './detail-header';
+import { ScrollToTopButton } from './scroll-to-top';
+import { TableOfContentsMobile } from './table-contents-mobile';
+import { TableOfContentsPC } from './table-contents-pc';
+import { PostInfo } from '~/types';
+
+const GITHUB_EDIT_BASE_URL =
+  'https://github.com/Maidang1/madinah/edit/main/app/routes';
 
 interface BlogsDetailProps {
   list: PostInfo[];
@@ -22,84 +25,105 @@ export default function Detail({ list }: BlogsDetailProps) {
   const title = listItem?.title;
   const summary = listItem?.summary;
   const readingTime = listItem?.readingTime;
+  const publishedAt = listItem?.time;
+  const tags = listItem?.tags ?? [];
+  const author = listItem?.author;
+
+  const editUrl = useMemo(() => {
+    if (!listItem?.filename) {
+      return undefined;
+    }
+    return `${GITHUB_EDIT_BASE_URL}/blogs.${listItem.filename}.mdx`;
+  }, [listItem?.filename]);
 
   const [showStickyHeader, setShowStickyHeader] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const scrollContainer = scrollContainerRef.current;
-    if (!scrollContainer || !headerRef.current) return;
-
+    if (!headerRef.current) return;
     const handleScroll = () => {
       const headerRect = headerRef.current?.getBoundingClientRect();
       if (headerRect) {
-        // Show sticky header when original header is scrolled out of view
-        setShowStickyHeader(headerRect.bottom < 0);
+        setShowStickyHeader(headerRect.bottom < 80);
       }
     };
 
-    scrollContainer.addEventListener('scroll', handleScroll);
-    return () => scrollContainer.removeEventListener('scroll', handleScroll);
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   return (
-    <div className="container mx-auto mt-4 h-full max-h-full overflow-hidden px-4 pt-6 sm:px-6 sm:pt-12">
+    <div className="relative mx-auto w-full max-w-5xl px-4 pt-6 sm:px-6 lg:px-8 lg:pt-10">
       <ScrollRestoration />
       <TableOfContentsMobile tocs={tocs} />
-      
-      {/* Sticky Header */}
+
       <motion.div
         initial={{ opacity: 0, y: -20 }}
-        animate={{ 
+        animate={{
           opacity: showStickyHeader ? 1 : 0,
-          y: showStickyHeader ? 0 : -20
+          y: showStickyHeader ? 0 : -20,
         }}
         transition={{ duration: 0.2 }}
-        className={`fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-700 ${
+        className={`fixed inset-x-0 top-0 z-50 border-b border-zinc-200/60 bg-background/80 backdrop-blur-md transition ${
           showStickyHeader ? 'pointer-events-auto' : 'pointer-events-none'
         }`}
       >
-        <div className="container mx-auto px-4 py-3 sm:px-6">
-          <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+        <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
+          <h1 className="truncate text-base font-semibold tracking-tight sm:text-lg">
             {title}
           </h1>
         </div>
       </motion.div>
 
-      <div className="relative flex h-full flex-col gap-8 lg:flex-row">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="mt-[64px] hidden shrink-0 lg:block lg:w-64 xl:w-80"
-        >
-          <div className="sticky top-24 max-h-[calc(100vh-6rem)] space-y-6 overflow-y-auto opacity-50 transition-opacity duration-400 hover:opacity-100">
-            <div className="border-border/50 border-b pb-6">
-              <TableOfContentsPC tocs={tocs} className="w-full" />
-            </div>
-            <div className="text-muted-foreground flex items-center justify-start text-sm">
-              {readingTime && (
-                <div className="flex items-center gap-2">
-                  <CaseSensitive /> {readingTime.words} ,{' '}
-                  <Hourglass className="h-4 w-4 text-xs" />{' '}
-                  {Math.ceil(readingTime.minutes)} min
-                </div>
-              )}
-            </div>
-          </div>
-        </motion.div>
-        <div 
-          ref={scrollContainerRef}
-          className="blog-detail-scroll-container h-full max-h-full min-w-0 flex-1 overflow-auto"
-        >
-          <DetailHeader ref={headerRef} title={title} summary={summary} />
+      <div className="relative grid grid-cols-1 gap-12 lg:grid-cols-[minmax(0,1fr)] xl:grid-cols-[minmax(0,1fr)_18rem]">
+        <div className="blog-detail-content min-w-0">
+          <DetailHeader
+            ref={headerRef}
+            title={title}
+            summary={summary}
+            readingTime={readingTime}
+            date={publishedAt}
+            tags={tags}
+            author={author}
+            editUrl={editUrl}
+          />
 
-          {/* 博客导航组件 */}
           <div className="mt-16 mb-8">
             <BlogNavigation list={list} />
           </div>
         </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="relative hidden xl:block"
+        >
+          <div className="sticky top-28 flex max-h-[calc(100vh-7rem)] flex-col gap-6">
+            <div className="rounded-2xl border border-border/60 bg-background/80 p-4 shadow-sm backdrop-blur">
+              <h3 className="text-sm font-semibold tracking-tight text-muted-foreground">
+                目录
+              </h3>
+              <div className="mt-3 max-h-[60vh] overflow-y-auto pr-1">
+                <TableOfContentsPC tocs={tocs} className="w-full" />
+              </div>
+            </div>
+
+            {readingTime && (
+              <div className="rounded-2xl border border-border/60 bg-background/80 p-4 shadow-sm backdrop-blur">
+                <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                  <CaseSensitive className="h-4 w-4 shrink-0" />
+                  <span>{readingTime.words} words</span>
+                </div>
+                <div className="mt-2 flex items-center gap-3 text-sm text-muted-foreground">
+                  <Hourglass className="h-4 w-4 shrink-0" />
+                  <span>{Math.max(1, Math.ceil(readingTime.minutes))} min read</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </motion.div>
         <ScrollToTopButton />
       </div>
     </div>

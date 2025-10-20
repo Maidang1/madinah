@@ -18,18 +18,20 @@ export function BookChapterSidebar({
     activeChapterId ?? params.chapterId ?? book.defaultChapterId ?? null;
 
   return (
-    <nav className="border-border/60 bg-background/80 dark:bg-background/60 sticky top-24 flex max-h-[calc(100vh-160px)] flex-col gap-3 overflow-y-auto rounded-2xl border p-5 shadow-sm backdrop-blur">
-      <div>
+    <nav className="border-border/60 bg-background/80 dark:bg-background/60 flex flex-col gap-4 rounded-2xl border p-5 shadow-sm backdrop-blur">
+      <header className="space-y-1">
         <p className="text-muted-foreground text-xs tracking-wide uppercase">
           章节
         </p>
-        <h2 className="text-foreground text-lg font-semibold">{book.title}</h2>
+        <h2 className="text-foreground text-base font-semibold">
+          {book.title}
+        </h2>
         {book.description ? (
-          <p className="text-muted-foreground mt-2 line-clamp-3 text-xs">
+          <p className="text-muted-foreground mt-2 text-xs leading-relaxed">
             {book.description}
           </p>
         ) : null}
-      </div>
+      </header>
 
       <ul className="flex flex-1 flex-col gap-2 text-sm">
         {book.chapters.map((chapter, index) => {

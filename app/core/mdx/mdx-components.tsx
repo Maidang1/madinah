@@ -141,7 +141,7 @@ export const H5 = ({
   <h5
     id={id}
     className={cn(
-      'mt-5 mb-3 text-base font-medium md:text-lg',
+      'mt-5 mb-3 text-base font-medium',
       'text-zinc-700 dark:text-zinc-300',
       'group heading-group',
       'flex items-center gap-1',
@@ -181,7 +181,7 @@ export const H6 = ({
 export const P = ({ children, className, ...props }: ParagraphProps & any) => (
   <p
     className={cn(
-      'mb-6 text-base leading-7 md:text-lg md:leading-8',
+      'mb-6 text-base leading-7',
       'text-zinc-700 dark:text-zinc-300',
       'font-normal',
       className,

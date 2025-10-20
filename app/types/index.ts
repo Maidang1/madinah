@@ -40,6 +40,7 @@ export interface PostInfo {
   date: string;
   content: string;
   status?: PostStatus;
+  author?: string;
 }
 
 /**
