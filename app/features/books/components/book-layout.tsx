@@ -7,6 +7,7 @@ import {
   useState,
 } from 'react';
 import { cn } from '~/core/utils';
+import { useTranslation } from '~/core/i18n';
 
 interface BookLayoutProps {
   sidebar: (close: () => void) => ReactNode;
@@ -18,6 +19,7 @@ export function BookLayout({ sidebar, overview, children }: BookLayoutProps) {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const sidebarId = useId();
   const overlayId = useId();
+  const { t } = useTranslation();
 
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
   const openSidebar = useCallback(() => setSidebarOpen(true), []);
@@ -87,10 +89,11 @@ export function BookLayout({ sidebar, overview, children }: BookLayoutProps) {
         <button
           type="button"
           aria-controls={sidebarId}
+          aria-label={t('books.layout.closeSidebar')}
           className="focus-visible:ring-main-500 absolute top-4 right-4 rounded-full p-2 text-gray-500 transition hover:bg-gray-200 hover:text-gray-700 focus:outline-none focus-visible:ring-2"
           onClick={closeSidebar}
         >
-          <span className="sr-only">关闭章节导航</span>
+          <span className="sr-only">{t('books.layout.closeSidebar')}</span>
           <svg
             className="h-6 w-6"
             fill="none"
@@ -112,20 +115,22 @@ export function BookLayout({ sidebar, overview, children }: BookLayoutProps) {
         type="button"
         aria-controls={sidebarId}
         aria-hidden={!isSidebarOpen}
+        aria-label={t('books.layout.closeSidebar')}
         className={overlayClasses}
         onClick={closeSidebar}
       >
-        <span className="sr-only">关闭章节导航</span>
+        <span className="sr-only">{t('books.layout.closeSidebar')}</span>
       </button>
 
       <button
         type="button"
         aria-controls={sidebarId}
         aria-expanded={isSidebarOpen}
+        aria-label={t('books.layout.openSidebar')}
         className="focus-visible:ring-main-500 fixed top-4 left-4 z-30 rounded-md bg-white p-2 opacity-70 shadow-md transition hover:opacity-100 focus:outline-none focus-visible:ring-2 xl:hidden"
         onClick={openSidebar}
       >
-        <span className="sr-only">打开章节导航</span>
+        <span className="sr-only">{t('books.layout.openSidebar')}</span>
         <svg
           className="h-6 w-6"
           fill="none"

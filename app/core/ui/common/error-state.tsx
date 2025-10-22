@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "~/core/utils";
+import { useTranslation } from "~/core/i18n";
 
 interface ErrorStateProps {
   title?: string;
@@ -9,11 +10,14 @@ interface ErrorStateProps {
 }
 
 export function ErrorState({
-  title = "出现了一点小问题",
+  title,
   message,
   action,
   className,
 }: ErrorStateProps) {
+  const { t } = useTranslation();
+  const resolvedTitle = title ?? t("common.errors.defaultTitle");
+
   return (
     <div
       role="alert"
@@ -23,7 +27,7 @@ export function ErrorState({
         className,
       )}
     >
-      <h2 className="text-lg font-semibold">{title}</h2>
+      <h2 className="text-lg font-semibold">{resolvedTitle}</h2>
       {message ? (
         <p className="text-sm text-red-600 dark:text-red-100">{message}</p>
       ) : null}

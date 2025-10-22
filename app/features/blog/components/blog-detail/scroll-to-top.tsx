@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ArrowUp } from 'lucide-react';
 import { SCROLL_CONFIG } from '~/core/config/scroll';
 import { getScrollPosition, scrollToTop, throttle } from '~/core/utils/scroll';
+import { useTranslation } from '~/core/i18n';
 
 interface ScrollToTopButtonProps {
   threshold?: number;
@@ -14,6 +15,7 @@ export function ScrollToTopButton({
   className,
 }: ScrollToTopButtonProps) {
   const [showScrollToTop, setShowScrollToTop] = useState(false);
+  const { t } = useTranslation();
 
   useEffect(() => {
     const handleScroll = throttle(() => {
@@ -48,7 +50,7 @@ export function ScrollToTopButton({
           whileTap={{ scale: 0.95 }}
           onClick={handleScrollToTop}
           className={`bg-main-500 text-primary-foreground hover:bg-main-500/90 focus:ring-primary/50 fixed right-8 bottom-8 z-50 rounded-full p-3 shadow-lg transition-colors duration-200 focus:ring-2 focus:ring-offset-2 focus:outline-none ${className || ''}`}
-          aria-label="Scroll to top"
+          aria-label={t('blog.detail.scrollToTop')}
         >
           <ArrowUp className="h-5 w-5" />
         </motion.button>

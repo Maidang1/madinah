@@ -17,6 +17,7 @@ import type { BookChapterInfo, BookSummaryInfo } from "~/types";
 import type { BookRouteContext } from "../books_.$bookId/route";
 import { ErrorState } from "~/core/ui/common/error-state";
 import { assertResponse } from "~/core/utils";
+import { useTranslation } from "~/core/i18n";
 // eslint-disable-next-line import/no-unresolved
 import { getSerializedChapter, loadChapterModule } from "virtual:book-data";
 
@@ -28,7 +29,7 @@ const createLazyChapter = (bookId: string, chapterId: string) =>
   lazy(async () => {
     const result = await loadChapterModule(bookId, chapterId);
     if (!result?.module) {
-      throw new Error("未能加载章节内容");
+      throw new Error("Failed to load chapter content");
     }
 
     return { default: result.module as ComponentType };
@@ -67,7 +68,7 @@ export const meta: MetaFunction<typeof loader> = ({
       name: "description",
       content:
         data.chapter.summary ??
-        `阅读 ${bookTitle} 的章节 ${data.chapter.title}`,
+        `Read the chapter ${data.chapter.title} from ${bookTitle}`,
     },
   ];
 };
@@ -75,6 +76,7 @@ export const meta: MetaFunction<typeof loader> = ({
 export default function BookChapterRoute() {
   const { chapter } = useLoaderData<typeof loader>();
   const { book } = useOutletContext<BookRouteContext>();
+  const { t } = useTranslation();
 
   const ChapterComponent = useMemo(
     () => createLazyChapter(book.id, chapter.id),
@@ -86,7 +88,7 @@ export default function BookChapterRoute() {
       key={chapter.id}
       fallback={
         <div className="border-border/60 bg-background/40 text-muted-foreground rounded-2xl border p-8 text-sm">
-          正在加载章节内容...
+          {t("books.chapter.loading")}
         </div>
       }
     >
@@ -99,11 +101,16 @@ export default function BookChapterRoute() {
 
 export function ErrorBoundary() {
   const error = useRouteError();
+  const { t } = useTranslation();
 
   if (isRouteErrorResponse(error)) {
     return (
       <ErrorState
-        title={error.status === 404 ? "未找到章节" : "加载章节失败"}
+        title={
+          error.status === 404
+            ? t("books.errors.chapterNotFound")
+            : t("books.errors.chapterLoadFailed")
+        }
         message={
           typeof error.data === "string"
             ? error.data
@@ -114,7 +121,7 @@ export function ErrorBoundary() {
             to="/books"
             className="bg-main-500 hover:bg-main-600 inline-flex items-center rounded-full px-4 py-2 text-sm font-semibold text-white transition"
           >
-            返回书籍列表
+            {t("books.errors.goToBooks")}
           </Link>
         }
       />
@@ -123,18 +130,18 @@ export function ErrorBoundary() {
 
   return (
     <ErrorState
-      title="章节内容渲染失败"
+      title={t("books.errors.chapterRenderFailed")}
       message={
         error instanceof Error
           ? error.message
-          : "章节内容加载时发生未知错误。"
+          : t("books.errors.chapterRenderMessage")
       }
       action={
         <Link
           to="/books"
           className="bg-main-500 hover:bg-main-600 inline-flex items-center rounded-full px-4 py-2 text-sm font-semibold text-white transition"
         >
-          返回书籍列表
+          {t("books.errors.goToBooks")}
         </Link>
       }
     />

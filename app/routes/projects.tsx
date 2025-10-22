@@ -1,11 +1,17 @@
 import type { MetaFunction } from "@remix-run/cloudflare";
 import { motion } from "motion/react";
 import { cn } from "~/core/utils";
+import { DEFAULT_LOCALE, translations, useTranslation } from "~/core/i18n";
 
 export const meta: MetaFunction = () => {
+  const projectMeta = translations[DEFAULT_LOCALE]?.projects?.meta;
   return [
-    { title: "Projects - Madinah" },
-    { name: "description", content: "Projects that I created or maintaining." },
+    { title: projectMeta?.title ?? "Projects - Madinah" },
+    {
+      name: "description",
+      content:
+        projectMeta?.description ?? "Projects that I created or maintaining.",
+    },
   ];
 };
 interface Project {
@@ -21,6 +27,7 @@ interface Project {
   category: string;
   featured?: boolean;
   icon?: string;
+  translationKey: "wallpaperApp" | "farmfePlugins" | "pixelPicture" | "reminders";
 }
 
 const projects: Project[] = [
@@ -34,6 +41,7 @@ const projects: Project[] = [
     category: "Web Development",
     featured: true,
     icon: "i-streamline-ultimate-color-card-game-heart",
+    translationKey: "wallpaperApp",
   },
   {
     id: "farmfe-plugins",
@@ -44,7 +52,8 @@ const projects: Project[] = [
     status: "active",
     category: "Rust",
     featured: false,
-    icon: "i-streamline-ultimate-color-snapchat-logo"
+    icon: "i-streamline-ultimate-color-snapchat-logo",
+    translationKey: "farmfePlugins",
   },
   {
     id: "pixel-picture",
@@ -57,6 +66,7 @@ const projects: Project[] = [
     featured: false,
     url: "https://pixel.felixwliu.cn/",
     icon: "i-streamline-ultimate-color-picture-double-landscape",
+    translationKey: "pixelPicture",
   },
   {
     id: "reminders",
@@ -68,11 +78,13 @@ const projects: Project[] = [
     category: "Rust",
     featured: false,
     icon: "i-streamline-ultimate-color-time-clock-hand-1",
+    translationKey: "reminders",
   },
 ];
 
 
 export default function Projects() {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen py-20">
       <div className="container mx-auto px-4">
@@ -83,10 +95,10 @@ export default function Projects() {
           className="mb-16 text-center"
         >
           <h1 className="from-primary to-primary-light mb-4 bg-gradient-to-r bg-clip-text text-4xl font-bold text-transparent sm:text-5xl">
-            Projects
+            {t("projects.title")}
           </h1>
           <p className="mx-auto max-w-2xl text-lg text-black/70 dark:text-white/70">
-            Projects that I created or maintaining.
+            {t("projects.subtitle")}
           </p>
         </motion.div>
 
@@ -101,6 +113,7 @@ export default function Projects() {
                 key={project.id}
                 project={project}
                 delay={index * 0.05}
+                translationKey={project.translationKey}
               />
             ))}
           </div>
@@ -114,11 +127,16 @@ interface ProjectCardProps {
   project: Project;
   featured?: boolean;
   delay?: number;
+  translationKey: Project["translationKey"];
 }
 
 function ProjectCard({
   project,
+  translationKey,
 }: ProjectCardProps) {
+  const { t } = useTranslation();
+  const displayName = t(`projects.items.${translationKey}.name`);
+  const description = t(`projects.items.${translationKey}.description`);
 
 
   return (
@@ -139,10 +157,10 @@ function ProjectCard({
         </div>
         <div>
           <h3 className="mb-1 text-lg !text-gray-700 dark:!text-gray-200 transition-colors">
-            {project.name}
+            {displayName}
           </h3>
           <p className="text-sm opacity-50 text-gray-700 dark:text-gray-200 !leading-5">
-            {project.description}
+            {description}
           </p>
         </div>
       </motion.a>

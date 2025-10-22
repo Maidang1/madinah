@@ -1,6 +1,7 @@
 import { Link, useParams } from "@remix-run/react";
 import { cn } from "~/core/utils";
 import type { BookSummaryInfo } from "~/types";
+import { useTranslation } from "~/core/i18n";
 
 interface BookChapterSidebarProps {
   book: BookSummaryInfo;
@@ -13,6 +14,7 @@ export function BookChapterSidebar({
   activeChapterId,
   onNavigate,
 }: BookChapterSidebarProps) {
+  const { t } = useTranslation();
   const params = useParams<{ chapterId?: string }>();
   const currentChapter =
     activeChapterId ?? params.chapterId ?? book.defaultChapterId ?? null;
@@ -21,7 +23,7 @@ export function BookChapterSidebar({
     <nav className="border-border/60 bg-background/80 dark:bg-background/60 flex flex-col gap-4 rounded-2xl border p-5 shadow-sm backdrop-blur">
       <header className="space-y-1">
         <p className="text-muted-foreground text-xs tracking-wide uppercase">
-          章节
+          {t("books.sidebar.sectionLabel")}
         </p>
         <h2 className="text-foreground text-base font-semibold">
           {book.title}

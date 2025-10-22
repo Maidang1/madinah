@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { PostInfo } from '~/types';
 import { cn } from '~/core/utils';
+import { useTranslation } from '~/core/i18n';
 
 interface BlogNavigationProps {
   list: PostInfo[];
@@ -11,6 +12,7 @@ interface BlogNavigationProps {
 
 export function BlogNavigation({ list, className }: BlogNavigationProps) {
   const { pathname } = useLocation();
+  const { t } = useTranslation();
 
   const currentIndex = list.findIndex((item) => item.url === pathname);
   const prevPost = currentIndex > 0 ? list[currentIndex - 1] : null;
@@ -46,7 +48,7 @@ export function BlogNavigation({ list, className }: BlogNavigationProps) {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="text-muted-foreground mb-1 text-xs font-medium">
-                    上一篇
+                    {t('blog.detail.previousPost')}
                   </div>
                   <div className="group-hover:text-main-500 truncate text-sm font-medium transition-colors">
                     {prevPost.title}
@@ -75,7 +77,7 @@ export function BlogNavigation({ list, className }: BlogNavigationProps) {
               >
                 <div className="min-w-0 flex-1">
                   <div className="text-muted-foreground mb-1 text-xs font-medium">
-                    下一篇
+                    {t('blog.detail.nextPost')}
                   </div>
                   <div className="group-hover:text-main-500 truncate text-sm font-medium transition-colors">
                     {nextPost.title}

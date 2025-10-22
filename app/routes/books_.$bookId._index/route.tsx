@@ -3,6 +3,7 @@ import type { LoaderFunctionArgs } from "@remix-run/cloudflare";
 import { Link, isRouteErrorResponse, useRouteError } from "@remix-run/react";
 import { assertResponse } from "~/core/utils";
 import { ErrorState } from "~/core/ui/common/error-state";
+import { useTranslation } from "~/core/i18n";
 // eslint-disable-next-line import/no-unresolved
 import { getSerializedBook } from "virtual:book-data";
 
@@ -26,11 +27,12 @@ export default function BookIndexPlaceholder() {
 
 export function ErrorBoundary() {
   const error = useRouteError();
+  const { t } = useTranslation();
 
   if (isRouteErrorResponse(error)) {
     return (
       <ErrorState
-        title="无法定位章节"
+        title={t("books.errors.chapterRedirectFailed")}
         message={
           typeof error.data === "string"
             ? error.data
@@ -41,7 +43,7 @@ export function ErrorBoundary() {
             to="/books"
             className="bg-main-500 hover:bg-main-600 inline-flex items-center rounded-full px-4 py-2 text-sm font-semibold text-white transition"
           >
-            返回书籍列表
+            {t("books.errors.goToBooks")}
           </Link>
         }
       />
@@ -50,18 +52,18 @@ export function ErrorBoundary() {
 
   return (
     <ErrorState
-      title="章节重定向失败"
+      title={t("books.errors.chapterRedirectFailed")}
       message={
         error instanceof Error
           ? error.message
-          : "无法确认默认章节，请稍后重试。"
+          : t("books.errors.chapterRedirectMessage")
       }
       action={
         <Link
           to="/books"
           className="bg-main-500 hover:bg-main-600 inline-flex items-center rounded-full px-4 py-2 text-sm font-semibold text-white transition"
         >
-          返回书籍列表
+          {t("books.errors.goToBooks")}
         </Link>
       }
     />

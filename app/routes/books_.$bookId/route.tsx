@@ -15,6 +15,7 @@ import { assertResponse } from "~/core/utils";
 import type { BookSummaryInfo } from "~/types";
 // eslint-disable-next-line import/no-unresolved
 import { getSerializedBook } from "virtual:book-data";
+import { useTranslation } from "~/core/i18n";
 
 interface LoaderData {
   book: BookSummaryInfo;
@@ -47,11 +48,16 @@ export default function BookRoute() {
 
 export function ErrorBoundary() {
   const error = useRouteError();
+  const { t } = useTranslation();
 
   if (isRouteErrorResponse(error)) {
     return (
       <ErrorState
-        title={error.status === 404 ? "未找到书籍" : "加载书籍失败"}
+        title={
+          error.status === 404
+            ? t("books.errors.bookNotFound")
+            : t("books.errors.bookLoadFailed")
+        }
         message={
           typeof error.data === "string"
             ? error.data
@@ -62,7 +68,7 @@ export function ErrorBoundary() {
             to="/books"
             className="bg-main-500 hover:bg-main-600 inline-flex items-center rounded-full px-4 py-2 text-sm font-semibold text-white transition"
           >
-            返回书籍列表
+            {t("books.errors.goToBooks")}
           </Link>
         }
       />
@@ -71,18 +77,18 @@ export function ErrorBoundary() {
 
   return (
     <ErrorState
-      title="加载书籍时出现错误"
+      title={t("books.errors.bookRenderFailed")}
       message={
         error instanceof Error
           ? error.message
-          : "发生未知错误，请稍后再试。"
+          : t("books.errors.bookRenderMessage")
       }
       action={
         <Link
           to="/books"
           className="bg-main-500 hover:bg-main-600 inline-flex items-center rounded-full px-4 py-2 text-sm font-semibold text-white transition"
         >
-          返回书籍列表
+          {t("books.errors.goToBooks")}
         </Link>
       }
     />

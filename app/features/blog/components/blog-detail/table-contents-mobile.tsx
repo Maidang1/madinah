@@ -4,6 +4,7 @@ import { cn } from '~/core/utils';
 import { useTableOfContents } from '~/features/blog/hooks/use-table-of-contents';
 import { TocItem } from '~/types';
 import { Tocs } from './tocs';
+import { useTranslation } from '~/core/i18n';
 
 interface MobileTableOfContentsProps {
   tocs: TocItem[];
@@ -13,6 +14,7 @@ interface MobileTableOfContentsProps {
 export function TableOfContentsMobile({ tocs, className }: MobileTableOfContentsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { activeId, handleClick } = useTableOfContents({ tocs });
+  const { t } = useTranslation();
 
   if (tocs.length === 0) {
     return null;
@@ -38,7 +40,7 @@ export function TableOfContentsMobile({ tocs, className }: MobileTableOfContents
           'text-muted-foreground hover:text-foreground',
           isOpen && 'text-primary bg-primary/10'
         )}
-        aria-label='Toggle table of contents'
+        aria-label={t('blog.detail.mobileToggleToc')}
       >
         <motion.div
           animate={{ rotate: isOpen ? 45 : 0 }}
@@ -88,12 +90,12 @@ export function TableOfContentsMobile({ tocs, className }: MobileTableOfContents
               <div className='flex items-center justify-between mb-6'>
                 <h3 className='font-medium text-lg flex items-center'>
                   <span className='i-lucide-list-ordered mr-2 w-5 h-5' />
-                  目录
+                  {t('blog.detail.tableOfContents')}
                 </h3>
                 <button
                   onClick={() => setIsOpen(false)}
                   className='p-2 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground'
-                  aria-label='Close table of contents'
+                  aria-label={t('blog.detail.mobileCloseToc')}
                 >
                   <span className='i-lucide-x w-4 h-4 block' />
                 </button>

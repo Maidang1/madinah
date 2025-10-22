@@ -1,6 +1,9 @@
 import { motion } from 'motion/react';
+import { useTranslation } from '~/core/i18n';
 
 export function LicenseNotice() {
+  const { t } = useTranslation();
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -11,8 +14,7 @@ export function LicenseNotice() {
       <div className="flex items-center justify-center">
         <div className="text-muted-foreground text-center text-sm">
           <p className="leading-relaxed text-gray-300 opacity-60">
-            本内容采用 知识共享署名 - 非商业性使用 - 相同方式共享 4.0
-            国际许可协议 (CC BY-NC-SA 4.0) 进行许可。
+            {t('license.notice')}
           </p>
         </div>
       </div>

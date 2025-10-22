@@ -2,10 +2,18 @@ import { Outlet } from '@remix-run/react';
 import { motion } from 'motion/react';
 import type { ReadTimeResults } from 'reading-time';
 import { forwardRef, useMemo } from 'react';
-import { CalendarDays, Clock, FileText, PencilLine, Tag, UserRound } from 'lucide-react';
+import {
+  CalendarDays,
+  Clock,
+  FileText,
+  PencilLine,
+  Tag,
+  UserRound,
+} from 'lucide-react';
 import { MDXWrapper } from '~/core/mdx/mdx-wrapper';
 import { LicenseNotice } from '~/core/ui/common/license-notice';
 import { cn } from '~/core/utils';
+import { useTranslation } from '~/core/i18n';
 
 interface BlogContentProps {
   title?: string;
@@ -23,6 +31,7 @@ export const DetailHeader = forwardRef<HTMLElement, BlogContentProps>(
     { title, summary, className, readingTime, date, tags, author, editUrl },
     ref,
   ) {
+    const { t, locale } = useTranslation();
     const parsedDate = useMemo(() => {
       if (!date) {
         return null;
@@ -34,16 +43,18 @@ export const DetailHeader = forwardRef<HTMLElement, BlogContentProps>(
       return candidate;
     }, [date]);
 
+    const localeCode = locale === 'zh' ? 'zh-CN' : 'en-US';
+
     const formattedDate = useMemo(() => {
       if (!parsedDate) {
         return date ?? null;
       }
-      return new Intl.DateTimeFormat('en-US', {
+      return new Intl.DateTimeFormat(localeCode, {
         day: '2-digit',
         month: 'short',
         year: 'numeric',
       }).format(parsedDate);
-    }, [parsedDate, date]);
+    }, [parsedDate, date, localeCode]);
 
     const readingMinutes = useMemo(() => {
       if (!readingTime) return null;
@@ -51,6 +62,23 @@ export const DetailHeader = forwardRef<HTMLElement, BlogContentProps>(
     }, [readingTime]);
 
     const readingWords = readingTime?.words;
+    const numberFormatter = useMemo(
+      () => new Intl.NumberFormat(localeCode),
+      [localeCode],
+    );
+
+    const readingMinutesLabel =
+      readingMinutes !== null
+        ? t('blog.detail.readTime', {
+            replace: { count: numberFormatter.format(readingMinutes) },
+          })
+        : null;
+
+    const readingWordsLabel = readingWords
+      ? t('blog.detail.readWords', {
+          replace: { count: numberFormatter.format(readingWords) },
+        })
+      : null;
 
     const tagList = tags?.filter(Boolean) ?? [];
 
@@ -65,14 +93,14 @@ export const DetailHeader = forwardRef<HTMLElement, BlogContentProps>(
           {(title || summary) && (
             <header ref={ref} className="mb-10 space-y-6">
               {title && (
-                <h1 className="text-balance text-left text-3xl font-bold tracking-tight text-blue-600 dark:text-blue-400 sm:text-4xl">
+                <h1 className="text-left text-3xl font-bold tracking-tight text-balance text-blue-600 sm:text-4xl dark:text-blue-400">
                   {title}
                 </h1>
               )}
 
               {(author || formattedDate || readingMinutes || editUrl) && (
-                <div className="flex flex-col gap-4 border-b border-border/70 pb-6 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+                <div className="border-border/70 flex flex-col gap-4 border-b pb-6 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
                     {author && (
                       <span className="inline-flex items-center gap-1.5">
                         <UserRound className="h-4 w-4" />
@@ -88,21 +116,21 @@ export const DetailHeader = forwardRef<HTMLElement, BlogContentProps>(
                         {formattedDate}
                       </time>
                     )}
-                    {readingMinutes && (
+                    {readingMinutesLabel && (
                       <span className="inline-flex items-center gap-1.5">
                         <Clock className="h-4 w-4" />
-                        {readingMinutes} min read
+                        {readingMinutesLabel}
                       </span>
                     )}
-                    {readingWords && (
+                    {readingWordsLabel && (
                       <span className="inline-flex items-center gap-1.5">
                         <FileText className="h-4 w-4" />
-                        {readingWords} words
+                        {readingWordsLabel}
                       </span>
                     )}
                   </div>
 
-                  {editUrl && (
+                  {/* {editUrl && (
                     <a
                       href={editUrl}
                       target="_blank"
@@ -110,18 +138,18 @@ export const DetailHeader = forwardRef<HTMLElement, BlogContentProps>(
                       className="inline-flex items-center gap-2 self-start rounded-full border border-border/70 bg-background px-4 py-2 text-sm font-medium text-foreground shadow-sm transition hover:border-border hover:bg-muted/40"
                     >
                       <PencilLine className="h-4 w-4" />
-                      Edit on GitHub
+                      {t('blog.detail.editOnGitHub')}
                     </a>
-                  )}
+                  )} */}
                 </div>
               )}
 
               {tagList.length > 0 && (
-                <div className="flex flex-wrap gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                <div className="text-muted-foreground flex flex-wrap gap-2 text-xs font-medium tracking-wide uppercase">
                   {tagList.map((tag) => (
                     <span
                       key={tag}
-                      className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-muted/30 px-3 py-1"
+                      className="border-border/70 bg-muted/30 inline-flex items-center gap-1 rounded-full border px-3 py-1"
                     >
                       <Tag className="h-3 w-3" />
                       {tag}
@@ -135,13 +163,13 @@ export const DetailHeader = forwardRef<HTMLElement, BlogContentProps>(
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.15 }}
-                  className="relative overflow-hidden rounded-2xl border border-border/70 bg-muted/30 p-6 shadow-sm"
+                  className="border-border/70 bg-muted/30 relative overflow-hidden rounded-2xl border p-6 shadow-sm"
                 >
                   <div className="mb-4 flex items-center gap-3 text-sm font-semibold text-blue-600 dark:text-blue-400">
                     <span className="i-simple-icons-openai block h-5 w-5" />
-                    AI 摘要
+                    {t('blog.detail.aiSummary')}
                   </div>
-                  <p className="text-sm leading-relaxed text-muted-foreground">
+                  <p className="text-muted-foreground text-sm leading-relaxed">
                     {summary}
                   </p>
                 </motion.div>

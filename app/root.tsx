@@ -16,16 +16,18 @@ import { MDXProvider } from '@mdx-js/react';
 import { ClientOnly } from 'remix-utils/client-only';
 import { cn } from '~/core/utils';
 import { mdxComponents } from '~/core/mdx/mdx-components';
-import { userTheme } from './cookies.server';
+import { userTheme, userLocale } from './cookies.server';
 import { useTheme } from '~/core/hooks/use-theme';
 import { useMemo, useState } from 'react';
 import { useEffectOnce } from 'react-use';
 import './styles/tailwind.css';
 import './styles/theme.less';
 import './styles/mdx.css';
-import { Theme } from './types';
+import type { Theme, Locale } from './types';
 import { SiteHeader } from '~/core/ui/layout/site-header';
 import { SiteFooter } from '~/core/ui/layout/site-footer';
+import { I18nProvider } from '~/core/i18n/i18n-provider';
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '~/core/i18n/translations';
 
 export const links: LinksFunction = () => [
   { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
@@ -40,34 +42,80 @@ export const links: LinksFunction = () => [
   },
 ];
 
+const isValidLocale = (value: unknown): value is Locale =>
+  typeof value === 'string' && SUPPORTED_LOCALES.includes(value as Locale);
+
+const resolvePreferredLocale = (headerValue: string | null) => {
+  if (!headerValue) {
+    return DEFAULT_LOCALE;
+  }
+
+  const firstEntry = headerValue.split(',')[0]?.trim();
+  if (!firstEntry) {
+    return DEFAULT_LOCALE;
+  }
+
+  const base = firstEntry.split(';')[0]?.trim().toLowerCase();
+  if (!base) {
+    return DEFAULT_LOCALE;
+  }
+
+  const normalized = base.split('-')[0] as Locale;
+  return isValidLocale(normalized) ? normalized : DEFAULT_LOCALE;
+};
+
 export async function loader({ request }: LoaderFunctionArgs) {
   const cookieHeader = request.headers.get('Cookie');
   const theme = ((await userTheme.parse(cookieHeader)) as Theme) || 'light';
+  const localeCookie = (await userLocale.parse(cookieHeader)) as
+    | Locale
+    | undefined;
+  const preferredLocale = resolvePreferredLocale(
+    request.headers.get('Accept-Language'),
+  );
+  const locale = isValidLocale(localeCookie)
+    ? localeCookie
+    : preferredLocale ?? DEFAULT_LOCALE;
 
-  return json({ theme });
+  return json({ theme, locale });
 }
 
 export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData();
-  const theme = formData.get('theme') as Theme;
+  const themeValue = formData.get('theme');
+  const localeValue = formData.get('locale');
 
-  if (!theme || !['light', 'dark', 'system'].includes(theme)) {
-    return json({ error: 'Invalid theme' }, { status: 400 });
+  const headers = new Headers();
+
+  if (
+    typeof themeValue === 'string' &&
+    ['light', 'dark', 'system'].includes(themeValue)
+  ) {
+    headers.append('Set-Cookie', await userTheme.serialize(themeValue as Theme));
+  }
+
+  if (typeof localeValue === 'string' && isValidLocale(localeValue)) {
+    headers.append(
+      'Set-Cookie',
+      await userLocale.serialize(localeValue as Locale),
+    );
+  }
+
+  if (!headers.has('Set-Cookie')) {
+    return json({ error: 'Invalid submission' }, { status: 400 });
   }
 
   return json(
     { success: true },
     {
-      headers: {
-        'Set-Cookie': await userTheme.serialize(theme),
-      },
+      headers,
     },
   );
 }
 
 export function Layout(props: { children: React.ReactNode }) {
   const { children } = props;
-  const { theme: serverTheme } = useLoaderData<typeof loader>();
+  const { theme: serverTheme, locale } = useLoaderData<typeof loader>();
   const [initTheme, setInitTheme] = useState(false);
 
   const { setTheme, toggleTheme, theme } = useTheme(serverTheme);
@@ -93,7 +141,7 @@ export function Layout(props: { children: React.ReactNode }) {
   }, [serverTheme, theme, initTheme]);
 
   return (
-    <html lang="en" className={cn('h-full', actualTheme)}>
+    <html lang={locale} className={cn('h-full', actualTheme)}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -102,16 +150,18 @@ export function Layout(props: { children: React.ReactNode }) {
         <title>Madinah</title>
       </head>
       <body className="bg-background text-foreground min-h-screen antialiased">
-        <div className="flex min-h-screen flex-col">
-          <SiteHeader theme={actualTheme} onThemeToggle={toggleTheme} />
-          <main
-            id="main-content"
-            className="mx-auto w-full flex-1 px-4 py-12 sm:py-16"
-          >
-            <div className="space-y-12">{children}</div>
-          </main>
-          <SiteFooter />
-        </div>
+        <I18nProvider initialLocale={locale}>
+          <div className="flex min-h-screen flex-col">
+            <SiteHeader theme={actualTheme} onThemeToggle={toggleTheme} />
+            <main
+              id="main-content"
+              className="mx-auto w-full flex-1 px-4 py-12 sm:py-16"
+            >
+              <div className="space-y-12">{children}</div>
+            </main>
+            <SiteFooter />
+          </div>
+        </I18nProvider>
         <ScrollRestoration />
         <Scripts />
       </body>

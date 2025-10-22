@@ -59,6 +59,11 @@ export interface ScrollOptions {
 export type Theme = "light" | "dark" | "system";
 
 /**
+ * Supported locales for internationalization.
+ */
+export type Locale = "en" | "zh";
+
+/**
  * Lightweight summary of a chapter used for book listings.
  */
 export interface BookChapterInfo {

@@ -5,4 +5,11 @@ export const userTheme = createCookie('user-theme', {
   httpOnly: false, // 需要在客户端可访问来同步 localStorage
   secure: process.env.NODE_ENV === 'production',
   sameSite: 'lax',
-});  
+});
+
+export const userLocale = createCookie('user-locale', {
+  maxAge: 60 * 60 * 24 * 365,
+  httpOnly: false,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax',
+});

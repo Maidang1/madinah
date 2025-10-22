@@ -9,8 +9,10 @@ import {
 import { BookList } from "~/features/books/components/book-list";
 import { ErrorState } from "~/core/ui/common/error-state";
 import { jsonError } from "~/core/utils";
+import { DEFAULT_LOCALE, translations } from "~/core/i18n";
 // eslint-disable-next-line import/no-unresolved
 import { getBooks } from "virtual:book-data";
+import { useTranslation } from "~/core/i18n";
 
 export async function loader() {
   try {
@@ -26,19 +28,27 @@ export async function loader() {
 }
 
 export const meta: MetaFunction = () => [
-  { title: "Books • Madinah" },
+  {
+    title:
+      translations[DEFAULT_LOCALE]?.books?.meta?.title ?? "Books • Madinah",
+  },
   {
     name: "description",
-    content: "系统化地阅读 Rust、Remix 等专题整理的书籍系列。",
+    content:
+      translations[DEFAULT_LOCALE]?.books?.meta?.description ??
+      "系统化地阅读 Rust、Remix 等专题整理的书籍系列。",
   },
 ];
 
 export default function BooksIndexRoute() {
   const { books } = useLoaderData<typeof loader>();
+  const { t } = useTranslation();
   return (
     <div className="space-y-8">
       <header className="space-y-2 text-center">
-        <h1 className="text-foreground text-3xl font-bold">Books</h1>
+        <h1 className="text-foreground text-3xl font-bold">
+          {t("books.list.heading")}
+        </h1>
       </header>
       <BookList books={books} />
     </div>
@@ -47,11 +57,12 @@ export default function BooksIndexRoute() {
 
 export function ErrorBoundary() {
   const error = useRouteError();
+  const { t } = useTranslation();
 
   if (isRouteErrorResponse(error)) {
     return (
       <ErrorState
-        title="书籍列表加载失败"
+        title={t("books.errors.listLoadTitle")}
         message={
           typeof error.data === "string"
             ? error.data
@@ -62,7 +73,7 @@ export function ErrorBoundary() {
             to="/"
             className="bg-main-500 hover:bg-main-600 inline-flex items-center rounded-full px-4 py-2 text-sm font-semibold text-white transition"
           >
-            返回首页
+            {t("books.errors.goHome")}
           </Link>
         }
       />
@@ -71,18 +82,18 @@ export function ErrorBoundary() {
 
   return (
     <ErrorState
-      title="书籍列表渲染失败"
+      title={t("books.errors.listRenderTitle")}
       message={
         error instanceof Error
           ? error.message
-          : "加载书籍时出现未知错误。"
+          : t("books.errors.listRenderMessage")
       }
       action={
         <Link
           to="/"
           className="bg-main-500 hover:bg-main-600 inline-flex items-center rounded-full px-4 py-2 text-sm font-semibold text-white transition"
         >
-          返回首页
+          {t("books.errors.goHome")}
         </Link>
       }
     />

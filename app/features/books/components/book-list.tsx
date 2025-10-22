@@ -2,17 +2,20 @@ import { Link } from "@remix-run/react";
 import { motion } from "motion/react";
 import { cn } from "~/core/utils";
 import type { BookSummaryInfo } from "~/types";
+import { useTranslation } from "~/core/i18n";
 
 interface BookListProps {
   books: BookSummaryInfo[];
 }
 
 export function BookList({ books }: BookListProps) {
+  const { t } = useTranslation();
+
   if (!books.length) {
     return (
       <div className="text-muted-foreground flex h-full flex-col items-center justify-center gap-2 text-center">
-        <p className="text-lg font-semibold">书籍正在整理中</p>
-        <p className="text-sm">稍后再来看看，也许就会有新的内容。</p>
+        <p className="text-lg font-semibold">{t("books.list.emptyTitle")}</p>
+        <p className="text-sm">{t("books.list.emptyMessage")}</p>
       </div>
     );
   }
@@ -35,12 +38,16 @@ export function BookList({ books }: BookListProps) {
                 </h2>
                 {book.author ? (
                   <p className="text-muted-foreground mt-1 text-sm">
-                    作者：{book.author}
+                    {t("books.overview.author", {
+                      replace: { name: book.author },
+                    })}
                   </p>
                 ) : null}
               </div>
               <div className="bg-main-500/10 text-main-500 rounded-full px-3 py-1 text-xs font-medium">
-                {book.chapterCount} 章
+                {t("books.list.chapterCount", {
+                  replace: { count: book.chapterCount },
+                })}
               </div>
             </div>
 
@@ -69,7 +76,7 @@ export function BookList({ books }: BookListProps) {
                   "group-hover:translate-x-1",
                 )}
               >
-                开始阅读
+                {t("books.list.startReading")}
               </Link>
             </div>
           </div>

@@ -10,6 +10,7 @@ import { ScrollToTopButton } from './scroll-to-top';
 import { TableOfContentsMobile } from './table-contents-mobile';
 import { TableOfContentsPC } from './table-contents-pc';
 import { PostInfo } from '~/types';
+import { useTranslation } from '~/core/i18n';
 
 const GITHUB_EDIT_BASE_URL =
   'https://github.com/Maidang1/madinah/edit/main/app/routes';
@@ -38,6 +39,12 @@ export default function Detail({ list }: BlogsDetailProps) {
 
   const [showStickyHeader, setShowStickyHeader] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
+  const { t, locale } = useTranslation();
+  const localeCode = locale === 'zh' ? 'zh-CN' : 'en-US';
+  const numberFormatter = useMemo(
+    () => new Intl.NumberFormat(localeCode),
+    [localeCode],
+  );
 
   useEffect(() => {
     if (!headerRef.current) return;
@@ -103,7 +110,7 @@ export default function Detail({ list }: BlogsDetailProps) {
           <div className="sticky top-28 flex max-h-[calc(100vh-7rem)] flex-col gap-6">
             <div className="rounded-2xl border border-border/60 bg-background/80 p-4 shadow-sm backdrop-blur">
               <h3 className="text-sm font-semibold tracking-tight text-muted-foreground">
-                目录
+                {t('blog.detail.tableOfContents')}
               </h3>
               <div className="mt-3 max-h-[60vh] overflow-y-auto pr-1">
                 <TableOfContentsPC tocs={tocs} className="w-full" />
@@ -114,11 +121,25 @@ export default function Detail({ list }: BlogsDetailProps) {
               <div className="rounded-2xl border border-border/60 bg-background/80 p-4 shadow-sm backdrop-blur">
                 <div className="flex items-center gap-3 text-sm text-muted-foreground">
                   <CaseSensitive className="h-4 w-4 shrink-0" />
-                  <span>{readingTime.words} words</span>
+                  <span>
+                    {t('blog.detail.readWords', {
+                      replace: {
+                        count: numberFormatter.format(readingTime.words),
+                      },
+                    })}
+                  </span>
                 </div>
                 <div className="mt-2 flex items-center gap-3 text-sm text-muted-foreground">
                   <Hourglass className="h-4 w-4 shrink-0" />
-                  <span>{Math.max(1, Math.ceil(readingTime.minutes))} min read</span>
+                  <span>
+                    {t('blog.detail.readTime', {
+                      replace: {
+                        count: numberFormatter.format(
+                          Math.max(1, Math.ceil(readingTime.minutes)),
+                        ),
+                      },
+                    })}
+                  </span>
                 </div>
               </div>
             )}
