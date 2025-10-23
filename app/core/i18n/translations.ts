@@ -66,7 +66,7 @@ export const translations: Record<SupportedLocale, TranslationDictionary> = {
         avatarAlt: 'Madinah avatar',
         focusAreas: [
           'Designing thoughtful front-end experiences with Remix & Tailwind.',
-          'Exploring Rust and WebAssembly for developer tooling.',
+          'Exploring Rust for developer tooling.',
           'Sketching AI-powered workflows that automate the boring parts.',
         ],
       },
@@ -216,7 +216,7 @@ export const translations: Record<SupportedLocale, TranslationDictionary> = {
         avatarAlt: 'Madinah 头像',
         focusAreas: [
           '用 Remix 和 Tailwind 打磨细腻的前端体验。',
-          '探索 Rust 与 WebAssembly 在开发者工具中的潜力。',
+          '探索 Rust 在开发者工具中的潜力。',
           '构想自动化琐碎流程的 AI 工作流。',
         ],
       },

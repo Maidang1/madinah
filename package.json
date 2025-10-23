@@ -9,6 +9,8 @@
     "dev": "remix vite:dev",
     "lint": "eslint --ignore-path .gitignore --cache --cache-location ./node_modules/.cache/eslint .",
     "start": "wrangler pages dev ./build/client",
+    "test": "vitest --run",
+    "test:watch": "vitest",
     "typecheck": "tsc",
     "typegen": "wrangler types"
   },
@@ -53,6 +55,9 @@
     "@remix-run/dev": "^2.17.1",
     "@tailwindcss/postcss": "^4.1.14",
     "@tailwindcss/typography": "^0.5.19",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.1",
     "@types/rss": "^0.0.32",
@@ -65,6 +70,7 @@
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
+    "jsdom": "^27.0.1",
     "less": "^4.4.2",
     "mdast-util-toc": "^7.1.0",
     "postcss": "^8.5.6",
@@ -92,6 +98,7 @@
     "vite": "^6.3.6",
     "vite-plugin-virtual": "^0.3.0",
     "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^4.0.1",
     "wrangler": "^3.114.15"
   }
 }
