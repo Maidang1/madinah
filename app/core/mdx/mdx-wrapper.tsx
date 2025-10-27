@@ -10,10 +10,10 @@ export function MDXWrapper({ children, className }: MDXWrapperProps) {
   return (
     <div
       className={cn(
-        'mdx-content prose-none max-w-none',
-        'text-zinc-700 dark:text-zinc-300',
+        'mdx-content prose-none mx-auto w-full max-w-[--reading-measure]',
+        'text-[length:var(--font-size-body)] leading-[var(--line-height-body)] text-zinc-700 dark:text-zinc-300',
+        'flex flex-col gap-stack-md md:gap-stack-lg',
         'scroll-smooth',
-        'mx-auto',
         className,
       )}
     >

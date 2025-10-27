@@ -79,6 +79,19 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --space-stack-sm: 0.75rem;
+  --space-stack-md: 1.25rem;
+  --space-stack-lg: 2rem;
+  --space-inline-sm: 1rem;
+  --space-inline-md: 1.5rem;
+  --space-inset-sm: 0.75rem;
+  --space-inset-md: 1.25rem;
+  --reading-measure: clamp(56ch, 70ch, 80ch);
+  --font-size-body: 1rem;
+  --line-height-body: 1.7;
+  --font-size-heading-lg: clamp(1.875rem, 1.35rem + 1vw, 2.75rem);
+  --transition-fast: 120ms;
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /*
@@ -117,6 +130,19 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --space-stack-sm: 0.75rem;
+  --space-stack-md: 1.25rem;
+  --space-stack-lg: 2rem;
+  --space-inline-sm: 1rem;
+  --space-inline-md: 1.5rem;
+  --space-inset-sm: 0.75rem;
+  --space-inset-md: 1.25rem;
+  --reading-measure: clamp(56ch, 70ch, 80ch);
+  --font-size-body: 1rem;
+  --line-height-body: 1.7;
+  --font-size-heading-lg: clamp(1.875rem, 1.35rem + 1vw, 2.75rem);
+  --transition-fast: 120ms;
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /*
@@ -128,7 +154,9 @@
   }
 
   body {
-    @apply bg-background text-foreground text-base leading-relaxed;
+    font-size: var(--font-size-body);
+    line-height: var(--line-height-body);
+    @apply bg-background text-foreground;
   }
 
   /* 自定义计数器样式 */

@@ -1,6 +1,7 @@
 import { vi } from 'vitest';
 import React from 'react';
 import '@testing-library/jest-dom';
+import './tests/utils/viewport';
 
 // Set React act environment for testing-library
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;

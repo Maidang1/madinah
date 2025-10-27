@@ -18,43 +18,134 @@
   counter-reset: mdx-list;
 }
 
+.mdx-content > * {
+  margin: 0;
+}
+
+.mdx-content p + p,
+.mdx-content p + ul,
+.mdx-content p + ol,
+.mdx-content ul + p,
+.mdx-content ol + p {
+  margin-top: var(--space-stack-md);
+}
+
+.mdx-content h1,
+.mdx-content h2,
+.mdx-content h3,
+.mdx-content h4,
+.mdx-content h5,
+.mdx-content h6 {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin-top: var(--space-stack-lg);
+  margin-bottom: var(--space-stack-sm);
+}
+
+.mdx-content h1 {
+  font-size: clamp(2.25rem, 1.7rem + 1.5vw, 3rem);
+}
+
+.mdx-content h2 {
+  font-size: clamp(1.75rem, 1.35rem + 1vw, 2.375rem);
+}
+
+.mdx-content h3 {
+  font-size: clamp(1.5rem, 1.25rem + 0.5vw, 1.875rem);
+}
+
+.mdx-content h4 {
+  font-size: clamp(1.25rem, 1.1rem + 0.25vw, 1.5rem);
+}
+
+.mdx-content figure,
+.mdx-content blockquote,
+.mdx-content pre,
+.mdx-content table,
+.mdx-content .mdx-media {
+  margin-top: var(--space-stack-lg);
+  margin-bottom: var(--space-stack-lg);
+}
+
+.mdx-content img,
+.mdx-content picture,
+.mdx-content video {
+  border-radius: 1.25rem;
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.mdx-content figcaption {
+  margin-top: var(--space-stack-sm);
+  font-size: 0.875rem;
+  color: rgb(113 113 122);
+}
+
+.dark .mdx-content figcaption {
+  color: rgb(161 161 170);
+}
+
 .mdx-content ol {
   counter-reset: mdx-list;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-stack-sm);
+  padding-left: var(--space-inline-md);
 }
 
 .mdx-content ol li {
   counter-increment: mdx-list;
   position: relative;
-  padding-left: 1.5rem;
+  padding-left: 0.5rem;
 }
 
 .mdx-content ol li::before {
   content: counter(mdx-list) ".";
   position: absolute;
-  left: 0;
+  left: -1.5rem;
   color: rgb(113 113 122);
-  /* zinc-500 */
   font-weight: 500;
 }
 
 .dark .mdx-content ol li::before {
   color: rgb(161 161 170);
-  /* zinc-400 */
 }
 
-/* 移除默认的列表点样式 */
+.mdx-content ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-stack-sm);
+  padding-left: var(--space-inline-md);
+}
+
+.mdx-content ul li {
+  position: relative;
+  padding-left: 0.5rem;
+}
+
 .mdx-content ul li::before {
   content: "•";
   position: absolute;
-  left: 0;
+  left: -1.5rem;
   color: rgb(161 161 170);
-  /* zinc-400 */
   font-weight: bold;
 }
 
 .dark .mdx-content ul li::before {
   color: rgb(113 113 122);
-  /* zinc-500 */
+}
+
+.mdx-content blockquote {
+  border-left: 4px solid rgb(161 161 170);
+  padding-left: var(--space-inline-md);
+  font-style: italic;
+  color: rgb(82 82 91);
+}
+
+.dark .mdx-content blockquote {
+  border-left-color: rgb(113 113 122);
+  color: rgb(212 212 216);
 }
 
 /* Enhanced Code Block CSS Variables and Theme Integration */

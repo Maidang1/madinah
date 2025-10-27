@@ -21,3 +21,10 @@ Automated tests are not yet in the tree; new features should ship with unit or i
 
 ## Commit & Pull Request Guidelines
 Follow the Conventional Commits pattern seen in history (`feat:`, `fix:`, `chore:`). Each PR should include a concise summary, link to the tracking issue, and screenshots or recordings when UI changes are visible. Highlight breaking changes or config updates in the description, and mention required follow-up tasks (migrations, cache invalidations).
+
+## Active Technologies
+- TypeScript 5.9 on Remix 2.17 (React 19) running in a Cloudflare Workers runtime + Remix router/rendering, Tailwind CSS 4.1, motion/react (animation), class-variance-authority + cn utility from `~/core/utils` (001-responsive-layout)
+- File-backed MDX posts via `virtual:blog-list` (no database) (001-responsive-layout)
+
+## Recent Changes
+- 001-responsive-layout: Added TypeScript 5.9 on Remix 2.17 (React 19) running in a Cloudflare Workers runtime + Remix router/rendering, Tailwind CSS 4.1, motion/react (animation), class-variance-authority + cn utility from `~/core/utils`

@@ -1,12 +1,10 @@
 import { Outlet } from '@remix-run/react';
-import { motion } from 'motion/react';
 import type { ReadTimeResults } from 'reading-time';
 import { forwardRef, useMemo } from 'react';
 import {
   CalendarDays,
   Clock,
   FileText,
-  PencilLine,
   Tag,
   UserRound,
 } from 'lucide-react';
@@ -14,6 +12,7 @@ import { MDXWrapper } from '~/core/mdx/mdx-wrapper';
 import { LicenseNotice } from '~/core/ui/common/license-notice';
 import { cn } from '~/core/utils';
 import { useTranslation } from '~/core/i18n';
+import { usePrefersReducedMotion } from '~/core/hooks/use-prefers-reduced-motion';
 
 interface BlogContentProps {
   title?: string;
@@ -23,15 +22,15 @@ interface BlogContentProps {
   date?: string;
   tags?: string[];
   author?: string;
-  editUrl?: string;
 }
 
 export const DetailHeader = forwardRef<HTMLElement, BlogContentProps>(
   function DetailHeader(
-    { title, summary, className, readingTime, date, tags, author, editUrl },
+    { title, summary, className, readingTime, date, tags, author },
     ref,
   ) {
     const { t, locale } = useTranslation();
+    const prefersReducedMotion = usePrefersReducedMotion();
     const parsedDate = useMemo(() => {
       if (!date) {
         return null;
@@ -84,25 +83,20 @@ export const DetailHeader = forwardRef<HTMLElement, BlogContentProps>(
 
     return (
       <div className={cn('min-w-0 flex-1', className)}>
-        <motion.article
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="max-w-none"
-        >
+        <article className="flex flex-col gap-stack-lg">
           {(title || summary) && (
-            <header ref={ref} className="mb-10 space-y-6">
+            <header ref={ref} className="flex flex-col gap-stack-md">
               {title && (
-                <h1 className="text-left text-3xl font-bold tracking-tight text-balance text-blue-600 sm:text-4xl dark:text-blue-400">
+                <h1 className="text-balance text-3xl font-bold tracking-tight text-blue-600 sm:text-[length:var(--font-size-heading-lg)] dark:text-blue-400">
                   {title}
                 </h1>
               )}
 
               {(author || formattedDate || readingMinutes || editUrl) && (
-                <div className="border-border/70 flex flex-col gap-4 border-b pb-6 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                <div className="border-border/60 flex flex-col gap-stack-sm border-b pb-stack-sm sm:flex-row sm:items-center sm:justify-between">
+                  <div className="text-muted-foreground flex flex-wrap items-center gap-inline-md text-sm">
                     {author && (
-                      <span className="inline-flex items-center gap-1.5">
+                      <span className="inline-flex items-center gap-inline-sm">
                         <UserRound className="h-4 w-4" />
                         {author}
                       </span>
@@ -110,46 +104,34 @@ export const DetailHeader = forwardRef<HTMLElement, BlogContentProps>(
                     {formattedDate && (
                       <time
                         dateTime={parsedDate?.toISOString() ?? undefined}
-                        className="inline-flex items-center gap-1.5"
+                        className="inline-flex items-center gap-inline-sm"
                       >
                         <CalendarDays className="h-4 w-4" />
                         {formattedDate}
                       </time>
                     )}
                     {readingMinutesLabel && (
-                      <span className="inline-flex items-center gap-1.5">
+                      <span className="inline-flex items-center gap-inline-sm">
                         <Clock className="h-4 w-4" />
                         {readingMinutesLabel}
                       </span>
                     )}
                     {readingWordsLabel && (
-                      <span className="inline-flex items-center gap-1.5">
+                      <span className="inline-flex items-center gap-inline-sm">
                         <FileText className="h-4 w-4" />
                         {readingWordsLabel}
                       </span>
                     )}
                   </div>
-
-                  {/* {editUrl && (
-                    <a
-                      href={editUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-2 self-start rounded-full border border-border/70 bg-background px-4 py-2 text-sm font-medium text-foreground shadow-sm transition hover:border-border hover:bg-muted/40"
-                    >
-                      <PencilLine className="h-4 w-4" />
-                      {t('blog.detail.editOnGitHub')}
-                    </a>
-                  )} */}
                 </div>
               )}
 
               {tagList.length > 0 && (
-                <div className="text-muted-foreground flex flex-wrap gap-2 text-xs font-medium tracking-wide uppercase">
+                <div className="text-muted-foreground flex flex-wrap gap-inline-sm text-xs font-medium tracking-wide uppercase">
                   {tagList.map((tag) => (
                     <span
                       key={tag}
-                      className="border-border/70 bg-muted/30 inline-flex items-center gap-1 rounded-full border px-3 py-1"
+                      className="bg-muted/30 inline-flex items-center gap-inline-sm rounded-full border border-border/60 px-3 py-1"
                     >
                       <Tag className="h-3 w-3" />
                       {tag}
@@ -159,29 +141,31 @@ export const DetailHeader = forwardRef<HTMLElement, BlogContentProps>(
               )}
 
               {summary && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.15 }}
-                  className="border-border/70 bg-muted/30 relative overflow-hidden rounded-2xl border p-6 shadow-sm"
+                <div
+                  className={cn(
+                    'relative overflow-hidden rounded-2xl border border-border/60 bg-muted/30 p-inset-md shadow-sm',
+                    prefersReducedMotion
+                      ? 'transition-none'
+                      : 'transition-transform transition-opacity duration-fast ease-standard hover:shadow-lg',
+                  )}
                 >
-                  <div className="mb-4 flex items-center gap-3 text-sm font-semibold text-blue-600 dark:text-blue-400">
+                  <div className="mb-stack-sm flex items-center gap-inline-sm text-sm font-semibold text-blue-600 dark:text-blue-400">
                     <span className="i-simple-icons-openai block h-5 w-5" />
                     {t('blog.detail.aiSummary')}
                   </div>
                   <p className="text-muted-foreground text-sm leading-relaxed">
                     {summary}
                   </p>
-                </motion.div>
+                </div>
               )}
             </header>
           )}
 
-          <MDXWrapper className="mt-8">
+          <MDXWrapper>
             <Outlet />
           </MDXWrapper>
           <LicenseNotice />
-        </motion.article>
+        </article>
       </div>
     );
   },

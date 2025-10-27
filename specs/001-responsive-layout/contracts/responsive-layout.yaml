@@ -1,0 +1,129 @@
+openapi: 3.1.0
+info:
+  title: Responsive Layout Blog API
+  version: 1.0.0
+  description: >
+    Contracts exercised by the responsive layout refresh. No new endpoints are
+    introduced; documentation ensures layout changes keep payloads stable.
+servers:
+  - url: https://madinah.blog
+paths:
+  /blog:
+    get:
+      summary: List published articles for the blog list layout
+      tags: [Blog]
+      responses:
+        "200":
+          description: Array of article previews sorted by publish date desc
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ArticlePreview"
+                  meta:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                        description: Number of published articles
+                        example: 24
+                      generatedAt:
+                        type: string
+                        format: date-time
+                required: [data, meta]
+  /blogs/{slug}:
+    get:
+      summary: Retrieve article detail content by slug
+      tags: [Blog]
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          description: MDX slug generated from filename
+          schema:
+            type: string
+            example: prompt
+      responses:
+        "200":
+          description: Full article payload powering detail layout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArticleDetail"
+        "404":
+          description: Article not found or status=WIP
+components:
+  schemas:
+    ArticlePreview:
+      type: object
+      required:
+        - title
+        - summary
+        - url
+        - publishedAt
+        - tags
+      properties:
+        title:
+          type: string
+        summary:
+          type: string
+          maxLength: 280
+        url:
+          type: string
+        publishedAt:
+          type: string
+          format: date-time
+        tags:
+          type: array
+          items:
+            type: string
+          maxItems: 6
+        readingTimeMinutes:
+          type: integer
+          minimum: 1
+        readingTimeWords:
+          type: integer
+          minimum: 50
+        heroImage:
+          type: string
+          nullable: true
+          format: uri
+        status:
+          type: string
+          enum: [ready, WIP]
+          description: WIP items filtered out of the list.
+    ArticleDetail:
+      allOf:
+        - $ref: "#/components/schemas/ArticlePreview"
+        - type: object
+          required:
+            - content
+            - toc
+          properties:
+            content:
+              type: string
+              description: Render-ready MDX HTML string.
+            toc:
+              type: array
+              items:
+                type: object
+                required: [id, title, depth]
+                properties:
+                  id:
+                    type: string
+                  title:
+                    type: string
+                  depth:
+                    type: integer
+                    minimum: 2
+                    maximum: 4
+            author:
+              type: string
+              nullable: true
+            editUrl:
+              type: string
+              format: uri
