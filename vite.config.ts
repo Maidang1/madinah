@@ -7,23 +7,116 @@ import tsconfigPaths from 'vite-tsconfig-paths';
 import mdx from '@mdx-js/rollup';
 import remarkFrontmatter from 'remark-frontmatter';
 import remarkMdxFrontmatter from 'remark-mdx-frontmatter';
-import virtual from 'vite-plugin-virtual';
 import path from 'path';
 import { generatePostsMetadata } from './utils/post';
 import { booksVirtualPlugin } from './utils/book';
-import rehypeRaw from "rehype-raw"
-import { nodeTypes } from "@mdx-js/mdx"
+import rehypeRaw from 'rehype-raw';
+import { nodeTypes } from '@mdx-js/mdx';
 import remarkShikiTwoslash from 'remark-shiki-twoslash';
-import rehypeSlug from 'rehype-slug'
-import rehypeAutoLinkHeadings from 'rehype-autolink-headings'
-import fs from "fs"
-import type { Plugin } from 'vite'
-import commonjs from "vite-plugin-commonjs"
+import rehypeSlug from 'rehype-slug';
+import rehypeAutoLinkHeadings from 'rehype-autolink-headings';
+import fs from 'fs';
+import type { Plugin, ViteDevServer } from 'vite';
+import commonjs from 'vite-plugin-commonjs';
 
 
 const root = process.cwd();
 const appDir = path.join(root, 'app');
 const routeDir = path.join(appDir, 'routes');
+const BLOG_LIST_MODULE_ID = 'virtual:blog-list';
+
+const isMdxFile = (file: string) => file.endsWith('.mdx');
+
+const isBlogPostMdx = (file: string) => {
+  const relativePath = path.relative(routeDir, file);
+  if (relativePath.startsWith('..')) return false;
+  return relativePath.startsWith('blogs.') && relativePath.endsWith('.mdx');
+};
+
+async function createBlogListModuleCode() {
+  const metadata = await generatePostsMetadata(routeDir, ['blogs.']);
+  return `const list = ${metadata}; export { list }`;
+}
+
+function blogListVirtualPlugin(): Plugin {
+  const virtualModuleId = BLOG_LIST_MODULE_ID;
+  const resolvedVirtualModuleId = `\0${virtualModuleId}`;
+  let moduleCodePromise: Promise<string> | null = null;
+
+  const ensureModuleCode = () => {
+    if (!moduleCodePromise) {
+      moduleCodePromise = createBlogListModuleCode().catch((error) => {
+        moduleCodePromise = null;
+        throw error;
+      });
+    }
+    return moduleCodePromise;
+  };
+
+  const invalidateBlogListModule = (server: ViteDevServer) => {
+    const mod = server.moduleGraph.getModuleById(resolvedVirtualModuleId);
+    if (mod) {
+      server.moduleGraph.invalidateModule(mod);
+    }
+  };
+
+  return {
+    name: 'blog-list-virtual-module',
+    async buildStart() {
+      this.addWatchFile(routeDir);
+      await ensureModuleCode();
+    },
+    resolveId(id) {
+      if (id === virtualModuleId) {
+        return resolvedVirtualModuleId;
+      }
+      return null;
+    },
+    async load(id) {
+      if (id === resolvedVirtualModuleId) {
+        return ensureModuleCode();
+      }
+      return null;
+    },
+    configureServer(server) {
+      const refresh = async () => {
+        moduleCodePromise = null;
+        try {
+          await ensureModuleCode();
+          invalidateBlogListModule(server);
+          server.ws.send({ type: 'full-reload' });
+        } catch (error) {
+          console.error('[MDX] Failed to regenerate blog metadata:', error);
+        }
+      };
+
+      const onFileMutation = (file: string) => {
+        if (!isBlogPostMdx(file)) return;
+        void refresh();
+      };
+
+      server.watcher.on('add', onFileMutation);
+      server.watcher.on('unlink', onFileMutation);
+    },
+    async handleHotUpdate(context) {
+      if (isBlogPostMdx(context.file)) {
+        moduleCodePromise = null;
+        try {
+          await ensureModuleCode();
+        } catch (error) {
+          console.error('[MDX] Failed to regenerate blog metadata on hot update:', error);
+          return [];
+        }
+        const mod = context.server.moduleGraph.getModuleById(resolvedVirtualModuleId);
+        if (mod) {
+          context.server.moduleGraph.invalidateModule(mod);
+          return [mod];
+        }
+      }
+      return undefined;
+    },
+  };
+}
 
 function excalidraw(): Plugin {
   return {
@@ -47,23 +140,45 @@ function excalidraw(): Plugin {
   }
 }
 
+function mdxHotReload(): Plugin {
+  return {
+    name: 'mdx-hot-reload',
+    handleHotUpdate({ file, server }) {
+      if (isMdxFile(file)) {
+        const modules = server.moduleGraph.getModulesByFile(file);
+        if (modules) {
+          return Array.from(modules);
+        }
+        return [];
+      }
+
+      return undefined;
+    },
+  };
+}
+
 
 export default defineConfig(async () => {
+
   return {
     plugins: [
       remixCloudflareDevProxy(),
       excalidraw(),
+      mdxHotReload(),
       commonjs(),
       mdx({
-        providerImportSource: "@mdx-js/react",
-        rehypePlugins: [[rehypeRaw, { passThrough: nodeTypes }], rehypeSlug,
-        [
-          rehypeAutoLinkHeadings,
-          {
-            behavior: 'append',
-            properties: { class: 'header-anchor' },
-          },
-        ],],
+        providerImportSource: '@mdx-js/react',
+        rehypePlugins: [
+          [rehypeRaw, { passThrough: nodeTypes }],
+          rehypeSlug,
+          [
+            rehypeAutoLinkHeadings,
+            {
+              behavior: 'append',
+              properties: { class: 'header-anchor' },
+            },
+          ],
+        ],
         remarkPlugins: [
           remarkFrontmatter,
           [remarkMdxFrontmatter, { name: 'matter' }],
@@ -92,12 +207,7 @@ export default defineConfig(async () => {
         },
       }),
       booksVirtualPlugin(),
-      virtual({
-        'virtual:blog-list': `const list = ${await generatePostsMetadata(
-          routeDir,
-          ['blogs.']
-        )}; export { list }`,
-      }),
+      blogListVirtualPlugin(),
       tsconfigPaths(),
     ],
     // fixed react-use commonjs issue link https://github.com/streamich/react-use/issues/2353

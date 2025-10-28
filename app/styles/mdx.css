@@ -187,6 +187,171 @@
   /* Ensure proper contrast ratios for accessibility */
   /* Light theme: contrast ratio 7.21:1 (AAA compliant) */
   /* Dark theme: contrast ratio 12.63:1 (AAA compliant) */
+
+  /* Default to nowrap for better readability of long text */
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+
+  /* Better spacing for unicode characters and special symbols */
+  text-rendering: optimizeLegibility;
+
+  /* Maximum height with vertical scrolling */
+  max-height: 700px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Plaintext with nowrap option */
+.enhanced-code-block .code-block-plaintext.nowrap,
+.enhanced-code-block pre:not(.shiki).nowrap {
+  white-space: pre;
+  overflow-x: auto;
+  word-break: normal;
+  overflow-wrap: normal;
+  hyphens: manual;
+}
+
+/* Scrollbar styling for all code blocks */
+.enhanced-code-block .code-block-plaintext::-webkit-scrollbar,
+.enhanced-code-block pre:not(.shiki)::-webkit-scrollbar,
+.enhanced-code-block pre.shiki::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+.enhanced-code-block .code-block-plaintext::-webkit-scrollbar-track,
+.enhanced-code-block pre:not(.shiki)::-webkit-scrollbar-track,
+.enhanced-code-block pre.shiki::-webkit-scrollbar-track {
+  background: rgb(244 244 245);
+  border-radius: 4px;
+}
+
+.dark .enhanced-code-block .code-block-plaintext::-webkit-scrollbar-track,
+.dark .enhanced-code-block pre:not(.shiki)::-webkit-scrollbar-track,
+.dark .enhanced-code-block pre.shiki::-webkit-scrollbar-track {
+  background: rgb(39 39 42);
+}
+
+.enhanced-code-block .code-block-plaintext::-webkit-scrollbar-thumb,
+.enhanced-code-block pre:not(.shiki)::-webkit-scrollbar-thumb,
+.enhanced-code-block pre.shiki::-webkit-scrollbar-thumb {
+  background: rgb(161 161 170);
+  border-radius: 4px;
+}
+
+.enhanced-code-block .code-block-plaintext::-webkit-scrollbar-thumb:hover,
+.enhanced-code-block pre:not(.shiki)::-webkit-scrollbar-thumb:hover,
+.enhanced-code-block pre.shiki::-webkit-scrollbar-thumb:hover {
+  background: rgb(113 113 122);
+}
+
+.dark .enhanced-code-block .code-block-plaintext::-webkit-scrollbar-thumb,
+.dark .enhanced-code-block pre:not(.shiki)::-webkit-scrollbar-thumb,
+.dark .enhanced-code-block pre.shiki::-webkit-scrollbar-thumb {
+  background: rgb(113 113 122);
+}
+
+.dark .enhanced-code-block .code-block-plaintext::-webkit-scrollbar-thumb:hover,
+.dark .enhanced-code-block pre:not(.shiki)::-webkit-scrollbar-thumb:hover,
+.dark .enhanced-code-block pre.shiki::-webkit-scrollbar-thumb:hover {
+  background: rgb(161 161 170);
+}
+
+/* Scrollbar styling for nowrap mode (kept for backwards compatibility) */
+.enhanced-code-block .code-block-plaintext.nowrap::-webkit-scrollbar,
+.enhanced-code-block pre:not(.shiki).nowrap::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+.enhanced-code-block .code-block-plaintext.nowrap::-webkit-scrollbar-track,
+.enhanced-code-block pre:not(.shiki).nowrap::-webkit-scrollbar-track {
+  background: rgb(244 244 245);
+  border-radius: 4px;
+}
+
+.dark .enhanced-code-block .code-block-plaintext.nowrap::-webkit-scrollbar-track,
+.dark .enhanced-code-block pre:not(.shiki).nowrap::-webkit-scrollbar-track {
+  background: rgb(39 39 42);
+}
+
+.enhanced-code-block .code-block-plaintext.nowrap::-webkit-scrollbar-thumb,
+.enhanced-code-block pre:not(.shiki).nowrap::-webkit-scrollbar-thumb {
+  background: rgb(161 161 170);
+  border-radius: 4px;
+}
+
+.enhanced-code-block .code-block-plaintext.nowrap::-webkit-scrollbar-thumb:hover,
+.enhanced-code-block pre:not(.shiki).nowrap::-webkit-scrollbar-thumb:hover {
+  background: rgb(113 113 122);
+}
+
+.dark .enhanced-code-block .code-block-plaintext.nowrap::-webkit-scrollbar-thumb,
+.dark .enhanced-code-block pre:not(.shiki).nowrap::-webkit-scrollbar-thumb {
+  background: rgb(113 113 122);
+}
+
+.dark .enhanced-code-block .code-block-plaintext.nowrap::-webkit-scrollbar-thumb:hover,
+.dark .enhanced-code-block pre:not(.shiki).nowrap::-webkit-scrollbar-thumb:hover {
+  background: rgb(161 161 170);
+}
+
+/* Toggle button for wrap/nowrap */
+.enhanced-code-block .wrap-toggle {
+  position: absolute;
+  top: 0.75rem;
+  right: 5.5rem;
+  z-index: 12;
+  background: var(--code-copy-button-bg);
+  color: var(--code-copy-button-text);
+  border: 1px solid var(--code-copy-button-border);
+  backdrop-filter: blur(8px);
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.375rem 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  opacity: 0;
+  visibility: hidden;
+}
+
+.enhanced-code-block:hover .wrap-toggle,
+.enhanced-code-block:focus-within .wrap-toggle {
+  opacity: 0.85;
+  visibility: visible;
+}
+
+.enhanced-code-block .wrap-toggle:hover {
+  opacity: 1;
+  background: var(--code-copy-button-hover);
+  transform: scale(1.05);
+}
+
+.enhanced-code-block .wrap-toggle:active {
+  transform: scale(0.98);
+}
+
+.enhanced-code-block .wrap-toggle:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--code-focus-ring);
+}
+
+.enhanced-code-block .wrap-toggle .icon {
+  margin-right: 0.25rem;
+}
+
+/* Responsive adjustments for toggle button */
+@media (max-width: 640px) {
+  .enhanced-code-block .wrap-toggle {
+    top: 0.5rem;
+    right: 5rem;
+    font-size: 0.6875rem;
+    padding: 0.25rem 0.5rem;
+  }
 }
 
 /* Enhanced styling for syntax-highlighted blocks */
@@ -203,6 +368,175 @@
   font-variant-ligatures: common-ligatures;
   font-feature-settings: "liga" 1, "calt" 1;
   letter-spacing: 0.025em;
+
+  /* Better handling of code content */
+  white-space: pre;
+  overflow-x: auto;
+  word-wrap: normal;
+  overflow-wrap: normal;
+
+  /* Maximum height with vertical scrolling */
+  max-height: 700px;
+  overflow-y: auto;
+}
+
+/* Shiki code container styling */
+.enhanced-code-block pre.shiki .code-container {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.enhanced-code-block pre.shiki code {
+  background: transparent !important;
+  border: none !important;
+  padding: 0;
+  margin: 0;
+  font-size: inherit;
+  font-family: inherit;
+  line-height: inherit;
+  white-space: inherit;
+  overflow-wrap: inherit;
+}
+
+/* Shiki line styling */
+.enhanced-code-block pre.shiki .line {
+  min-height: 1.5rem;
+  padding: 0 0.25rem;
+}
+
+/* Shiki hover effects */
+.enhanced-code-block pre.shiki:hover .dim {
+  opacity: 1;
+}
+
+.enhanced-code-block pre.shiki div.dim {
+  opacity: 0.5;
+  transition: opacity 0.2s ease;
+}
+
+.enhanced-code-block pre.shiki div.dim,
+.enhanced-code-block pre.shiki div.highlight {
+  margin: 0;
+  padding: 0;
+}
+
+.enhanced-code-block pre.shiki div.highlight {
+  opacity: 1;
+  background-color: rgba(255, 255, 0, 0.1);
+}
+
+/* Hide language identifier */
+.enhanced-code-block pre.shiki .language-id {
+  display: none;
+}
+
+/* Twoslash specific styles */
+.enhanced-code-block pre.twoslash {
+  border-color: var(--code-border);
+}
+
+.enhanced-code-block pre.twoslash:hover data-lsp {
+  border-color: #747474;
+}
+
+/* LSP tooltip styling */
+.enhanced-code-block pre.twoslash data-lsp:hover::before {
+  content: attr(lsp);
+  position: absolute;
+  transform: translate(0, 1rem);
+  background-color: var(--code-background);
+  color: var(--code-plaintext-color);
+  text-align: left;
+  padding: 5px 8px;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.75rem;
+  white-space: pre-wrap;
+  z-index: 100;
+  border: 1px solid var(--code-border);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Error styling */
+.enhanced-code-block pre data-err {
+  background: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%206%203'%20enable-background%3D'new%200%200%206%203'%20height%3D'3'%20width%3D'6'%3E%3Cg%20fill%3D'%23c94824'%3E%3Cpolygon%20points%3D'5.5%2C0%202.5%2C3%201.1%2C3%204.1%2C0'%2F%3E%3Cpolygon%20points%3D'4%2C0%206%2C2%206%2C0.6%205.4%2C0'%2F%3E%3Cpolygon%20points%3D'0%2C2%201%2C3%202.4%2C3%200%2C0.6'%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E") repeat-x bottom left;
+  padding-bottom: 3px;
+}
+
+.enhanced-code-block pre .error,
+.enhanced-code-block pre .error-behind {
+  margin-left: -14px;
+  margin-top: 8px;
+  margin-bottom: 4px;
+  padding: 6px;
+  padding-left: 14px;
+  width: calc(100% - 20px);
+  white-space: pre-wrap;
+  display: block;
+}
+
+.enhanced-code-block pre .error {
+  position: absolute;
+  background-color: rgba(254, 238, 238, 0.95);
+  border-left: 2px solid #bf1818;
+  color: #991b1b;
+  display: flex;
+  align-items: center;
+  backdrop-filter: blur(4px);
+}
+
+.enhanced-code-block pre .error .code {
+  display: none;
+}
+
+.enhanced-code-block pre .error-behind {
+  user-select: none;
+  visibility: transparent;
+  color: #fee;
+}
+
+/* Query styling */
+.enhanced-code-block pre .query {
+  margin-bottom: 10px;
+  color: #137998;
+  display: inline-block;
+}
+
+/* Logger styling */
+.enhanced-code-block pre .logger {
+  display: flex;
+  align-items: center;
+  color: var(--code-plaintext-color);
+  padding: 6px;
+  padding-left: 8px;
+  width: calc(100% - 19px);
+  white-space: pre-wrap;
+  backdrop-filter: blur(4px);
+}
+
+.enhanced-code-block pre .logger svg {
+  margin-right: 9px;
+}
+
+.enhanced-code-block pre .logger.error-log {
+  background-color: rgba(254, 238, 238, 0.8);
+  border-left: 2px solid #bf1818;
+}
+
+.enhanced-code-block pre .logger.warn-log {
+  background-color: rgba(255, 254, 238, 0.8);
+  border-left: 2px solid #eae662;
+}
+
+.enhanced-code-block pre .logger.log-log {
+  background-color: rgba(233, 233, 233, 0.8);
+  border-left: 2px solid #ababab;
+}
+
+.enhanced-code-block pre .logger.log-log svg {
+  margin-left: 6px;
+  margin-right: 9px;
 }
 
 /* Enhanced Animation System for Interactive Elements with Performance Optimization */
@@ -765,83 +1099,7 @@ Code blocks structurally look like:
   </pre> 
 */
 
-pre {
-  /* In theory shiki will overwrite these, but this is to make sure there are defaults regardless */
-  background-color: white;
-  color: black;
-
-  padding: 12px;
-
-
-
-  overflow-x: auto;
-  position: relative;
-}
-
-pre.shiki {
-  overflow-x: auto;
-}
-
-pre.shiki:hover .dim {
-  opacity: 1;
-}
-
-pre.shiki div.dim {
-  opacity: 0.5;
-}
-
-pre.shiki div.dim,
-pre.shiki div.highlight {
-  margin: 0;
-  padding: 0;
-}
-
-pre.shiki div.highlight {
-  opacity: 1;
-  background-color: #f1f8ff;
-}
-
-pre.shiki div.line {
-  min-height: 1rem;
-}
-
-/** Don't show the language identifiers */
-pre.shiki .language-id {
-  display: none;
-}
-
-/* Visually differentiates twoslash code samples  */
-pre.twoslash {
-  border-color: #719af4;
-}
-
-/** When you mouse over the pre, show the underlines */
-pre.twoslash:hover data-lsp {
-  border-color: #747474;
-}
-
-/** The tooltip-like which provides the LSP response */
-pre.twoslash data-lsp:hover::before {
-  content: attr(lsp);
-  position: absolute;
-  transform: translate(0, 1rem);
-
-  background-color: #3f3f3f;
-  color: #fff;
-  text-align: left;
-  padding: 5px 8px;
-  border-radius: 2px;
-  font-family: "JetBrains Mono", Menlo, Monaco, Consolas, Courier New, monospace;
-  font-size: 14px;
-  white-space: pre-wrap;
-  z-index: 100;
-}
-
-pre .code-container {
-  overflow: auto;
-}
-
-/* The try button */
+/* Twoslash Try Button */
 pre .code-container>a {
   position: absolute;
   right: 8px;
@@ -872,9 +1130,11 @@ pre .code-container:hover a {
   opacity: 1;
 }
 
-pre .code-container>code {
+pre .code-container code {
   background: transparent !important;
   border: none !important;
+  color: inherit !important;
+
 }
 
 pre code {
@@ -888,79 +1148,24 @@ pre code a {
   text-decoration: none;
 }
 
-pre data-err {
-  /* Extracted from VS Code */
-  background: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%206%203'%20enable-background%3D'new%200%200%206%203'%20height%3D'3'%20width%3D'6'%3E%3Cg%20fill%3D'%23c94824'%3E%3Cpolygon%20points%3D'5.5%2C0%202.5%2C3%201.1%2C3%204.1%2C0'%2F%3E%3Cpolygon%20points%3D'4%2C0%206%2C2%206%2C0.6%205.4%2C0'%2F%3E%3Cpolygon%20points%3D'0%2C2%201%2C3%202.4%2C3%200%2C0.6'%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E") repeat-x bottom left;
-  padding-bottom: 3px;
+data-lsp {
+  /* Ensures there's no 1px jump when the hover happens */
+  border-bottom: 1px dotted transparent;
+  /* Fades in unobtrusively */
+  transition-timing-function: ease;
+  transition: border-color 0.3s;
 }
 
-pre .query {
-  margin-bottom: 10px;
-  color: #137998;
-  display: inline-block;
+/* Respect people's wishes to not have animations */
+@media (prefers-reduced-motion: reduce) {
+  data-lsp {
+    transition: none;
+  }
 }
 
-/* In order to have the 'popped out' style design and to not break the layout
-  /* we need to place a fake and un-selectable copy of the error which _isn't_ broken out
-  /* behind the actual error message.
-
-  /* This sections keeps both of those two in in sync  */
-
-pre .error,
-pre .error-behind {
-  margin-left: -14px;
-  margin-top: 8px;
-  margin-bottom: 4px;
-  padding: 6px;
-  padding-left: 14px;
-  width: calc(100% - 20px);
-  white-space: pre-wrap;
-  display: block;
-}
-
-pre .error {
-  position: absolute;
-  background-color: #fee;
-  border-left: 2px solid #bf1818;
-  /* Give the space to the error code */
-  display: flex;
-  align-items: center;
-  color: black;
-}
-
-pre .error .code {
-  display: none;
-}
-
-pre .error-behind {
-  user-select: none;
-  visibility: transparent;
-  color: #fee;
-}
-
-/* Queries */
-pre .arrow {
-  /* Transparent background */
-  background-color: #eee;
+/** Annotations support, providing a tool for meta commentary */
+.tag-container {
   position: relative;
-  top: -7px;
-  margin-left: 0.1rem;
-  /* Edges */
-  border-left: 1px solid #eee;
-  border-top: 1px solid #eee;
-  transform: translateY(25%) rotate(45deg);
-  /* Size */
-  height: 8px;
-  width: 8px;
-}
-
-pre .popover {
-  margin-bottom: 10px;
-  background-color: #eee;
-  display: inline-block;
-  padding: 0 0.5rem 0.3rem;
-  margin-top: 10px;
-  border-radius: 3px;
 }
 
 /* Completion */
@@ -1011,61 +1216,6 @@ pre .inline-completions ul.dropdown li span.result {
   background-color: #d8d8d8;
   border-color: #ddd;
   filter: invert(98%) hue-rotate(180deg);
-}
-
-data-lsp {
-  /* Ensures there's no 1px jump when the hover happens */
-  border-bottom: 1px dotted transparent;
-  /* Fades in unobtrusively */
-  transition-timing-function: ease;
-  transition: border-color 0.3s;
-}
-
-/* Respect people's wishes to not have animations */
-@media (prefers-reduced-motion: reduce) {
-  data-lsp {
-    transition: none;
-  }
-}
-
-/** Annotations support, providing a tool for meta commentary */
-.tag-container {
-  position: relative;
-}
-
-/** Support for showing console log/warn/errors inline */
-pre .logger {
-  display: flex;
-  align-items: center;
-  color: black;
-  padding: 6px;
-  padding-left: 8px;
-  width: calc(100% - 19px);
-  white-space: pre-wrap;
-}
-
-pre .logger svg {
-  margin-right: 9px;
-}
-
-pre .logger.error-log {
-  background-color: #fee;
-  border-left: 2px solid #bf1818;
-}
-
-pre .logger.warn-log {
-  background-color: #ffe;
-  border-left: 2px solid #eae662;
-}
-
-pre .logger.log-log {
-  background-color: #e9e9e9;
-  border-left: 2px solid #ababab;
-}
-
-pre .logger.log-log svg {
-  margin-left: 6px;
-  margin-right: 9px;
 }
 
 /* Respons

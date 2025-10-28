@@ -14,6 +14,7 @@ export interface CodeBlockState {
   copied: boolean;
   language: string;
   showCopyButton: boolean;
+  isWrapped: boolean;
 }
 
 export interface CopyButtonProps {
@@ -188,6 +189,7 @@ export function EnhancedCodeBlock({
     copied: false,
     language: '',
     showCopyButton: false,
+    isWrapped: true, // Default to wrapped for plainText
   });
 
   const preRef = useRef<HTMLPreElement>(null);
@@ -262,6 +264,11 @@ export function EnhancedCodeBlock({
     setState((prev) => ({ ...prev, showCopyButton: false }));
   };
 
+  // Handle wrap/nowrap toggle
+  const handleToggleWrap = () => {
+    setState((prev) => ({ ...prev, isWrapped: !prev.isWrapped }));
+  };
+
   return (
     <div
       className={cn(
@@ -303,6 +310,19 @@ export function EnhancedCodeBlock({
         />
       </div>
 
+      {/* Wrap/Nowrap Toggle Button - only for plainText blocks */}
+      {!className?.includes('shiki') && (
+        <button
+          onClick={handleToggleWrap}
+          className="wrap-toggle"
+          aria-label={state.isWrapped ? 'Switch to nowrap' : 'Switch to wrap'}
+          title={state.isWrapped ? 'Switch to nowrap' : 'Switch to wrap'}
+        >
+          <span className="icon">{state.isWrapped ? '🔄' : '↔️'}</span>
+          {state.isWrapped ? 'Wrap' : 'No Wrap'}
+        </button>
+      )}
+
       {/* Code Block */}
       <pre
         ref={preRef}
@@ -311,6 +331,8 @@ export function EnhancedCodeBlock({
           'm-0',
           // Enhanced styling for plaintext blocks will be handled by CSS variables
           !className?.includes('shiki') && 'code-block-plaintext',
+          // Apply wrap/nowrap class for plainText
+          !className?.includes('shiki') && !state.isWrapped && 'nowrap',
           className,
         )}
         tabIndex={0}

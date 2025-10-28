@@ -81,6 +81,6 @@ export const generatePostsMetadata = async (postsDirectory: string, filePrefix: 
   await fs.writeFile(summaryFilePath, JSON.stringify(existingSummaries))
 
   const publishedPosts = postMetadataList.filter(post => post.status !== 'WIP')
-  publishedPosts.sort((a, b) => new Date(a.time).getSeconds() - new Date(b.time).getSeconds())
+  publishedPosts.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
   return JSON.stringify(publishedPosts)
 }
