@@ -66,7 +66,7 @@ export function ErrorBoundary() {
         action={
           <Link
             to="/books"
-            className="bg-main-500 hover:bg-main-600 inline-flex items-center rounded-full px-4 py-2 text-sm font-semibold text-white transition"
+            className="bg-gray-700 hover:bg-gray-900 inline-flex items-center rounded-full px-4 py-2 text-sm font-semibold text-white transition"
           >
             {t("books.errors.goToBooks")}
           </Link>
@@ -86,7 +86,7 @@ export function ErrorBoundary() {
       action={
         <Link
           to="/books"
-          className="bg-main-500 hover:bg-main-600 inline-flex items-center rounded-full px-4 py-2 text-sm font-semibold text-white transition"
+          className="bg-gray-700 hover:bg-gray-900 inline-flex items-center rounded-full px-4 py-2 text-sm font-semibold text-white transition"
         >
           {t("books.errors.goToBooks")}
         </Link>

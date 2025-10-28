@@ -9,8 +9,11 @@ export default {
 		extend: {
 			colors: {
 				main: {
-					DEFAULT: "#a18cd1",
-					500: "#a18cd1",
+					DEFAULT: "#2d2d2d",
+					400: "#4a4a4a",
+					500: "#2d2d2d",
+					600: "#1a1a1a",
+					700: "#0a0a0a",
 				},
 			},
 			fontFamily: {

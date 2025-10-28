@@ -50,7 +50,7 @@ export function BlogNavigation({ list, className }: BlogNavigationProps) {
                   <div className="text-muted-foreground mb-1 text-xs font-medium">
                     {t('blog.detail.previousPost')}
                   </div>
-                  <div className="group-hover:text-main-500 truncate text-sm font-medium transition-colors">
+                  <div className="group-hover:text-gray-700 truncate text-sm font-medium transition-colors">
                     {prevPost.title}
                   </div>
                 </div>
@@ -79,7 +79,7 @@ export function BlogNavigation({ list, className }: BlogNavigationProps) {
                   <div className="text-muted-foreground mb-1 text-xs font-medium">
                     {t('blog.detail.nextPost')}
                   </div>
-                  <div className="group-hover:text-main-500 truncate text-sm font-medium transition-colors">
+                  <div className="group-hover:text-gray-700 truncate text-sm font-medium transition-colors">
                     {nextPost.title}
                   </div>
                 </div>

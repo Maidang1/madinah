@@ -23,14 +23,14 @@ export function BookChapterContent({
       className="border-border/60 bg-background/80 dark:bg-background/60 min-w-0 rounded-2xl border p-8 shadow-sm backdrop-blur"
     >
       <header className="mb-10 space-y-4">
-        <p className="text-main-500 text-xs font-semibold uppercase tracking-wide">
+        <p className="text-gray-700 text-xs font-semibold uppercase tracking-wide">
           {book.title}
         </p>
         <h1 className="text-balance text-foreground text-3xl font-bold tracking-tight sm:text-4xl">
           {chapter.title}
         </h1>
         {chapter.summary ? (
-          <div className="border-main-500/50 text-muted-foreground relative overflow-hidden rounded-xl border p-5 text-sm leading-relaxed">
+          <div className="border-gray-700/50 text-muted-foreground relative overflow-hidden rounded-xl border p-5 text-sm leading-relaxed">
             {chapter.summary}
           </div>
         ) : null}

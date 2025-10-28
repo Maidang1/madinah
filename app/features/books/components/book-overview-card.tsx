@@ -15,7 +15,7 @@ export function BookOverviewCard({
   return (
     <section className="border-border/60 bg-background/80 dark:bg-background/60 rounded-2xl border p-6 shadow-sm backdrop-blur transition">
       <header className="mb-3 space-y-1">
-        <p className="text-main-500 text-xs tracking-wide uppercase">
+        <p className="text-gray-700 text-xs tracking-wide uppercase">
           {t("books.overview.sectionLabel")}
         </p>
         <h1 className="text-foreground text-xl font-semibold">{book.title}</h1>
@@ -34,11 +34,11 @@ export function BookOverviewCard({
         </div>
       ) : null}
       {book.tags.length ? (
-        <div className="text-main-500 mt-4 flex flex-wrap gap-2 text-xs">
+        <div className="text-gray-700 mt-4 flex flex-wrap gap-2 text-xs">
           {book.tags.map((tag) => (
             <span
               key={tag}
-              className="border-main-500/40 rounded-full border px-2 py-1"
+              className="border-gray-700/40 rounded-full border px-2 py-1"
             >
               #{tag}
             </span>

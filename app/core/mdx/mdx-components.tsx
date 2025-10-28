@@ -202,8 +202,8 @@ export const A = ({ children, href, className, ...props }: LinkProps & any) => {
     <a
       href={href}
       className={cn(
-        'text-main-500/90 hover:text-main-500 dark:text-main-light dark:hover:text-main-500',
-        'decoration-main dark:decoration-main-500 underline decoration-1',
+        'text-gray-700/90 hover:text-gray-700 dark:text-main-light dark:hover:text-gray-700',
+        'decoration-main dark:decoration-gray-700 underline decoration-1',
         'underline-offset-2 hover:decoration-2',
         'transition-all duration-200 ease-out',
         'inline-flex items-center gap-1 font-medium',

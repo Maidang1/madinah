@@ -47,12 +47,12 @@ export function BookChapterSidebar({
                 className={cn(
                   "flex items-center gap-3 rounded-xl border border-transparent px-3 py-2 text-left transition",
                   isActive
-                    ? "border-main-500 bg-main-500/10 text-main-500 dark:text-main-400"
-                    : "text-muted-foreground hover:border-main-500/40 hover:bg-main-500/5",
+                    ? "border-gray-700 bg-gray-500/10 text-gray-700 dark:text-main-400"
+                    : "text-muted-foreground hover:border-gray-700/40 hover:bg-gray-500/5",
                 )}
                 prefetch="intent"
               >
-                <span className="bg-main-500/10 text-main-500 flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold">
+                <span className="bg-gray-500/10 text-gray-700 flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold">
                   {index + 1}
                 </span>
                 <span className="flex-1 text-sm leading-snug">

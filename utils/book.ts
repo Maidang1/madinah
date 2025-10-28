@@ -31,6 +31,7 @@ interface BookBuildMeta {
   directoryName: string;
   overviewImporter: string | null;
   chapters: BookChapterMeta[];
+  timestamp: number;
 }
 
 function humanizeSlug(value: string) {
@@ -115,6 +116,7 @@ function buildRuntimeBook(book: BookBuildMeta) {
         frontmatter: mod.frontmatter ?? mod.attributes ?? mod.metadata ?? null,
       };
     }` : 'null'},
+    timestamp: ${book.timestamp},
     chapters: [${chaptersCode}]
   }`;
 }
@@ -156,6 +158,7 @@ export const booksSerialized = books.map((book) => ({
   defaultChapterId: book.defaultChapterId,
   hasOverview: Boolean(book.loadOverview),
   chapterCount: book.chapters.length,
+  timestamp: book.timestamp,
   chapters: book.chapters.map((chapter) => ({
     id: chapter.id,
     title: chapter.title,
@@ -323,6 +326,9 @@ async function collectBooks(): Promise<BookBuildMeta[]> {
       ? toSlug(bookFrontmatter.defaultChapter)
       : chapters[0]?.id ?? null;
 
+    const bookEntryStats = await fs.stat(bookEntryPath);
+    const timestamp = bookEntryStats.mtimeMs;
+
     books.push({
       id: bookId,
       title,
@@ -334,6 +340,7 @@ async function collectBooks(): Promise<BookBuildMeta[]> {
       directoryName,
       overviewImporter: buildImportSpecifier(directoryName, 'book.mdx'),
       chapters,
+      timestamp,
     });
   }
 

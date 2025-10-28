@@ -51,9 +51,9 @@ export function TableOfContentsMobile({ tocs, className }: MobileTableOfContents
       </button>
 
       {/* 进度指示器 */}
-      <div className='fixed top-0 left-0 right-0 z-30 h-1 bg-main-500/50'>
+      <div className='fixed top-0 left-0 right-0 z-30 h-1 bg-gray-500/50'>
         <div
-          className='h-full bg-main-500 transition-all duration-300 ease-out'
+          className='h-full bg-gray-700 transition-all duration-300 ease-out'
           style={{ width: `${progress}%` }}
         />
       </div>

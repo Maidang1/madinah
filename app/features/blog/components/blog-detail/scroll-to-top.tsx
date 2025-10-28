@@ -49,7 +49,7 @@ export function ScrollToTopButton({
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={handleScrollToTop}
-          className={`bg-main-500 text-primary-foreground hover:bg-main-500/90 focus:ring-primary/50 fixed right-8 bottom-8 z-50 rounded-full p-3 shadow-lg transition-colors duration-200 focus:ring-2 focus:ring-offset-2 focus:outline-none ${className || ''}`}
+          className={`bg-gray-700 text-primary-foreground hover:bg-gray-800 focus:ring-primary/50 fixed right-8 bottom-8 z-50 rounded-full p-3 shadow-lg transition-colors duration-200 focus:ring-2 focus:ring-offset-2 focus:outline-none ${className || ''}`}
           aria-label={t('blog.detail.scrollToTop')}
         >
           <ArrowUp className="h-5 w-5" />

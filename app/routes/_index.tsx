@@ -84,17 +84,17 @@ const Index = () => {
       <section className="border-border/70 bg-background/80 grid gap-8 rounded-3xl border p-8 shadow-sm backdrop-blur">
         <div className="flex flex-col items-center gap-6 text-center sm:flex-row sm:items-start sm:gap-10 sm:text-left">
           <div className="relative">
-            <span className="from-main-500/40 absolute inset-0 rounded-full bg-gradient-to-br to-transparent blur-2xl" />
+            <span className="from-gray-700/40 absolute inset-0 rounded-full bg-gradient-to-br to-transparent blur-2xl" />
             <img
               src="https://avatars.githubusercontent.com/u/50993231?v=4"
               alt={t('home.hero.avatarAlt')}
-              className="border-border/80 shadow-main-500/20 relative h-32 w-32 rounded-full border object-cover shadow-lg sm:h-40 sm:w-40"
+              className="border-border/80 shadow-gray-700/20 relative h-32 w-32 rounded-full border object-cover shadow-lg sm:h-40 sm:w-40"
             />
           </div>
 
           <div className="space-y-6">
             <div className="space-y-3">
-              <p className="text-main-500 text-xs font-semibold tracking-widest uppercase">
+              <p className="text-gray-700 text-xs font-semibold tracking-widest uppercase">
                 {t('home.hero.badge')}
               </p>
               <h1 className="text-foreground text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
@@ -112,12 +112,12 @@ const Index = () => {
                   : {};
                 return (
                   <a
-                    key={link.label}
+                    key={link.label as string}
                     href={link.href}
-                    className="border-border/70 text-muted-foreground hover:border-main-500/70 hover:text-main-500 inline-flex items-center rounded-full border px-4 py-2 text-sm font-medium transition-colors"
+                    className="border-border/70 text-muted-foreground hover:border-gray-700/70 hover:text-gray-700 inline-flex items-center rounded-full border px-4 py-2 text-sm font-medium transition-colors"
                     {...linkProps}
                   >
-                    {link.label}
+                    {link.label as string}
                   </a>
                 );
               })}
@@ -154,13 +154,13 @@ const Index = () => {
               <Link
                 key={post.url}
                 to={post.url}
-                className="border-border/70 hover:border-main-500/60 hover:shadow-main-500/10 group flex h-full flex-col gap-4 rounded-2xl border p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+                className="border-border/70 hover:border-gray-700/60 hover:shadow-gray-700/10 group flex h-full flex-col gap-4 rounded-2xl border p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
               >
                 <div className="flex items-center justify-between gap-4">
                   <h3 className="text-foreground line-clamp-2 text-lg font-semibold">
                     {post.title}
                   </h3>
-                  <span className="text-main-500 transition group-hover:translate-x-1">
+                  <span className="text-gray-700 transition group-hover:translate-x-1">
                     →
                   </span>
                 </div>

@@ -90,7 +90,7 @@ export function BookLayout({ sidebar, overview, children }: BookLayoutProps) {
           type="button"
           aria-controls={sidebarId}
           aria-label={t('books.layout.closeSidebar')}
-          className="focus-visible:ring-main-500 absolute top-4 right-4 rounded-full p-2 text-gray-500 transition hover:bg-gray-200 hover:text-gray-700 focus:outline-none focus-visible:ring-2"
+          className="focus-visible:ring-gray-700 absolute top-4 right-4 rounded-full p-2 text-gray-500 transition hover:bg-gray-200 hover:text-gray-700 focus:outline-none focus-visible:ring-2"
           onClick={closeSidebar}
         >
           <span className="sr-only">{t('books.layout.closeSidebar')}</span>
@@ -127,7 +127,7 @@ export function BookLayout({ sidebar, overview, children }: BookLayoutProps) {
         aria-controls={sidebarId}
         aria-expanded={isSidebarOpen}
         aria-label={t('books.layout.openSidebar')}
-        className="focus-visible:ring-main-500 fixed top-4 left-4 z-30 rounded-md bg-white p-2 opacity-70 shadow-md transition hover:opacity-100 focus:outline-none focus-visible:ring-2 xl:hidden"
+        className="focus-visible:ring-gray-700 fixed top-4 left-4 z-30 rounded-md bg-white p-2 opacity-70 shadow-md transition hover:opacity-100 focus:outline-none focus-visible:ring-2 xl:hidden"
         onClick={openSidebar}
       >
         <span className="sr-only">{t('books.layout.openSidebar')}</span>

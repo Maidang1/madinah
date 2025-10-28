@@ -87,6 +87,7 @@ export interface BookSummaryInfo {
   hasOverview: boolean;
   chapterCount: number;
   chapters: BookChapterInfo[];
+  timestamp: number;
 }
 
 /**

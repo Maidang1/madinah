@@ -32,7 +32,7 @@ export function Menu({ onThemeToggle, theme }: MenuProps) {
         <DockIcon
           onClick={() => navigate('/')}
           active={isActive('/')}
-          activeClassName="bg-main-500"
+          activeClassName="bg-gray-700"
         >
           <div className="tooltip tooltip-top" data-tip="主页">
             <HouseIcon size={16} />
@@ -41,7 +41,7 @@ export function Menu({ onThemeToggle, theme }: MenuProps) {
         <DockIcon
           onClick={() => navigate('/blog')}
           active={isActive('/blog')}
-          activeClassName="bg-main-500"
+          activeClassName="bg-gray-700"
         >
           <div className="tooltip tooltip-top" data-tip="博客">
             <FileIcon size={16} />
@@ -50,7 +50,7 @@ export function Menu({ onThemeToggle, theme }: MenuProps) {
         <DockIcon
           onClick={() => navigate('/books')}
           active={isActive('/books')}
-          activeClassName="bg-main-500"
+          activeClassName="bg-gray-700"
         >
           <div className="tooltip tooltip-top" data-tip="书籍">
             <BookOpenIcon size={16} />
@@ -59,7 +59,7 @@ export function Menu({ onThemeToggle, theme }: MenuProps) {
         <DockIcon
           onClick={() => navigate('/projects')}
           active={isActive('/projects')}
-          activeClassName="bg-main-500"
+          activeClassName="bg-gray-700"
         >
           <div className="tooltip tooltip-top" data-tip="项目">
             <WandIcon size={16} />
@@ -71,7 +71,7 @@ export function Menu({ onThemeToggle, theme }: MenuProps) {
             e.preventDefault();
             onThemeToggle?.();
           }}
-          activeClassName="bg-main-500"
+          activeClassName="bg-gray-700"
         >
           {theme === 'dark' ? <SunIcon size={16} /> : <MoonIcon size={16} />}
         </DockIcon>
