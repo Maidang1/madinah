@@ -175,7 +175,7 @@ export default function App() {
       components={{
         ...mdxComponents,
         ClientOnly,
-        // ExcalidrawComponent
+        // ExcalidrawViewer
       }}
     >
       <Outlet />

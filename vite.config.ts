@@ -118,26 +118,67 @@ function blogListVirtualPlugin(): Plugin {
   };
 }
 
+function resolveExcalidrawId(id: string, importer: string | undefined) {
+  if (id.startsWith('~/')) {
+    return path.resolve(appDir, id.slice(2));
+  }
+  if (path.isAbsolute(id)) {
+    return id;
+  }
+  if (!importer) {
+    return path.resolve(root, id);
+  }
+  return path.resolve(path.dirname(importer), id);
+}
+
 function excalidraw(): Plugin {
+  const componentAbsolutePath = path.resolve(appDir, 'core/ui/common/excalidraw.tsx');
+
+  const toPosixPath = (target: string) => target.split(path.sep).join(path.posix.sep);
+
   return {
     name: "excalidraw",
-    resolveId(id: string) {
+    resolveId(id: string, importer) {
       if (id.endsWith(".excalidraw")) {
-        return id
+        return resolveExcalidrawId(id, importer);
       }
     },
     load(id) {
       if (!id.endsWith(".excalidraw")) {
-        return null
-
+        return null;
       }
       const content = fs.readFileSync(id, {
-        encoding: 'utf-8'
-      })
+        encoding: 'utf-8',
+      });
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(content);
+      } catch {
+        throw new Error(`[excalidraw] Failed to parse ${id} as JSON.`);
+      }
+      const importerDir = path.dirname(id);
+      const relativeImportPath = path.relative(importerDir, componentAbsolutePath);
+      const normalizedImportPath = toPosixPath(
+        relativeImportPath.startsWith('.')
+          ? relativeImportPath
+          : `./${relativeImportPath}`,
+      );
 
-      return `const data = ${content}; export default data`;
+      const serialized = JSON.stringify(parsed);
+
+      return `
+import { createElement } from "react";
+import ExcalidrawComponent from "${normalizedImportPath}";
+const data = ${serialized};
+export const excalidrawData = data;
+function ExcalidrawWrapper(props) {
+  return createElement(ExcalidrawComponent, { ...props, data });
+}
+ExcalidrawWrapper.displayName = "ExcalidrawDiagram";
+export default ExcalidrawWrapper;
+`;
     },
-  }
+  };
 }
 
 function mdxHotReload(): Plugin {
@@ -228,7 +269,7 @@ export default defineConfig(async () => {
     build: {
       commonjsOptions: {
         transformMixedEsModules: true,
-      }
+      },
     }
   };
 });

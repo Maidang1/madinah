@@ -1,0 +1,18 @@
+---
+title: 在 MDX 中嵌入 Excalidraw
+author: Madinah
+tags:
+  - excalidraw
+  - mdx
+time: 2025-01-01 10:00:00
+---
+
+import DemoDiagram from '~/draws/demo.excalidraw';
+
+## Excalidraw 渲染示例
+
+下面的图使用 `.excalidraw` 文件直接在 MDX 中渲染，展示了我们新的 Vite 插件能力。
+
+<DemoDiagram />
+
+> 你也可以在其他 MDX 中通过 `import Diagram from "your-path/file.excalidraw"` 的方式引入属于自己的手绘图。
