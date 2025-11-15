@@ -1,6 +1,6 @@
 import { execSync } from 'child_process';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import fs from 'fs';
 
 /**
  * Configuration for GitHub repository integration
@@ -8,6 +8,14 @@ import { fileURLToPath } from 'url';
 export interface GitConfig {
   githubRepo?: string; // e.g., "username/repo"
   githubBranch?: string; // e.g., "main"
+}
+
+/**
+ * Git history cache structure
+ */
+interface GitHistoryCache {
+  generatedAt: string;
+  files: Record<string, PostGitInfo>;
 }
 
 /**
@@ -70,8 +78,32 @@ export function loadGitConfig(): GitConfig {
 }
 
 /**
+ * Load Git history from cache file
+ * Used in CI/CD environments where full Git history is not available
+ */
+function loadGitHistoryCache(): GitHistoryCache | null {
+  try {
+    const workspaceRoot = process.cwd();
+    const cachePath = path.join(workspaceRoot, 'app/data/git-history.json');
+
+    if (fs.existsSync(cachePath)) {
+      const cacheContent = fs.readFileSync(cachePath, 'utf-8');
+      return JSON.parse(cacheContent) as unknown as GitHistoryCache;
+    }
+  } catch (error) {
+    console.warn('Failed to load Git history cache:', error);
+  }
+
+  return null;
+}
+
+/**
  * Extract Git commit history for a specific file
  * Returns creation time, update time, and full commit history
+ * 
+ * Strategy:
+ * 1. Try to load from cache file (for CI/CD environments)
+ * 2. Fall back to git log command (for local development)
  * 
  * @param filePath - Absolute or relative path to the file
  * @param config - Git configuration including GitHub repository info
@@ -81,9 +113,18 @@ export function getFileGitHistory(
   filePath: string,
   config: GitConfig = {},
 ): PostGitInfo | null {
-  try {
-    const workspaceRoot = process.cwd();
+  const workspaceRoot = process.cwd();
+  const relativePath = path.relative(workspaceRoot, filePath);
 
+  // Strategy 1: Try to load from cache
+  const cache = loadGitHistoryCache();
+  if (cache && cache.files[relativePath]) {
+    console.log(`📦 Using cached Git history for ${relativePath}`);
+    return cache.files[relativePath];
+  }
+
+  // Strategy 2: Fall back to git log command
+  try {
     // Get all commits for the file, newest first
     // Format: hash|ISO date|author name|commit message
     const gitLog = execSync(

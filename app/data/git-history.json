@@ -1,0 +1,177 @@
+{
+  "generatedAt": "2025-11-15T18:44:15.468Z",
+  "files": {
+    "app/routes/blogs.algorithm.mdx": {
+      "createdAt": "2024-10-24T00:39:29+08:00",
+      "updatedAt": "2025-06-01T04:42:15+08:00",
+      "commits": [
+        {
+          "hash": "3afb49a",
+          "date": "2025-06-01T04:42:15+08:00",
+          "author": "madinah",
+          "message": "fix: some ui detail",
+          "githubUrl": "https://github.com/Maidang1/madinah/commit/3afb49a4483e4b341c3da24510ff80ee62ac7cf0"
+        },
+        {
+          "hash": "8517fe2",
+          "date": "2024-10-24T00:39:29+08:00",
+          "author": "maidang1",
+          "message": "feat: add rust algorithm",
+          "githubUrl": "https://github.com/Maidang1/madinah/commit/8517fe20e8f480ebceb339e54b041b31b24795c1"
+        }
+      ]
+    },
+    "app/routes/blogs.async.mdx": {
+      "createdAt": "2024-10-21T01:43:58+08:00",
+      "updatedAt": "2025-06-01T04:42:15+08:00",
+      "commits": [
+        {
+          "hash": "3afb49a",
+          "date": "2025-06-01T04:42:15+08:00",
+          "author": "madinah",
+          "message": "fix: some ui detail",
+          "githubUrl": "https://github.com/Maidang1/madinah/commit/3afb49a4483e4b341c3da24510ff80ee62ac7cf0"
+        },
+        {
+          "hash": "97e3894",
+          "date": "2024-10-21T01:43:58+08:00",
+          "author": "maidang1",
+          "message": "feat: add rust async post",
+          "githubUrl": "https://github.com/Maidang1/madinah/commit/97e38947516969b248b599c8b0b0ea8fbcb1c071"
+        }
+      ]
+    },
+    "app/routes/blogs.clear-code.mdx": {
+      "createdAt": "2025-06-05T01:41:19+08:00",
+      "updatedAt": "2025-06-05T01:41:19+08:00",
+      "commits": [
+        {
+          "hash": "004b177",
+          "date": "2025-06-05T01:41:19+08:00",
+          "author": "madinah",
+          "message": "refactor: better name",
+          "githubUrl": "https://github.com/Maidang1/madinah/commit/004b17740d5adc7d9605cbfa11f665959af48724"
+        }
+      ]
+    },
+    "app/routes/blogs.farmfe-plugins-ci.mdx": {
+      "createdAt": "2024-10-19T17:29:32+08:00",
+      "updatedAt": "2024-10-19T17:29:32+08:00",
+      "commits": [
+        {
+          "hash": "2163454",
+          "date": "2024-10-19T17:29:32+08:00",
+          "author": "maidang1",
+          "message": "feat: add farmfe plugins ci post",
+          "githubUrl": "https://github.com/Maidang1/madinah/commit/2163454d57b65fd992c16c14e432ab4b8b9d0baa"
+        }
+      ]
+    },
+    "app/routes/blogs.mini-kode.mdx": {
+      "createdAt": "2025-11-16T01:26:56+08:00",
+      "updatedAt": "2025-11-16T01:26:56+08:00",
+      "commits": [
+        {
+          "hash": "081a4b4",
+          "date": "2025-11-16T01:26:56+08:00",
+          "author": "madinah",
+          "message": "feat: add mini-kode coding agent 学习流程",
+          "githubUrl": "https://github.com/Maidang1/madinah/commit/081a4b48f8f3bfc83d7fe21a29235f75b4f693bc"
+        }
+      ]
+    },
+    "app/routes/blogs.prompt.mdx": {
+      "createdAt": "2025-10-20T23:54:29+08:00",
+      "updatedAt": "2025-10-20T23:54:29+08:00",
+      "commits": [
+        {
+          "hash": "e5993be",
+          "date": "2025-10-20T23:54:29+08:00",
+          "author": "madinah",
+          "message": "feat: add prompt learn",
+          "githubUrl": "https://github.com/Maidang1/madinah/commit/e5993beb2cd0e1f50c2073589cd175d3e01bd0f3"
+        }
+      ]
+    },
+    "app/features/books/content/rust-async-guide/book.mdx": {
+      "createdAt": "2025-10-07T19:33:36+08:00",
+      "updatedAt": "2025-10-15T21:38:13+08:00",
+      "commits": [
+        {
+          "hash": "d46daf7",
+          "date": "2025-10-15T21:38:13+08:00",
+          "author": "madinah",
+          "message": "refactor: 重构项目结构",
+          "githubUrl": "https://github.com/Maidang1/madinah/commit/d46daf7a970d64ebab72fe097c3da7034f62d4d8"
+        },
+        {
+          "hash": "7a53409",
+          "date": "2025-10-07T19:33:36+08:00",
+          "author": "madinah",
+          "message": "feat: add books layout",
+          "githubUrl": "https://github.com/Maidang1/madinah/commit/7a53409de48ab90760db98bcbca2cd7d2849a98c"
+        }
+      ]
+    },
+    "app/features/books/content/rust-async-guide/chapters/futures.mdx": {
+      "createdAt": "2025-10-07T19:33:36+08:00",
+      "updatedAt": "2025-10-15T21:38:13+08:00",
+      "commits": [
+        {
+          "hash": "d46daf7",
+          "date": "2025-10-15T21:38:13+08:00",
+          "author": "madinah",
+          "message": "refactor: 重构项目结构",
+          "githubUrl": "https://github.com/Maidang1/madinah/commit/d46daf7a970d64ebab72fe097c3da7034f62d4d8"
+        },
+        {
+          "hash": "7a53409",
+          "date": "2025-10-07T19:33:36+08:00",
+          "author": "madinah",
+          "message": "feat: add books layout",
+          "githubUrl": "https://github.com/Maidang1/madinah/commit/7a53409de48ab90760db98bcbca2cd7d2849a98c"
+        }
+      ]
+    },
+    "app/features/books/content/rust-async-guide/chapters/introduction.mdx": {
+      "createdAt": "2025-10-07T19:33:36+08:00",
+      "updatedAt": "2025-10-15T21:38:13+08:00",
+      "commits": [
+        {
+          "hash": "d46daf7",
+          "date": "2025-10-15T21:38:13+08:00",
+          "author": "madinah",
+          "message": "refactor: 重构项目结构",
+          "githubUrl": "https://github.com/Maidang1/madinah/commit/d46daf7a970d64ebab72fe097c3da7034f62d4d8"
+        },
+        {
+          "hash": "7a53409",
+          "date": "2025-10-07T19:33:36+08:00",
+          "author": "madinah",
+          "message": "feat: add books layout",
+          "githubUrl": "https://github.com/Maidang1/madinah/commit/7a53409de48ab90760db98bcbca2cd7d2849a98c"
+        }
+      ]
+    },
+    "app/features/books/content/rust-async-guide/chapters/streams.mdx": {
+      "createdAt": "2025-10-07T19:33:36+08:00",
+      "updatedAt": "2025-10-15T21:38:13+08:00",
+      "commits": [
+        {
+          "hash": "d46daf7",
+          "date": "2025-10-15T21:38:13+08:00",
+          "author": "madinah",
+          "message": "refactor: 重构项目结构",
+          "githubUrl": "https://github.com/Maidang1/madinah/commit/d46daf7a970d64ebab72fe097c3da7034f62d4d8"
+        },
+        {
+          "hash": "7a53409",
+          "date": "2025-10-07T19:33:36+08:00",
+          "author": "madinah",
+          "message": "feat: add books layout",
+          "githubUrl": "https://github.com/Maidang1/madinah/commit/7a53409de48ab90760db98bcbca2cd7d2849a98c"
+        }
+      ]
+    }
+  }
+}
