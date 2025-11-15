@@ -88,6 +88,11 @@ export const translations: Record<SupportedLocale, TranslationDictionary> = {
         mobileCloseToc: 'Close table of contents',
         stickyTocTitle: 'Contents',
         scrollToTop: 'Scroll to top',
+        updated: 'Updated',
+        versionHistory: 'Version History',
+      },
+      list: {
+        updated: 'Updated',
       },
     },
     projects: {
@@ -238,6 +243,11 @@ export const translations: Record<SupportedLocale, TranslationDictionary> = {
         mobileCloseToc: '关闭目录',
         stickyTocTitle: '目录',
         scrollToTop: '返回顶部',
+        updated: '更新于',
+        versionHistory: '版本历史',
+      },
+      list: {
+        updated: '已更新',
       },
     },
     projects: {

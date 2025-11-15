@@ -3,6 +3,7 @@ import React from 'react';
 import '@testing-library/jest-dom';
 
 // Set React act environment for testing-library
+// @ts-ignore
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 // Polyfill React.act for React 19
@@ -16,7 +17,7 @@ if (typeof React.act !== 'function') {
     }
     return result;
   };
-  
+
   // @ts-ignore - Polyfill act on React
   React.act = act;
 }

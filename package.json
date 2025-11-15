@@ -100,5 +100,9 @@
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^4.0.1",
     "wrangler": "^3.114.15"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Maidang1/madinah"
   }
 }

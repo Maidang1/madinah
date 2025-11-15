@@ -13,7 +13,7 @@ import remarkMdx from "remark-mdx"
 import { PostInfo } from '~/types'
 import { toc } from 'mdast-util-toc'
 import { extractTocItems } from './toc'
-import { generatePostAiSummary } from "./ollama"
+import { getFileGitHistory, loadGitConfig } from './git'
 
 function unifiedPluginMatter() {
   return (_: unknown, vfile: any) => {
@@ -32,8 +32,8 @@ export const generatePostsMetadata = async (postsDirectory: string, filePrefix: 
   const allFiles = await fs.readdir(postsDirectory, { encoding: "utf-8" })
   const normalizedPrefix = Array.isArray(filePrefix) ? filePrefix : [filePrefix]
 
-  const summaryFilePath = path.join(process.cwd(), 'app/features/blog/data/blogs-summary.json')
-  const existingSummaries = (JSON.parse(await fs.readFile(summaryFilePath, { encoding: "utf8" })) ?? {}) as Record<string, string>
+  // Load Git configuration once at the start
+  const gitConfig = loadGitConfig()
 
   const filteredPosts = allFiles.filter(fileName => normalizedPrefix.some(prefix => fileName.startsWith(prefix)))
   const postMetadataList = await Promise.all(filteredPosts.map(async fileName => {
@@ -53,16 +53,21 @@ export const generatePostsMetadata = async (postsDirectory: string, filePrefix: 
     const baseName = fileName.replace(matchedPrefix, '').split(".")[0]
 
     const postUrl = `/${matchedPrefix.replace('.', '')}/${baseName}`
-    let postSummary = existingSummaries[postUrl] as string
-
-    if (!postSummary) {
-      const summaryResult = await generatePostAiSummary(postContent)
-      if (summaryResult.isOk()) {
-        postSummary = summaryResult.unwrap()
-        existingSummaries[postUrl] = postSummary
-      }
-    }
     const htmlContent = await unified().use(remarkParse).use(remarkHTML).process(processedFile.toString())
+
+    // Extract Git history for this blog post file
+    let gitInfo = null
+    try {
+      gitInfo = getFileGitHistory(fullPath, gitConfig)
+    } catch (error) {
+      console.warn(`Failed to extract Git history for ${fullPath}:`, error)
+      // Continue build process even if Git extraction fails
+    }
+
+    // Determine publication date: Git creation time > frontmatter time/date
+    // @ts-expect-error
+    const frontmatterTime = processedFile.data.matter?.time || processedFile.data.matter?.date
+    const publicationDate = gitInfo?.createdAt || frontmatterTime
 
     return {
       filename: baseName,
@@ -71,16 +76,24 @@ export const generatePostsMetadata = async (postsDirectory: string, filePrefix: 
       readingTime: readingTime(processedFile.toString()),
       url: postUrl,
       toc: processedFile.data.toc,
-      summary: postSummary,
       content: htmlContent.toString(),
       // @ts-expect-error
       title: processedFile?.data?.matter.title ?? '',
+      time: publicationDate, // Use Git creation time or fall back to frontmatter
+      date: publicationDate, // For backward compatibility
+      gitInfo, // Add Git-derived metadata
     }
   })) as PostInfo[]
 
-  await fs.writeFile(summaryFilePath, JSON.stringify(existingSummaries))
 
   const publishedPosts = postMetadataList.filter(post => post.status !== 'WIP')
-  publishedPosts.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
+
+  // Sort by Git update time if available, otherwise use publication date
+  publishedPosts.sort((a, b) => {
+    const aDate = new Date(a.gitInfo?.updatedAt || a.time)
+    const bDate = new Date(b.gitInfo?.updatedAt || b.time)
+    return bDate.getTime() - aDate.getTime()
+  })
+
   return JSON.stringify(publishedPosts)
 }

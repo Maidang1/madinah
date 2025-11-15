@@ -72,7 +72,7 @@ export default function Detail({ list }: BlogsDetailProps) {
           y: showStickyHeader ? 0 : -20,
         }}
         transition={{ duration: 0.2 }}
-        className={`fixed inset-x-0 top-0 z-50 border-b border-zinc-200/60 bg-background/80 backdrop-blur-md transition ${
+        className={`bg-background/80 fixed inset-x-0 top-0 z-50 border-b border-zinc-200/60 backdrop-blur-md transition ${
           showStickyHeader ? 'pointer-events-auto' : 'pointer-events-none'
         }`}
       >
@@ -94,6 +94,7 @@ export default function Detail({ list }: BlogsDetailProps) {
             tags={tags}
             author={author}
             editUrl={editUrl}
+            gitInfo={listItem?.gitInfo}
           />
 
           <div className="mt-16 mb-8">
@@ -108,8 +109,8 @@ export default function Detail({ list }: BlogsDetailProps) {
           className="relative hidden xl:block"
         >
           <div className="sticky top-28 flex max-h-[calc(100vh-7rem)] flex-col gap-6">
-            <div className="rounded-2xl border border-border/60 bg-background/80 p-4 shadow-sm backdrop-blur">
-              <h3 className="text-sm font-semibold tracking-tight text-muted-foreground">
+            <div className="border-border/60 bg-background/80 rounded-2xl border p-4 shadow-sm backdrop-blur">
+              <h3 className="text-muted-foreground text-sm font-semibold tracking-tight">
                 {t('blog.detail.tableOfContents')}
               </h3>
               <div className="mt-3 max-h-[60vh] overflow-y-auto pr-1">
@@ -118,8 +119,8 @@ export default function Detail({ list }: BlogsDetailProps) {
             </div>
 
             {readingTime && (
-              <div className="rounded-2xl border border-border/60 bg-background/80 p-4 shadow-sm backdrop-blur">
-                <div className="flex items-center gap-3 text-sm text-muted-foreground">
+              <div className="border-border/60 bg-background/80 rounded-2xl border p-4 shadow-sm backdrop-blur">
+                <div className="text-muted-foreground flex items-center gap-3 text-sm">
                   <CaseSensitive className="h-4 w-4 shrink-0" />
                   <span>
                     {t('blog.detail.readWords', {
@@ -129,7 +130,7 @@ export default function Detail({ list }: BlogsDetailProps) {
                     })}
                   </span>
                 </div>
-                <div className="mt-2 flex items-center gap-3 text-sm text-muted-foreground">
+                <div className="text-muted-foreground mt-2 flex items-center gap-3 text-sm">
                   <Hourglass className="h-4 w-4 shrink-0" />
                   <span>
                     {t('blog.detail.readTime', {

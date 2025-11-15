@@ -26,6 +26,36 @@ export interface BlogLayoutProps {
 }
 
 /**
+ * Represents a single commit in a blog post's version history.
+ * Contains commit metadata and optional GitHub URL for viewing the commit.
+ */
+export interface PostCommit {
+  /** Short commit hash (7 characters) */
+  hash: string;
+  /** ISO 8601 timestamp of the commit */
+  date: string;
+  /** Commit message */
+  message: string;
+  /** Commit author name */
+  author: string;
+  /** Full GitHub commit URL (if repository is configured) */
+  githubUrl?: string;
+}
+
+/**
+ * Git-derived timestamps and version history for a blog post.
+ * Extracted from Git commit history to track creation and modification times.
+ */
+export interface PostGitInfo {
+  /** ISO 8601 timestamp of the first commit (creation time) */
+  createdAt: string;
+  /** ISO 8601 timestamp of the most recent commit (last modification time) */
+  updatedAt: string;
+  /** Complete version history, newest commits first */
+  commits: PostCommit[];
+}
+
+/**
  * Metadata describing a blog post that powers list views and detail pages.
  */
 export interface PostInfo {
@@ -41,6 +71,8 @@ export interface PostInfo {
   content: string;
   status?: PostStatus;
   author?: string;
+  /** Git-derived metadata including creation/modification times and version history */
+  gitInfo?: PostGitInfo;
 }
 
 /**
