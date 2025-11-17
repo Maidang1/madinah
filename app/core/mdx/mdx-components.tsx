@@ -285,8 +285,8 @@ export const Code = ({ children, className, ...props }: CodeProps & any) => (
   <code
     className={cn(
       'rounded border-0 px-1 py-0.5 font-mono text-sm',
-      'bg-purple-100/80 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
-      'border border-purple-200 dark:border-purple-700/50',
+      'bg-zinc-200/70 text-zinc-900 dark:bg-zinc-800/60 dark:text-zinc-100',
+      'border border-zinc-300 dark:border-zinc-700',
       className,
     )}
     {...props}

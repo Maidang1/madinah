@@ -33,6 +33,7 @@ export const Tocs = ({ tocs, activeId, progress, onLinkClick }: TocsProps) => {
               className={cn(
                 'block rounded py-1.5 pr-2 text-xs transition-all duration-200',
                 'text-zinc-600 hover:opacity-65',
+                'dark:text-white dark:opacity-75 dark:hover:opacity-40',
                 'group relative',
                 isActive && ['font-medium text-zinc-900'],
               )}

@@ -78,9 +78,12 @@ export default function Detail({ list }: BlogsDetailProps) {
           <DetailHeader ref={headerRef} title={title} />
 
           <div className="mt-16 mb-8">
-            {(listItem?.gitInfo?.commits?.length ?? 0) > 0 && (
-              <HistoryVersions gitInfo={listItem?.gitInfo} />
-            )}
+            <div className="my-4">
+              {(listItem?.gitInfo?.commits?.length ?? 0) > 0 && (
+                <HistoryVersions gitInfo={listItem?.gitInfo} />
+              )}
+            </div>
+
             <BlogNavigation list={list} />
           </div>
         </div>
