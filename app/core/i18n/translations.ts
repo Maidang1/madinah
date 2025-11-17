@@ -37,6 +37,7 @@ export const translations: Record<SupportedLocale, TranslationDictionary> = {
         home: 'Home',
         blog: 'Blog',
         books: 'Books',
+        reading: 'Reading',
         projects: 'Projects',
         rss: 'RSS',
       },
@@ -49,6 +50,7 @@ export const translations: Record<SupportedLocale, TranslationDictionary> = {
       links: {
         blog: 'Blog',
         books: 'Books',
+        reading: 'Reading',
         github: 'GitHub',
         rss: 'RSS',
       },
@@ -168,6 +170,20 @@ export const translations: Record<SupportedLocale, TranslationDictionary> = {
           'Could not determine the default chapter. Please try again later.',
       },
     },
+    reading: {
+      meta: {
+        title: 'Reading • Madinah',
+        description: 'Books I have read and reflections on them.',
+      },
+      description: 'A collection of books I have read and my thoughts on them.',
+      emptyState: 'Coming soon: Books I\'ve read and reflections.',
+      errors: {
+        loadTitle: 'Failed to load reading data',
+        renderTitle: 'Failed to render reading page',
+        renderMessage: 'An unknown error occurred while loading the reading page.',
+        goHome: 'Back to home',
+      },
+    },
     license: {
       notice:
         'This content is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License (CC BY-NC-SA 4.0).',
@@ -193,6 +209,7 @@ export const translations: Record<SupportedLocale, TranslationDictionary> = {
         home: '首页',
         blog: '博客',
         books: '书籍',
+        reading: '阅读',
         projects: '项目',
         rss: 'RSS',
       },
@@ -205,6 +222,7 @@ export const translations: Record<SupportedLocale, TranslationDictionary> = {
       links: {
         blog: '博客',
         books: '书籍',
+        reading: '阅读',
         github: 'GitHub',
         rss: 'RSS',
       },
@@ -318,6 +336,20 @@ export const translations: Record<SupportedLocale, TranslationDictionary> = {
         chapterRenderMessage: '加载章节内容时发生未知错误。',
         chapterRedirectFailed: '无法定位章节',
         chapterRedirectMessage: '无法确认默认章节，请稍后重试。',
+      },
+    },
+    reading: {
+      meta: {
+        title: '阅读 • Madinah',
+        description: '我读过的书及对它们的思考。',
+      },
+      description: '我读过的书及我对它们的思考。',
+      emptyState: '即将到来：我读过的书及反思。',
+      errors: {
+        loadTitle: '阅读数据加载失败',
+        renderTitle: '阅读页面渲染失败',
+        renderMessage: '加载阅读页面时发生未知错误。',
+        goHome: '返回首页',
       },
     },
     license: {

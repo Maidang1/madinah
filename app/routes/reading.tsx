@@ -6,56 +6,55 @@ import {
   useLoaderData,
   useRouteError,
 } from '@remix-run/react';
-import { BookList } from '~/features/books/components/book-list';
 import { ErrorState } from '~/core/ui/common/error-state';
 import { jsonError } from '~/core/utils';
 import { DEFAULT_LOCALE, translations } from '~/core/i18n';
-import type { BookSummaryInfo } from '~/types';
-// eslint-disable-next-line import/no-unresolved
-import { getBooks } from 'virtual:book-data';
 import { useTranslation } from '~/core/i18n';
 
 export async function loader() {
   try {
-    const books = getBooks();
-    if (!Array.isArray(books)) {
-      throw new Error('Books data must be an array');
-    }
-    return json({ books: books as BookSummaryInfo[] });
+    // TODO: Implement reading data loading
+    // For now, we'll return an empty array
+    return json({ readingList: [] });
   } catch (error) {
-    console.error('Failed to load books', error);
-    throw jsonError('Failed to load books', { status: 500 });
+    console.error('Failed to load reading data', error);
+    throw jsonError('Failed to load reading data', { status: 500 });
   }
 }
 
 export const meta: MetaFunction = () => [
   {
     title:
-      (translations[DEFAULT_LOCALE]?.books as any)?.meta?.title ??
-      'Books • Madinah',
+      (translations[DEFAULT_LOCALE]?.reading as any)?.meta?.title ??
+      'Reading • Madinah',
   },
   {
     name: 'description',
     content:
-      (translations[DEFAULT_LOCALE]?.books as any)?.meta?.description ??
-      '系统化地阅读 Rust、Remix 等专题整理的书籍系列。',
+      (translations[DEFAULT_LOCALE]?.reading as any)?.meta?.description ??
+      'Books I have read and reflections on them.',
   },
 ];
 
-export default function BooksIndexRoute() {
-  const { books } = useLoaderData<typeof loader>();
+export default function ReadingRoute() {
+  const { readingList } = useLoaderData<typeof loader>();
   const { t } = useTranslation();
 
-  const sortedBooks = [...books].sort((a, b) => b.timestamp - a.timestamp);
-
+  // TODO: Implement reading list display
+  // For now, we'll show a placeholder message
   return (
     <div className="space-y-8">
       <header className="space-y-2 text-center">
         <h1 className="text-foreground text-3xl font-bold">
-          {t('books.list.heading')}
+          {t('header.navigation.reading')}
         </h1>
+        <p className="text-muted-foreground">{t('reading.description')}</p>
       </header>
-      <BookList books={sortedBooks} />
+      <div className="mx-auto max-w-2xl text-center">
+        <p className="text-muted-foreground text-lg">
+          {t('reading.emptyState')}
+        </p>
+      </div>
     </div>
   );
 }
@@ -67,7 +66,7 @@ export function ErrorBoundary() {
   if (isRouteErrorResponse(error)) {
     return (
       <ErrorState
-        title={t('books.errors.listLoadTitle')}
+        title={t('reading.errors.loadTitle')}
         message={
           typeof error.data === 'string'
             ? error.data
@@ -78,7 +77,7 @@ export function ErrorBoundary() {
             to="/"
             className="inline-flex items-center rounded-full bg-gray-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-gray-800"
           >
-            {t('books.errors.goHome')}
+            {t('reading.goHome')}
           </Link>
         }
       />
@@ -87,18 +86,18 @@ export function ErrorBoundary() {
 
   return (
     <ErrorState
-      title={t('books.errors.listRenderTitle')}
+      title={t('reading.errors.renderTitle')}
       message={
         error instanceof Error
           ? error.message
-          : t('books.errors.listRenderMessage')
+          : t('reading.errors.renderMessage')
       }
       action={
         <Link
           to="/"
           className="inline-flex items-center rounded-full bg-gray-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-gray-900"
         >
-          {t('books.errors.goHome')}
+          {t('reading.goHome')}
         </Link>
       }
     />

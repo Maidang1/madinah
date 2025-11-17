@@ -20,7 +20,13 @@ export const HistoryVersions = ({ gitInfo }: Props) => {
       </summary>
       <div className="mt-3 space-y-2 pl-5">
         {gitInfo?.commits.slice(0, 10).map((commit) => (
-          <div key={commit.hash} className="flex items-start gap-2 text-xs">
+          <a
+            key={commit.hash}
+            className="flex items-start gap-2 text-xs hover:opacity-65"
+            href={commit.githubUrl}
+            target="_blank"
+            rel="noreferrer"
+          >
             <code className="text-muted-foreground/70 font-mono">
               {commit.hash}
             </code>
@@ -30,17 +36,7 @@ export const HistoryVersions = ({ gitInfo }: Props) => {
                 {new Date(commit.date).toLocaleDateString(localeCode)}
               </div>
             </div>
-            {commit.githubUrl && (
-              <a
-                href={commit.githubUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="hover:text-foreground"
-              >
-                <ExternalLink className="h-3 w-3" />
-              </a>
-            )}
-          </div>
+          </a>
         ))}
       </div>
     </details>

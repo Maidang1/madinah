@@ -1,7 +1,6 @@
 import { ReactNode, useState } from 'react';
 import { cn } from '~/core/utils';
 import { Heading2, Heading3, Heading4, Heading5, Heading6 } from 'lucide-react';
-import { EnhancedCodeBlock } from './components';
 
 // 类型定义
 interface HeadingProps {
@@ -296,15 +295,6 @@ export const Code = ({ children, className, ...props }: CodeProps & any) => (
   </code>
 );
 
-// Enhanced code block component with modern design and interactive features
-export const Pre = ({ children, className, ...props }: PreProps & any) => {
-  return (
-    <EnhancedCodeBlock className={className} {...props}>
-      {children}
-    </EnhancedCodeBlock>
-  );
-};
-
 // 水平分割线
 export const HR = ({ className, ...props }: any) => (
   <hr
@@ -485,7 +475,6 @@ export const mdxComponents = {
   li: LI,
   blockquote: Blockquote,
   code: Code,
-  pre: Pre,
   hr: HR,
   img: Img,
   table: Table,

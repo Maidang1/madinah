@@ -543,14 +543,14 @@ Add new translation keys:
 // en locale
 {
   "blog.detail.updated": "Updated",
-  "blog.detail.versionHistory": "Version History",
+  "blog.detail.versionHistory": "Edit History",
   "blog.list.updated": "Updated"
 }
 
 // zh locale
 {
   "blog.detail.updated": "更新于",
-  "blog.detail.versionHistory": "版本历史",
+  "blog.detail.versionHistory": "编辑历史",
   "blog.list.updated": "已更新"
 }
 ```

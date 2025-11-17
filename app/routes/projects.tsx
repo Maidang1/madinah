@@ -1,16 +1,16 @@
-import type { MetaFunction } from "@remix-run/cloudflare";
-import { motion } from "motion/react";
-import { cn } from "~/core/utils";
-import { DEFAULT_LOCALE, translations, useTranslation } from "~/core/i18n";
+import type { MetaFunction } from '@remix-run/cloudflare';
+import { motion } from 'motion/react';
+import { cn } from '~/core/utils';
+import { DEFAULT_LOCALE, translations, useTranslation } from '~/core/i18n';
 
 export const meta: MetaFunction = () => {
-  const projectMeta = translations[DEFAULT_LOCALE]?.projects?.meta;
+  const projectMeta = (translations[DEFAULT_LOCALE]?.projects as any)?.meta;
   return [
-    { title: projectMeta?.title ?? "Projects - Madinah" },
+    { title: projectMeta?.title ?? 'Projects - Madinah' },
     {
-      name: "description",
+      name: 'description',
       content:
-        projectMeta?.description ?? "Projects that I created or maintaining.",
+        projectMeta?.description ?? 'Projects that I created or maintaining.',
     },
   ];
 };
@@ -23,65 +23,68 @@ interface Project {
   stars?: number;
   forks?: number;
   language?: string;
-  status?: "active" | "archived" | "wip";
+  status?: 'active' | 'archived' | 'wip';
   category: string;
   featured?: boolean;
   icon?: string;
-  translationKey: "wallpaperApp" | "farmfePlugins" | "pixelPicture" | "reminders";
+  translationKey:
+    | 'wallpaperApp'
+    | 'farmfePlugins'
+    | 'pixelPicture'
+    | 'reminders';
 }
 
 const projects: Project[] = [
   {
-    id: "wallpaper-app",
-    name: "Wallpaper App",
-    description: "A simple wallpaper app built with Tauri and Rust.",
-    github: "https://github.com/Maidang1/wallpaper-app",
-    language: "Rust",
-    status: "wip",
-    category: "Web Development",
+    id: 'wallpaper-app',
+    name: 'Wallpaper App',
+    description: 'A simple wallpaper app built with Tauri and Rust.',
+    github: 'https://github.com/Maidang1/wallpaper-app',
+    language: 'Rust',
+    status: 'wip',
+    category: 'Web Development',
     featured: true,
-    icon: "i-streamline-ultimate-color-card-game-heart",
-    translationKey: "wallpaperApp",
+    icon: 'i-streamline-ultimate-color-card-game-heart',
+    translationKey: 'wallpaperApp',
   },
   {
-    id: "farmfe-plugins",
-    name: "FarmFe Plugins",
-    description: "The one-stop shop for official Farm plugins",
-    github: "https://github.com/farm-fe/plugins",
-    language: "Rust",
-    status: "active",
-    category: "Rust",
+    id: 'farmfe-plugins',
+    name: 'FarmFe Plugins',
+    description: 'The one-stop shop for official Farm plugins',
+    github: 'https://github.com/farm-fe/plugins',
+    language: 'Rust',
+    status: 'active',
+    category: 'Rust',
     featured: false,
-    icon: "i-streamline-ultimate-color-snapchat-logo",
-    translationKey: "farmfePlugins",
+    icon: 'i-streamline-ultimate-color-snapchat-logo',
+    translationKey: 'farmfePlugins',
   },
   {
-    id: "pixel-picture",
-    name: "Pixel Picture",
-    description: "Transform your image into pixel art",
-    github: "https://github.com/Maidang1/pixel-picture",
-    language: "TypeScript",
-    status: "active",
-    category: "Web Development",
+    id: 'pixel-picture',
+    name: 'Pixel Picture',
+    description: 'Transform your image into pixel art',
+    github: 'https://github.com/Maidang1/pixel-picture',
+    language: 'TypeScript',
+    status: 'active',
+    category: 'Web Development',
     featured: false,
-    url: "https://pixel.felixwliu.cn/",
-    icon: "i-streamline-ultimate-color-picture-double-landscape",
-    translationKey: "pixelPicture",
+    url: 'https://pixel.felixwliu.cn/',
+    icon: 'i-streamline-ultimate-color-picture-double-landscape',
+    translationKey: 'pixelPicture',
   },
   {
-    id: "reminders",
-    name: "Reminders",
-    description: "一个提醒 app 定时提醒你喝水",
-    github: "https://github.com/Maidang1/reminders",
-    language: "Rust",
-    status: "active",
-    category: "Rust",
+    id: 'reminders',
+    name: 'Reminders',
+    description: '一个提醒 app 定时提醒你喝水',
+    github: 'https://github.com/Maidang1/reminders',
+    language: 'Rust',
+    status: 'active',
+    category: 'Rust',
     featured: false,
-    icon: "i-streamline-ultimate-color-time-clock-hand-1",
-    translationKey: "reminders",
+    icon: 'i-streamline-ultimate-color-time-clock-hand-1',
+    translationKey: 'reminders',
   },
 ];
-
 
 export default function Projects() {
   const { t } = useTranslation();
@@ -95,10 +98,10 @@ export default function Projects() {
           className="mb-16 text-center"
         >
           <h1 className="from-primary to-primary-light mb-4 bg-gradient-to-r bg-clip-text text-4xl font-bold text-transparent sm:text-5xl">
-            {t("projects.title")}
+            {t('projects.title')}
           </h1>
           <p className="mx-auto max-w-2xl text-lg text-black/70 dark:text-white/70">
-            {t("projects.subtitle")}
+            {t('projects.subtitle')}
           </p>
         </motion.div>
 
@@ -127,17 +130,13 @@ interface ProjectCardProps {
   project: Project;
   featured?: boolean;
   delay?: number;
-  translationKey: Project["translationKey"];
+  translationKey: Project['translationKey'];
 }
 
-function ProjectCard({
-  project,
-  translationKey,
-}: ProjectCardProps) {
+function ProjectCard({ project, translationKey }: ProjectCardProps) {
   const { t } = useTranslation();
-  const displayName = t(`projects.items.${translationKey}.name`);
-  const description = t(`projects.items.${translationKey}.description`);
-
+  const displayName: string = t(`projects.items.${translationKey}.name`);
+  const description: string = t(`projects.items.${translationKey}.description`);
 
   return (
     <motion.div
@@ -145,21 +144,26 @@ function ProjectCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.1 }}
       className={cn(
-        "group relative overflow-hidden",
-        "transition-all duration-300",
-        "rounded-[6px]",
-        "hover:bg-black/5 dark:hover:bg-black/40"
+        'group relative overflow-hidden',
+        'transition-all duration-300',
+        'rounded-[6px]',
+        'hover:bg-black/5 dark:hover:bg-black/40',
       )}
     >
-      <motion.a className="p-4 flex gap-x-4 items-center duration-300 transition-opacity opacity-80 hover:opacity-100" href={project.url ?? project.github} target="_blank" rel="noreferrer">
+      <motion.a
+        className="flex items-center gap-x-4 p-4 opacity-80 transition-opacity duration-300 hover:opacity-100"
+        href={project.url ?? project.github}
+        target="_blank"
+        rel="noreferrer"
+      >
         <div>
-          <span className={cn(project.icon, "text-4xl")}></span>
+          <span className={cn(project.icon, 'text-4xl')}></span>
         </div>
         <div>
-          <h3 className="mb-1 text-lg !text-gray-700 dark:!text-gray-200 transition-colors">
+          <h3 className="mb-1 text-lg !text-gray-700 transition-colors dark:!text-gray-200">
             {displayName}
           </h3>
-          <p className="text-sm opacity-50 text-gray-700 dark:text-gray-200 !leading-5">
+          <p className="text-sm !leading-5 text-gray-700 opacity-50 dark:text-gray-200">
             {description}
           </p>
         </div>

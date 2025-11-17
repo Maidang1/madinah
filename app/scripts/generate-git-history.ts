@@ -37,7 +37,7 @@ interface GitConfig {
 function loadGitConfig(): GitConfig {
   try {
     const packageJsonPath = path.join(process.cwd(), 'package.json');
-    const packageJsonContent = JSON.parse(
+    const packageJsonContent: any = JSON.parse(
       execSync(`cat "${packageJsonPath}"`, { encoding: 'utf-8' })
     );
 

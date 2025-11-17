@@ -11,7 +11,10 @@ interface MobileTableOfContentsProps {
   className?: string;
 }
 
-export function TableOfContentsMobile({ tocs, className }: MobileTableOfContentsProps) {
+export function TableOfContentsMobile({
+  tocs,
+  className,
+}: MobileTableOfContentsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { activeId, handleClick } = useTableOfContents({ tocs });
   const { t } = useTranslation();
@@ -20,10 +23,14 @@ export function TableOfContentsMobile({ tocs, className }: MobileTableOfContents
     return null;
   }
 
-  const activeIndex = tocs.findIndex(toc => toc.url.slice(1) === activeId);
-  const progress = activeIndex >= 0 ? ((activeIndex + 1) / tocs.length) * 100 : 0;
+  const activeIndex = tocs.findIndex((toc) => toc.url.slice(1) === activeId);
+  const progress =
+    activeIndex >= 0 ? ((activeIndex + 1) / tocs.length) * 100 : 0;
 
-  const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, url: string) => {
+  const handleLinkClick = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    url: string,
+  ) => {
     handleClick(e, url);
     setIsOpen(false); // 点击后关闭菜单
   };
@@ -34,11 +41,11 @@ export function TableOfContentsMobile({ tocs, className }: MobileTableOfContents
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          'fixed top-20 right-4 z-40 p-3 rounded-full',
-          'bg-background/80 backdrop-blur-sm border border-border',
-          'shadow-lg hover:shadow-xl transition-all duration-200',
+          'fixed top-20 right-4 z-40 rounded-full p-3',
+          'bg-background/80 border-border border backdrop-blur-sm',
+          'shadow-lg transition-all duration-200 hover:shadow-xl',
           'text-muted-foreground hover:text-foreground',
-          isOpen && 'text-primary bg-primary/10'
+          isOpen && 'text-primary bg-primary/10',
         )}
         aria-label={t('blog.detail.mobileToggleToc')}
       >
@@ -46,14 +53,14 @@ export function TableOfContentsMobile({ tocs, className }: MobileTableOfContents
           animate={{ rotate: isOpen ? 45 : 0 }}
           transition={{ duration: 0.2 }}
         >
-          <span className='i-simple-line-icons-menu w-5 h-5 block' />
+          <span className="i-simple-line-icons-menu block h-5 w-5" />
         </motion.div>
       </button>
 
       {/* 进度指示器 */}
-      <div className='fixed top-0 left-0 right-0 z-30 h-1 bg-gray-500/50'>
+      <div className="fixed top-0 right-0 left-0 z-30 h-1 bg-gray-500/50">
         <div
-          className='h-full bg-gray-700 transition-all duration-300 ease-out'
+          className="h-full bg-gray-700 transition-all duration-300 ease-out"
           style={{ width: `${progress}%` }}
         />
       </div>
@@ -65,7 +72,7 @@ export function TableOfContentsMobile({ tocs, className }: MobileTableOfContents
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className='fixed inset-0 bg-background/50 backdrop-blur-sm z-30'
+            className="bg-background/50 fixed inset-0 z-30 backdrop-blur-sm"
             onClick={() => setIsOpen(false)}
           />
         )}
@@ -81,30 +88,29 @@ export function TableOfContentsMobile({ tocs, className }: MobileTableOfContents
             transition={{ type: 'spring', damping: 20, stiffness: 300 }}
             className={cn(
               'fixed top-0 right-0 bottom-0 z-40 w-80 max-w-[90vw]',
-              'bg-background border-l border-border shadow-2xl',
-              'overflow-y-auto overscroll-contain'
+              'bg-background border-border border-l shadow-2xl',
+              'overflow-y-auto overscroll-contain',
             )}
           >
-            <div className='p-6'>
+            <div className="p-6">
               {/* 头部 */}
-              <div className='flex items-center justify-between mb-6'>
-                <h3 className='font-medium text-lg flex items-center'>
-                  <span className='i-lucide-list-ordered mr-2 w-5 h-5' />
-                  {t('blog.detail.tableOfContents')}
-                </h3>
+              <div className="mb-6 flex items-center justify-between">
                 <button
                   onClick={() => setIsOpen(false)}
-                  className='p-2 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground'
+                  className="hover:bg-accent text-muted-foreground hover:text-foreground rounded-md p-2"
                   aria-label={t('blog.detail.mobileCloseToc')}
                 >
-                  <span className='i-lucide-x w-4 h-4 block' />
+                  <span className="i-lucide-x block h-4 w-4" />
                 </button>
               </div>
 
-
-
               {/* 目录列表 */}
-              <Tocs tocs={tocs} activeId={activeId} progress={progress} onLinkClick={handleLinkClick} />
+              <Tocs
+                tocs={tocs}
+                activeId={activeId}
+                progress={progress}
+                onLinkClick={handleLinkClick}
+              />
             </div>
           </motion.div>
         )}
