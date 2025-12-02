@@ -1,88 +1,66 @@
 import type { MetaFunction } from '@remix-run/cloudflare';
 import { motion } from 'motion/react';
 import { cn } from '~/core/utils';
-import { DEFAULT_LOCALE, translations, useTranslation } from '~/core/i18n';
+import { DEFAULT_LOCALE, getT, useTranslation } from '~/core/i18n';
 
-export const meta: MetaFunction = () => {
-  const projectMeta = (translations[DEFAULT_LOCALE]?.projects as any)?.meta;
+export const meta: MetaFunction = ({ matches }) => {
+  const rootData = matches.find((m) => m.id === 'root')?.data as any;
+  const locale = (rootData?.locale ?? DEFAULT_LOCALE) as typeof DEFAULT_LOCALE;
+  const t = getT(locale);
+  const metaDict = t('projects.meta') as any;
   return [
-    { title: projectMeta?.title ?? 'Projects - Madinah' },
+    { title: metaDict?.title ?? 'Projects - Madinah' },
     {
       name: 'description',
       content:
-        projectMeta?.description ?? 'Projects that I created or maintaining.',
+        metaDict?.description ?? 'Projects that I created or maintaining.',
     },
   ];
 };
 interface Project {
   id: string;
-  name: string;
-  description: string;
   url?: string;
   github?: string;
-  stars?: number;
-  forks?: number;
-  language?: string;
-  status?: 'active' | 'archived' | 'wip';
-  category: string;
-  featured?: boolean;
   icon?: string;
   translationKey:
     | 'wallpaperApp'
     | 'farmfePlugins'
     | 'pixelPicture'
-    | 'reminders';
+    | 'reminders'
+    | 'tasukuRs';
 }
 
 const projects: Project[] = [
   {
     id: 'wallpaper-app',
-    name: 'Wallpaper App',
-    description: 'A simple wallpaper app built with Tauri and Rust.',
     github: 'https://github.com/Maidang1/wallpaper-app',
-    language: 'Rust',
-    status: 'wip',
-    category: 'Web Development',
-    featured: true,
     icon: 'i-streamline-ultimate-color-card-game-heart',
     translationKey: 'wallpaperApp',
   },
   {
     id: 'farmfe-plugins',
-    name: 'FarmFe Plugins',
-    description: 'The one-stop shop for official Farm plugins',
     github: 'https://github.com/farm-fe/plugins',
-    language: 'Rust',
-    status: 'active',
-    category: 'Rust',
-    featured: false,
     icon: 'i-streamline-ultimate-color-snapchat-logo',
     translationKey: 'farmfePlugins',
   },
   {
     id: 'pixel-picture',
-    name: 'Pixel Picture',
-    description: 'Transform your image into pixel art',
     github: 'https://github.com/Maidang1/pixel-picture',
-    language: 'TypeScript',
-    status: 'active',
-    category: 'Web Development',
-    featured: false,
     url: 'https://pixel.felixwliu.cn/',
     icon: 'i-streamline-ultimate-color-picture-double-landscape',
     translationKey: 'pixelPicture',
   },
   {
     id: 'reminders',
-    name: 'Reminders',
-    description: '一个提醒 app 定时提醒你喝水',
     github: 'https://github.com/Maidang1/reminders',
-    language: 'Rust',
-    status: 'active',
-    category: 'Rust',
-    featured: false,
     icon: 'i-streamline-ultimate-color-time-clock-hand-1',
     translationKey: 'reminders',
+  },
+  {
+    id: 'tasuku-rs',
+    github: 'https://github.com/Maidang1/tasuku-rs',
+    icon: 'i-streamline-ultimate-color-space-astronaut',
+    translationKey: 'tasukuRs',
   },
 ];
 

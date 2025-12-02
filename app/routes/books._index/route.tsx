@@ -9,7 +9,7 @@ import {
 import { BookList } from '~/features/books/components/book-list';
 import { ErrorState } from '~/core/ui/common/error-state';
 import { jsonError } from '~/core/utils';
-import { DEFAULT_LOCALE, translations } from '~/core/i18n';
+import { DEFAULT_LOCALE, getT } from '~/core/i18n';
 import type { BookSummaryInfo } from '~/types';
 // eslint-disable-next-line import/no-unresolved
 import { getBooks } from 'virtual:book-data';
@@ -28,19 +28,16 @@ export async function loader() {
   }
 }
 
-export const meta: MetaFunction = () => [
-  {
-    title:
-      (translations[DEFAULT_LOCALE]?.books as any)?.meta?.title ??
-      'Books • Madinah',
-  },
-  {
-    name: 'description',
-    content:
-      (translations[DEFAULT_LOCALE]?.books as any)?.meta?.description ??
-      '系统化地阅读 Rust、Remix 等专题整理的书籍系列。',
-  },
-];
+export const meta: MetaFunction = ({ matches }) => {
+  const rootData = matches.find((m) => m.id === 'root')?.data as any;
+  const locale = (rootData?.locale ?? DEFAULT_LOCALE) as typeof DEFAULT_LOCALE;
+  const t = getT(locale);
+  const metaDict = t('books.meta') as any;
+  return [
+    { title: metaDict?.title ?? 'Books • Madinah' },
+    { name: 'description', content: metaDict?.description ?? '系统化地阅读 Rust、Remix 等专题整理的书籍系列。' },
+  ];
+};
 
 export default function BooksIndexRoute() {
   const { books } = useLoaderData<typeof loader>();

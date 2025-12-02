@@ -37,8 +37,11 @@ export function useTableOfContents({
 
       if (headingElements.length === 0) return;
 
-      const scrollTop = getScrollPosition();
-      const scrollContainer = document.querySelector('.blog-detail-scroll-container') || window;
+      const candidate = document.querySelector('.blog-detail-scroll-container') as HTMLElement | null;
+      const isScrollable = !!candidate && candidate.scrollHeight > candidate.clientHeight;
+      const containerEl = isScrollable ? candidate : null;
+      const scrollContainer = containerEl || window;
+      const scrollTop = getScrollPosition(containerEl);
       let containerTop = 0;
 
       if (scrollContainer !== window) {
@@ -76,7 +79,9 @@ export function useTableOfContents({
     handleScroll();
 
     // 监听滚动事件
-    const scrollContainer = document.querySelector('.blog-detail-scroll-container') || window;
+    const candidate = document.querySelector('.blog-detail-scroll-container') as HTMLElement | null;
+    const isScrollable = !!candidate && candidate.scrollHeight > candidate.clientHeight;
+    const scrollContainer = (isScrollable ? candidate : null) || window;
     scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
 
     return () => {

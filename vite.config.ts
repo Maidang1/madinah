@@ -19,9 +19,6 @@ import fs from 'fs';
 import type { Plugin, ViteDevServer } from 'vite';
 import commonjs from 'vite-plugin-commonjs';
 
-
-console.log(remarkShikiTwoslash);
-
 const root = process.cwd();
 const appDir = path.join(root, 'app');
 const routeDir = path.join(appDir, 'routes');

@@ -21,7 +21,7 @@ export const Time = ({ time }: { time: string }) => {
   }, [locale, time]);
 
   return (
-    <span className="flex items-center gap-x-1.5">
+    <span className="flex items-center gap-x-1.5 whitespace-nowrap">
       <span className="text-muted-foreground text-xs">{formattedDate}</span>
       {weekday ? <span className="text-xs">{weekday}</span> : null}
     </span>

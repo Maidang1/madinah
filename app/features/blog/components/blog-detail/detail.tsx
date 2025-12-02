@@ -54,8 +54,6 @@ export default function Detail({ list }: BlogsDetailProps) {
       </motion.div>
 
       <div className="relative mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8">
-        <ScrollRestoration />
-
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{
@@ -74,7 +72,7 @@ export default function Detail({ list }: BlogsDetailProps) {
           </div>
         </motion.div>
 
-        <div className="blog-detail-content min-w-0">
+        <div className="blog-detail-content blog-detail-scroll-container min-w-0">
           <DetailHeader ref={headerRef} title={title} />
 
           <div className="mt-16 mb-8">

@@ -3,10 +3,7 @@ import { motion } from "motion/react";
 import { cn } from "~/core/utils";
 import type { BookSummaryInfo } from "~/types";
 import { useTranslation } from "~/core/i18n";
-import dayjs from "dayjs";
-import relativeTime from "dayjs/plugin/relativeTime";
-
-dayjs.extend(relativeTime);
+import { Time } from "~/core/ui/common/time";
 
 interface BookListProps {
   books: BookSummaryInfo[];
@@ -91,7 +88,7 @@ export function BookList({ books }: BookListProps) {
                             />
                           </svg>
                         </div>
-                        <span>{dayjs(book.timestamp).fromNow()}</span>
+                        <Time time={new Date(book.timestamp).toISOString()} />
                       </span>
                       <span className="flex items-center gap-1.5">
                         <div className="h-4 w-4 rounded-full bg-gray-700/10 flex items-center justify-center">
@@ -139,11 +136,7 @@ export function BookList({ books }: BookListProps) {
 
                 <div className="flex items-center justify-between pt-2">
                   <div className="text-[11px] text-muted-foreground/70 font-medium">
-                    {new Date(book.timestamp).toLocaleDateString("zh-CN", {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                    })}
+                    <Time time={new Date(book.timestamp).toISOString()} />
                   </div>
                   <Link
                     to={`/books/${book.id}`}

@@ -121,6 +121,10 @@ export const translations: Record<SupportedLocale, TranslationDictionary> = {
           name: 'Reminders',
           description: 'A reminder app that nudges you to drink water.',
         },
+        tasukuRs: {
+          name: 'tasuku-rs',
+          description: 'A minimal task visualizer for Rust with async rendering.',
+        },
       },
     },
     books: {
@@ -292,6 +296,10 @@ export const translations: Record<SupportedLocale, TranslationDictionary> = {
           name: 'Reminders',
           description: '一个按时提醒喝水的小工具。',
         },
+        tasukuRs: {
+          name: 'tasuku-rs',
+          description: '用 Rust 构建的轻量任务可视化库，支持异步渲染。',
+        },
       },
     },
     books: {
@@ -358,3 +366,54 @@ export const translations: Record<SupportedLocale, TranslationDictionary> = {
     },
   },
 };
+
+const resolveKey = (
+  dictionary: TranslationValue,
+  key: string,
+): TranslationValue | undefined => {
+  if (dictionary === undefined || dictionary === null) {
+    return undefined;
+  }
+
+  return key.split('.').reduce<TranslationValue | undefined>((acc, part) => {
+    if (
+      acc === undefined ||
+      acc === null ||
+      typeof acc !== 'object' ||
+      Array.isArray(acc)
+    ) {
+      return undefined;
+    }
+    return (acc as Record<string, TranslationValue>)[part];
+  }, dictionary);
+};
+
+const applyReplacements = (
+  value: string,
+  replacements?: Record<string, string | number>,
+) => {
+  if (!replacements) {
+    return value;
+  }
+  return value.replace(/\{\{\s*(\w+)\s*\}\}/g, (match, token) => {
+    if (token in (replacements ?? {})) {
+      return String((replacements ?? {})[token]);
+    }
+    return match;
+  });
+};
+
+export function getT(locale: SupportedLocale) {
+  return function t<T = string>(key: string, options?: { fallback?: T; replace?: Record<string, string | number> }) {
+    const target = translations[locale] ?? translations[DEFAULT_LOCALE];
+    const fallback = translations[FALLBACK_LOCALE] ?? translations[DEFAULT_LOCALE];
+    const resolved = resolveKey(target, key) ?? resolveKey(fallback, key);
+    if (resolved === undefined) {
+      return (options?.fallback ?? (key as unknown)) as T;
+    }
+    if (typeof resolved === 'string') {
+      return applyReplacements(resolved, options?.replace) as unknown as T;
+    }
+    return resolved as T;
+  };
+}

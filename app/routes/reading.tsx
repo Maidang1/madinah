@@ -8,7 +8,7 @@ import {
 } from '@remix-run/react';
 import { ErrorState } from '~/core/ui/common/error-state';
 import { jsonError } from '~/core/utils';
-import { DEFAULT_LOCALE, translations } from '~/core/i18n';
+import { DEFAULT_LOCALE, getT } from '~/core/i18n';
 import { useTranslation } from '~/core/i18n';
 
 export async function loader() {
@@ -22,19 +22,16 @@ export async function loader() {
   }
 }
 
-export const meta: MetaFunction = () => [
-  {
-    title:
-      (translations[DEFAULT_LOCALE]?.reading as any)?.meta?.title ??
-      'Reading • Madinah',
-  },
-  {
-    name: 'description',
-    content:
-      (translations[DEFAULT_LOCALE]?.reading as any)?.meta?.description ??
-      'Books I have read and reflections on them.',
-  },
-];
+export const meta: MetaFunction = ({ matches }) => {
+  const rootData = matches.find((m) => m.id === 'root')?.data as any;
+  const locale = (rootData?.locale ?? DEFAULT_LOCALE) as typeof DEFAULT_LOCALE;
+  const t = getT(locale);
+  const metaDict = t('reading.meta') as any;
+  return [
+    { title: metaDict?.title ?? 'Reading • Madinah' },
+    { name: 'description', content: metaDict?.description ?? 'Books I have read and reflections on them.' },
+  ];
+};
 
 export default function ReadingRoute() {
   const { readingList } = useLoaderData<typeof loader>();

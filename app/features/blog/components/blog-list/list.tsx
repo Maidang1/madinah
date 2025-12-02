@@ -20,15 +20,15 @@ export default function List({ list }: BaseBlogListProps) {
                 className={cn(
                   'text-foreground block no-underline opacity-90',
                   'overflow-hidden transition-all duration-200',
-                  'flex items-center justify-start',
-                  'gap-2',
+                  'flex flex-col sm:flex-row sm:items-center',
+                  'gap-1.5 sm:gap-2',
                   'hover:opacity-65',
                 )}
               >
-                <h3 className="mb-1 text-lg font-medium transition-colors">
+                <h3 className="text-lg font-medium transition-colors sm:mb-0">
                   {li.title}
                 </h3>
-                <div className="text-muted-foreground flex flex-wrap items-center gap-3 text-sm">
+                <div className="text-muted-foreground flex items-center gap-2 text-sm whitespace-nowrap">
                   <Time time={li.gitInfo?.createdAt || li.time} />
                 </div>
               </Link>

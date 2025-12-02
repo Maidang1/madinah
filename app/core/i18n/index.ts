@@ -5,4 +5,5 @@ export {
   translations,
   type TranslationDictionary,
   type TranslationValue,
+  getT,
 } from './translations';
