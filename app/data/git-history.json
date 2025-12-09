@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2025-11-15T19:00:16.707Z",
+  "generatedAt": "2025-12-09T09:39:36.947Z",
   "files": {
     "app/routes/blogs.algorithm.mdx": {
       "createdAt": "2024-10-24T00:39:29+08:00",
@@ -38,19 +38,6 @@
           "author": "maidang1",
           "message": "feat: add rust async post",
           "githubUrl": "https://github.com/Maidang1/madinah/commit/97e38947516969b248b599c8b0b0ea8fbcb1c071"
-        }
-      ]
-    },
-    "app/routes/blogs.clear-code.mdx": {
-      "createdAt": "2025-06-05T01:41:19+08:00",
-      "updatedAt": "2025-06-05T01:41:19+08:00",
-      "commits": [
-        {
-          "hash": "004b177",
-          "date": "2025-06-05T01:41:19+08:00",
-          "author": "madinah",
-          "message": "refactor: better name",
-          "githubUrl": "https://github.com/Maidang1/madinah/commit/004b17740d5adc7d9605cbfa11f665959af48724"
         }
       ]
     },

@@ -1,0 +1,690 @@
+---
+title: kode-cli 上下文管理
+author: Madinah
+tags:
+  - AI
+---
+
+## Kode 完整上下文管理流程
+
+### 架构概览
+
+```plaintext
+用户输入 → REPL → query() → formatSystemPromptWithContext() → LLM
+                ↓                        ↓
+            getContext()          generateSystemReminders()
+                ↓                        ↓
+           [静态上下文]              [动态 Reminders]
+```
+
+### 完整数据流程
+
+#### 1. 用户启动会话
+
+```typescript
+// src/screens/REPL.tsx - 初始化阶段
+
+// 用户启动 Kode CLI
+$ kode
+
+// REPL 组件初始化
+const [messages, setMessages] = useState<MessageType[]>([])
+const [context, setContext] = useState<{[k: string]: string}>({})
+
+// 异步加载静态上下文（会话开始时一次性加载）
+useEffect(() => {
+  async function loadContext() {
+    const ctx = await getContext()
+    setContext(ctx)
+  }
+  loadContext()
+}, [])
+
+```
+
+#### 2. 静态上下文收集 (src/context.ts)
+
+```typescript
+// getContext() 返回的数据结构
+const staticContext = {
+  // 1. 目录结构（memoized，会话期间不变）
+  directoryStructure: `
+Below is a snapshot of this project's file structure:
+.
+├── src/
+│   ├── screens/
+│   │   └── REPL.tsx
+│   ├── services/
+│   │   ├── claude.ts
+│   │   └── systemReminder.ts
+│   ├── tools/
+│   │   ├── TodoWriteTool/
+│   │   └── FileReadTool/
+│   └── utils/
+│       ├── context.ts
+│       └── todoStorage.ts
+├── package.json
+└── README.md
+`,
+
+  // 2. Git 状态（memoized）
+  gitStatus: `
+Current branch: feature/context-management
+Main branch: main
+
+Status:
+M  src/services/claude.ts
+M  src/query.ts
+?? docs/context-flow.md
+
+Recent commits:
+abc1234 Add context management
+def5678 Implement reminders
+ghi9012 Fix todo storage
+
+Your recent commits:
+abc1234 Add context management
+`,
+
+  // 3. 代码风格（memoized）
+  codeStyle: `
+Project uses:
+- TypeScript with strict mode
+- React with Ink for CLI UI
+- Zod for schema validation
+- Prettier for formatting
+`,
+
+  // 4. README 内容
+  readme: `
+# Kode CLI
+
+AI-powered coding assistant...
+`,
+
+  // 5. 项目文档（AGENTS.md + CLAUDE.md）
+  projectDocs: `
+# AGENTS.md
+
+This file provides guidance to Kode automation agents...
+
+---
+
+# CLAUDE.md
+
+Additional project-specific instructions...
+`,
+
+  // 6. 用户自定义上下文（从配置文件）
+  customContext: `
+Team conventions:
+- Use functional components
+- Prefer async/await over promises
+`,
+};
+```
+
+#### 3. 用户发送消息
+
+```typescript
+// 用户输入
+const userInput = '帮我实现一个新的 tool';
+
+// PromptInput 组件处理
+const handleSubmit = async (input: string) => {
+  setIsLoading(true);
+
+  // 创建用户消息
+  const userMessage: UserMessage = {
+    type: 'user',
+    uuid: crypto.randomUUID(),
+    message: {
+      role: 'user',
+      content: input,
+    },
+  };
+
+  // 添加到消息历史
+  setMessages((prev) => [...prev, userMessage]);
+
+  // 开始查询
+  const abortController = new AbortController();
+  setAbortController(abortController);
+
+  // 调用 query 生成器
+  for await (const message of query(
+    [...messages, userMessage], // 消息历史
+    getSystemPrompt(), // 系统提示
+    context, // 静态上下文
+    canUseTool, // 权限检查函数
+    {
+      abortController,
+      options: {
+        commands,
+        forkNumber,
+        messageLogName,
+        tools,
+        verbose,
+        safeMode,
+        maxThinkingTokens: getMaxThinkingTokens(),
+        model: 'main',
+      },
+      readFileTimestamps: {},
+      setToolJSX,
+      agentId: 'default',
+    },
+    getBinaryFeedbackResponse,
+  )) {
+    setMessages((prev) => [...prev, message]);
+  }
+
+  setIsLoading(false);
+};
+```
+
+#### 4. query() 函数处理 (src/query.ts)
+
+```typescript
+export async function* query(
+  messages: Message[],
+  systemPrompt: string[],
+  context: { [k: string]: string },
+  canUseTool: CanUseToolFn,
+  toolUseContext: ExtendedToolUseContext,
+  getBinaryFeedbackResponse?: (m1, m2) => Promise<BinaryFeedbackResult>,
+): AsyncGenerator<Message, void> {
+  // 📊 当前状态
+  console.log('=== Query Start ===');
+  console.log('Messages count:', messages.length);
+  console.log('Context keys:', Object.keys(context));
+  console.log('Agent ID:', toolUseContext.agentId);
+
+  // 🔄 自动压缩检查
+  const { messages: processedMessages, wasCompacted } = await checkAutoCompact(
+    messages,
+    toolUseContext,
+  );
+
+  if (wasCompacted) {
+    console.log(
+      '✅ Messages compacted:',
+      messages.length,
+      '→',
+      processedMessages.length,
+    );
+    messages = processedMessages;
+  }
+
+  // 🎯 格式化系统提示 + 生成动态 reminders
+  const { systemPrompt: fullSystemPrompt, reminders } =
+    formatSystemPromptWithContext(
+      systemPrompt,
+      context,
+      toolUseContext.agentId,
+    );
+
+  console.log('System prompt blocks:', fullSystemPrompt.length);
+  console.log('Reminders generated:', reminders ? 'Yes' : 'No');
+
+  // 📢 触发会话启动事件
+  emitReminderEvent('session:startup', {
+    agentId: toolUseContext.agentId,
+    messages: messages.length,
+    timestamp: Date.now(),
+  });
+
+  // 💉 注入 reminders 到最后一条用户消息
+  if (reminders && messages.length > 0) {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i]?.type === 'user') {
+        const lastUserMessage = messages[i] as UserMessage;
+
+        // 前置注入 reminders
+        messages[i] = {
+          ...lastUserMessage,
+          message: {
+            ...lastUserMessage.message,
+            content: reminders + lastUserMessage.message.content,
+          },
+        };
+
+        console.log('✅ Reminders injected to message', i);
+        break;
+      }
+    }
+  }
+
+  // 🤖 调用 LLM
+  const result = await queryWithBinaryFeedback(
+    toolUseContext,
+    () =>
+      queryLLM(
+        normalizeMessagesForAPI(messages),
+        fullSystemPrompt,
+        toolUseContext.options.maxThinkingTokens,
+        toolUseContext.options.tools,
+        toolUseContext.abortController.signal,
+        {
+          safeMode: toolUseContext.options.safeMode,
+          model: toolUseContext.options.model || 'main',
+          prependCLISysprompt: true,
+          toolUseContext,
+        },
+      ),
+    getBinaryFeedbackResponse,
+  );
+
+  // 返回 AI 响应
+  if (result.message) {
+    yield result.message;
+  }
+
+  // 🔧 处理工具调用...
+  // （省略工具执行逻辑）
+}
+```
+
+#### 5. formatSystemPromptWithContext() (src/services/claude.ts)
+
+```typescript
+export function formatSystemPromptWithContext(
+  systemPrompt: string[],
+  context: { [k: string]: string },
+  agentId?: string,
+  skipContextReminders = false,
+): { systemPrompt: string[]; reminders: string } {
+  const enhancedPrompt = [...systemPrompt];
+  let reminders = '';
+
+  // 📊 输入数据示例
+  console.log('=== formatSystemPromptWithContext ===');
+  console.log('Input systemPrompt:', systemPrompt.slice(0, 2));
+  console.log('Input context keys:', Object.keys(context));
+  console.log('Agent ID:', agentId);
+
+  // 🎯 步骤 0: GPT-5 特殊处理
+  const modelManager = getModelManager();
+  const modelProfile = modelManager.getModel('main');
+
+  if (modelProfile && isGPT5Model(modelProfile.modelName)) {
+    enhancedPrompt.push(
+      '\n# Agent Persistence for Long-Running Coding Tasks',
+      'You are working on a coding project...',
+      // ... 更多持久化指令
+    );
+    console.log('✅ Added GPT-5 persistence prompts');
+  }
+
+  // 🔍 检查是否有上下文
+  const hasContext = Object.entries(context).length > 0;
+  console.log('Has context:', hasContext);
+
+  if (hasContext) {
+    // 📄 步骤 1: 注入 Kode 项目文档到系统提示
+    if (!skipContextReminders) {
+      const kodeContext = generateKodeContext();
+
+      if (kodeContext) {
+        enhancedPrompt.push('\n---\n# 项目上下文\n');
+        enhancedPrompt.push(kodeContext);
+        enhancedPrompt.push('\n---\n');
+
+        console.log('✅ Kode context injected:', kodeContext.length, 'chars');
+      }
+    }
+
+    // 🔔 步骤 2: 生成动态 reminders
+    const reminderMessages = generateSystemReminders(hasContext, agentId);
+
+    if (reminderMessages.length > 0) {
+      reminders = reminderMessages.map((r) => r.content).join('\n') + '\n';
+
+      console.log('✅ Generated reminders:', reminderMessages.length);
+      console.log(
+        'Reminder types:',
+        reminderMessages.map((r) => r.type).join(', '),
+      );
+    }
+
+    // 📦 步骤 3: 添加其他静态上下文
+    enhancedPrompt.push(
+      `\nAs you answer the user's questions, you can use the following context:\n`,
+    );
+
+    // 过滤掉已处理的项目文档
+    const filteredContext = Object.fromEntries(
+      Object.entries(context).filter(
+        ([key]) => key !== 'projectDocs' && key !== 'userDocs',
+      ),
+    );
+
+    enhancedPrompt.push(
+      ...Object.entries(filteredContext).map(
+        ([key, value]) => `<context name="${key}">${value}</context>`,
+      ),
+    );
+
+    console.log(
+      '✅ Added context blocks:',
+      Object.keys(filteredContext).join(', '),
+    );
+  }
+
+  // 📤 输出数据示例
+  console.log('=== Output ===');
+  console.log('Enhanced prompt blocks:', enhancedPrompt.length);
+  console.log('Reminders length:', reminders.length);
+
+  return { systemPrompt: enhancedPrompt, reminders };
+}
+```
+
+#### 6. generateSystemReminders() (src/services/systemReminder.ts)
+
+```typescript
+public generateReminders(
+  hasContext: boolean = false,
+  agentId?: string
+): ReminderMessage[] {
+
+  console.log('=== generateSystemReminders ===')
+  console.log('Has context:', hasContext)
+  console.log('Agent ID:', agentId)
+
+  // 🚫 无上下文时不生成
+  if (!hasContext) {
+    console.log('❌ No context, skipping reminders')
+    return []
+  }
+
+  // 🚫 达到会话限制
+  if (this.sessionState.reminderCount >=
+      this.sessionState.config.maxRemindersPerSession) {
+    console.log('❌ Reminder limit reached:',
+      this.sessionState.reminderCount)
+    return []
+  }
+
+  const reminders: ReminderMessage[] = []
+
+  // 🔄 懒加载生成器
+  const reminderGenerators = [
+    () => this.dispatchTodoEvent(agentId),
+    () => this.dispatchSecurityEvent(),
+    () => this.dispatchPerformanceEvent(),
+    () => this.getMentionReminders()
+  ]
+
+  for (const generator of reminderGenerators) {
+    if (reminders.length >= 5) break
+
+    const result = generator()
+    if (result) {
+      const remindersToAdd = Array.isArray(result) ? result : [result]
+      reminders.push(...remindersToAdd)
+      this.sessionState.reminderCount += remindersToAdd.length
+
+      console.log('✅ Added reminder:',
+        remindersToAdd.map(r => r.type).join(', '))
+    }
+  }
+
+  console.log('=== Total reminders ===', reminders.length)
+
+  return reminders
+}
+
+// Todo Reminder 示例
+private dispatchTodoEvent(agentId?: string): ReminderMessage | null {
+  const todos = getTodos(agentId)
+  const agentKey = agentId || 'default'
+
+  console.log('📋 Checking todos for agent:', agentKey)
+  console.log('Todo count:', todos.length)
+
+  // 场景 1: 空列表提醒
+  if (todos.length === 0 &&
+      !this.sessionState.remindersSent.has(`todo_empty_${agentKey}`)) {
+
+    this.sessionState.remindersSent.add(`todo_empty_${agentKey}`)
+
+    console.log('✅ Generated empty todo reminder')
+
+    return this.createReminderMessage(
+      'todo',
+      'task',
+      'medium',
+      'Your todo list is currently empty. Use TodoWrite if needed.',
+      Date.now()
+    )
+  }
+
+  // 场景 2: Todo 更新提醒
+  if (todos.length > 0) {
+    const stateHash = this.getTodoStateHash(todos)
+    const reminderKey = `todo_updated_${agentKey}_${todos.length}_${stateHash}`
+
+    if (!this.sessionState.remindersSent.has(reminderKey)) {
+      this.sessionState.remindersSent.add(reminderKey)
+      this.clearTodoReminders(agentKey)
+
+      const todoContent = JSON.stringify(
+        todos.map(todo => ({
+          content: todo.content.substring(0, 100),
+          status: todo.status,
+          priority: todo.priority,
+          id: todo.id
+        }))
+      )
+
+      console.log('✅ Generated todo update reminder')
+      console.log('Todo content preview:', todoContent.substring(0, 100))
+
+      return this.createReminderMessage(
+        'todo',
+        'task',
+        'medium',
+        `Your todo list has changed:\n${todoContent}`,
+        Date.now()
+      )
+    }
+  }
+
+  console.log('❌ No todo reminder needed')
+  return null
+}
+
+
+```
+
+#### 7. 最终发送给 LLM 的数据结构
+
+```typescript
+// queryLLM() 接收的参数
+const llmRequest = {
+  // 消息历史（已注入 reminders）
+  messages: [
+    {
+      role: 'user',
+      content: `<system-reminder>
+Your todo list has changed:
+[{"content":"实现新 tool","status":"in_progress","priority":"high","id":"task-1"}]
+</system-reminder>
+
+帮我实现一个新的 tool`
+    },
+    {
+      role: 'assistant',
+      content: [
+        { type: 'text', text: '好的，我来帮你...' },
+        { type: 'tool_use', name: 'FileRead', input: {...} }
+      ]
+    },
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'tool_result',
+          tool_use_id: 'toolu_123',
+          content: '文件内容...'
+        }
+      ]
+    }
+  ],
+
+  // 系统提示（已增强）
+  systemPrompt: [
+    // 基础系统提示
+    "You are Kode, an AI coding assistant...",
+
+    // GPT-5 持久化指令（如果适用）
+    "\n# Agent Persistence for Long-Running Coding Tasks",
+    "You are working on a coding project...",
+
+    // Kode 项目文档
+    "\n---\n# 项目上下文\n",
+    "# AGENTS.md\n\nThis file provides guidance...",
+    "\n---\n",
+
+    // 静态上下文
+    "\nAs you answer the user's questions, you can use the following context:\n",
+    '<context name="directoryStructure">...</context>',
+    '<context name="gitStatus">...</context>',
+    '<context name="codeStyle">...</context>',
+    '<context name="readme">...</context>'
+  ],
+
+  // 其他参数
+  maxThinkingTokens: 10000,
+  tools: [...],  // 工具定义
+  temperature: 1.0,
+  model: 'claude-sonnet-4-20250514'
+}
+
+
+```
+
+### 完整示例：从用户输入到 LLM 响应
+
+```typescript
+// ============================================
+// 场景：用户要求实现新功能
+// ============================================
+
+// 1️⃣ 用户输入
+用户: "帮我实现一个文件搜索工具"
+
+// 2️⃣ REPL 处理
+const userMessage = {
+  type: 'user',
+  uuid: 'msg-001',
+  message: {
+    role: 'user',
+    content: '帮我实现一个文件搜索工具'
+  }
+}
+
+// 3️⃣ 静态上下文（已缓存）
+const context = {
+  directoryStructure: "src/\n  tools/\n    FileReadTool/\n    ...",
+  gitStatus: "Current branch: main\nStatus: clean",
+  codeStyle: "TypeScript + React + Zod",
+  projectDocs: "# AGENTS.md\n\n工具开发指南..."
+}
+
+// 4️⃣ 调用 query()
+for await (const message of query(
+  [userMessage],
+  ["You are Kode..."],
+  context,
+  canUseTool,
+  toolUseContext
+)) {
+  // 处理响应
+}
+
+// 5️⃣ formatSystemPromptWithContext()
+// 输入:
+{
+  systemPrompt: ["You are Kode..."],
+  context: { directoryStructure: "...", gitStatus: "...", ... },
+  agentId: "default"
+}
+
+// 输出:
+{
+  systemPrompt: [
+    "You are Kode...",
+    "\n---\n# 项目上下文\n",
+    "# AGENTS.md\n\n工具开发指南...",
+    "\n---\n",
+    "\nAs you answer...\n",
+    '<context name="directoryStructure">...</context>',
+    '<context name="gitStatus">...</context>'
+  ],
+  reminders: "<system-reminder>\nYour todo list is empty...\n</system-reminder>\n"
+}
+
+// 6️⃣ 注入 reminders
+messages[0].message.content =
+  "<system-reminder>\nYour todo list is empty...\n</system-reminder>\n" +
+  "帮我实现一个文件搜索工具"
+
+// 7️⃣ 发送给 LLM
+API Request: {
+  model: "claude-sonnet-4-20250514",
+  messages: [
+    {
+      role: "user",
+      content: "<system-reminder>...</system-reminder>\n帮我实现一个文件搜索工具"
+    }
+  ],
+  system: [
+    { type: "text", text: "You are Kode..." },
+    { type: "text", text: "\n---\n# 项目上下文\n" },
+    { type: "text", text: "# AGENTS.md\n\n..." },
+    { type: "text", text: '<context name="directoryStructure">...</context>' },
+    { type: "text", text: '<context name="gitStatus">...</context>',
+      cache_control: { type: "ephemeral" } }  // 缓存控制
+  ],
+  tools: [...],
+  max_tokens: 8192,
+  temperature: 1.0
+}
+
+// 8️⃣ LLM 响应
+{
+  role: "assistant",
+  content: [
+    {
+      type: "text",
+      text: "我来帮你实现一个文件搜索工具。根据项目结构，我会创建..."
+    },
+    {
+      type: "tool_use",
+      name: "FileWrite",
+      input: {
+        path: "src/tools/FileSearchTool/FileSearchTool.tsx",
+        content: "import { Tool } from '@tool'..."
+      }
+    }
+  ]
+}
+
+// 9️⃣ 工具执行
+// FileWrite 工具被调用，创建新文件
+
+// 🔟 返回给用户
+✅ 文件已创建: src/tools/FileSearchTool/FileSearchTool.tsx
+
+```
+
+### 关键设计要点
+
+- 静态上下文缓存：getContext() 使用 memoize，会话期间只加载一次
+- 动态 Reminders：每次查询时实时生成，基于当前状态
+- 分离注入：项目文档注入系统提示，reminders 注入用户消息
+- 去重机制：使用 remindersSent Set 避免重复提醒
+- 优先级管理：最多 5 个 reminders，按优先级选择
+- 缓存控制：长文本使用 prompt caching 减少成本
+- 事件驱动：通过事件系统解耦各模块
