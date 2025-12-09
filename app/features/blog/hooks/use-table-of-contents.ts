@@ -19,10 +19,10 @@ export function useTableOfContents({
   const handleClick = useCallback((e: React.MouseEvent<HTMLAnchorElement>, url: string) => {
     e.preventDefault();
     const targetId = url.slice(1);
-    const scrollContainer = document.querySelector('.blog-detail-scroll-container');
+    // 直接使用 window 作为滚动容器，因为页面使用的是 window 滚动
     scrollToElement(targetId, {
       offset,
-      container: scrollContainer
+      container: null // null 会被解析为 window
     });
   }, [offset]);
 
@@ -37,25 +37,15 @@ export function useTableOfContents({
 
       if (headingElements.length === 0) return;
 
-      const candidate = document.querySelector('.blog-detail-scroll-container') as HTMLElement | null;
-      const isScrollable = !!candidate && candidate.scrollHeight > candidate.clientHeight;
-      const containerEl = isScrollable ? candidate : null;
-      const scrollContainer = containerEl || window;
-      const scrollTop = getScrollPosition(containerEl);
-      let containerTop = 0;
-
-      if (scrollContainer !== window) {
-        containerTop = (scrollContainer as HTMLElement).getBoundingClientRect().top;
-      }
+      // 使用 window 作为滚动容器
+      const scrollTop = window.scrollY;
 
       // 找到当前视窗内的标题
       let currentActiveId = '';
 
       for (const element of headingElements) {
         const rect = element.getBoundingClientRect();
-        const elementTop = scrollContainer === window
-          ? rect.top + scrollTop
-          : rect.top + scrollTop - containerTop;
+        const elementTop = rect.top + scrollTop;
 
         // 如果标题在视窗上方一定距离内，则认为是当前活跃的
         if (elementTop <= scrollTop + offset + highlightBuffer) {
@@ -78,14 +68,11 @@ export function useTableOfContents({
     // 初始化
     handleScroll();
 
-    // 监听滚动事件
-    const candidate = document.querySelector('.blog-detail-scroll-container') as HTMLElement | null;
-    const isScrollable = !!candidate && candidate.scrollHeight > candidate.clientHeight;
-    const scrollContainer = (isScrollable ? candidate : null) || window;
-    scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+    // 监听 window 的滚动事件
+    window.addEventListener('scroll', handleScroll, { passive: true });
 
     return () => {
-      scrollContainer.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('scroll', handleScroll);
     };
   }, [tocs, activeId, offset, highlightBuffer]);
 
