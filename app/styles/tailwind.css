@@ -120,10 +120,9 @@
     @apply font-display tracking-tight;
   }
 
-  /* 平滑滚动 */
+  /* 基础设置 */
   html {
     font-size: 16px;
-    scroll-behavior: smooth;
   }
 
   /* 选择文本样式 */

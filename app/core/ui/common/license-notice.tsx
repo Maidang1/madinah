@@ -1,14 +1,10 @@
-import { motion } from 'motion/react';
 import { useTranslation } from '~/core/i18n';
 
 export function LicenseNotice() {
   const { t } = useTranslation();
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: 0.2 }}
+    <div
       className="border-border/50 mt-12 border-t pt-8"
     >
       <div className="flex items-center justify-center">
@@ -18,6 +14,6 @@ export function LicenseNotice() {
           </p>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

@@ -1,7 +1,6 @@
 import { Link, NavLink } from '@remix-run/react';
-import { MoonIcon, SunIcon, RssIcon } from 'lucide-react';
+import { MoonIcon, SunIcon } from 'lucide-react';
 import { useMemo, useState, useEffect } from 'react';
-import { motion } from 'motion/react';
 import { cn } from '~/core/utils';
 import type { Theme, Locale } from '~/types';
 import { useTranslation } from '~/core/i18n';

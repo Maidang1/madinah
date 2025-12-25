@@ -1,5 +1,4 @@
 import { Outlet } from '@remix-run/react';
-import { motion } from 'motion/react';
 import { forwardRef } from 'react';
 import { MDXWrapper } from '~/core/mdx/mdx-wrapper';
 import { LicenseNotice } from '~/core/ui/common/license-notice';
@@ -14,12 +13,7 @@ export const DetailHeader = forwardRef<HTMLElement, BlogContentProps>(
   function DetailHeader({ title, className }, ref) {
     return (
       <div className={cn('min-w-0 flex-1', className)}>
-        <motion.article
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="max-w-none"
-        >
+        <article className="max-w-none">
           {title && (
             <header ref={ref} className="mb-10 space-y-6">
                 {title && (
@@ -34,7 +28,7 @@ export const DetailHeader = forwardRef<HTMLElement, BlogContentProps>(
             <Outlet />
           </MDXWrapper>
           <LicenseNotice />
-        </motion.article>
+        </article>
       </div>
     );
   },

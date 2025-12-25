@@ -1,5 +1,4 @@
 import type { MetaFunction } from '@remix-run/cloudflare';
-import { motion } from 'motion/react';
 import { cn } from '~/core/utils';
 import { DEFAULT_LOCALE, getT, useTranslation } from '~/core/i18n';
 
@@ -27,7 +26,8 @@ interface Project {
     | 'farmfePlugins'
     | 'pixelPicture'
     | 'reminders'
-    | 'tasukuRs';
+    | 'tasukuRs'
+    | 'reminderCli';
 }
 
 const projects: Project[] = [
@@ -62,6 +62,12 @@ const projects: Project[] = [
     icon: 'i-streamline-ultimate-color-space-astronaut',
     translationKey: 'tasukuRs',
   },
+  {
+    id: 'reminder-cli',
+    github: 'https://github.com/Maidang1/reminder-cli',
+    icon: 'i-streamline-ultimate-color-check-badge',
+    translationKey: 'reminderCli',
+  },
 ];
 
 export default function Projects() {
@@ -69,25 +75,16 @@ export default function Projects() {
   return (
     <div className="min-h-screen py-20">
       <div className="container mx-auto px-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mb-16 text-center"
-        >
+        <div className="mb-16 text-center">
           <h1 className="from-primary to-primary-light mb-4 bg-gradient-to-r bg-clip-text text-4xl font-bold text-transparent sm:text-5xl">
             {t('projects.title')}
           </h1>
           <p className="mx-auto max-w-2xl text-lg text-black/70 dark:text-white/70">
             {t('projects.subtitle')}
           </p>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-        >
+        <div>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {projects.map((project, index) => (
               <ProjectCard
@@ -98,7 +95,7 @@ export default function Projects() {
               />
             ))}
           </div>
-        </motion.div>
+        </div>
       </div>
     </div>
   );
@@ -117,18 +114,14 @@ function ProjectCard({ project, translationKey }: ProjectCardProps) {
   const description: string = t(`projects.items.${translationKey}.description`);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.1 }}
+    <div
       className={cn(
         'group relative overflow-hidden',
-        'transition-all duration-300',
         'rounded-[6px]',
-        'hover:bg-black/5 dark:hover:bg-black/40',
+        'transition-colors hover:bg-black/5 dark:hover:bg-black/40',
       )}
     >
-      <motion.a
+      <a
         className="flex items-center gap-x-4 p-4 opacity-80 transition-opacity duration-300 hover:opacity-100"
         href={project.url ?? project.github}
         target="_blank"
@@ -141,11 +134,11 @@ function ProjectCard({ project, translationKey }: ProjectCardProps) {
           <h3 className="mb-1 text-lg !text-gray-700 transition-colors dark:!text-gray-200">
             {displayName}
           </h3>
-          <p className="text-sm !leading-5 text-gray-700 opacity-50 dark:text-gray-200">
+          <p className="text-sm !leading-5 text-gray-700 opacity-50 dark:text-gray-200 line-clamp-2">
             {description}
           </p>
         </div>
-      </motion.a>
-    </motion.div>
+      </a>
+    </div>
   );
 }

@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
 import { ArrowUp } from 'lucide-react';
 import { SCROLL_CONFIG } from '~/core/config/scroll';
 import { getScrollPosition, scrollToTop, throttle } from '~/core/utils/scroll';
@@ -39,22 +38,15 @@ export function ScrollToTopButton({
     scrollToTop();
   };
 
+  if (!showScrollToTop) return null;
+
   return (
-    <AnimatePresence>
-      {showScrollToTop && (
-        <motion.button
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.8 }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={handleScrollToTop}
-          className={`bg-gray-700 text-primary-foreground hover:bg-gray-800 focus:ring-primary/50 fixed right-8 bottom-8 z-50 rounded-full p-3 shadow-lg transition-colors duration-200 focus:ring-2 focus:ring-offset-2 focus:outline-none ${className || ''}`}
-          aria-label={t('blog.detail.scrollToTop')}
-        >
-          <ArrowUp className="h-5 w-5" />
-        </motion.button>
-      )}
-    </AnimatePresence>
+    <button
+      onClick={handleScrollToTop}
+      className={`bg-gray-700 text-primary-foreground hover:bg-gray-800 focus:ring-primary/50 fixed right-8 bottom-8 z-50 rounded-full p-3 shadow-lg transition-colors duration-200 focus:ring-2 focus:ring-offset-2 focus:outline-none ${className || ''}`}
+      aria-label={t('blog.detail.scrollToTop')}
+    >
+      <ArrowUp className="h-5 w-5" />
+    </button>
   );
 }

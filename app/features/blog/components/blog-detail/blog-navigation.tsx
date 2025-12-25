@@ -1,5 +1,4 @@
 import { Link, useLocation } from '@remix-run/react';
-import { motion } from 'motion/react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { PostInfo } from '~/types';
 import { cn } from '~/core/utils';
@@ -20,10 +19,7 @@ export function BlogNavigation({ list, className }: BlogNavigationProps) {
     currentIndex < list.length - 1 ? list[currentIndex + 1] : null;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
+    <div
       className={cn('w-full space-y-6', className)}
     >
       {(prevPost || nextPost) && (
@@ -34,12 +30,9 @@ export function BlogNavigation({ list, className }: BlogNavigationProps) {
               <Link
                 to={prevPost.url}
                 className={cn(
-                  'group flex items-center gap-3 rounded-xl p-4',
-                  'from-muted/50 bg-gradient-to-r to-transparent',
-                  'border-border/30 hover:border-border/60 border',
-                  'transition-all duration-300',
-                  'hover:from-muted/80 hover:to-muted/20 hover:bg-gradient-to-r',
-                  'transform hover:-translate-y-1 hover:shadow-lg',
+                  'group flex items-center gap-3 rounded-lg p-4',
+                  'bg-muted/30 border-border/30 border',
+                  'hover:bg-muted/50 hover:border-border/60 transition-colors',
                   'w-full max-w-sm',
                 )}
               >
@@ -50,7 +43,7 @@ export function BlogNavigation({ list, className }: BlogNavigationProps) {
                   <div className="text-muted-foreground mb-1 text-xs font-medium">
                     {t('blog.detail.previousPost')}
                   </div>
-                  <div className="group-hover:text-gray-700 truncate text-sm font-medium transition-colors">
+                  <div className="truncate text-sm font-medium transition-colors">
                     {prevPost.title}
                   </div>
                 </div>
@@ -66,12 +59,9 @@ export function BlogNavigation({ list, className }: BlogNavigationProps) {
               <Link
                 to={nextPost.url}
                 className={cn(
-                  'group flex items-center gap-3 rounded-xl p-4',
-                  'from-muted/50 bg-gradient-to-l to-transparent',
-                  'border-border/30 hover:border-border/60 border',
-                  'transition-all duration-300',
-                  'hover:from-muted/80 hover:to-muted/20 hover:bg-gradient-to-l',
-                  'transform hover:-translate-y-1 hover:shadow-lg',
+                  'group flex items-center gap-3 rounded-lg p-4',
+                  'bg-muted/30 border-border/30 border',
+                  'hover:bg-muted/50 hover:border-border/60 transition-colors',
                   'w-full max-w-sm text-right',
                 )}
               >
@@ -79,7 +69,7 @@ export function BlogNavigation({ list, className }: BlogNavigationProps) {
                   <div className="text-muted-foreground mb-1 text-xs font-medium">
                     {t('blog.detail.nextPost')}
                   </div>
-                  <div className="group-hover:text-gray-700 truncate text-sm font-medium transition-colors">
+                  <div className="truncate text-sm font-medium transition-colors">
                     {nextPost.title}
                   </div>
                 </div>
@@ -93,6 +83,6 @@ export function BlogNavigation({ list, className }: BlogNavigationProps) {
           </div>
         </div>
       )}
-    </motion.div>
+    </div>
   );
 }

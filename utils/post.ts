@@ -35,7 +35,11 @@ export const generatePostsMetadata = async (postsDirectory: string, filePrefix: 
   // Load Git configuration once at the start
   const gitConfig = loadGitConfig()
 
-  const filteredPosts = allFiles.filter(fileName => normalizedPrefix.some(prefix => fileName.startsWith(prefix)))
+  const filteredPosts = allFiles.filter(
+    (fileName) =>
+      fileName.endsWith('.mdx') &&
+      normalizedPrefix.some((prefix) => fileName.startsWith(prefix)),
+  )
   const postMetadataList = await Promise.all(filteredPosts.map(async fileName => {
     const fullPath = path.join(postsDirectory, fileName)
     const postContent = await fs.readFile(fullPath, "utf8")

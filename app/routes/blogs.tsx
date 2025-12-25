@@ -1,6 +1,5 @@
 import { Outlet, useLocation } from "@remix-run/react";
 import { useEffect, useRef, useState } from "react";
-import { motion } from "motion/react";
 import { BlogNavigation } from "~/features/blog/components/blog-detail/blog-navigation";
 import { DetailHeader } from "~/features/blog/components/blog-detail/detail-header";
 import { ScrollToTopButton } from "~/features/blog/components/blog-detail/scroll-to-top";
@@ -49,29 +48,20 @@ export default function BlogsLayout() {
       {listItem && <TableOfContentsMobile tocs={tocs} />}
 
       {listItem && (
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.4 }}
+        <div
           className="fixed top-30 left-4 z-40 hidden max-h-[calc(100vh-8rem)] w-56 pb-8 xl:block"
         >
           <div className="max-h-[calc(100vh-12rem)] overflow-y-auto pr-2">
             <TableOfContentsPC tocs={tocs} className="w-full" />
           </div>
-        </motion.div>
+        </div>
       )}
 
       <div className="relative mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8">
         {listItem && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{
-                opacity: showStickyHeader ? 1 : 0,
-                y: showStickyHeader ? 0 : -20,
-              }}
-              transition={{ duration: 0.2 }}
-              className={`bg-background/80 fixed inset-x-0 top-[56px] z-50 border-b border-zinc-200/60 backdrop-blur-md transition ${
-                showStickyHeader ? "pointer-events-auto" : "pointer-events-none"
+            <div
+              className={`bg-background/80 fixed inset-x-0 top-[56px] z-50 border-b border-zinc-200/60 backdrop-blur-md transition-opacity ${
+                showStickyHeader ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
               }`}
             >
             <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-4 py-3 sm:px-6">
@@ -79,7 +69,7 @@ export default function BlogsLayout() {
                 {title}
               </h1>
             </div>
-          </motion.div>
+          </div>
         )}
 
         <div className="blog-detail-content blog-detail-scroll-container min-w-0">
