@@ -8,25 +8,33 @@ export default {
 	theme: {
 		extend: {
 			colors: {
+				parchment: "#F9F7F2",
+				ink: {
+					DEFAULT: "#0A0A0B",
+					400: "#2D2D2D",
+					500: "#1A1A1A",
+					600: "#0A0A0B",
+				},
+				gold: "#D4AF37",
+				"madinah-green": "#064E3B",
+				emerald: "#10B981",
 				main: {
-					DEFAULT: "#2d2d2d",
-					400: "#4a4a4a",
-					500: "#2d2d2d",
-					600: "#1a1a1a",
-					700: "#0a0a0a",
+					DEFAULT: "#0A0A0B",
+					400: "#2D2D2D",
+					500: "#1A1A1A",
+					600: "#0A0A0B",
+					700: "#050505",
 				},
 			},
 			fontFamily: {
+				display: ['"Fraunces"', "serif"],
 				sans: [
-					'"Inter"',
+					'"Instrument Sans"',
 					"ui-sans-serif",
 					"system-ui",
 					"sans-serif",
-					'"Apple Color Emoji"',
-					'"Segoe UI Emoji"',
-					'"Segoe UI Symbol"',
-					'"Noto Color Emoji"',
 				],
+				mono: ['"Commit Mono"', "monospace"],
 			},
 		},
 	},
