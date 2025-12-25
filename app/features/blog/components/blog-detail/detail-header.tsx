@@ -22,11 +22,11 @@ export const DetailHeader = forwardRef<HTMLElement, BlogContentProps>(
         >
           {title && (
             <header ref={ref} className="mb-10 space-y-6">
-              {title && (
-                <h1 className="text-left text-3xl font-bold tracking-tight text-balance text-blue-600 sm:text-4xl dark:text-blue-400">
-                  {title}
-                </h1>
-              )}
+                {title && (
+                  <h1 className="text-left text-3xl font-bold tracking-tight text-balance text-foreground sm:text-4xl">
+                    {title}
+                  </h1>
+                )}
             </header>
           )}
 

@@ -8,22 +8,22 @@ export default {
 	theme: {
 		extend: {
 			colors: {
-				parchment: "#F9F7F2",
+				parchment: "#FFFFFF",
 				ink: {
-					DEFAULT: "#0A0A0B",
-					400: "#2D2D2D",
-					500: "#1A1A1A",
-					600: "#0A0A0B",
+					DEFAULT: "#000000",
+					400: "#404040",
+					500: "#262626",
+					600: "#000000",
 				},
-				gold: "#D4AF37",
-				"madinah-green": "#064E3B",
-				emerald: "#10B981",
+				gold: "#000000",
+				"madinah-green": "#000000",
+				emerald: "#000000",
 				main: {
-					DEFAULT: "#0A0A0B",
-					400: "#2D2D2D",
-					500: "#1A1A1A",
-					600: "#0A0A0B",
-					700: "#050505",
+					DEFAULT: "#000000",
+					400: "#404040",
+					500: "#262626",
+					600: "#000000",
+					700: "#000000",
 				},
 			},
 			fontFamily: {

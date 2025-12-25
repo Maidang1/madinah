@@ -22,14 +22,13 @@ export function ErrorState({
     <div
       role="alert"
       className={cn(
-        "space-y-3 rounded-2xl border border-red-200 bg-red-50 p-6 text-center text-red-700 transition",
-        "dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-100",
+        "space-y-3 rounded-none border-2 border-foreground bg-background p-6 text-center text-foreground transition",
         className,
       )}
     >
-      <h2 className="text-lg font-semibold">{resolvedTitle}</h2>
+      <h2 className="text-lg font-bold uppercase">{resolvedTitle}</h2>
       {message ? (
-        <p className="text-sm text-red-600 dark:text-red-100">{message}</p>
+        <p className="text-sm font-medium">{message}</p>
       ) : null}
       {action ? <div className="flex justify-center">{action}</div> : null}
     </div>
