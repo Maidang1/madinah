@@ -19,19 +19,30 @@ export default function BlogsLayout() {
   const [showStickyHeader, setShowStickyHeader] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
 
-  useEffect(() => {
-    if (!headerRef.current) return;
-    const handleScroll = () => {
-      const headerRect = headerRef.current?.getBoundingClientRect();
-      if (headerRect) {
-        setShowStickyHeader(headerRect.bottom < 80);
-      }
-    };
+    useEffect(() => {
+      if (!headerRef.current) return;
+      const handleScroll = () => {
+        const headerRect = headerRef.current?.getBoundingClientRect();
+        if (headerRect) {
+          setShowStickyHeader(headerRect.bottom < 80);
+        }
+      };
 
-    handleScroll();
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+      handleScroll();
+      window.addEventListener("scroll", handleScroll, { passive: true });
+      return () => {
+        window.removeEventListener("scroll", handleScroll);
+        window.dispatchEvent(
+          new CustomEvent("blog-sticky-header-change", { detail: false })
+        );
+      };
+    }, []);
+
+    useEffect(() => {
+      window.dispatchEvent(
+        new CustomEvent("blog-sticky-header-change", { detail: showStickyHeader })
+      );
+    }, [showStickyHeader]);
 
   return (
     <>

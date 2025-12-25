@@ -1,6 +1,6 @@
 import { Link, NavLink } from '@remix-run/react';
 import { MoonIcon, SunIcon, RssIcon } from 'lucide-react';
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { cn } from '~/core/utils';
 import type { Theme, Locale } from '~/types';
@@ -13,6 +13,16 @@ interface SiteHeaderProps {
 
 export function SiteHeader({ theme, onThemeToggle }: SiteHeaderProps) {
   const { t, locale, setLocale, availableLocales } = useTranslation();
+  const [isBlogHeaderActive, setIsBlogHeaderActive] = useState(false);
+
+  useEffect(() => {
+    const handleToggle = (e: Event) => {
+      setIsBlogHeaderActive((e as CustomEvent).detail);
+    };
+    window.addEventListener('blog-sticky-header-change', handleToggle);
+    return () =>
+      window.removeEventListener('blog-sticky-header-change', handleToggle);
+  }, []);
 
   const navItems: { to: string; label: string; end?: boolean }[] = useMemo(
     () => [
@@ -34,7 +44,10 @@ export function SiteHeader({ theme, onThemeToggle }: SiteHeaderProps) {
   return (
     <motion.header 
       initial={{ y: -20, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
+      animate={{ 
+        y: isBlogHeaderActive ? -100 : 0, 
+        opacity: isBlogHeaderActive ? 0 : 1 
+      }}
       className="fixed top-6 left-0 right-0 z-50 flex justify-center px-4 pointer-events-none"
     >
       <div className="pointer-events-auto flex items-center gap-6 px-6 py-3 rounded-full border border-border bg-background/80 backdrop-blur-xl shadow-2xl shadow-black/10 transition-all duration-300">
