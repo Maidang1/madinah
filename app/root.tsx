@@ -150,13 +150,12 @@ export function Layout(props: { children: React.ReactNode }) {
         <title>Madinah</title>
       </head>
       <body className="bg-background text-foreground min-h-screen antialiased">
-        <div className="noise-overlay" />
         <I18nProvider initialLocale={locale}>
           <div className="flex min-h-screen flex-col">
             <SiteHeader theme={actualTheme} onThemeToggle={toggleTheme} />
             <main
               id="main-content"
-              className="mx-auto w-full flex-1 px-4 pt-20 pb-12 sm:pt-24 sm:pb-16"
+              className="mx-auto w-full flex-1 px-4 pt-32 pb-12 sm:pt-40 sm:pb-16"
             >
               <div className="space-y-12">{children}</div>
             </main>

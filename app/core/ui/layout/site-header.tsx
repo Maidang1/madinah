@@ -43,18 +43,16 @@ export function SiteHeader({ theme, onThemeToggle }: SiteHeaderProps) {
 
   return (
     <header 
-      className="fixed top-0 left-0 right-0 z-[60] w-full border-b border-border bg-background/80 backdrop-blur-xl transition-all duration-300"
+      className="fixed top-0 left-0 right-0 z-[60] w-full bg-background/80 backdrop-blur-sm transition-all duration-300"
     >
-      <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3 sm:px-6">
-        <div className="flex items-center gap-6">
+      <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-6 sm:px-6">
+        <div className="flex items-center gap-8">
           <Link
             to="/"
-            className="font-display text-xl font-bold tracking-tight transition-all hover:scale-105"
+            className="font-display text-lg font-bold tracking-tight hover:opacity-60 transition-opacity"
           >
             {t('header.brand')}
           </Link>
-
-          <div className="h-4 w-[1px] bg-border hidden sm:block" />
 
           <nav className="hidden items-center gap-6 text-sm font-medium sm:flex">
             {navItems.map((item) => (
@@ -65,29 +63,19 @@ export function SiteHeader({ theme, onThemeToggle }: SiteHeaderProps) {
                 end={item.end}
                 className={({ isActive }) =>
                   cn(
-                    'relative py-1 transition-colors hover:text-foreground',
+                    'transition-all hover:opacity-60',
                     isActive ? 'text-foreground font-semibold' : 'text-muted-foreground',
                   )
                 }
               >
-                {({ isActive }) => (
-                  <>
-                    {item.label}
-                    {isActive && (
-                      <motion.div
-                        layoutId="nav-underline"
-                        className="absolute -bottom-1 left-0 right-0 h-[2px] bg-primary rounded-full"
-                      />
-                    )}
-                  </>
-                )}
+                {item.label}
               </NavLink>
             ))}
           </nav>
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-3">
             {languageOptions.map((option) => {
               const isActive = option.code === locale;
               return (
@@ -96,10 +84,10 @@ export function SiteHeader({ theme, onThemeToggle }: SiteHeaderProps) {
                   type="button"
                   onClick={() => setLocale(option.code)}
                   className={cn(
-                    'px-2 py-1 text-[10px] font-bold tracking-widest uppercase rounded-md transition-all',
+                    'text-[10px] font-bold tracking-widest uppercase transition-all hover:opacity-60',
                     isActive
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:bg-muted',
+                      ? 'text-foreground'
+                      : 'text-muted-foreground',
                   )}
                 >
                   {option.code}
@@ -111,7 +99,7 @@ export function SiteHeader({ theme, onThemeToggle }: SiteHeaderProps) {
           <button
             type="button"
             onClick={onThemeToggle}
-            className="p-2 rounded-full hover:bg-muted transition-colors"
+            className="hover:opacity-60 transition-opacity"
             aria-label={t('header.themeToggle')}
           >
             {theme === 'dark' ? (
@@ -120,16 +108,9 @@ export function SiteHeader({ theme, onThemeToggle }: SiteHeaderProps) {
               <MoonIcon className="w-4 h-4" />
             )}
           </button>
-
-          <a
-            href="/rss.xml"
-            className="p-2 rounded-full hover:bg-muted transition-colors text-muted-foreground hidden sm:block"
-            aria-label="RSS"
-          >
-            <RssIcon className="w-4 h-4" />
-          </a>
         </div>
       </div>
     </header>
   );
 }
+
