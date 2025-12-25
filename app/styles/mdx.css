@@ -1,3 +1,6 @@
+@reference "tailwindcss";
+@config '../../tailwind.config.ts';
+
 /* MDX Editorial Styles */
 .mdx-content {
   @apply font-sans text-lg leading-relaxed text-foreground/90;
