@@ -156,7 +156,7 @@ export function Layout(props: { children: React.ReactNode }) {
             <SiteHeader theme={actualTheme} onThemeToggle={toggleTheme} />
             <main
               id="main-content"
-              className="mx-auto w-full flex-1 px-4 py-12 sm:py-16"
+              className="mx-auto w-full flex-1 px-4 pt-20 pb-12 sm:pt-24 sm:pb-16"
             >
               <div className="space-y-12">{children}</div>
             </main>

@@ -63,17 +63,17 @@ export default function BlogsLayout() {
 
       <div className="relative mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8">
         {listItem && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{
-              opacity: showStickyHeader ? 1 : 0,
-              y: showStickyHeader ? 0 : -20,
-            }}
-            transition={{ duration: 0.2 }}
-            className={`bg-background/80 fixed inset-x-0 top-0 z-50 border-b border-zinc-200/60 backdrop-blur-md transition ${
-              showStickyHeader ? "pointer-events-auto" : "pointer-events-none"
-            }`}
-          >
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{
+                opacity: showStickyHeader ? 1 : 0,
+                y: showStickyHeader ? 0 : -20,
+              }}
+              transition={{ duration: 0.2 }}
+              className={`bg-background/80 fixed inset-x-0 top-[56px] z-50 border-b border-zinc-200/60 backdrop-blur-md transition ${
+                showStickyHeader ? "pointer-events-auto" : "pointer-events-none"
+              }`}
+            >
             <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-4 py-3 sm:px-6">
               <h1 className="truncate text-base font-semibold tracking-tight sm:text-lg">
                 {title}

@@ -42,54 +42,49 @@ export function SiteHeader({ theme, onThemeToggle }: SiteHeaderProps) {
   );
 
   return (
-    <motion.header 
-      initial={{ y: -20, opacity: 0 }}
-      animate={{ 
-        y: isBlogHeaderActive ? -100 : 0, 
-        opacity: isBlogHeaderActive ? 0 : 1 
-      }}
-      className="fixed top-6 left-0 right-0 z-50 flex justify-center px-4 pointer-events-none"
+    <header 
+      className="fixed top-0 left-0 right-0 z-[60] w-full border-b border-border bg-background/80 backdrop-blur-xl transition-all duration-300"
     >
-      <div className="pointer-events-auto flex items-center gap-6 px-6 py-3 rounded-full border border-border bg-background/80 backdrop-blur-xl shadow-2xl shadow-black/10 transition-all duration-300">
-        <Link
-          to="/"
-          className="font-display text-xl font-bold tracking-tight transition-all hover:scale-105"
-        >
-          {t('header.brand')}
-        </Link>
+      <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3 sm:px-6">
+        <div className="flex items-center gap-6">
+          <Link
+            to="/"
+            className="font-display text-xl font-bold tracking-tight transition-all hover:scale-105"
+          >
+            {t('header.brand')}
+          </Link>
 
-        <div className="h-4 w-[1px] bg-border" />
+          <div className="h-4 w-[1px] bg-border hidden sm:block" />
 
-        <nav className="flex items-center gap-6 text-sm font-medium">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              prefetch="intent"
-              end={item.end}
-              className={({ isActive }) =>
-                cn(
-                  'relative py-1 transition-colors hover:text-foreground',
-                  isActive ? 'text-foreground font-semibold' : 'text-muted-foreground',
-                )
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  {item.label}
-                  {isActive && (
-                    <motion.div
-                      layoutId="nav-underline"
-                      className="absolute -bottom-1 left-0 right-0 h-[2px] bg-primary rounded-full"
-                    />
-                  )}
-                </>
-              )}
-            </NavLink>
-          ))}
-        </nav>
-
-        <div className="h-4 w-[1px] bg-border" />
+          <nav className="hidden items-center gap-6 text-sm font-medium sm:flex">
+            {navItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                prefetch="intent"
+                end={item.end}
+                className={({ isActive }) =>
+                  cn(
+                    'relative py-1 transition-colors hover:text-foreground',
+                    isActive ? 'text-foreground font-semibold' : 'text-muted-foreground',
+                  )
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    {item.label}
+                    {isActive && (
+                      <motion.div
+                        layoutId="nav-underline"
+                        className="absolute -bottom-1 left-0 right-0 h-[2px] bg-primary rounded-full"
+                      />
+                    )}
+                  </>
+                )}
+              </NavLink>
+            ))}
+          </nav>
+        </div>
 
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1">
@@ -128,13 +123,13 @@ export function SiteHeader({ theme, onThemeToggle }: SiteHeaderProps) {
 
           <a
             href="/rss.xml"
-            className="p-2 rounded-full hover:bg-muted transition-colors text-muted-foreground"
+            className="p-2 rounded-full hover:bg-muted transition-colors text-muted-foreground hidden sm:block"
             aria-label="RSS"
           >
             <RssIcon className="w-4 h-4" />
           </a>
         </div>
       </div>
-    </motion.header>
+    </header>
   );
 }
