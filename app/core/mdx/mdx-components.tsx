@@ -50,7 +50,7 @@ export const H1 = ({
   <h1
     id={id}
     className={cn(
-      'mt-12 mb-8 text-3xl font-bold first:mt-0 md:text-4xl',
+      'mt-16 mb-10 text-3xl font-bold first:mt-0 md:text-4xl',
       'text-zinc-900 dark:text-zinc-100',
       'leading-tight tracking-tight',
       'border-b border-zinc-200/50 pb-4 dark:border-zinc-700/50',
@@ -72,7 +72,7 @@ export const H2 = ({
   <h2
     id={id}
     className={cn(
-      'group mt-10 mb-6 text-2xl font-semibold md:text-3xl',
+      'group mt-14 mb-8 text-2xl font-semibold md:text-3xl',
       'text-zinc-800 dark:text-zinc-200',
       'leading-snug tracking-tight',
       'group heading-group relative',
@@ -95,7 +95,7 @@ export const H3 = ({
   <h3
     id={id}
     className={cn(
-      'mt-8 mb-4 text-xl font-semibold md:text-2xl',
+      'mt-10 mb-6 text-xl font-semibold md:text-2xl',
       'text-zinc-800 dark:text-zinc-200',
       'tracking-tight',
       'group heading-group relative',
@@ -118,7 +118,7 @@ export const H4 = ({
   <h4
     id={id}
     className={cn(
-      'mt-6 mb-3 text-lg font-medium md:text-xl',
+      'mt-8 mb-4 text-lg font-medium md:text-xl',
       'text-zinc-700 dark:text-zinc-300',
       'tracking-tight',
       'group heading-group',
@@ -141,7 +141,7 @@ export const H5 = ({
   <h5
     id={id}
     className={cn(
-      'mt-5 mb-3 text-base font-medium',
+      'mt-6 mb-4 text-base font-medium',
       'text-zinc-700 dark:text-zinc-300',
       'group heading-group',
       'flex items-center gap-1',
@@ -163,7 +163,7 @@ export const H6 = ({
   <h6
     id={id}
     className={cn(
-      'mt-4 mb-2 text-sm font-medium md:text-base',
+      'mt-6 mb-3 text-sm font-medium md:text-base',
       'text-zinc-600 dark:text-zinc-400',
       'tracking-wider uppercase',
       'group heading-group',
@@ -181,7 +181,7 @@ export const H6 = ({
 export const P = ({ children, className, ...props }: ParagraphProps & any) => (
   <p
     className={cn(
-      'mb-6 text-base leading-7',
+      'mb-8 text-lg leading-8',
       'text-zinc-700 dark:text-zinc-300',
       'font-normal',
       className,
@@ -223,7 +223,7 @@ export const A = ({ children, href, className, ...props }: LinkProps & any) => {
 export const UL = ({ children, className, ...props }: ListProps & any) => (
   <ul
     className={cn(
-      'mb-6 list-none space-y-2 pl-0',
+      'mb-8 list-none space-y-3 pl-0',
       'text-zinc-700 dark:text-zinc-300',
       className,
     )}
@@ -236,7 +236,7 @@ export const UL = ({ children, className, ...props }: ListProps & any) => (
 export const OL = ({ children, className, ...props }: ListProps & any) => (
   <ol
     className={cn(
-      'mdx-content mb-6 list-none space-y-2 pl-0',
+      'mdx-content mb-8 list-none space-y-3 pl-0',
       'text-zinc-700 dark:text-zinc-300',
       className,
     )}
@@ -249,7 +249,7 @@ export const OL = ({ children, className, ...props }: ListProps & any) => (
 export const LI = ({ children, className, ...props }: any) => (
   <li
     className={cn(
-      'relative pl-6 leading-7',
+      'relative pl-6 text-lg leading-8',
       'before:absolute before:left-0 before:font-bold before:text-zinc-400 before:content-["•"]',
       '[ol_&]:before:content-none', // 移除有序列表中的点
       className,
@@ -268,10 +268,10 @@ export const Blockquote = ({
 }: BlockquoteProps & any) => (
   <blockquote
     className={cn(
-      'mb-6 border-l-4 border-zinc-300 py-2 pl-6 dark:border-zinc-600',
+      'mb-8 border-l-4 border-zinc-300 py-3 pl-6 dark:border-zinc-600',
       'rounded-r-lg bg-zinc-50/50 dark:bg-zinc-800/20',
       'text-zinc-600 italic dark:text-zinc-400',
-      'text-lg leading-relaxed font-medium',
+      'text-xl leading-relaxed font-medium',
       className,
     )}
     {...props}
@@ -284,7 +284,7 @@ export const Blockquote = ({
 export const Code = ({ children, className, ...props }: CodeProps & any) => (
   <code
     className={cn(
-      'rounded border-0 px-1 py-0.5 font-mono text-sm',
+      'rounded border-0 px-1.5 py-0.5 font-mono text-sm',
       'bg-zinc-200/70 text-zinc-900 dark:bg-zinc-800/60 dark:text-zinc-100',
       'border border-zinc-300 dark:border-zinc-700',
       className,
@@ -300,18 +300,20 @@ export const HR = ({ className, ...props }: any) => (
   <hr
     className={cn(
       'h-px border-none bg-gradient-to-r from-transparent via-zinc-300 to-transparent dark:via-zinc-600',
-      'mx-auto my-12 w-1/2',
+      'mx-auto my-16 w-1/2',
       className,
     )}
     {...props}
-  />
+  >
+    {/* ... */}
+  </hr>
 );
 
 // 图片组件 - 响应式和圆角设计
 export const Img = ({ className, alt, ...props }: any) => (
   <img
     className={cn(
-      'mb-6 h-auto max-w-full rounded-lg shadow-md',
+      'mb-8 h-auto max-w-full rounded-lg shadow-md',
       'border border-zinc-200 dark:border-zinc-700',
       className,
     )}
@@ -322,7 +324,7 @@ export const Img = ({ className, alt, ...props }: any) => (
 
 // 表格组件
 export const Table = ({ children, className, ...props }: any) => (
-  <div className="mb-6 overflow-x-auto">
+  <div className="mb-8 overflow-x-auto">
     <table
       className={cn(
         'w-full border-collapse',
@@ -401,7 +403,7 @@ export const Callout = ({
   return (
     <div
       className={cn(
-        'relative mb-6 rounded-lg border p-4',
+        'relative mb-8 rounded-lg border p-5',
         'backdrop-blur-sm',
         typeStyles[type],
         className,
@@ -413,7 +415,7 @@ export const Callout = ({
           <span>{title}</span>
         </div>
       )}
-      <div className="prose prose-sm max-w-none">{children}</div>
+      <div className="prose prose-lg max-w-none leading-8">{children}</div>
     </div>
   );
 };
@@ -433,7 +435,7 @@ export const CodeGroup = ({
   const [activeTab, setActiveTab] = useState(0);
 
   return (
-    <div className={cn('mb-6', className)}>
+    <div className={cn('mb-8', className)}>
       {titles.length > 0 && (
         <div className="mb-0 flex border-b border-zinc-200 dark:border-zinc-700">
           {titles.map((title, index) => (
