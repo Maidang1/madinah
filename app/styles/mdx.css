@@ -1,24 +1,23 @@
-@reference "tailwindcss";
-@config '../../tailwind.config.ts';
+@reference "./tailwind.css";
 
 /* MDX Editorial Styles */
 .mdx-content {
-  @apply font-sans text-lg leading-relaxed text-foreground/90;
+  @apply font-sans text-lg leading-relaxed text-ink/90;
 }
 
 .mdx-content h1, 
 .mdx-content h2, 
 .mdx-content h3 {
-  @apply font-display tracking-tight text-foreground mt-16 mb-8;
+  @apply font-display tracking-tight text-ink mt-16 mb-8;
 }
 
 .mdx-content h1 { @apply text-6xl md:text-7xl lg:text-8xl leading-[0.85] mb-12; }
-.mdx-content h2 { @apply text-4xl md:text-5xl leading-[0.9] border-t border-border/40 pt-12; }
+.mdx-content h2 { @apply text-4xl md:text-5xl leading-[0.9] border-t border-ink/10 pt-12; }
 .mdx-content h3 { @apply text-2xl md:text-3xl font-display italic leading-snug; }
 
 /* First Paragraph Drop Cap */
 .mdx-content > p:first-of-type::first-letter {
-  @apply font-display font-bold text-7xl float-left mr-4 mt-2 leading-[0.8] text-primary;
+  @apply font-display font-bold text-7xl float-left mr-4 mt-2 leading-[0.8] text-madinah-green;
 }
 
 .mdx-content p {
@@ -26,19 +25,19 @@
 }
 
 .mdx-content blockquote {
-  @apply border-l-4 border-primary/40 pl-8 my-12 italic font-display text-2xl text-foreground/80 leading-relaxed;
+  @apply border-l-4 border-madinah-green/40 pl-8 my-12 italic font-display text-2xl text-ink/80 leading-relaxed;
 }
 
 .mdx-content hr {
-  @apply my-24 border-none h-[1px] bg-gradient-to-r from-transparent via-border/60 to-transparent;
+  @apply my-24 border-none h-[1px] bg-gradient-to-r from-transparent via-ink/20 to-transparent;
 }
 
 .mdx-content pre {
-  @apply rounded-none border border-border/40 bg-ink/5 dark:bg-ink/40 my-12 p-6 overflow-x-auto;
+  @apply rounded-none border border-ink/10 bg-ink/5 dark:bg-ink/40 my-12 p-6 overflow-x-auto;
 }
 
 .mdx-content code {
-  @apply font-mono text-[0.9em] bg-muted px-1.5 py-0.5 rounded-sm;
+  @apply font-mono text-[0.9em] bg-ink/5 px-1.5 py-0.5 rounded-sm;
 }
 
 /* 全局隐藏滚动条 */
