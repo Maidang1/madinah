@@ -1,5 +1,4 @@
 import { Link } from "@remix-run/react";
-import { motion } from "motion/react";
 import { cn } from "~/core/utils";
 import type { BookSummaryInfo } from "~/types";
 import { useTranslation } from "~/core/i18n";
@@ -26,35 +25,24 @@ export function BookList({ books }: BookListProps) {
       <div className="absolute left-5 top-0 h-full w-0.5 bg-gradient-to-b from-gray-400/40 via-gray-700/60 to-gray-400/40" />
 
       <div className="space-y-8">
-        {books.map((book, index) => (
-          <motion.div
+        {books.map((book) => (
+          <div
             key={book.id}
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{
-              duration: 0.5,
-              delay: index * 0.08,
-              ease: [0.21, 0.47, 0.32, 0.99],
-            }}
             className="relative pl-14"
           >
             <div className="absolute left-3 top-3.5">
               <div className="relative">
                 <div className="h-3 w-3 rounded-full bg-gradient-to-br from-gray-600 to-black shadow-lg shadow-gray-900/40" />
-                <div className="absolute inset-0 h-3 w-3 rounded-full bg-gray-500 animate-ping opacity-20" />
               </div>
             </div>
 
-            <motion.div
-              whileHover={{ y: -2, scale: 1.01 }}
-              className="group relative overflow-hidden rounded-xl border border-border/50 bg-gradient-to-br from-background/80 to-background/60 backdrop-blur-xl hover:border-main-400/50 shadow-md hover:shadow-xl transition-all duration-300"
+            <div
+              className="group relative overflow-hidden rounded-xl border border-border/50 bg-background/80 backdrop-blur-xl transition-all duration-300"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-gray-500/[0.03] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-
               <div className="relative flex flex-col gap-3 p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
-                    <h2 className="text-xl font-bold text-foreground mb-1.5 group-hover:text-gray-700 transition-colors">
+                    <h2 className="text-xl font-bold text-foreground mb-1.5 transition-colors">
                       {book.title}
                     </h2>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
@@ -130,7 +118,7 @@ export function BookList({ books }: BookListProps) {
                   )}
                 </div>
 
-                <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2 pl-4 border-l-2 border-gray-700/20 group-hover:border-gray-700/40 transition-colors">
+                <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2 pl-4 border-l-2 border-gray-700/20 transition-colors">
                   {book.description}
                 </p>
 
@@ -141,13 +129,12 @@ export function BookList({ books }: BookListProps) {
                   <Link
                     to={`/books/${book.id}`}
                     className={cn(
-                      "group/btn inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-gray-700 to-gray-900 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all",
-                      "hover:shadow-md hover:shadow-gray-900/40 hover:from-gray-800 hover:to-black active:scale-95",
+                      "group/btn inline-flex items-center gap-1.5 rounded-lg bg-gray-800 px-3 py-1.5 text-xs font-semibold text-white transition-all active:scale-95",
                     )}
                   >
                     {t("books.list.startReading")}
                     <svg
-                      className="h-3.5 w-3.5 transition-transform group-hover/btn:translate-x-0.5"
+                      className="h-3.5 w-3.5"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -162,8 +149,8 @@ export function BookList({ books }: BookListProps) {
                   </Link>
                 </div>
               </div>
-            </motion.div>
-          </motion.div>
+            </div>
+          </div>
         ))}
       </div>
     </div>

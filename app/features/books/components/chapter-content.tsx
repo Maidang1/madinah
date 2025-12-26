@@ -1,4 +1,3 @@
-import { motion } from "motion/react";
 import type { ReactNode } from "react";
 import { MDXWrapper } from "~/core/mdx/mdx-wrapper";
 import { LicenseNotice } from "~/core/ui/common/license-notice";
@@ -16,10 +15,7 @@ export function BookChapterContent({
   children,
 }: BookChapterContentProps) {
   return (
-    <motion.article
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
+    <article
       className="border-border/60 bg-background/80 dark:bg-background/60 min-w-0 rounded-2xl border p-8 shadow-sm backdrop-blur"
     >
       <header className="mb-10 space-y-4">
@@ -40,6 +36,6 @@ export function BookChapterContent({
         {children}
       </MDXWrapper>
       <LicenseNotice />
-    </motion.article>
+    </article>
   );
 }

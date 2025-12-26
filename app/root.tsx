@@ -38,7 +38,7 @@ export const links: LinksFunction = () => [
   },
   {
     rel: 'stylesheet',
-    href: 'https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap',
+    href: 'https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&display=swap',
   },
 ];
 
@@ -155,7 +155,7 @@ export function Layout(props: { children: React.ReactNode }) {
             <SiteHeader theme={actualTheme} onThemeToggle={toggleTheme} />
             <main
               id="main-content"
-              className="mx-auto w-full flex-1 px-4 py-12 sm:py-16"
+              className="mx-auto w-full flex-1 px-4 pt-32 pb-12 sm:pt-40 sm:pb-16"
             >
               <div className="space-y-12">{children}</div>
             </main>

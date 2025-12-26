@@ -21,11 +21,11 @@ export function SiteFooter() {
       [t],
     );
 
-  return (
-    <footer className="border-border bg-background border-t">
-      <div className="text-muted-foreground mx-auto flex w-full max-w-3xl flex-col gap-3 px-4 py-8 text-sm sm:flex-row sm:items-center sm:justify-between">
-        <p>{t('footer.message', { replace: { year } })}</p>
-        <nav className="flex flex-wrap items-center gap-4">
+    return (
+    <footer className="bg-background">
+      <div className="text-muted-foreground mx-auto flex w-full max-w-3xl flex-col gap-3 px-4 py-12 text-xs sm:flex-row sm:items-center sm:justify-between border-t border-border/40">
+        <p className="font-medium">{t('footer.message', { replace: { year } })}</p>
+        <nav className="flex flex-wrap items-center gap-6">
           {footerLinks.map((item) =>
             item.external ? (
               <a
@@ -33,7 +33,7 @@ export function SiteFooter() {
                 href={item.to}
                 target="_blank"
                 rel="noreferrer"
-                className="hover:text-accent focus-visible:outline-ring transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                className="hover:text-foreground transition-colors font-medium"
               >
                 {item.label}
               </a>
@@ -41,7 +41,7 @@ export function SiteFooter() {
               <Link
                 key={item.label}
                 to={item.to}
-                className="hover:text-accent focus-visible:outline-ring transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                className="hover:text-foreground transition-colors font-medium"
               >
                 {item.label}
               </Link>
@@ -52,3 +52,4 @@ export function SiteFooter() {
     </footer>
   );
 }
+

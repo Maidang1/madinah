@@ -125,6 +125,10 @@ export const translations: Record<SupportedLocale, TranslationDictionary> = {
           name: 'tasuku-rs',
           description: 'A minimal task visualizer for Rust with async rendering.',
         },
+        reminderCli: {
+          name: 'reminder-cli',
+          description: 'A Rust-based command-line reminder tool that supports cron expressions and natural language to set periodic reminders and alert users via system notifications.',
+        },
       },
     },
     books: {
@@ -300,6 +304,10 @@ export const translations: Record<SupportedLocale, TranslationDictionary> = {
           name: 'tasuku-rs',
           description: '用 Rust 构建的轻量任务可视化库，支持异步渲染。',
         },
+        reminderCli: {
+          name: 'reminder-cli',
+          description: '一个基于 Rust 的命令行提醒工具，支持 cron 表达式和自然语言设置周期性提醒，并通过系统通知提醒用户。',
+        }
       },
     },
     books: {
