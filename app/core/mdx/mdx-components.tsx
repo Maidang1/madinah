@@ -276,19 +276,34 @@ export const Blockquote = ({
 );
 
 // 行内代码 - 柔和的背景色
-export const Code = ({ children, className, ...props }: CodeProps & any) => (
-  <code
-    className={cn(
-      'rounded border-0 px-1.5 py-0.5 font-mono text-sm',
-      'bg-muted text-foreground',
-      'border border-border',
-      className,
-    )}
-    {...props}
-  >
-    {children}
-  </code>
-);
+export const Code = ({ children, className, ...props }: CodeProps & any) => {
+  const isInPre =
+    className?.includes('shiki') ||
+    className?.includes('code-container') ||
+    props['data-language'];
+
+  if (isInPre) {
+    return (
+      <code className={className} {...props}>
+        {children}
+      </code>
+    );
+  }
+
+  return (
+    <code
+      className={cn(
+        'rounded border-0 px-1.5 py-0.5 font-mono text-sm',
+        'bg-muted text-foreground',
+        'border border-border',
+        className,
+      )}
+      {...props}
+    >
+      {children}
+    </code>
+  );
+};
 
 // 水平分割线
 export const HR = ({ className, ...props }: any) => (

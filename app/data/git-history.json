@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2025-12-09T09:39:36.947Z",
+  "generatedAt": "2026-01-06T14:40:57.920Z",
   "files": {
     "app/routes/blogs.algorithm.mdx": {
       "createdAt": "2024-10-24T00:39:29+08:00",
@@ -51,6 +51,19 @@
           "author": "maidang1",
           "message": "feat: add farmfe plugins ci post",
           "githubUrl": "https://github.com/Maidang1/madinah/commit/2163454d57b65fd992c16c14e432ab4b8b9d0baa"
+        }
+      ]
+    },
+    "app/routes/blogs.kode-cli-context-engineering.mdx": {
+      "createdAt": "2025-12-09T17:39:36+08:00",
+      "updatedAt": "2025-12-09T17:39:36+08:00",
+      "commits": [
+        {
+          "hash": "a46d0ee",
+          "date": "2025-12-09T17:39:36+08:00",
+          "author": "madinah",
+          "message": "feat: add kode-cli 上下文流程",
+          "githubUrl": "https://github.com/Maidang1/madinah/commit/a46d0ee4262b21d7f31fc551f592d5ce5345e79f"
         }
       ]
     },
