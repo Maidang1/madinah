@@ -1,13 +1,13 @@
-import { Outlet, useLocation } from "@remix-run/react";
-import { useEffect, useRef, useState } from "react";
-import { BlogNavigation } from "~/features/blog/components/blog-detail/blog-navigation";
-import { DetailHeader } from "~/features/blog/components/blog-detail/detail-header";
-import { ScrollToTopButton } from "~/features/blog/components/blog-detail/scroll-to-top";
-import { TableOfContentsMobile } from "~/features/blog/components/blog-detail/table-contents-mobile";
-import { TableOfContentsPC } from "~/features/blog/components/blog-detail/table-contents-pc";
-import { HistoryVersions } from "~/features/blog/components/blog-detail/history-version";
+import { Outlet, useLocation } from '@remix-run/react';
+import { useEffect, useRef, useState } from 'react';
+import { BlogNavigation } from '~/features/blog/components/blog-detail/blog-navigation';
+import { DetailHeader } from '~/features/blog/components/blog-detail/detail-header';
+import { ScrollToTopButton } from '~/features/blog/components/blog-detail/scroll-to-top';
+import { TableOfContentsMobile } from '~/features/blog/components/blog-detail/table-contents-mobile';
+import { TableOfContentsPC } from '~/features/blog/components/blog-detail/table-contents-pc';
+import { HistoryVersions } from '~/features/blog/components/blog-detail/history-version';
 // eslint-disable-next-line import/no-unresolved
-import { list } from "virtual:blog-list";
+import { list } from 'virtual:blog-list';
 
 export default function BlogsLayout() {
   const { pathname } = useLocation();
@@ -18,39 +18,39 @@ export default function BlogsLayout() {
   const [showStickyHeader, setShowStickyHeader] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
 
-    useEffect(() => {
-      if (!headerRef.current) return;
-      const handleScroll = () => {
-        const headerRect = headerRef.current?.getBoundingClientRect();
-        if (headerRect) {
-          setShowStickyHeader(headerRect.bottom < 80);
-        }
-      };
+  useEffect(() => {
+    if (!headerRef.current) return;
+    const handleScroll = () => {
+      const headerRect = headerRef.current?.getBoundingClientRect();
+      if (headerRect) {
+        setShowStickyHeader(headerRect.bottom < 80);
+      }
+    };
 
-      handleScroll();
-      window.addEventListener("scroll", handleScroll, { passive: true });
-      return () => {
-        window.removeEventListener("scroll", handleScroll);
-        window.dispatchEvent(
-          new CustomEvent("blog-sticky-header-change", { detail: false })
-        );
-      };
-    }, []);
-
-    useEffect(() => {
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
       window.dispatchEvent(
-        new CustomEvent("blog-sticky-header-change", { detail: showStickyHeader })
+        new CustomEvent('blog-sticky-header-change', { detail: false }),
       );
-    }, [showStickyHeader]);
+    };
+  }, []);
+
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent('blog-sticky-header-change', {
+        detail: showStickyHeader,
+      }),
+    );
+  }, [showStickyHeader]);
 
   return (
     <>
       {listItem && <TableOfContentsMobile tocs={tocs} />}
 
       {listItem && (
-        <div
-          className="fixed top-30 left-4 z-40 hidden max-h-[calc(100vh-8rem)] w-56 pb-8 xl:block"
-        >
+        <div className="fixed top-30 left-4 z-40 hidden max-h-[calc(100vh-8rem)] w-56 pb-8 xl:block">
           <div className="max-h-[calc(100vh-12rem)] overflow-y-auto pr-2">
             <TableOfContentsPC tocs={tocs} className="w-full" />
           </div>
@@ -59,13 +59,15 @@ export default function BlogsLayout() {
 
       <div className="relative mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8">
         {listItem && (
-            <div
-              className={`bg-background/80 fixed inset-x-0 top-[56px] z-50 border-b border-zinc-200/60 backdrop-blur-md transition-opacity ${
-                showStickyHeader ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
-              }`}
-            >
+          <div
+            className={`bg-surface-raised-base/80 border-border-weak/60 fixed inset-x-0 top-[56px] z-50 border-b backdrop-blur-md transition-opacity ${
+              showStickyHeader
+                ? 'pointer-events-auto opacity-100'
+                : 'pointer-events-none opacity-0'
+            }`}
+          >
             <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-4 py-3 sm:px-6">
-              <h1 className="truncate text-base font-semibold tracking-tight sm:text-lg">
+              <h1 className="text-text-strong truncate text-base font-semibold tracking-tight sm:text-lg">
                 {title}
               </h1>
             </div>

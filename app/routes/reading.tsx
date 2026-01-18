@@ -29,7 +29,11 @@ export const meta: MetaFunction = ({ matches }) => {
   const metaDict = t('reading.meta') as any;
   return [
     { title: metaDict?.title ?? 'Reading • Madinah' },
-    { name: 'description', content: metaDict?.description ?? 'Books I have read and reflections on them.' },
+    {
+      name: 'description',
+      content:
+        metaDict?.description ?? 'Books I have read and reflections on them.',
+    },
   ];
 };
 
@@ -42,15 +46,13 @@ export default function ReadingRoute() {
   return (
     <div className="space-y-8">
       <header className="space-y-2 text-center">
-        <h1 className="text-foreground text-3xl font-bold">
+        <h1 className="text-text-strong text-3xl font-bold">
           {t('header.navigation.reading')}
         </h1>
-        <p className="text-muted-foreground">{t('reading.description')}</p>
+        <p className="text-text-weak">{t('reading.description')}</p>
       </header>
       <div className="mx-auto max-w-2xl text-center">
-        <p className="text-muted-foreground text-lg">
-          {t('reading.emptyState')}
-        </p>
+        <p className="text-text-weak text-lg">{t('reading.emptyState')}</p>
       </div>
     </div>
   );

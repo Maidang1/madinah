@@ -22,8 +22,10 @@ export const Time = ({ time }: { time: string }) => {
 
   return (
     <span className="flex items-center gap-x-1.5 whitespace-nowrap">
-      <span className="text-muted-foreground text-xs">{formattedDate}</span>
-      {weekday ? <span className="text-xs">{weekday}</span> : null}
+      <span className="text-text-weak text-xs">{formattedDate}</span>
+      {weekday ? (
+        <span className="text-text-weak text-xs">{weekday}</span>
+      ) : null}
     </span>
   );
 };

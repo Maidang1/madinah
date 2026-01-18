@@ -1,25 +1,22 @@
-import { json } from "@remix-run/cloudflare";
-import type {
-  LoaderFunctionArgs,
-  MetaFunction,
-} from "@remix-run/cloudflare";
-import { Suspense, lazy, useMemo } from "react";
-import type { ComponentType } from "react";
+import { json } from '@remix-run/cloudflare';
+import type { LoaderFunctionArgs, MetaFunction } from '@remix-run/cloudflare';
+import { Suspense, lazy, useMemo } from 'react';
+import type { ComponentType } from 'react';
 import {
   Link,
   isRouteErrorResponse,
   useLoaderData,
   useOutletContext,
   useRouteError,
-} from "@remix-run/react";
-import { BookChapterContent } from "~/features/books/components/chapter-content";
-import type { BookChapterInfo, BookSummaryInfo } from "~/types";
-import type { BookRouteContext } from "../books_.$bookId/route";
-import { ErrorState } from "~/core/ui/common/error-state";
-import { assertResponse } from "~/core/utils";
-import { useTranslation } from "~/core/i18n";
+} from '@remix-run/react';
+import { BookChapterContent } from '~/features/books/components/chapter-content';
+import type { BookChapterInfo, BookSummaryInfo } from '~/types';
+import type { BookRouteContext } from '../books_.$bookId/route';
+import { ErrorState } from '~/core/ui/common/error-state';
+import { assertResponse } from '~/core/utils';
+import { useTranslation } from '~/core/i18n';
 // eslint-disable-next-line import/no-unresolved
-import { getSerializedChapter, loadChapterModule } from "virtual:book-data";
+import { getSerializedChapter, loadChapterModule } from 'virtual:book-data';
 
 interface LoaderData {
   chapter: BookChapterInfo;
@@ -29,19 +26,19 @@ const createLazyChapter = (bookId: string, chapterId: string) =>
   lazy(async () => {
     const result = await loadChapterModule(bookId, chapterId);
     if (!result?.module) {
-      throw new Error("Failed to load chapter content");
+      throw new Error('Failed to load chapter content');
     }
 
     return { default: result.module as ComponentType };
   });
 
 export async function loader({ params }: LoaderFunctionArgs) {
-  const bookId = assertResponse(params.bookId, "Book not found", 404);
-  const chapterId = assertResponse(params.chapterId, "Chapter not found", 404);
+  const bookId = assertResponse(params.bookId, 'Book not found', 404);
+  const chapterId = assertResponse(params.chapterId, 'Chapter not found', 404);
 
   const chapter = assertResponse(
     getSerializedChapter(bookId, chapterId),
-    "Chapter not found",
+    'Chapter not found',
     404,
   );
 
@@ -57,15 +54,15 @@ export const meta: MetaFunction<typeof loader> = ({
     return [];
   }
 
-  const parent = matches
-    ?.find((match) => match.id.endsWith("books_.$bookId/route"))
-    ?.data as { book: BookSummaryInfo } | undefined;
-  const bookTitle = parent?.book.title ?? params.bookId ?? "Books";
+  const parent = matches?.find((match) =>
+    match.id.endsWith('books_.$bookId/route'),
+  )?.data as { book: BookSummaryInfo } | undefined;
+  const bookTitle = parent?.book.title ?? params.bookId ?? 'Books';
 
   return [
     { title: `${data.chapter.title} • ${bookTitle} • Madinah` },
     {
-      name: "description",
+      name: 'description',
       content:
         data.chapter.summary ??
         `Read the chapter ${data.chapter.title} from ${bookTitle}`,
@@ -87,8 +84,8 @@ export default function BookChapterRoute() {
     <Suspense
       key={chapter.id}
       fallback={
-        <div className="border-border/60 bg-background/40 text-muted-foreground rounded-2xl border p-8 text-sm">
-          {t("books.chapter.loading")}
+        <div className="border-border-weak/60 bg-surface-raised-base/40 text-text-weak rounded-2xl border p-8 text-sm">
+          {t('books.chapter.loading')}
         </div>
       }
     >
@@ -108,20 +105,20 @@ export function ErrorBoundary() {
       <ErrorState
         title={
           error.status === 404
-            ? t("books.errors.chapterNotFound")
-            : t("books.errors.chapterLoadFailed")
+            ? t('books.errors.chapterNotFound')
+            : t('books.errors.chapterLoadFailed')
         }
         message={
-          typeof error.data === "string"
+          typeof error.data === 'string'
             ? error.data
-            : error.data?.error ?? error.statusText
+            : (error.data?.error ?? error.statusText)
         }
         action={
           <Link
             to="/books"
-            className="bg-gray-700 hover:bg-gray-900 inline-flex items-center rounded-full px-4 py-2 text-sm font-semibold text-white transition"
+            className="inline-flex items-center rounded-full bg-gray-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-gray-900"
           >
-            {t("books.errors.goToBooks")}
+            {t('books.errors.goToBooks')}
           </Link>
         }
       />
@@ -130,18 +127,18 @@ export function ErrorBoundary() {
 
   return (
     <ErrorState
-      title={t("books.errors.chapterRenderFailed")}
+      title={t('books.errors.chapterRenderFailed')}
       message={
         error instanceof Error
           ? error.message
-          : t("books.errors.chapterRenderMessage")
+          : t('books.errors.chapterRenderMessage')
       }
       action={
         <Link
           to="/books"
-          className="bg-gray-700 hover:bg-gray-900 inline-flex items-center rounded-full px-4 py-2 text-sm font-semibold text-white transition"
+          className="inline-flex items-center rounded-full bg-gray-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-gray-900"
         >
-          {t("books.errors.goToBooks")}
+          {t('books.errors.goToBooks')}
         </Link>
       }
     />

@@ -2,7 +2,6 @@ import { ReactNode, useState } from 'react';
 import { cn } from '~/core/utils';
 import { Heading2, Heading3, Heading4, Heading5, Heading6 } from 'lucide-react';
 
-// 类型定义
 interface HeadingProps {
   children: ReactNode;
   className?: string;
@@ -35,7 +34,6 @@ interface BlockquoteProps {
   className?: string;
 }
 
-// 标题组件 - 简洁的层次设计
 export const H1 = ({
   children,
   className,
@@ -46,9 +44,9 @@ export const H1 = ({
     id={id}
     className={cn(
       'mt-16 mb-10 text-3xl font-bold first:mt-0 md:text-4xl',
-      'text-foreground',
+      'text-text-strong',
       'leading-tight tracking-tight',
-      'border-b border-border/50 pb-4',
+      'border-border-weak border-b pb-4',
       'group heading-group',
       className,
     )}
@@ -68,7 +66,7 @@ export const H2 = ({
     id={id}
     className={cn(
       'group mt-14 mb-8 text-2xl font-semibold md:text-3xl',
-      'text-foreground',
+      'text-text-strong',
       'leading-snug tracking-tight',
       'group heading-group relative',
       'flex items-center gap-1',
@@ -77,7 +75,7 @@ export const H2 = ({
     {...props}
   >
     {children}
-    <Heading2 className="text-muted-foreground text-2xl opacity-0 transition-opacity group-hover:opacity-100" />
+    <Heading2 className="text-text-weak text-2xl opacity-0 transition-opacity group-hover:opacity-100" />
   </h2>
 );
 
@@ -91,7 +89,7 @@ export const H3 = ({
     id={id}
     className={cn(
       'mt-10 mb-6 text-xl font-semibold md:text-2xl',
-      'text-foreground',
+      'text-text-strong',
       'tracking-tight',
       'group heading-group relative',
       'flex items-center gap-1',
@@ -100,7 +98,7 @@ export const H3 = ({
     {...props}
   >
     {children}
-    <Heading3 className="text-muted-foreground text-xl opacity-0 transition-opacity group-hover:opacity-100" />
+    <Heading3 className="text-text-weak text-xl opacity-0 transition-opacity group-hover:opacity-100" />
   </h3>
 );
 
@@ -114,7 +112,7 @@ export const H4 = ({
     id={id}
     className={cn(
       'mt-8 mb-4 text-lg font-medium md:text-xl',
-      'text-foreground',
+      'text-text-strong',
       'tracking-tight',
       'group heading-group',
       'flex items-center gap-1',
@@ -123,7 +121,7 @@ export const H4 = ({
     {...props}
   >
     {children}
-    <Heading4 className="text-muted-foreground text-lg opacity-0 transition-opacity group-hover:opacity-100" />
+    <Heading4 className="text-text-weak text-lg opacity-0 transition-opacity group-hover:opacity-100" />
   </h4>
 );
 
@@ -137,7 +135,7 @@ export const H5 = ({
     id={id}
     className={cn(
       'mt-6 mb-4 text-base font-medium',
-      'text-foreground',
+      'text-text-strong',
       'group heading-group',
       'flex items-center gap-1',
       className,
@@ -145,7 +143,7 @@ export const H5 = ({
     {...props}
   >
     {children}
-    <Heading5 className="text-muted-foreground text-base opacity-0 transition-opacity group-hover:opacity-100" />
+    <Heading5 className="text-text-weak text-base opacity-0 transition-opacity group-hover:opacity-100" />
   </h5>
 );
 
@@ -159,7 +157,7 @@ export const H6 = ({
     id={id}
     className={cn(
       'mt-6 mb-3 text-sm font-medium md:text-base',
-      'text-foreground/80',
+      'text-text-strong/80',
       'tracking-wider uppercase',
       'group heading-group',
       'flex items-center gap-1',
@@ -168,16 +166,15 @@ export const H6 = ({
     {...props}
   >
     {children}
-    <Heading6 className="text-muted-foreground text-sm opacity-0 transition-opacity group-hover:opacity-100" />
+    <Heading6 className="text-text-weak text-sm opacity-0 transition-opacity group-hover:opacity-100" />
   </h6>
 );
 
-// 段落组件 - 舒适的行高和间距
 export const P = ({ children, className, ...props }: ParagraphProps & any) => (
   <p
     className={cn(
       'mb-8 text-lg leading-8',
-      'text-foreground/90',
+      'text-text-strong/90',
       'font-normal',
       className,
     )}
@@ -187,7 +184,6 @@ export const P = ({ children, className, ...props }: ParagraphProps & any) => (
   </p>
 );
 
-// 链接组件 - 优雅的悬停效果
 export const A = ({ children, href, className, ...props }: LinkProps & any) => {
   const isExternal = href?.startsWith('http') || href?.startsWith('//');
   const isEmail = href?.startsWith('mailto:');
@@ -196,9 +192,9 @@ export const A = ({ children, href, className, ...props }: LinkProps & any) => {
     <a
       href={href}
       className={cn(
-        'text-foreground',
-        'underline decoration-foreground/30 underline-offset-4 decoration-1',
-        'hover:decoration-foreground hover:decoration-2',
+        'text-text-strong',
+        'decoration-text-weak/30 decoration-1 underline-offset-4',
+        'hover:decoration-text-strong hover:decoration-2',
         'transition-all duration-200 ease-out',
         'inline-flex items-center gap-1 font-medium',
         className,
@@ -214,12 +210,11 @@ export const A = ({ children, href, className, ...props }: LinkProps & any) => {
   );
 };
 
-// 列表组件 - 清晰的层次和间距
 export const UL = ({ children, className, ...props }: ListProps & any) => (
   <ul
     className={cn(
       'mb-8 list-none space-y-3 pl-0',
-      'text-foreground/90',
+      'text-text-strong/90',
       className,
     )}
     {...props}
@@ -232,7 +227,7 @@ export const OL = ({ children, className, ...props }: ListProps & any) => (
   <ol
     className={cn(
       'mdx-content mb-8 list-none space-y-3 pl-0',
-      'text-foreground/90',
+      'text-text-strong/90',
       className,
     )}
     {...props}
@@ -245,8 +240,8 @@ export const LI = ({ children, className, ...props }: any) => (
   <li
     className={cn(
       'relative pl-6 text-lg leading-8',
-      'before:absolute before:left-0 before:font-bold before:text-foreground/40 before:content-["•"]',
-      '[ol_&]:before:content-none', // 移除有序列表中的点
+      'before:text-text-weak/40 before:absolute before:left-0 before:font-bold before:content-["•"]',
+      '[ol_&]:before:content-none',
       className,
     )}
     {...props}
@@ -255,7 +250,6 @@ export const LI = ({ children, className, ...props }: any) => (
   </li>
 );
 
-// 引用块 - 优雅的左边框设计
 export const Blockquote = ({
   children,
   className,
@@ -263,9 +257,9 @@ export const Blockquote = ({
 }: BlockquoteProps & any) => (
   <blockquote
     className={cn(
-      'mb-8 border-l-4 border-border py-3 pl-6',
-      'bg-muted/30',
-      'text-foreground/80 italic',
+      'border-border-weak mb-8 border-l-4 py-3 pl-6',
+      'bg-surface-flat-base-hover',
+      'text-text-strong/80 italic',
       'text-xl leading-relaxed font-medium',
       className,
     )}
@@ -275,7 +269,6 @@ export const Blockquote = ({
   </blockquote>
 );
 
-// 行内代码 - 柔和的背景色
 export const Code = ({ children, className, ...props }: CodeProps & any) => {
   const isInPre =
     className?.includes('shiki') ||
@@ -294,8 +287,8 @@ export const Code = ({ children, className, ...props }: CodeProps & any) => {
     <code
       className={cn(
         'rounded border-0 px-1.5 py-0.5 font-mono text-sm',
-        'bg-muted text-foreground',
-        'border border-border',
+        'bg-surface-flat-base-hover text-text-strong',
+        'border-border-weak border',
         className,
       )}
       {...props}
@@ -305,26 +298,22 @@ export const Code = ({ children, className, ...props }: CodeProps & any) => {
   );
 };
 
-// 水平分割线
 export const HR = ({ className, ...props }: any) => (
   <hr
     className={cn(
-      'h-px border-none bg-gradient-to-r from-transparent via-border to-transparent',
+      'via-border-weak h-px border-none bg-gradient-to-r from-transparent to-transparent',
       'mx-auto my-16 w-1/2',
       className,
     )}
     {...props}
-  >
-    {/* ... */}
-  </hr>
+  ></hr>
 );
 
-// 图片组件 - 响应式和圆角设计
 export const Img = ({ className, alt, ...props }: any) => (
   <img
     className={cn(
       'mb-8 h-auto max-w-full rounded-lg shadow-sm',
-      'border border-border',
+      'border-border-weak border',
       className,
     )}
     alt={alt}
@@ -332,14 +321,13 @@ export const Img = ({ className, alt, ...props }: any) => (
   />
 );
 
-// 表格组件
 export const Table = ({ children, className, ...props }: any) => (
   <div className="mb-8 overflow-x-auto">
     <table
       className={cn(
         'w-full border-collapse',
-        'bg-background',
-        'rounded-lg border border-border',
+        'bg-surface-raised-base',
+        'border-border-weak rounded-lg border',
         'shadow-sm',
         className,
       )}
@@ -353,9 +341,9 @@ export const Table = ({ children, className, ...props }: any) => (
 export const TH = ({ children, className, ...props }: any) => (
   <th
     className={cn(
-      'border-b border-border px-4 py-3',
-      'text-left font-semibold text-foreground',
-      'bg-muted',
+      'border-border-weak border-b px-4 py-3',
+      'text-text-strong text-left font-semibold',
+      'bg-surface-flat-base-hover',
       className,
     )}
     {...props}
@@ -367,8 +355,8 @@ export const TH = ({ children, className, ...props }: any) => (
 export const TD = ({ children, className, ...props }: any) => (
   <td
     className={cn(
-      'border-b border-border px-4 py-3',
-      'text-foreground/90',
+      'border-border-weak border-b px-4 py-3',
+      'text-text-strong/90',
       className,
     )}
     {...props}
@@ -377,7 +365,6 @@ export const TD = ({ children, className, ...props }: any) => (
   </td>
 );
 
-// 特殊组件 - 类似 antfu.me 的提示框
 interface CalloutProps {
   type?: 'info' | 'warning' | 'error' | 'success' | 'note';
   children: ReactNode;
@@ -392,11 +379,11 @@ export const Callout = ({
   className,
 }: CalloutProps) => {
   const typeStyles = {
-    info: 'bg-muted border-border text-foreground',
-    warning: 'bg-muted border-border text-foreground',
-    error: 'bg-foreground text-background border-foreground',
-    success: 'bg-background border-foreground text-foreground',
-    note: 'bg-muted/50 border-border text-foreground',
+    info: 'bg-surface-flat-base-hover border-border-weak text-text-strong',
+    warning: 'bg-surface-flat-base-hover border-border-weak text-text-strong',
+    error: 'bg-text-strong text-surface-raised-base border-text-strong',
+    success: 'bg-surface-raised-base border-text-strong text-text-strong',
+    note: 'bg-surface-flat-base-hover/50 border-border-weak text-text-strong',
   };
 
   const icons = {
@@ -426,7 +413,6 @@ export const Callout = ({
   );
 };
 
-// 代码组 - 用于展示多个相关的代码示例
 interface CodeGroupProps {
   children: ReactNode;
   titles?: string[];
@@ -443,7 +429,7 @@ export const CodeGroup = ({
   return (
     <div className={cn('mb-8', className)}>
       {titles.length > 0 && (
-        <div className="mb-0 flex border-b border-border">
+        <div className="border-border-weak mb-0 flex border-b">
           {titles.map((title, index) => (
             <button
               key={index}
@@ -451,8 +437,8 @@ export const CodeGroup = ({
               className={cn(
                 'border-b-2 px-4 py-2 text-sm font-medium transition-colors',
                 activeTab === index
-                  ? 'border-foreground text-foreground'
-                  : 'border-transparent text-muted-foreground hover:text-foreground',
+                  ? 'border-text-strong text-text-strong'
+                  : 'text-text-weak hover:text-text-strong border-transparent',
               )}
             >
               {title}
@@ -461,14 +447,14 @@ export const CodeGroup = ({
         </div>
       )}
       <div className="relative">
-        {/* @ts-ignore */}
-        {Array.isArray(children) ? children[activeTab] : children}
+        {Array.isArray(children)
+          ? (children[activeTab] as ReactNode)
+          : children}
       </div>
     </div>
   );
 };
 
-// 导出所有组件的映射对象
 export const mdxComponents = {
   h1: H1,
   h2: H2,
@@ -488,7 +474,6 @@ export const mdxComponents = {
   table: Table,
   th: TH,
   td: TD,
-  // 特殊组件
   Callout,
   CodeGroup,
 };

@@ -41,28 +41,29 @@ export function TableOfContentsMobile({
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
           'fixed top-20 right-4 z-40 rounded-full p-3',
-          'bg-background border-border border',
+          'bg-surface-raised-base border-border-weak border',
           'shadow-lg',
-          'text-muted-foreground hover:text-foreground',
-          isOpen && 'text-primary bg-primary/10',
+          'text-text-weak hover:text-text-strong',
         )}
         aria-label={t('blog.detail.mobileToggleToc')}
       >
-        <span className={cn("block h-5 w-5 i-simple-line-icons-menu", isOpen && "rotate-45 transition-transform duration-200")} />
+        <span
+          className={cn(
+            'i-simple-line-icons-menu block h-5 w-5',
+            isOpen && 'rotate-45 transition-transform duration-200',
+          )}
+        />
       </button>
 
       {/* 进度指示器 */}
       <div className="fixed top-0 right-0 left-0 z-30 h-1 bg-gray-500/50">
-        <div
-          className="h-full bg-gray-700"
-          style={{ width: `${progress}%` }}
-        />
+        <div className="h-full bg-gray-700" style={{ width: `${progress}%` }} />
       </div>
 
       {/* 遮罩层 */}
       {isOpen && (
         <div
-          className="bg-background/50 fixed inset-0 z-30 backdrop-blur-sm"
+          className="bg-surface-raised-base/50 fixed inset-0 z-30 backdrop-blur-sm"
           onClick={() => setIsOpen(false)}
         />
       )}
@@ -72,7 +73,7 @@ export function TableOfContentsMobile({
         <div
           className={cn(
             'fixed top-0 right-0 bottom-0 z-40 w-80 max-w-[90vw]',
-            'bg-background border-border border-l shadow-2xl',
+            'bg-surface-raised-base border-border-weak border-l shadow-2xl',
             'overflow-y-auto overscroll-contain',
           )}
         >
@@ -81,7 +82,7 @@ export function TableOfContentsMobile({
             <div className="mb-6 flex items-center justify-between">
               <button
                 onClick={() => setIsOpen(false)}
-                className="hover:bg-accent text-muted-foreground hover:text-foreground rounded-md p-2"
+                className="hover:bg-surface-flat-base-hover text-text-weak hover:text-text-strong rounded-md p-2"
                 aria-label={t('blog.detail.mobileCloseToc')}
               >
                 <span className="i-lucide-x block h-4 w-4" />

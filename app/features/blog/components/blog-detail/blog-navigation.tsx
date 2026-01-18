@@ -19,9 +19,7 @@ export function BlogNavigation({ list, className }: BlogNavigationProps) {
     currentIndex < list.length - 1 ? list[currentIndex + 1] : null;
 
   return (
-    <div
-      className={cn('w-full space-y-6', className)}
-    >
+    <div className={cn('w-full space-y-6', className)}>
       {(prevPost || nextPost) && (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {/* 上一篇 */}
@@ -31,19 +29,19 @@ export function BlogNavigation({ list, className }: BlogNavigationProps) {
                 to={prevPost.url}
                 className={cn(
                   'group flex items-center gap-3 rounded-lg p-4',
-                  'bg-muted/30 border-border/30 border',
-                  'hover:bg-muted/50 hover:border-border/60 transition-colors',
+                  'bg-surface-flat-base-hover border-border-weak/30 border',
+                  'hover:bg-surface-flat-base-hover/50 hover:border-border-weak/60 transition-colors',
                   'w-full max-w-sm',
                 )}
               >
                 <div className="flex-shrink-0">
-                  <ChevronLeft className="text-muted-foreground group-hover:text-foreground h-5 w-5 transition-colors" />
+                  <ChevronLeft className="text-text-weak group-hover:text-text-strong h-5 w-5 transition-colors" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-muted-foreground mb-1 text-xs font-medium">
+                  <div className="text-text-weak mb-1 text-xs font-medium">
                     {t('blog.detail.previousPost')}
                   </div>
-                  <div className="truncate text-sm font-medium transition-colors">
+                  <div className="text-text-strong truncate text-sm font-medium transition-colors">
                     {prevPost.title}
                   </div>
                 </div>
@@ -60,21 +58,21 @@ export function BlogNavigation({ list, className }: BlogNavigationProps) {
                 to={nextPost.url}
                 className={cn(
                   'group flex items-center gap-3 rounded-lg p-4',
-                  'bg-muted/30 border-border/30 border',
-                  'hover:bg-muted/50 hover:border-border/60 transition-colors',
+                  'bg-surface-flat-base-hover border-border-weak/30 border',
+                  'hover:bg-surface-flat-base-hover/50 hover:border-border-weak/60 transition-colors',
                   'w-full max-w-sm text-right',
                 )}
               >
                 <div className="min-w-0 flex-1">
-                  <div className="text-muted-foreground mb-1 text-xs font-medium">
+                  <div className="text-text-weak mb-1 text-xs font-medium">
                     {t('blog.detail.nextPost')}
                   </div>
-                  <div className="truncate text-sm font-medium transition-colors">
+                  <div className="text-text-strong truncate text-sm font-medium transition-colors">
                     {nextPost.title}
                   </div>
                 </div>
                 <div className="flex-shrink-0">
-                  <ChevronRight className="text-muted-foreground group-hover:text-foreground h-5 w-5 transition-colors" />
+                  <ChevronRight className="text-text-weak group-hover:text-text-strong h-5 w-5 transition-colors" />
                 </div>
               </Link>
             ) : (

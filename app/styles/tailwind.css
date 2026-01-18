@@ -2,137 +2,286 @@
 @custom-variant dark (&:is(.dark *));
 
 @config '../../tailwind.config.ts';
-@plugin "daisyui";
-
-
-@theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
-}
 
 /*
-  ---break---
+  ========================================
+  OpenCode Design System - Semantic Tokens
+  Pattern: --{category}-{variant}-{state}
+  Categories: text, icon, surface, button, border, shadow, radius
+  Variants: strong, weak, invert, raised, flat, primary, secondary, ghost
+  States: base, hover, focus, active, disabled
+  ========================================
 */
+
 :root {
-  --radius: 0rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0 0 0);
-  --primary: oklch(0 0 0);
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.95 0 0);
-  --secondary-foreground: oklch(0 0 0);
-  --muted: oklch(0.95 0 0);
-  --muted-foreground: oklch(0.4 0 0);
-  --accent: oklch(0.95 0 0);
-  --accent-foreground: oklch(0 0 0);
-  --destructive: oklch(0.4 0 0);
-  --border: oklch(0.9 0 0);
-  --input: oklch(0.9 0 0);
-  --ring: oklch(0 0 0);
-}
+  /*
+    --- Palette (Foundation) ---
+    Using a warm, editorial color palette
+  */
+  --palette-ink: #1c1c1c;
+  --palette-ink-light: #404040;
+  --palette-ink-lighter: #737373;
+  --palette-parchment: #faf9f6;
+  --palette-parchment-dark: #f5f4f0;
+  --palette-gold: #c9a227;
+  --palette-gold-light: #e3c565;
+  --palette-gold-dark: #a68620;
+  --palette-green: #2d5a45;
+  --palette-green-light: #4a7c64;
+  --palette-red: #a83232;
 
-.dark {
-  color-scheme: dark;
-  --background: oklch(0 0 0);
-  --foreground: oklch(1 0 0);
-  --card: oklch(0.05 0 0);
-  --card-foreground: oklch(1 0 0);
-  --popover: oklch(0.05 0 0);
-  --popover-foreground: oklch(1 0 0);
-  --primary: oklch(1 0 0);
-  --primary-foreground: oklch(0 0 0);
-  --secondary: oklch(0.15 0 0);
-  --secondary-foreground: oklch(1 0 0);
-  --muted: oklch(0.15 0 0);
-  --muted-foreground: oklch(0.6 0 0);
-  --accent: oklch(0.15 0 0);
-  --accent-foreground: oklch(1 0 0);
-  --destructive: oklch(0.6 0 0);
-  --border: oklch(0.2 0 0);
-  --input: oklch(0.2 0 0);
-  --ring: oklch(1 0 0);
-  --chart-1: oklch(1 0 0);
-  --chart-2: oklch(0.8 0 0);
-  --chart-3: oklch(0.6 0 0);
-  --chart-4: oklch(0.4 0 0);
-  --chart-5: oklch(0.2 0 0);
-  --sidebar: oklch(0.05 0 0);
-  --sidebar-foreground: oklch(1 0 0);
-  --sidebar-primary: oklch(1 0 0);
-  --sidebar-primary-foreground: oklch(0 0 0);
-  --sidebar-accent: oklch(0.15 0 0);
-  --sidebar-accent-foreground: oklch(1 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(1 0 0);
-}
+  /*
+    --- Radius Tokens ---
+  */
+  --radius: 8px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
 
+  /*
+    --- Shadow Tokens ---
+  */
+  --shadow-raised: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-flat: 0 1px 2px rgba(0, 0, 0, 0.04);
+
+  /*
+    --- Text Tokens ---
+    Categories: text
+    Variants: strong, weak, invert, disabled
+  */
+  --text-strong: var(--palette-ink);
+  --text-strong-hover: var(--palette-ink-light);
+  --text-weak: var(--palette-ink-lighter);
+  --text-weak-hover: var(--palette-ink);
+  --text-invert: var(--palette-parchment);
+  --text-invert-hover: var(--palette-parchment-dark);
+  --text-disabled: #a1a1aa;
+
+  /*
+    --- Icon Tokens ---
+    Categories: icon
+    Variants: strong, weak, invert
+  */
+  --icon-strong-base: var(--palette-ink);
+  --icon-strong-hover: var(--palette-ink-light);
+  --icon-weak-base: var(--palette-ink-lighter);
+  --icon-weak-hover: var(--palette-ink);
+  --icon-invert-base: var(--palette-parchment);
+  --icon-invert-hover: var(--palette-parchment-dark);
+
+  /*
+    --- Surface Tokens ---
+    Categories: surface
+    Variants: raised, flat, invert
+  */
+  --surface-raised-base: var(--palette-parchment);
+  --surface-raised-base-hover: var(--palette-parchment-dark);
+  --surface-flat-base: transparent;
+  --surface-flat-base-hover: rgba(0, 0, 0, 0.04);
+  --surface-invert-base: var(--palette-ink);
+  --surface-invert-base-hover: var(--palette-ink-light);
+  --surface-disabled: #f4f4f5;
+
+  /*
+    --- Button Tokens ---
+    Categories: button
+    Variants: primary, secondary, ghost
+  */
+  --button-primary-base: var(--palette-ink);
+  --button-primary-hover: var(--palette-ink-light);
+  --button-primary-active: var(--palette-ink);
+  --button-primary-disabled: #a1a1aa;
+
+  --button-secondary-base: var(--palette-parchment-dark);
+  --button-secondary-hover: #e5e4e0;
+  --button-secondary-active: #d4d3cf;
+  --button-secondary-disabled: #f4f4f5;
+
+  --button-ghost-base: transparent;
+  --button-ghost-hover: rgba(0, 0, 0, 0.04);
+  --button-ghost-active: rgba(0, 0, 0, 0.08);
+  --button-ghost-disabled: transparent;
+
+  /*
+    --- Border Tokens ---
+    Categories: border
+    Variants: strong, weak, invert
+  */
+  --border-strong: var(--palette-ink);
+  --border-weak: #e5e4e0;
+  --border-invert: rgba(250, 249, 246, 0.2);
+}
 
 /*
-  ---break---
+  --- Dark Mode Overrides ---
+*/
+.dark {
+  --text-strong: var(--palette-parchment);
+  --text-strong-hover: var(--palette-parchment-dark);
+  --text-weak: #a1a1aa;
+  --text-weak-hover: var(--palette-parchment);
+  --text-invert: var(--palette-ink);
+  --text-invert-hover: var(--palette-ink-light);
+
+  --icon-strong-base: var(--palette-parchment);
+  --icon-strong-hover: var(--palette-parchment-dark);
+  --icon-weak-base: #a1a1aa;
+  --icon-weak-hover: var(--palette-parchment);
+  --icon-invert-base: var(--palette-ink);
+  --icon-invert-hover: var(--palette-ink-light);
+
+  --surface-raised-base: #1c1c1c;
+  --surface-raised-base-hover: #262626;
+  --surface-flat-base: transparent;
+  --surface-flat-base-hover: rgba(255, 255, 255, 0.04);
+  --surface-invert-base: var(--palette-parchment);
+  --surface-invert-base-hover: #f5f4f0;
+  --surface-disabled: #27272a;
+
+  --button-primary-base: var(--palette-parchment);
+  --button-primary-hover: var(--palette-parchment-dark);
+  --button-primary-active: var(--palette-parchment);
+  --button-primary-disabled: #52525b;
+
+  --button-secondary-base: #262626;
+  --button-secondary-hover: #30302e;
+  --button-secondary-active: #3a3a38;
+  --button-secondary-disabled: #27272a;
+
+  --button-ghost-base: transparent;
+  --button-ghost-hover: rgba(255, 255, 255, 0.04);
+  --button-ghost-active: rgba(255, 255, 255, 0.08);
+  --button-ghost-disabled: transparent;
+
+  --border-strong: var(--palette-parchment);
+  --border-weak: #3a3a38;
+  --border-invert: rgba(250, 249, 246, 0.15);
+
+  --shadow-raised: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-flat: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/*
+  --- Tailwind Theme Mapping ---
+  Maps CSS variables to Tailwind utilities
+*/
+@theme inline {
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+
+  --color-text-strong: var(--text-strong);
+  --color-text-weak: var(--text-weak);
+  --color-text-invert: var(--text-invert);
+  --color-text-disabled: var(--text-disabled);
+
+  --color-icon-strong: var(--icon-strong-base);
+  --color-icon-weak: var(--icon-weak-base);
+  --color-icon-invert: var(--icon-invert-base);
+
+  --color-surface-raised: var(--surface-raised-base);
+  --color-surface-flat: var(--surface-flat-base);
+  --color-surface-invert: var(--surface-invert-base);
+  --color-surface-disabled: var(--surface-disabled);
+
+  --color-button-primary: var(--button-primary-base);
+  --color-button-secondary: var(--button-secondary-base);
+  --color-button-ghost: var(--button-ghost-base);
+
+  --color-border-strong: var(--border-strong);
+  --color-border-weak: var(--border-weak);
+  --color-border-invert: var(--border-invert);
+
+  --shadow-raised: var(--shadow-raised);
+  --shadow-flat: var(--shadow-flat);
+}
+
+/*
+  --- Custom Utilities for Tailwind 4 ---
+*/
+@utility shadow-raised {
+  box-shadow: var(--shadow-raised);
+}
+
+@utility shadow-flat {
+  box-shadow: var(--shadow-flat);
+}
+
+/*
+  --- Base Styles ---
 */
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border-weak outline-icon-strong-base/50;
   }
 
-  body {
-    @apply bg-background text-foreground text-base leading-relaxed font-sans;
-  }
-
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-display tracking-tight;
-  }
-
-  /* 基础设置 */
   html {
     font-size: 16px;
   }
 
-  /* 选择文本样式 */
-  ::selection {
-    @apply bg-primary/20 dark:bg-primary/30 text-primary-foreground;
+  body {
+    @apply bg-surface-raised text-text-strong font-sans text-base leading-relaxed;
   }
 
-  /* Focus 样式增强 */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-display tracking-tight;
+  }
+
+  ::selection {
+    @apply bg-text-strong/10 text-text-strong;
+  }
+
   a:focus-visible,
   button:focus-visible {
-    @apply outline-2 outline-primary outline-offset-2;
+    @apply outline-text-strong outline-2 outline-offset-2;
+  }
+}
+
+/*
+  --- Component Classes ---
+  Pre-built component patterns using semantic tokens
+*/
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors;
+  }
+
+  .btn-primary {
+    @apply bg-button-primary-base text-text-invert hover:bg-button-primary-hover active:bg-button-primary-active disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-secondary {
+    @apply bg-button-secondary-base text-text-strong hover:bg-button-secondary-hover active:bg-button-secondary-active disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-ghost {
+    @apply bg-button-ghost-base text-text-strong hover:bg-button-ghost-hover active:bg-button-ghost-active disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .card {
+    @apply bg-surface-raised-base border-border-weak shadow-raised rounded-lg border;
+  }
+
+  .card-hover {
+    @apply bg-surface-raised-base-hover border-border-weak shadow-raised rounded-lg border transition-shadow;
+  }
+
+  .input {
+    @apply bg-surface-raised-base border-border-weak text-text-strong placeholder:text-text-weak focus:ring-text-strong/20 w-full rounded-md border px-3 py-2 focus:ring-2 focus:outline-none;
+  }
+
+  .link {
+    @apply text-text-strong underline-offset-4 hover:underline;
+  }
+
+  .link-weak {
+    @apply text-text-weak hover:text-text-weak-hover underline-offset-4 hover:underline;
   }
 }

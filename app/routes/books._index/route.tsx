@@ -35,7 +35,12 @@ export const meta: MetaFunction = ({ matches }) => {
   const metaDict = t('books.meta') as any;
   return [
     { title: metaDict?.title ?? 'Books • Madinah' },
-    { name: 'description', content: metaDict?.description ?? '系统化地阅读 Rust、Remix 等专题整理的书籍系列。' },
+    {
+      name: 'description',
+      content:
+        metaDict?.description ??
+        '系统化地阅读 Rust、Remix 等专题整理的书籍系列。',
+    },
   ];
 };
 
@@ -48,7 +53,7 @@ export default function BooksIndexRoute() {
   return (
     <div className="space-y-8">
       <header className="space-y-2 text-center">
-        <h1 className="text-foreground text-3xl font-bold">
+        <h1 className="text-text-strong text-3xl font-bold">
           {t('books.list.heading')}
         </h1>
       </header>

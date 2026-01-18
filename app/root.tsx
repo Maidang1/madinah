@@ -75,7 +75,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   );
   const locale = isValidLocale(localeCookie)
     ? localeCookie
-    : preferredLocale ?? DEFAULT_LOCALE;
+    : (preferredLocale ?? DEFAULT_LOCALE);
 
   return json({ theme, locale });
 }
@@ -91,7 +91,10 @@ export async function action({ request }: ActionFunctionArgs) {
     typeof themeValue === 'string' &&
     ['light', 'dark', 'system'].includes(themeValue)
   ) {
-    headers.append('Set-Cookie', await userTheme.serialize(themeValue as Theme));
+    headers.append(
+      'Set-Cookie',
+      await userTheme.serialize(themeValue as Theme),
+    );
   }
 
   if (typeof localeValue === 'string' && isValidLocale(localeValue)) {
@@ -149,7 +152,7 @@ export function Layout(props: { children: React.ReactNode }) {
         <Links />
         <title>Madinah</title>
       </head>
-      <body className="bg-background text-foreground min-h-screen antialiased">
+      <body className="bg-surface-raised text-text-strong min-h-screen antialiased">
         <I18nProvider initialLocale={locale}>
           <div className="flex min-h-screen flex-col">
             <SiteHeader theme={actualTheme} onThemeToggle={toggleTheme} />

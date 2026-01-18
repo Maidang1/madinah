@@ -32,10 +32,10 @@ export const Tocs = ({ tocs, activeId, progress, onLinkClick }: TocsProps) => {
               style={indentStyle}
               className={cn(
                 'block rounded py-1.5 pr-2 text-xs transition-all duration-200',
-                'text-zinc-600 hover:opacity-65',
+                'text-text-weak hover:opacity-65',
                 'dark:text-white dark:opacity-75 dark:hover:opacity-40',
                 'group relative',
-                isActive && ['font-medium text-zinc-900'],
+                isActive && ['text-text-strong font-medium'],
               )}
             >
               <div className="flex items-center gap-2">
@@ -53,10 +53,9 @@ export const Tocs = ({ tocs, activeId, progress, onLinkClick }: TocsProps) => {
         })}
       </nav>
 
-      <div className="mt-3 ml-2 inline-flex items-center justify-between gap-1.5 text-[10px] text-zinc-600">
-        {/* @ts-ignore */}
+      <div className="text-text-weak mt-3 ml-2 inline-flex items-center justify-between gap-1.5 text-[10px]">
         <div
-          className="radial-progress text-zinc-600"
+          className="radial-progress text-text-weak"
           style={
             { '--value': progress, '--size': '0.875rem' } as React.CSSProperties
           }

@@ -42,7 +42,7 @@ export default function Detail({ list }: BlogsDetailProps) {
       <TableOfContentsMobile tocs={tocs} />
 
       <div
-        className="fixed top-30 left-4 z-40 hidden max-h-[calc(100vh-8rem)] w-56 pb-8 xl:block"
+        className={`fixed top-30 left-4 z-40 hidden max-h-[calc(100vh-8rem)] w-56 pb-8 xl:block`}
       >
         <div className="max-h-[calc(100vh-12rem)] overflow-y-auto pr-2">
           <TableOfContentsPC tocs={tocs} className="w-full" />
@@ -51,12 +51,14 @@ export default function Detail({ list }: BlogsDetailProps) {
 
       <div className="relative mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8">
         <div
-          className={`bg-background/80 fixed inset-x-0 top-0 z-50 border-b border-zinc-200/60 backdrop-blur-md transition-opacity ${
-            showStickyHeader ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          className={`bg-surface-raised-base/80 border-border-weak fixed inset-x-0 top-0 z-50 border-b backdrop-blur-md transition-opacity ${
+            showStickyHeader
+              ? 'pointer-events-auto opacity-100'
+              : 'pointer-events-none opacity-0'
           }`}
         >
           <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-4 py-3 sm:px-6">
-            <h1 className="truncate text-base font-semibold tracking-tight sm:text-lg">
+            <h1 className="text-text-strong truncate text-base font-semibold tracking-tight sm:text-lg">
               {title}
             </h1>
           </div>

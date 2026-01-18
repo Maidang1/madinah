@@ -1,8 +1,8 @@
-import { Link } from "@remix-run/react";
-import { cn } from "~/core/utils";
-import type { BookSummaryInfo } from "~/types";
-import { useTranslation } from "~/core/i18n";
-import { Time } from "~/core/ui/common/time";
+import { Link } from '@remix-run/react';
+import { cn } from '~/core/utils';
+import type { BookSummaryInfo } from '~/types';
+import { useTranslation } from '~/core/i18n';
+import { Time } from '~/core/ui/common/time';
 
 interface BookListProps {
   books: BookSummaryInfo[];
@@ -13,42 +13,39 @@ export function BookList({ books }: BookListProps) {
 
   if (!books.length) {
     return (
-      <div className="text-muted-foreground flex h-full flex-col items-center justify-center gap-2 text-center">
-        <p className="text-lg font-semibold">{t("books.list.emptyTitle")}</p>
-        <p className="text-sm">{t("books.list.emptyMessage")}</p>
+      <div className="text-text-weak flex h-full flex-col items-center justify-center gap-2 text-center">
+        <p className="text-text-strong text-lg font-semibold">
+          {t('books.list.emptyTitle')}
+        </p>
+        <p className="text-sm">{t('books.list.emptyMessage')}</p>
       </div>
     );
   }
 
   return (
-    <div className="relative max-w-4xl mx-auto">
-      <div className="absolute left-5 top-0 h-full w-0.5 bg-gradient-to-b from-gray-400/40 via-gray-700/60 to-gray-400/40" />
+    <div className="relative mx-auto max-w-4xl">
+      <div className="absolute top-0 left-5 h-full w-0.5 bg-gradient-to-b from-gray-400/40 via-gray-700/60 to-gray-400/40" />
 
       <div className="space-y-8">
         {books.map((book) => (
-          <div
-            key={book.id}
-            className="relative pl-14"
-          >
-            <div className="absolute left-3 top-3.5">
+          <div key={book.id} className="relative pl-14">
+            <div className="absolute top-3.5 left-3">
               <div className="relative">
                 <div className="h-3 w-3 rounded-full bg-gradient-to-br from-gray-600 to-black shadow-lg shadow-gray-900/40" />
               </div>
             </div>
 
-            <div
-              className="group relative overflow-hidden rounded-xl border border-border/50 bg-background/80 backdrop-blur-xl transition-all duration-300"
-            >
+            <div className="group border-border-weak/50 bg-surface-raised-base/80 relative overflow-hidden rounded-xl border backdrop-blur-xl transition-all duration-300">
               <div className="relative flex flex-col gap-3 p-4">
                 <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <h2 className="text-xl font-bold text-foreground mb-1.5 transition-colors">
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-text-strong mb-1.5 text-xl font-bold transition-colors">
                       {book.title}
                     </h2>
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
+                    <div className="text-text-weak flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
                       {book.author && (
                         <span className="flex items-center gap-1.5">
-                          <div className="h-4 w-4 rounded-full bg-gray-700/10 flex items-center justify-center">
+                          <div className="flex h-4 w-4 items-center justify-center rounded-full bg-gray-700/10">
                             <svg
                               className="h-2.5 w-2.5 text-gray-700"
                               fill="currentColor"
@@ -61,7 +58,7 @@ export function BookList({ books }: BookListProps) {
                         </span>
                       )}
                       <span className="flex items-center gap-1.5">
-                        <div className="h-4 w-4 rounded-full bg-gray-700/10 flex items-center justify-center">
+                        <div className="flex h-4 w-4 items-center justify-center rounded-full bg-gray-700/10">
                           <svg
                             className="h-2.5 w-2.5 text-gray-700"
                             fill="none"
@@ -79,7 +76,7 @@ export function BookList({ books }: BookListProps) {
                         <Time time={new Date(book.timestamp).toISOString()} />
                       </span>
                       <span className="flex items-center gap-1.5">
-                        <div className="h-4 w-4 rounded-full bg-gray-700/10 flex items-center justify-center">
+                        <div className="flex h-4 w-4 items-center justify-center rounded-full bg-gray-700/10">
                           <svg
                             className="h-2.5 w-2.5 text-gray-700"
                             fill="none"
@@ -95,7 +92,7 @@ export function BookList({ books }: BookListProps) {
                           </svg>
                         </div>
                         <span>
-                          {t("books.list.chapterCount", {
+                          {t('books.list.chapterCount', {
                             replace: { count: book.chapterCount },
                           })}
                         </span>
@@ -108,9 +105,9 @@ export function BookList({ books }: BookListProps) {
                       {book.tags.slice(0, 2).map((tag) => (
                         <span
                           key={tag}
-                          className="inline-flex items-center gap-1 rounded-md bg-gray-700/10 px-2 py-0.5 text-[10px] font-medium text-gray-800 dark:text-main-400 border border-gray-700/20"
+                          className="dark:text-main-400 inline-flex items-center gap-1 rounded-md border border-gray-700/20 bg-gray-700/10 px-2 py-0.5 text-[10px] font-medium text-gray-800"
                         >
-                          <span className="w-1 h-1 rounded-full bg-gray-700" />
+                          <span className="h-1 w-1 rounded-full bg-gray-700" />
                           {tag}
                         </span>
                       ))}
@@ -118,21 +115,21 @@ export function BookList({ books }: BookListProps) {
                   )}
                 </div>
 
-                <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2 pl-4 border-l-2 border-gray-700/20 transition-colors">
+                <p className="text-text-weak line-clamp-2 border-l-2 border-gray-700/20 pl-4 text-sm leading-relaxed transition-colors">
                   {book.description}
                 </p>
 
                 <div className="flex items-center justify-between pt-2">
-                  <div className="text-[11px] text-muted-foreground/70 font-medium">
+                  <div className="text-text-weak/70 text-[11px] font-medium">
                     <Time time={new Date(book.timestamp).toISOString()} />
                   </div>
                   <Link
                     to={`/books/${book.id}`}
                     className={cn(
-                      "group/btn inline-flex items-center gap-1.5 rounded-lg bg-gray-800 px-3 py-1.5 text-xs font-semibold text-white transition-all active:scale-95",
+                      'group/btn inline-flex items-center gap-1.5 rounded-lg bg-gray-800 px-3 py-1.5 text-xs font-semibold text-white transition-all active:scale-95',
                     )}
                   >
-                    {t("books.list.startReading")}
+                    {t('books.list.startReading')}
                     <svg
                       className="h-3.5 w-3.5"
                       fill="none"

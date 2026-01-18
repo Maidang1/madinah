@@ -41,14 +41,12 @@ export function SiteHeader({ theme, onThemeToggle }: SiteHeaderProps) {
   );
 
   return (
-    <header 
-      className="fixed top-0 left-0 right-0 z-[60] w-full bg-background/80 backdrop-blur-sm transition-all duration-300"
-    >
+    <header className="bg-surface-raised-base/80 fixed top-0 right-0 left-0 z-[60] w-full backdrop-blur-sm transition-all duration-300">
       <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-6 sm:px-6">
         <div className="flex items-center gap-8">
           <Link
             to="/"
-            className="font-display text-lg font-bold tracking-tight hover:opacity-60 transition-opacity"
+            className="font-display text-text-strong text-lg font-bold tracking-tight transition-opacity hover:opacity-60"
           >
             {t('header.brand')}
           </Link>
@@ -63,7 +61,9 @@ export function SiteHeader({ theme, onThemeToggle }: SiteHeaderProps) {
                 className={({ isActive }) =>
                   cn(
                     'transition-all hover:opacity-60',
-                    isActive ? 'text-foreground font-semibold' : 'text-muted-foreground',
+                    isActive
+                      ? 'text-text-strong font-semibold'
+                      : 'text-text-weak',
                   )
                 }
               >
@@ -84,9 +84,7 @@ export function SiteHeader({ theme, onThemeToggle }: SiteHeaderProps) {
                   onClick={() => setLocale(option.code)}
                   className={cn(
                     'text-[10px] font-bold tracking-widest uppercase transition-all hover:opacity-60',
-                    isActive
-                      ? 'text-foreground'
-                      : 'text-muted-foreground',
+                    isActive ? 'text-text-strong' : 'text-text-weak',
                   )}
                 >
                   {option.code}
@@ -98,13 +96,13 @@ export function SiteHeader({ theme, onThemeToggle }: SiteHeaderProps) {
           <button
             type="button"
             onClick={onThemeToggle}
-            className="hover:opacity-60 transition-opacity"
+            className="text-text-strong transition-opacity hover:opacity-60"
             aria-label={t('header.themeToggle')}
           >
             {theme === 'dark' ? (
-              <SunIcon className="w-4 h-4" />
+              <SunIcon className="h-4 w-4" />
             ) : (
-              <MoonIcon className="w-4 h-4" />
+              <MoonIcon className="h-4 w-4" />
             )}
           </button>
         </div>
@@ -112,4 +110,3 @@ export function SiteHeader({ theme, onThemeToggle }: SiteHeaderProps) {
     </header>
   );
 }
-

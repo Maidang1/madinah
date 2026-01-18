@@ -10,9 +10,9 @@ export const HistoryVersions = ({ gitInfo }: Props) => {
   const localeCode = locale === 'zh' ? 'zh-CN' : 'en-US';
 
   return (
-    <details className="text-muted-foreground group text-sm">
+    <details className="text-text-weak group text-sm">
       <summary className="cursor-pointer list-none">
-        <span className="hover:text-foreground inline-flex items-center gap-1.5">
+        <span className="hover:text-text-strong inline-flex items-center gap-1.5">
           <GitCommitHorizontal className="h-4 w-4" />
           {t('blog.detail.versionHistory')} ({gitInfo?.commits.length})
           <ChevronDown className="h-3 w-3 transition-transform group-open:rotate-180" />
@@ -27,11 +27,9 @@ export const HistoryVersions = ({ gitInfo }: Props) => {
             target="_blank"
             rel="noreferrer"
           >
-            <code className="text-muted-foreground/70 font-mono">
-              {commit.hash}
-            </code>
+            <code className="text-text-weak/70 font-mono">{commit.hash}</code>
             <div className="flex-1">
-              <div className="text-muted-foreground/70">
+              <div className="text-text-weak/70">
                 {commit.author} ·{' '}
                 {new Date(commit.date).toLocaleDateString(localeCode)}
               </div>

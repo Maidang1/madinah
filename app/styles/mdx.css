@@ -1,179 +1,168 @@
 @reference "./tailwind.css";
 
-/* MDX Editorial Styles */
-.mdx-content {
-  @apply font-sans text-lg leading-relaxed text-ink/90;
+@layer components {
+  .mdx-content {
+    @apply text-text-strong font-sans text-lg leading-relaxed;
+  }
+
+  .mdx-content h1,
+  .mdx-content h2,
+  .mdx-content h3 {
+    @apply font-display text-text-strong mt-16 mb-8 tracking-tight;
+  }
+
+  .mdx-content h1 {
+    @apply mb-12 text-6xl leading-[0.85] md:text-7xl lg:text-8xl;
+  }
+
+  .mdx-content h2 {
+    @apply border-border-weak border-t pt-12 text-4xl leading-[0.9] md:text-5xl;
+  }
+
+  .mdx-content h3 {
+    @apply font-display text-2xl leading-snug italic md:text-3xl;
+  }
+
+  .mdx-content > p:first-of-type::first-letter {
+    @apply font-display text-text-strong float-left mt-2 mr-4 text-7xl leading-[0.8] font-bold;
+  }
+
+  .mdx-content p {
+    @apply mb-8;
+  }
+
+  .mdx-content blockquote {
+    @apply border-border-weak font-display text-text-weak my-12 border-l-4 pl-8 text-2xl leading-relaxed italic;
+  }
+
+  .mdx-content hr {
+    @apply via-border-weak my-24 h-[1px] border-none bg-gradient-to-r from-transparent to-transparent;
+  }
+
+  .mdx-content pre {
+    @apply border-border-weak my-8 overflow-x-auto rounded-lg border;
+  }
+
+  .mdx-content pre:not([class*='language-']):not(code[class*='language-']) {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    word-break: break-word;
+  }
+
+  .mdx-content pre:not([class*='language-']) {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    word-break: break-word;
+  }
+
+  .mdx-content code {
+    @apply bg-surface-flat-base-hover rounded-sm px-1.5 py-0.5 font-mono text-[0.9em];
+  }
+
+  .mdx-content pre code {
+    @apply border-0 bg-transparent p-0;
+  }
+
+  .mdx-content pre.shiki {
+    @apply bg-surface-raised-base;
+  }
+
+  .dark .mdx-content pre.shiki {
+    @apply bg-surface-invert-base;
+  }
+
+  .mdx-content {
+    counter-reset: mdx-list;
+  }
+
+  .mdx-content ol {
+    counter-reset: mdx-list;
+  }
+
+  .mdx-content ol li {
+    counter-increment: mdx-list;
+    position: relative;
+    padding-left: 1.5rem;
+  }
+
+  .mdx-content ol li::before {
+    content: counter(mdx-list) '.';
+    position: absolute;
+    left: 0;
+    color: var(--text-weak);
+    font-weight: 500;
+  }
+
+  .mdx-content ul li::before {
+    content: '•';
+    position: absolute;
+    left: 0;
+    color: var(--text-weak);
+    font-weight: bold;
+  }
 }
 
-.mdx-content h1,
-.mdx-content h2,
-.mdx-content h3 {
-  @apply font-display tracking-tight text-ink mt-16 mb-8;
+@layer utilities {
+  .mdx-content ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .mdx-content ::-webkit-scrollbar-track {
+    background: var(--surface-raised-base);
+    border-radius: 4px;
+  }
+
+  .mdx-content ::-webkit-scrollbar-thumb {
+    background: var(--border-weak);
+    border-radius: 4px;
+  }
+
+  .mdx-content ::-webkit-scrollbar-thumb:hover {
+    background: var(--text-weak);
+  }
 }
 
-.mdx-content h1 {
-  @apply text-6xl md:text-7xl lg:text-8xl leading-[0.85] mb-12;
+@layer components {
+  .language-id {
+    display: none;
+  }
+
+  .shiki code {
+    border: none;
+    background: transparent;
+    padding: 0;
+  }
+
+  .shiki {
+    border-radius: 8px;
+    padding: 1rem;
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .shiki:not([class*='language-']) {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    word-break: break-word;
+  }
+
+  .shiki .line {
+    line-height: 1.6;
+  }
+
+  .shiki span[style*='color:undefined'] {
+    color: var(--text-weak) !important;
+  }
 }
 
-.mdx-content h2 {
-  @apply text-4xl md:text-5xl leading-[0.9] border-t border-ink/10 pt-12;
-}
+@layer base {
+  * {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
 
-.mdx-content h3 {
-  @apply text-2xl md:text-3xl font-display italic leading-snug;
-}
-
-/* First Paragraph Drop Cap */
-.mdx-content>p:first-of-type::first-letter {
-  @apply font-display font-bold text-7xl float-left mr-4 mt-2 leading-[0.8] text-ink;
-}
-
-.mdx-content p {
-  @apply mb-8;
-}
-
-.mdx-content blockquote {
-  @apply border-l-4 border-ink/40 pl-8 my-12 italic font-display text-2xl text-ink/80 leading-relaxed;
-}
-
-.mdx-content hr {
-  @apply my-24 border-none h-[1px] bg-gradient-to-r from-transparent via-ink/20 to-transparent;
-}
-
-.mdx-content pre {
-  @apply rounded-lg border border-ink/10 my-8 overflow-x-auto;
-}
-
-.mdx-content code {
-  @apply font-mono text-[0.9em] bg-ink/5 px-1.5 py-0.5 rounded-sm;
-}
-
-.mdx-content pre code {
-  @apply bg-transparent p-0 border-0;
-}
-
-.mdx-content pre.shiki {
-  @apply bg-[#1e1e1e];
-}
-
-/* 全局隐藏滚动条 */
-* {
-  /* Webkit browsers (Chrome, Safari, Edge) */
-  scrollbar-width: none;
-  /* Firefox */
-  -ms-overflow-style: none;
-  /* Internet Explorer 10+ */
-}
-
-*::-webkit-scrollbar {
-  display: none;
-  /* Webkit browsers */
-}
-
-/* MDX 组件自定义样式 */
-.mdx-content {
-  /* 有序列表计数器 */
-  counter-reset: mdx-list;
-}
-
-.mdx-content ol {
-  counter-reset: mdx-list;
-}
-
-.mdx-content ol li {
-  counter-increment: mdx-list;
-  position: relative;
-  padding-left: 1.5rem;
-}
-
-.mdx-content ol li::before {
-  content: counter(mdx-list) ".";
-  position: absolute;
-  left: 0;
-  color: rgb(113 113 122);
-  /* zinc-500 */
-  font-weight: 500;
-}
-
-.dark .mdx-content ol li::before {
-  color: rgb(161 161 170);
-  /* zinc-400 */
-}
-
-/* 移除默认的列表点样式 */
-.mdx-content ul li::before {
-  content: "•";
-  position: absolute;
-  left: 0;
-  color: rgb(161 161 170);
-  /* zinc-400 */
-  font-weight: bold;
-}
-
-.dark .mdx-content ul li::before {
-  color: rgb(113 113 122);
-  /* zinc-500 */
-}
-
-/* 滚动条样式 */
-.mdx-content ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-.mdx-content ::-webkit-scrollbar-track {
-  background: rgb(244 244 245);
-  /* zinc-100 */
-  border-radius: 4px;
-}
-
-.dark .mdx-content ::-webkit-scrollbar-track {
-  background: rgb(39 39 42);
-  /* zinc-800 */
-}
-
-.mdx-content ::-webkit-scrollbar-thumb {
-  background: rgb(161 161 170);
-  /* zinc-400 */
-  border-radius: 4px;
-}
-
-.mdx-content ::-webkit-scrollbar-thumb:hover {
-  background: rgb(113 113 122);
-  /* zinc-500 */
-}
-
-.dark .mdx-content ::-webkit-scrollbar-thumb {
-  background: rgb(113 113 122);
-  /* zinc-500 */
-}
-
-.dark .mdx-content ::-webkit-scrollbar-thumb:hover {
-  background: rgb(161 161 170);
-  /* zinc-400 */
-}
-
-.language-id {
-  display: none;
-}
-
-.shiki code {
-  border: none;
-  background: transparent;
-  padding: 0;
-}
-
-.shiki {
-  border-radius: 8px;
-  padding: 1rem;
-  width: 100%;
-  overflow-x: auto;
-}
-
-.shiki .line {
-  line-height: 1.6;
-}
-
-.shiki span[style*="color:undefined"] {
-  color: #d4d4d4 !important;
+  *::-webkit-scrollbar {
+    display: none;
+  }
 }
