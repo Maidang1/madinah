@@ -173,7 +173,7 @@ export const H6 = ({
 export const P = ({ children, className, ...props }: ParagraphProps & any) => (
   <p
     className={cn(
-      'mb-8 text-lg leading-8',
+      'mb-2 text-[14px] leading-8',
       'text-text-strong/90',
       'font-normal',
       className,
@@ -213,7 +213,7 @@ export const A = ({ children, href, className, ...props }: LinkProps & any) => {
 export const UL = ({ children, className, ...props }: ListProps & any) => (
   <ul
     className={cn(
-      'mb-8 list-none space-y-3 pl-0',
+      'mb-2 list-none space-y-3 pl-0',
       'text-text-strong/90',
       className,
     )}
@@ -271,9 +271,7 @@ export const Blockquote = ({
 
 export const Code = ({ children, className, ...props }: CodeProps & any) => {
   const isInPre =
-    className?.includes('shiki') ||
-    className?.includes('code-container') ||
-    props['data-language'];
+    className?.includes('code-container') || props['data-language'];
 
   if (isInPre) {
     return (
@@ -288,7 +286,7 @@ export const Code = ({ children, className, ...props }: CodeProps & any) => {
       className={cn(
         'rounded border-0 px-1.5 py-0.5 font-mono text-sm',
         'bg-surface-flat-base-hover text-text-strong',
-        'border-border-weak border',
+        'border-border-weak border whitespace-nowrap',
         className,
       )}
       {...props}

@@ -11,7 +11,6 @@ export function MDXWrapper({ children, className }: MDXWrapperProps) {
     <div
       className={cn(
         'mdx-content prose-none max-w-none',
-        'text-zinc-700 dark:text-zinc-300',
         'scroll-smooth',
         'mx-auto',
         className,

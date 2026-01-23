@@ -1,75 +1,52 @@
-@reference "./tailwind.css";
+@import './tailwind.css';
 
 @layer components {
   .mdx-content {
-    @apply text-text-strong font-sans text-lg leading-relaxed;
+    @apply text-text-primary font-sans text-base leading-relaxed;
   }
 
   .mdx-content h1,
   .mdx-content h2,
   .mdx-content h3 {
-    @apply font-display text-text-strong mt-16 mb-8 tracking-tight;
+    @apply font-display text-text-primary mt-12 mb-6 font-medium tracking-tight;
   }
 
   .mdx-content h1 {
-    @apply mb-12 text-6xl leading-[0.85] md:text-7xl lg:text-8xl;
+    @apply mb-8 text-4xl leading-tight font-semibold md:text-5xl lg:text-6xl;
   }
 
   .mdx-content h2 {
-    @apply border-border-weak border-t pt-12 text-4xl leading-[0.9] md:text-5xl;
+    @apply border-border-default border-t pt-8 text-2xl leading-tight md:text-3xl;
   }
 
   .mdx-content h3 {
-    @apply font-display text-2xl leading-snug italic md:text-3xl;
-  }
-
-  .mdx-content > p:first-of-type::first-letter {
-    @apply font-display text-text-strong float-left mt-2 mr-4 text-7xl leading-[0.8] font-bold;
+    @apply text-xl leading-tight font-medium md:text-2xl;
   }
 
   .mdx-content p {
-    @apply mb-8;
+    @apply mb-6 leading-relaxed;
   }
 
   .mdx-content blockquote {
-    @apply border-border-weak font-display text-text-weak my-12 border-l-4 pl-8 text-2xl leading-relaxed italic;
+    @apply border-border-default text-text-secondary my-8 border-l-2 pl-6 text-lg leading-relaxed font-normal;
   }
 
   .mdx-content hr {
-    @apply via-border-weak my-24 h-[1px] border-none bg-gradient-to-r from-transparent to-transparent;
+    @apply bg-border-default my-12 h-px w-full;
   }
 
   .mdx-content pre {
-    @apply border-border-weak my-8 overflow-x-auto rounded-lg border;
-  }
-
-  .mdx-content pre:not([class*='language-']):not(code[class*='language-']) {
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    word-break: break-word;
-  }
-
-  .mdx-content pre:not([class*='language-']) {
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    word-break: break-word;
+    @apply my-1 overflow-x-auto rounded-lg;
   }
 
   .mdx-content code {
-    @apply bg-surface-flat-base-hover rounded-sm px-1.5 py-0.5 font-mono text-[0.9em];
+    @apply bg-surface-gray-100 text-text-primary rounded-sm px-1.5 py-0.5 font-mono text-sm;
   }
 
   .mdx-content pre code {
-    @apply border-0 bg-transparent p-0;
+    @apply bg-transparent p-0 text-sm;
   }
 
-  .mdx-content pre.shiki {
-    @apply bg-surface-raised-base;
-  }
-
-  .dark .mdx-content pre.shiki {
-    @apply bg-surface-invert-base;
-  }
 
   .mdx-content {
     counter-reset: mdx-list;
@@ -89,7 +66,7 @@
     content: counter(mdx-list) '.';
     position: absolute;
     left: 0;
-    color: var(--text-weak);
+    color: var(--text-muted);
     font-weight: 500;
   }
 
@@ -97,72 +74,26 @@
     content: '•';
     position: absolute;
     left: 0;
-    color: var(--text-weak);
+    color: var(--text-muted);
     font-weight: bold;
   }
 }
 
 @layer utilities {
   .mdx-content ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
 
   .mdx-content ::-webkit-scrollbar-track {
-    background: var(--surface-raised-base);
-    border-radius: 4px;
+    background: var(--surface-gray-50);
   }
 
   .mdx-content ::-webkit-scrollbar-thumb {
-    background: var(--border-weak);
-    border-radius: 4px;
+    background: var(--border-default);
   }
 
   .mdx-content ::-webkit-scrollbar-thumb:hover {
-    background: var(--text-weak);
-  }
-}
-
-@layer components {
-  .language-id {
-    display: none;
-  }
-
-  .shiki code {
-    border: none;
-    background: transparent;
-    padding: 0;
-  }
-
-  .shiki {
-    border-radius: 8px;
-    padding: 1rem;
-    width: 100%;
-    overflow-x: auto;
-  }
-
-  .shiki:not([class*='language-']) {
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    word-break: break-word;
-  }
-
-  .shiki .line {
-    line-height: 1.6;
-  }
-
-  .shiki span[style*='color:undefined'] {
-    color: var(--text-weak) !important;
-  }
-}
-
-@layer base {
-  * {
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-
-  *::-webkit-scrollbar {
-    display: none;
+    background: var(--border-strong);
   }
 }

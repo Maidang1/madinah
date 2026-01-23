@@ -152,13 +152,13 @@ export function Layout(props: { children: React.ReactNode }) {
         <Links />
         <title>Madinah</title>
       </head>
-      <body className="bg-surface-raised text-text-strong min-h-screen antialiased">
+      <body className="bg-surface-gray-50 text-text-primary min-h-screen antialiased">
         <I18nProvider initialLocale={locale}>
           <div className="flex min-h-screen flex-col">
             <SiteHeader theme={actualTheme} onThemeToggle={toggleTheme} />
             <main
               id="main-content"
-              className="mx-auto w-full flex-1 px-4 pt-32 pb-12 sm:pt-40 sm:pb-16"
+              className="mx-auto w-full max-w-3xl flex-1 px-4 pt-20 pb-12 sm:pt-24 sm:pb-16"
             >
               <div className="space-y-12">{children}</div>
             </main>

@@ -5,208 +5,173 @@
 
 /*
   ========================================
-  OpenCode Design System - Semantic Tokens
-  Pattern: --{category}-{variant}-{state}
-  Categories: text, icon, surface, button, border, shadow, radius
-  Variants: strong, weak, invert, raised, flat, primary, secondary, ghost
-  States: base, hover, focus, active, disabled
+  Madinah Blog - Professional Design System
+  Swiss Modernism 2.0 + High Accessibility
   ========================================
 */
 
 :root {
   /*
     --- Palette (Foundation) ---
-    Using a warm, editorial color palette
+    Based on UI Pro Max recommendations
   */
-  --palette-ink: #1c1c1c;
-  --palette-ink-light: #404040;
-  --palette-ink-lighter: #737373;
-  --palette-parchment: #faf9f6;
-  --palette-parchment-dark: #f5f4f0;
-  --palette-gold: #c9a227;
-  --palette-gold-light: #e3c565;
-  --palette-gold-dark: #a68620;
-  --palette-green: #2d5a45;
-  --palette-green-light: #4a7c64;
-  --palette-red: #a83232;
+  --palette-black: #09090b;
+  --palette-charcoal: #18181b;
+  --palette-zinc: #3f3f46;
+  --palette-gray-50: #fafafa;
+  --palette-gray-100: #f4f4f5;
+  --palette-gray-200: #e4e4e7;
+  --palette-gray-300: #d4d4d8;
+  --palette-gray-400: #a1a1aa;
+  --palette-gray-500: #71717a;
+  --palette-white: #ffffff;
+  --palette-blue: #2563eb;
+  --palette-blue-light: #3b82f6;
 
   /*
     --- Radius Tokens ---
   */
-  --radius: 8px;
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 8px;
   --radius-xl: 12px;
+  --radius-2xl: 16px;
 
   /*
     --- Shadow Tokens ---
+    Subtle shadows for depth without distraction
   */
-  --shadow-raised: 0 2px 8px rgba(0, 0, 0, 0.08);
-  --shadow-flat: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-sm:
+    0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow-md:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --shadow-lg:
+    0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
 
   /*
     --- Text Tokens ---
-    Categories: text
-    Variants: strong, weak, invert, disabled
+    High contrast for readability (WCAG AAA)
   */
-  --text-strong: var(--palette-ink);
-  --text-strong-hover: var(--palette-ink-light);
-  --text-weak: var(--palette-ink-lighter);
-  --text-weak-hover: var(--palette-ink);
-  --text-invert: var(--palette-parchment);
-  --text-invert-hover: var(--palette-parchment-dark);
-  --text-disabled: #a1a1aa;
+  --text-primary: var(--palette-black);
+  --text-secondary: var(--palette-zinc);
+  --text-muted: var(--palette-gray-500);
+  --text-inverted: var(--palette-white);
 
   /*
     --- Icon Tokens ---
-    Categories: icon
-    Variants: strong, weak, invert
   */
-  --icon-strong-base: var(--palette-ink);
-  --icon-strong-hover: var(--palette-ink-light);
-  --icon-weak-base: var(--palette-ink-lighter);
-  --icon-weak-hover: var(--palette-ink);
-  --icon-invert-base: var(--palette-parchment);
-  --icon-invert-hover: var(--palette-parchment-dark);
+  --icon-primary: var(--palette-black);
+  --icon-secondary: var(--palette-gray-400);
+  --icon-inverted: var(--palette-white);
 
   /*
     --- Surface Tokens ---
-    Categories: surface
-    Variants: raised, flat, invert
   */
-  --surface-raised-base: var(--palette-parchment);
-  --surface-raised-base-hover: var(--palette-parchment-dark);
-  --surface-flat-base: transparent;
-  --surface-flat-base-hover: rgba(0, 0, 0, 0.04);
-  --surface-invert-base: var(--palette-ink);
-  --surface-invert-base-hover: var(--palette-ink-light);
-  --surface-disabled: #f4f4f5;
-
-  /*
-    --- Button Tokens ---
-    Categories: button
-    Variants: primary, secondary, ghost
-  */
-  --button-primary-base: var(--palette-ink);
-  --button-primary-hover: var(--palette-ink-light);
-  --button-primary-active: var(--palette-ink);
-  --button-primary-disabled: #a1a1aa;
-
-  --button-secondary-base: var(--palette-parchment-dark);
-  --button-secondary-hover: #e5e4e0;
-  --button-secondary-active: #d4d3cf;
-  --button-secondary-disabled: #f4f4f5;
-
-  --button-ghost-base: transparent;
-  --button-ghost-hover: rgba(0, 0, 0, 0.04);
-  --button-ghost-active: rgba(0, 0, 0, 0.08);
-  --button-ghost-disabled: transparent;
+  --surface-white: var(--palette-white);
+  --surface-gray-50: var(--palette-gray-50);
+  --surface-gray-100: var(--palette-gray-100);
+  --surface-charcoal: var(--palette-charcoal);
 
   /*
     --- Border Tokens ---
-    Categories: border
-    Variants: strong, weak, invert
+    Visible in both modes
   */
-  --border-strong: var(--palette-ink);
-  --border-weak: #e5e4e0;
-  --border-invert: rgba(250, 249, 246, 0.2);
+  --border-default: var(--palette-gray-200);
+  --border-strong: var(--palette-gray-300);
+
+  /*
+    --- Transition Tokens ---
+  */
+  --transition-fast: 150ms ease-out;
+  --transition-base: 200ms ease-out;
+  --transition-slow: 300ms ease-out;
 }
 
 /*
   --- Dark Mode Overrides ---
 */
 .dark {
-  --text-strong: var(--palette-parchment);
-  --text-strong-hover: var(--palette-parchment-dark);
-  --text-weak: #a1a1aa;
-  --text-weak-hover: var(--palette-parchment);
-  --text-invert: var(--palette-ink);
-  --text-invert-hover: var(--palette-ink-light);
+  --text-primary: var(--palette-white);
+  --text-secondary: var(--palette-gray-300);
+  --text-muted: var(--palette-gray-400);
+  --text-inverted: var(--palette-black);
 
-  --icon-strong-base: var(--palette-parchment);
-  --icon-strong-hover: var(--palette-parchment-dark);
-  --icon-weak-base: #a1a1aa;
-  --icon-weak-hover: var(--palette-parchment);
-  --icon-invert-base: var(--palette-ink);
-  --icon-invert-hover: var(--palette-ink-light);
+  --icon-primary: var(--palette-white);
+  --icon-secondary: var(--palette-gray-500);
+  --icon-inverted: var(--palette-black);
 
-  --surface-raised-base: #1c1c1c;
-  --surface-raised-base-hover: #262626;
-  --surface-flat-base: transparent;
-  --surface-flat-base-hover: rgba(255, 255, 255, 0.04);
-  --surface-invert-base: var(--palette-parchment);
-  --surface-invert-base-hover: #f5f4f0;
-  --surface-disabled: #27272a;
+  --surface-white: var(--palette-charcoal);
+  --surface-gray-50: #27272a;
+  --surface-gray-100: #3f3f46;
+  --surface-charcoal: var(--palette-white);
 
-  --button-primary-base: var(--palette-parchment);
-  --button-primary-hover: var(--palette-parchment-dark);
-  --button-primary-active: var(--palette-parchment);
-  --button-primary-disabled: #52525b;
+  --border-default: var(--palette-zinc);
+  --border-strong: var(--palette-gray-400);
 
-  --button-secondary-base: #262626;
-  --button-secondary-hover: #30302e;
-  --button-secondary-active: #3a3a38;
-  --button-secondary-disabled: #27272a;
-
-  --button-ghost-base: transparent;
-  --button-ghost-hover: rgba(255, 255, 255, 0.04);
-  --button-ghost-active: rgba(255, 255, 255, 0.08);
-  --button-ghost-disabled: transparent;
-
-  --border-strong: var(--palette-parchment);
-  --border-weak: #3a3a38;
-  --border-invert: rgba(250, 249, 246, 0.15);
-
-  --shadow-raised: 0 2px 8px rgba(0, 0, 0, 0.3);
-  --shadow-flat: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-sm:
+    0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px -1px rgba(0, 0, 0, 0.3);
+  --shadow-md:
+    0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+  --shadow-lg:
+    0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
 }
 
 /*
   --- Tailwind Theme Mapping ---
-  Maps CSS variables to Tailwind utilities
 */
 @theme inline {
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
   --radius-lg: var(--radius-lg);
   --radius-xl: var(--radius-xl);
+  --radius-2xl: var(--radius-2xl);
 
-  --color-text-strong: var(--text-strong);
-  --color-text-weak: var(--text-weak);
-  --color-text-invert: var(--text-invert);
-  --color-text-disabled: var(--text-disabled);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-text-inverted: var(--text-inverted);
 
-  --color-icon-strong: var(--icon-strong-base);
-  --color-icon-weak: var(--icon-weak-base);
-  --color-icon-invert: var(--icon-invert-base);
+  --color-icon-primary: var(--icon-primary);
+  --color-icon-secondary: var(--icon-secondary);
+  --color-icon-inverted: var(--icon-inverted);
 
-  --color-surface-raised: var(--surface-raised-base);
-  --color-surface-flat: var(--surface-flat-base);
-  --color-surface-invert: var(--surface-invert-base);
-  --color-surface-disabled: var(--surface-disabled);
+  --color-surface-white: var(--surface-white);
+  --color-surface-gray-50: var(--surface-gray-50);
+  --color-surface-gray-100: var(--surface-gray-100);
+  --color-surface-charcoal: var(--surface-charcoal);
 
-  --color-button-primary: var(--button-primary-base);
-  --color-button-secondary: var(--button-secondary-base);
-  --color-button-ghost: var(--button-ghost-base);
-
+  --color-border-default: var(--border-default);
   --color-border-strong: var(--border-strong);
-  --color-border-weak: var(--border-weak);
-  --color-border-invert: var(--border-invert);
 
-  --shadow-raised: var(--shadow-raised);
-  --shadow-flat: var(--shadow-flat);
+  --shadow-xs: var(--shadow-xs);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+
+  --transition-fast: var(--transition-fast);
+  --transition-base: var(--transition-base);
+  --transition-slow: var(--transition-slow);
 }
 
 /*
-  --- Custom Utilities for Tailwind 4 ---
+  --- Custom Utilities ---
 */
-@utility shadow-raised {
-  box-shadow: var(--shadow-raised);
+@utility shadow-xs {
+  box-shadow: var(--shadow-xs);
 }
 
-@utility shadow-flat {
-  box-shadow: var(--shadow-flat);
+@utility shadow-sm {
+  box-shadow: var(--shadow-sm);
+}
+
+@utility shadow-md {
+  box-shadow: var(--shadow-md);
+}
+
+@utility shadow-lg {
+  box-shadow: var(--shadow-lg);
 }
 
 /*
@@ -214,7 +179,7 @@
 */
 @layer base {
   * {
-    @apply border-border-weak outline-icon-strong-base/50;
+    @apply border-border-default outline-none;
   }
 
   html {
@@ -222,7 +187,7 @@
   }
 
   body {
-    @apply bg-surface-raised text-text-strong font-sans text-base leading-relaxed;
+    @apply bg-surface-gray-50 text-text-primary font-sans text-base leading-relaxed antialiased;
   }
 
   h1,
@@ -231,57 +196,63 @@
   h4,
   h5,
   h6 {
-    @apply font-display tracking-tight;
+    @apply font-display font-medium tracking-tight;
   }
 
   ::selection {
-    @apply bg-text-strong/10 text-text-strong;
+    @apply bg-text-primary/10 text-text-primary;
   }
 
   a:focus-visible,
   button:focus-visible {
-    @apply outline-text-strong outline-2 outline-offset-2;
+    @apply ring-text-primary/20 ring-2 ring-offset-2 outline-none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 
 /*
   --- Component Classes ---
-  Pre-built component patterns using semantic tokens
 */
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors;
+    @apply focus-visible:ring-text-primary/20 inline-flex cursor-pointer items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-offset-2;
   }
 
   .btn-primary {
-    @apply bg-button-primary-base text-text-invert hover:bg-button-primary-hover active:bg-button-primary-active disabled:cursor-not-allowed disabled:opacity-50;
+    @apply bg-surface-charcoal text-text-inverted hover:bg-surface-charcoal/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .btn-secondary {
-    @apply bg-button-secondary-base text-text-strong hover:bg-button-secondary-hover active:bg-button-secondary-active disabled:cursor-not-allowed disabled:opacity-50;
+    @apply bg-surface-white border-border-default text-text-primary hover:bg-surface-gray-50 hover:border-border-strong border active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .btn-ghost {
-    @apply bg-button-ghost-base text-text-strong hover:bg-button-ghost-hover active:bg-button-ghost-active disabled:cursor-not-allowed disabled:opacity-50;
+    @apply text-text-primary hover:bg-surface-gray-100 bg-transparent active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .card {
-    @apply bg-surface-raised-base border-border-weak shadow-raised rounded-lg border;
-  }
-
-  .card-hover {
-    @apply bg-surface-raised-base-hover border-border-weak shadow-raised rounded-lg border transition-shadow;
+    @apply bg-surface-white border-border-default cursor-pointer rounded-lg border shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md;
   }
 
   .input {
-    @apply bg-surface-raised-base border-border-weak text-text-strong placeholder:text-text-weak focus:ring-text-strong/20 w-full rounded-md border px-3 py-2 focus:ring-2 focus:outline-none;
+    @apply bg-surface-white border-border-default text-text-primary placeholder:text-text-muted focus:border-border-strong focus:ring-text-primary/10 h-10 w-full cursor-pointer rounded-md border px-3 transition-all duration-200 focus:ring-2 focus:outline-none;
   }
 
   .link {
-    @apply text-text-strong underline-offset-4 hover:underline;
+    @apply text-text-primary decoration-text-muted underline decoration-1 underline-offset-4 transition-all duration-200 hover:underline;
   }
 
-  .link-weak {
-    @apply text-text-weak hover:text-text-weak-hover underline-offset-4 hover:underline;
+  .link-secondary {
+    @apply text-text-secondary hover:text-text-primary decoration-text-muted underline decoration-1 underline-offset-4 transition-all duration-200 hover:underline;
   }
 }

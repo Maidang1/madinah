@@ -117,24 +117,27 @@ function ProjectCard({ project, translationKey }: ProjectCardProps) {
     <div
       className={cn(
         'group relative overflow-hidden',
-        'rounded-[6px]',
-        'transition-colors hover:bg-black/5 dark:hover:bg-black/40',
+        'rounded-lg',
+        'border-border-default border',
+        'bg-surface-white',
+        'transition-all duration-300',
+        'hover:-translate-y-0.5 hover:shadow-md',
       )}
     >
       <a
-        className="flex items-center gap-x-4 p-4 opacity-80 transition-opacity duration-300 hover:opacity-100"
+        className="focus-visible:ring-text-primary/20 flex items-center gap-x-4 p-4 transition-all duration-300 focus-visible:rounded-lg focus-visible:ring-2 focus-visible:ring-offset-2"
         href={project.url ?? project.github}
         target="_blank"
         rel="noreferrer"
       >
         <div>
-          <span className={cn(project.icon, 'text-4xl')}></span>
+          <span className={cn(project.icon, 'text-3xl')}></span>
         </div>
         <div>
-          <h3 className="mb-1 text-lg !text-gray-700 transition-colors dark:!text-gray-200">
+          <h3 className="text-text-primary mb-1 text-base font-medium">
             {displayName}
           </h3>
-          <p className="text-sm !leading-5 text-gray-700 opacity-50 dark:text-gray-200 line-clamp-2">
+          <p className="text-text-secondary line-clamp-2 text-sm leading-5">
             {description}
           </p>
         </div>

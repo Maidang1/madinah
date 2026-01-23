@@ -103,10 +103,15 @@ function blogListVirtualPlugin(): Plugin {
         try {
           await ensureModuleCode();
         } catch (error) {
-          console.error('[MDX] Failed to regenerate blog metadata on hot update:', error);
+          console.error(
+            '[MDX] Failed to regenerate blog metadata on hot update:',
+            error,
+          );
           return [];
         }
-        const mod = context.server.moduleGraph.getModuleById(resolvedVirtualModuleId);
+        const mod = context.server.moduleGraph.getModuleById(
+          resolvedVirtualModuleId,
+        );
         if (mod) {
           context.server.moduleGraph.invalidateModule(mod);
           return [mod];
@@ -119,24 +124,23 @@ function blogListVirtualPlugin(): Plugin {
 
 function excalidraw(): Plugin {
   return {
-    name: "excalidraw",
+    name: 'excalidraw',
     resolveId(id: string) {
-      if (id.endsWith(".excalidraw")) {
-        return id
+      if (id.endsWith('.excalidraw')) {
+        return id;
       }
     },
     load(id) {
-      if (!id.endsWith(".excalidraw")) {
-        return null
-
+      if (!id.endsWith('.excalidraw')) {
+        return null;
       }
       const content = fs.readFileSync(id, {
-        encoding: 'utf-8'
-      })
+        encoding: 'utf-8',
+      });
 
       return `const data = ${content}; export default data`;
     },
-  }
+  };
 }
 
 function mdxHotReload(): Plugin {
@@ -156,9 +160,7 @@ function mdxHotReload(): Plugin {
   };
 }
 
-
 export default defineConfig(async () => {
-
   return {
     plugins: [
       remixCloudflareDevProxy(),
@@ -188,13 +190,13 @@ export default defineConfig(async () => {
             {
               disableImplicitReactImport: true,
               includeJSDocInHover: true,
-              themes: ["dark-plus"],
+              themes: ['vitesse-light', 'vitesse-dark'],
               defaultOptions: {
-                lib: ["dom", "es2015"],
-              }
+                lib: ['dom', 'es2015'],
+              },
             },
           ],
-        ]
+        ],
       }),
       remix({
         future: {
@@ -217,7 +219,7 @@ export default defineConfig(async () => {
       include: ['react-use'],
     },
     define: {
-      "process.env.IS_PREACT": JSON.stringify("true"),
+      'process.env.IS_PREACT': JSON.stringify('true'),
     },
     server: {
       warmup: {
@@ -227,7 +229,7 @@ export default defineConfig(async () => {
     build: {
       commonjsOptions: {
         transformMixedEsModules: true,
-      }
-    }
+      },
+    },
   };
 });

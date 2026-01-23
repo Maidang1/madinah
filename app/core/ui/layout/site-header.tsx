@@ -41,17 +41,17 @@ export function SiteHeader({ theme, onThemeToggle }: SiteHeaderProps) {
   );
 
   return (
-    <header className="bg-surface-raised-base/80 fixed top-0 right-0 left-0 z-[60] w-full backdrop-blur-sm transition-all duration-300">
-      <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-6 sm:px-6">
+    <header className="bg-surface-gray-50/80 border-border-default fixed top-4 right-4 left-4 z-[60] rounded-lg border backdrop-blur-sm transition-all duration-200">
+      <div className="flex items-center justify-between px-6 py-3">
         <div className="flex items-center gap-8">
           <Link
             to="/"
-            className="font-display text-text-strong text-lg font-bold tracking-tight transition-opacity hover:opacity-60"
+            className="font-display text-text-primary cursor-pointer text-lg font-semibold tracking-tight transition-all duration-200 hover:opacity-70"
           >
             {t('header.brand')}
           </Link>
 
-          <nav className="hidden items-center gap-6 text-sm font-medium sm:flex">
+          <nav className="hidden items-center gap-6 text-sm sm:flex">
             {navItems.map((item) => (
               <NavLink
                 key={item.to}
@@ -60,10 +60,10 @@ export function SiteHeader({ theme, onThemeToggle }: SiteHeaderProps) {
                 end={item.end}
                 className={({ isActive }) =>
                   cn(
-                    'transition-all hover:opacity-60',
+                    'cursor-pointer transition-all duration-200',
                     isActive
-                      ? 'text-text-strong font-semibold'
-                      : 'text-text-weak',
+                      ? 'text-text-primary font-medium'
+                      : 'text-text-secondary hover:text-text-primary',
                   )
                 }
               >
@@ -74,7 +74,7 @@ export function SiteHeader({ theme, onThemeToggle }: SiteHeaderProps) {
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {languageOptions.map((option) => {
               const isActive = option.code === locale;
               return (
@@ -83,8 +83,10 @@ export function SiteHeader({ theme, onThemeToggle }: SiteHeaderProps) {
                   type="button"
                   onClick={() => setLocale(option.code)}
                   className={cn(
-                    'text-[10px] font-bold tracking-widest uppercase transition-all hover:opacity-60',
-                    isActive ? 'text-text-strong' : 'text-text-weak',
+                    'cursor-pointer text-xs font-medium transition-all duration-200',
+                    isActive
+                      ? 'text-text-primary'
+                      : 'text-text-muted hover:text-text-primary',
                   )}
                 >
                   {option.code}
@@ -96,7 +98,7 @@ export function SiteHeader({ theme, onThemeToggle }: SiteHeaderProps) {
           <button
             type="button"
             onClick={onThemeToggle}
-            className="text-text-strong transition-opacity hover:opacity-60"
+            className="text-text-primary cursor-pointer transition-all duration-200 hover:opacity-70"
             aria-label={t('header.themeToggle')}
           >
             {theme === 'dark' ? (

@@ -22,9 +22,9 @@ export function SiteFooter() {
     );
 
   return (
-    <footer className="bg-surface-raised-base">
-      <div className="text-text-weak border-border-weak/40 mx-auto flex w-full max-w-3xl flex-col gap-3 border-t px-4 py-12 text-xs sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-text-strong font-medium">
+    <footer className="bg-surface-white">
+      <div className="border-border-default mx-auto flex w-full max-w-3xl flex-col gap-4 border-t px-4 py-8 text-xs sm:flex-row sm:items-center sm:justify-between sm:py-12">
+        <p className="text-text-secondary font-medium">
           {t('footer.message', { replace: { year } })}
         </p>
         <nav className="flex flex-wrap items-center gap-6">
@@ -35,7 +35,7 @@ export function SiteFooter() {
                 href={item.to}
                 target="_blank"
                 rel="noreferrer"
-                className="hover:text-text-strong font-medium transition-colors"
+                className="text-text-secondary hover:text-text-primary cursor-pointer font-medium transition-all duration-200"
               >
                 {item.label}
               </a>
@@ -43,7 +43,7 @@ export function SiteFooter() {
               <Link
                 key={item.label}
                 to={item.to}
-                className="hover:text-text-strong font-medium transition-colors"
+                className="text-text-secondary hover:text-text-primary cursor-pointer font-medium transition-all duration-200"
               >
                 {item.label}
               </Link>
