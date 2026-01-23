@@ -54,14 +54,14 @@ export const Tocs = ({ tocs, activeId, progress, onLinkClick }: TocsProps) => {
       </nav>
 
       <div className="text-text-weak mt-3 ml-2 inline-flex items-center justify-between gap-1.5 text-[10px]">
-        <div
-          className="radial-progress text-text-weak"
-          style={
-            { '--value': progress, '--size': '0.875rem' } as React.CSSProperties
-          }
-          aria-valuenow={progress}
-          role="progressbar"
-        />
+        <progress
+          value={progress}
+          max={100}
+          className="w-3.5 h-3.5 rounded-full"
+          aria-label="Reading progress"
+        >
+          {Math.round(progress)}%
+        </progress>
         <div>{Math.round(progress)}%</div>
       </div>
     </>

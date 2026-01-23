@@ -13,6 +13,7 @@ import type {
   ActionFunctionArgs,
 } from '@remix-run/cloudflare';
 import { MDXProvider } from '@mdx-js/react';
+import { CH } from '@code-hike/mdx/components';
 import { ClientOnly } from 'remix-utils/client-only';
 import { cn } from '~/core/utils';
 import { mdxComponents } from '~/core/mdx/mdx-components';
@@ -23,6 +24,7 @@ import { useEffectOnce } from 'react-use';
 import './styles/tailwind.css';
 import './styles/theme.less';
 import './styles/mdx.css';
+import '@code-hike/mdx/styles.css';
 import type { Theme, Locale } from './types';
 import { SiteHeader } from '~/core/ui/layout/site-header';
 import { SiteFooter } from '~/core/ui/layout/site-footer';
@@ -177,6 +179,7 @@ export default function App() {
     <MDXProvider
       components={{
         ...mdxComponents,
+        CH,
         ClientOnly,
         // ExcalidrawComponent
       }}

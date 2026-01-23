@@ -12,7 +12,7 @@ import { generatePostsMetadata } from './utils/post';
 import { booksVirtualPlugin } from './utils/book';
 import rehypeRaw from 'rehype-raw';
 import { nodeTypes } from '@mdx-js/mdx';
-import remarkShikiTwoslash from 'remark-shiki-twoslash';
+import { remarkCodeHike } from '@code-hike/mdx';
 import rehypeSlug from 'rehype-slug';
 import rehypeAutoLinkHeadings from 'rehype-autolink-headings';
 import fs from 'fs';
@@ -184,16 +184,11 @@ export default defineConfig(async () => {
           remarkFrontmatter,
           [remarkMdxFrontmatter, { name: 'matter' }],
           [
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-expect-error
-            remarkShikiTwoslash.default,
+            remarkCodeHike,
             {
-              disableImplicitReactImport: true,
-              includeJSDocInHover: true,
-              themes: ['vitesse-light', 'vitesse-dark'],
-              defaultOptions: {
-                lib: ['dom', 'es2015'],
-              },
+              theme: 'github-from-css',
+              autoImport: false,
+              skipLanguages: [],
             },
           ],
         ],

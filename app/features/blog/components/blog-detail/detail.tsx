@@ -25,16 +25,33 @@ export default function Detail({ list }: BlogsDetailProps) {
 
   useEffect(() => {
     if (!headerRef.current) return;
+
+    let timeoutId: NodeJS.Timeout;
+
     const handleScroll = () => {
-      const headerRect = headerRef.current?.getBoundingClientRect();
-      if (headerRect) {
-        setShowStickyHeader(headerRect.bottom < 80);
+      // Clear existing timeout
+      if (timeoutId) {
+        clearTimeout(timeoutId);
       }
+
+      // Throttle the scroll handler
+      timeoutId = setTimeout(() => {
+        const headerRect = headerRef.current?.getBoundingClientRect();
+        if (headerRect) {
+          setShowStickyHeader(headerRect.bottom < 80);
+        }
+      }, 16); // ~60fps
     };
 
     handleScroll();
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, []);
 
   return (
@@ -42,7 +59,7 @@ export default function Detail({ list }: BlogsDetailProps) {
       <TableOfContentsMobile tocs={tocs} />
 
       <div
-        className={`fixed top-30 left-4 z-40 hidden max-h-[calc(100vh-8rem)] w-56 pb-8 xl:block`}
+        className={`fixed top-30 left-4 z-40 hidden max-h-[calc(100vh-8rem)] w-56 pb-8 xl:block 2xl:w-64`}
       >
         <div className="max-h-[calc(100vh-12rem)] overflow-y-auto pr-2">
           <TableOfContentsPC tocs={tocs} className="w-full" />

@@ -7,7 +7,7 @@ export function LicenseNotice() {
     <div className="border-border-weak/50 mt-12 border-t pt-8">
       <div className="flex items-center justify-center">
         <div className="text-text-weak text-center text-sm">
-          <p className="leading-relaxed text-gray-300 opacity-60">
+          <p className="leading-relaxed opacity-75">
             {t('license.notice')}
           </p>
         </div>

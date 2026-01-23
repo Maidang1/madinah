@@ -48,7 +48,7 @@ export function BookLayout({ sidebar, overview, children }: BookLayoutProps) {
   const sidebarClasses = useMemo(
     () =>
       cn(
-        'fixed inset-y-0 left-0 z-50 w-80 transform bg-white shadow-xl transition-transform duration-300 ease-in-out dark:bg-zinc-900 xl:hidden',
+        'fixed inset-y-0 left-0 z-50 w-80 max-w-[90vw] transform bg-white shadow-xl transition-transform duration-300 ease-in-out dark:bg-zinc-900 xl:hidden',
         isSidebarOpen ? 'translate-x-0' : '-translate-x-full',
       ),
     [isSidebarOpen],
@@ -99,7 +99,9 @@ export function BookLayout({ sidebar, overview, children }: BookLayoutProps) {
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
+            aria-hidden="true"
           >
+            <title>Close sidebar</title>
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -118,6 +120,12 @@ export function BookLayout({ sidebar, overview, children }: BookLayoutProps) {
         aria-label={t('books.layout.closeSidebar')}
         className={overlayClasses}
         onClick={closeSidebar}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') {
+            closeSidebar();
+          }
+        }}
+        tabIndex={isSidebarOpen ? 0 : -1}
       >
         <span className="sr-only">{t('books.layout.closeSidebar')}</span>
       </button>
@@ -136,7 +144,9 @@ export function BookLayout({ sidebar, overview, children }: BookLayoutProps) {
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
+          aria-hidden="true"
         >
+          <title>Open sidebar menu</title>
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
