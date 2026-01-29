@@ -29,8 +29,8 @@ export function BlogNavigation({ list, className }: BlogNavigationProps) {
                 to={prevPost.url}
                 className={cn(
                   'group flex items-center gap-3 rounded-lg p-4',
-                  'bg-surface-flat-base-hover border-border-weak/30 border',
-                  'hover:bg-surface-flat-base-hover/50 hover:border-border-weak/60 transition-colors',
+                  'bg-surface-flat-base-hover',
+                  'hover:bg-surface-flat-base-hover/50 transition-colors',
                   'w-full max-w-sm',
                 )}
               >
@@ -58,8 +58,8 @@ export function BlogNavigation({ list, className }: BlogNavigationProps) {
                 to={nextPost.url}
                 className={cn(
                   'group flex items-center gap-3 rounded-lg p-4',
-                  'bg-surface-flat-base-hover border-border-weak/30 border',
-                  'hover:bg-surface-flat-base-hover/50 hover:border-border-weak/60 transition-colors',
+                  'bg-surface-flat-base-hover',
+                  'hover:bg-surface-flat-base-hover/50 transition-colors',
                   'w-full max-w-sm text-right',
                 )}
               >

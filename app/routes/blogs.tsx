@@ -2,9 +2,6 @@ import { Outlet, useLocation } from '@remix-run/react';
 import { useEffect, useRef, useState } from 'react';
 import { BlogNavigation } from '~/features/blog/components/blog-detail/blog-navigation';
 import { DetailHeader } from '~/features/blog/components/blog-detail/detail-header';
-import { ScrollToTopButton } from '~/features/blog/components/blog-detail/scroll-to-top';
-import { TableOfContentsMobile } from '~/features/blog/components/blog-detail/table-contents-mobile';
-import { TableOfContentsPC } from '~/features/blog/components/blog-detail/table-contents-pc';
 import { HistoryVersions } from '~/features/blog/components/blog-detail/history-version';
 // eslint-disable-next-line import/no-unresolved
 import { list } from 'virtual:blog-list';
@@ -47,16 +44,6 @@ export default function BlogsLayout() {
 
   return (
     <>
-      {listItem && <TableOfContentsMobile tocs={tocs} />}
-
-      {listItem && (
-        <div className="fixed top-30 left-4 z-40 hidden max-h-[calc(100vh-8rem)] w-56 pb-8 xl:block">
-          <div className="max-h-[calc(100vh-12rem)] overflow-y-auto pr-2">
-            <TableOfContentsPC tocs={tocs} className="w-full" />
-          </div>
-        </div>
-      )}
-
       <div className="relative mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8">
         {listItem && (
           <div
@@ -75,14 +62,14 @@ export default function BlogsLayout() {
         )}
 
         <div className="blog-detail-content blog-detail-scroll-container min-w-0">
-          {listItem && <DetailHeader ref={headerRef} title={title} />}
+          {listItem && <DetailHeader ref={headerRef} post={listItem} />}
 
           <div className="mt-8 mb-16">
             <Outlet />
           </div>
 
           {listItem && (
-            <div className="mt-16 mb-8">
+            <div className="my-4">
               <div className="my-4">
                 {(listItem?.gitInfo?.commits?.length ?? 0) > 0 && (
                   <HistoryVersions gitInfo={listItem?.gitInfo} />
@@ -93,7 +80,6 @@ export default function BlogsLayout() {
           )}
         </div>
 
-        <ScrollToTopButton />
       </div>
     </>
   );

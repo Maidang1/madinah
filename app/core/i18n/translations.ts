@@ -36,7 +36,6 @@ export const translations: Record<SupportedLocale, TranslationDictionary> = {
       navigation: {
         home: 'Home',
         blog: 'Blog',
-        books: 'Books',
         reading: 'Reading',
         projects: 'Projects',
         rss: 'RSS',
@@ -64,7 +63,7 @@ export const translations: Record<SupportedLocale, TranslationDictionary> = {
         badge: 'Frontend · Rust · AI',
         title: "Hi, I'm Madinah.",
         subtitle:
-          'Frontend developer, Rust tinkerer, and AI enthusiast building in public.',
+          'Frontend developer, Rust learning~',
         avatarAlt: 'Madinah avatar',
         focusAreas: [
           'Designing thoughtful front-end experiences with Remix & Tailwind.',
@@ -243,7 +242,7 @@ export const translations: Record<SupportedLocale, TranslationDictionary> = {
       hero: {
         badge: '前端 · Rust · AI',
         title: '你好，我是 Madinah。',
-        subtitle: '一名前端开发者、Rust 爱好者与 AI 实践者，持续公开构建。',
+        subtitle: '一名前端开发者、Rust 入门中～',
         avatarAlt: 'Madinah 头像',
         focusAreas: [
           '用 Remix 和 Tailwind 打磨细腻的前端体验。',
@@ -308,50 +307,6 @@ export const translations: Record<SupportedLocale, TranslationDictionary> = {
           name: 'reminder-cli',
           description: '一个基于 Rust 的命令行提醒工具，支持 cron 表达式和自然语言设置周期性提醒，并通过系统通知提醒用户。',
         }
-      },
-    },
-    books: {
-      meta: {
-        title: 'Books • Madinah',
-        description: '系统整理的 Rust、Remix 等专题书籍合集。',
-      },
-      list: {
-        heading: '书籍',
-        chapterCount: '{{count}} 章',
-        startReading: '开始阅读',
-        emptyTitle: '书籍正在整理中',
-        emptyMessage: '稍后再来看看，也许就会有新的内容。',
-      },
-      sidebar: {
-        sectionLabel: '章节',
-      },
-      overview: {
-        sectionLabel: '书籍',
-        author: '作者：{{name}}',
-      },
-      layout: {
-        closeSidebar: '关闭章节导航',
-        openSidebar: '打开章节导航',
-      },
-      chapter: {
-        loading: '正在加载章节内容...',
-      },
-      errors: {
-        goHome: '返回首页',
-        goToBooks: '返回书籍列表',
-        listLoadTitle: '书籍列表加载失败',
-        listRenderTitle: '书籍列表渲染失败',
-        listRenderMessage: '加载书籍时出现未知错误。',
-        bookNotFound: '未找到书籍',
-        bookLoadFailed: '加载书籍失败',
-        bookRenderFailed: '加载书籍时出现错误',
-        bookRenderMessage: '加载书籍时发生未知错误，请稍后再试。',
-        chapterNotFound: '未找到章节',
-        chapterLoadFailed: '加载章节失败',
-        chapterRenderFailed: '章节内容渲染失败',
-        chapterRenderMessage: '加载章节内容时发生未知错误。',
-        chapterRedirectFailed: '无法定位章节',
-        chapterRedirectMessage: '无法确认默认章节，请稍后重试。',
       },
     },
     reading: {

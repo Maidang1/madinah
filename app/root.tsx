@@ -27,7 +27,6 @@ import './styles/mdx.css';
 import '@code-hike/mdx/styles.css';
 import type { Theme, Locale } from './types';
 import { SiteHeader } from '~/core/ui/layout/site-header';
-import { SiteFooter } from '~/core/ui/layout/site-footer';
 import { I18nProvider } from '~/core/i18n/i18n-provider';
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '~/core/i18n/translations';
 
@@ -160,11 +159,10 @@ export function Layout(props: { children: React.ReactNode }) {
             <SiteHeader theme={actualTheme} onThemeToggle={toggleTheme} />
             <main
               id="main-content"
-              className="mx-auto w-full max-w-3xl flex-1 px-4 pt-20 pb-12 sm:pt-24 sm:pb-16"
+              className="mx-auto w-full max-w-3xl flex-1 px-4 pt-12 pb-12 sm:pt-16 sm:pb-16"
             >
               <div className="space-y-12">{children}</div>
             </main>
-            <SiteFooter />
           </div>
         </I18nProvider>
         <ScrollRestoration />
@@ -179,7 +177,7 @@ export default function App() {
     <MDXProvider
       components={{
         ...mdxComponents,
-        CH,
+        CH: CH as any,
         ClientOnly,
         // ExcalidrawComponent
       }}

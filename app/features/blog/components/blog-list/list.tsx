@@ -9,26 +9,40 @@ interface BaseBlogListProps {
 
 export default function List({ list }: BaseBlogListProps) {
   return (
-    <div className="mx-auto max-w-3xl px-4 py-12">
-      <div className="flex flex-col space-y-2">
-        {list.map((li) => {
-          return (
-            <div key={li.filename} className="group">
-              <Link
-                to={li.url}
-                className="hover:bg-surface-gray-100 hover:border-border-strong focus-visible:ring-text-primary/20 flex cursor-pointer items-center justify-between gap-4 rounded-md px-4 py-3 no-underline transition-all duration-200 focus-visible:ring-2 focus-visible:ring-offset-2"
-              >
-                <h3 className="text-text-primary text-base font-medium tracking-tight transition-colors">
-                  {li.title}
-                </h3>
-                <div className="text-text-muted font-mono text-xs whitespace-nowrap">
-                  <Time time={li.gitInfo?.createdAt || li.time} />
-                </div>
-              </Link>
-            </div>
-          );
-        })}
-      </div>
+    <div className="grid grid-cols-1 gap-6">
+      {list.map((li) => {
+        return (
+          <Link
+            key={li.filename}
+            to={li.url}
+            className="bg-surface-white border-border-default group block rounded-xl border p-6 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+          >
+            <article className="space-y-3">
+              <h3 className="text-text-primary font-sans text-xl font-bold tracking-tight transition-colors group-hover:text-blue-600">
+                {li.title}
+              </h3>
+
+              {li.summary && (
+                <p className="text-text-secondary line-clamp-2 text-sm leading-relaxed">
+                  {li.summary}
+                </p>
+              )}
+
+              <div className="text-text-muted flex items-center gap-3 text-xs font-medium">
+                <Time time={li.gitInfo?.createdAt || li.time} />
+                <span>·</span>
+                <span>{Math.ceil(li.readingTime?.minutes || 5)} min read</span>
+                {li.author && (
+                  <>
+                    <span>·</span>
+                    <span>{li.author}</span>
+                  </>
+                )}
+              </div>
+            </article>
+          </Link>
+        );
+      })}
     </div>
   );
 }

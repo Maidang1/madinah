@@ -9,7 +9,6 @@ import remarkFrontmatter from 'remark-frontmatter';
 import remarkMdxFrontmatter from 'remark-mdx-frontmatter';
 import path from 'path';
 import { generatePostsMetadata } from './utils/post';
-import { booksVirtualPlugin } from './utils/book';
 import rehypeRaw from 'rehype-raw';
 import { nodeTypes } from '@mdx-js/mdx';
 import { remarkCodeHike } from '@code-hike/mdx';
@@ -202,7 +201,6 @@ export default defineConfig(async () => {
           v3_singleFetch: true,
         },
       }),
-      booksVirtualPlugin(),
       blogListVirtualPlugin(),
       tsconfigPaths(),
     ],

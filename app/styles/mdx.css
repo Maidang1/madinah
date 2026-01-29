@@ -8,39 +8,43 @@
   .mdx-content h1,
   .mdx-content h2,
   .mdx-content h3 {
-    @apply font-display text-text-primary mt-12 mb-6 font-medium tracking-tight;
+    @apply font-sans text-text-primary mt-6 mb-3 font-bold tracking-tight;
   }
 
   .mdx-content h1 {
-    @apply mb-8 text-4xl leading-tight font-semibold md:text-5xl lg:text-6xl;
+    @apply mb-4 text-4xl leading-tight md:text-5xl;
   }
 
   .mdx-content h2 {
-    @apply border-border-default border-t pt-8 text-2xl leading-tight md:text-3xl;
+    @apply text-2xl leading-tight md:text-3xl;
   }
 
   .mdx-content h3 {
-    @apply text-xl leading-tight font-medium md:text-2xl;
+    @apply text-xl leading-tight md:text-2xl;
   }
 
   .mdx-content p {
-    @apply mb-6 leading-relaxed;
+    @apply mb-4 leading-7 text-text-primary/90 text-[1.125rem];
+  }
+
+  .mdx-content a {
+    @apply text-text-primary underline decoration-text-muted/60 underline-offset-4 decoration-1 transition-all hover:decoration-text-primary hover:decoration-2;
   }
 
   .mdx-content blockquote {
-    @apply border-border-default text-text-secondary my-8 border-l-2 pl-6 text-lg leading-relaxed font-normal;
+    @apply border-border-default text-text-secondary my-8 border-l-4 pl-6 text-lg leading-relaxed font-normal italic bg-surface-gray-100/50 py-2 pr-4 rounded-r-lg;
   }
 
   .mdx-content hr {
-    @apply bg-border-default my-12 h-px w-full;
+    @apply my-12 h-px w-full bg-transparent;
   }
 
   .mdx-content pre {
-    @apply my-1 overflow-x-auto rounded-lg;
+    @apply my-5 overflow-x-auto rounded-lg;
   }
 
   .mdx-content code {
-    @apply bg-surface-gray-100 text-text-primary rounded-sm px-1.5 py-0.5 font-mono text-sm;
+    @apply bg-surface-gray-100 text-text-primary rounded-sm px-1.5 py-0.5 font-mono text-[0.9em];
   }
 
   .mdx-content pre code {
@@ -60,6 +64,9 @@
     counter-increment: mdx-list;
     position: relative;
     padding-left: 1.5rem;
+    margin-bottom: 0.75rem;
+    font-size: 1.125rem;
+    line-height: 2rem;
   }
 
   .mdx-content ol li::before {
@@ -70,12 +77,19 @@
     font-weight: 500;
   }
 
+  .mdx-content ul li {
+    position: relative;
+    padding-left: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+
   .mdx-content ul li::before {
     content: '•';
     position: absolute;
     left: 0;
     color: var(--text-muted);
     font-weight: bold;
+    transform: scale(1.2);
   }
 }
 
@@ -96,4 +110,13 @@
   .mdx-content ::-webkit-scrollbar-thumb:hover {
     background: var(--border-strong);
   }
+}
+
+.ch-codeblock {
+  margin-top: 8px !important;
+  box-shadow: none !important;
+}
+
+.ch-code-wrapper.ch-code {
+  background-color: transparent !important;
 }

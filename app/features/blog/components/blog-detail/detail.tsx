@@ -1,12 +1,9 @@
 'use client';
 
-import { ScrollRestoration, useLocation } from '@remix-run/react';
+import { useLocation } from '@remix-run/react';
 import { useEffect, useRef, useState } from 'react';
 import { BlogNavigation } from './blog-navigation';
 import { DetailHeader } from './detail-header';
-import { ScrollToTopButton } from './scroll-to-top';
-import { TableOfContentsMobile } from './table-contents-mobile';
-import { TableOfContentsPC } from './table-contents-pc';
 import { PostInfo } from '~/types';
 import { HistoryVersions } from './history-version';
 
@@ -56,16 +53,6 @@ export default function Detail({ list }: BlogsDetailProps) {
 
   return (
     <>
-      <TableOfContentsMobile tocs={tocs} />
-
-      <div
-        className={`fixed top-30 left-4 z-40 hidden max-h-[calc(100vh-8rem)] w-56 pb-8 xl:block 2xl:w-64`}
-      >
-        <div className="max-h-[calc(100vh-12rem)] overflow-y-auto pr-2">
-          <TableOfContentsPC tocs={tocs} className="w-full" />
-        </div>
-      </div>
-
       <div className="relative mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8">
         <div
           className={`bg-surface-raised-base/80 border-border-weak fixed inset-x-0 top-0 z-50 border-b backdrop-blur-md transition-opacity ${
@@ -82,9 +69,9 @@ export default function Detail({ list }: BlogsDetailProps) {
         </div>
 
         <div className="blog-detail-content blog-detail-scroll-container min-w-0">
-          <DetailHeader ref={headerRef} title={title} />
+          <DetailHeader ref={headerRef} post={listItem} />
 
-          <div className="mt-16 mb-8">
+          <div className="my-4">
             <div className="my-4">
               {(listItem?.gitInfo?.commits?.length ?? 0) > 0 && (
                 <HistoryVersions gitInfo={listItem?.gitInfo} />
@@ -95,7 +82,6 @@ export default function Detail({ list }: BlogsDetailProps) {
           </div>
         </div>
 
-        <ScrollToTopButton />
       </div>
     </>
   );

@@ -46,7 +46,6 @@ export const H1 = ({
       'mt-16 mb-10 text-3xl font-bold first:mt-0 md:text-4xl',
       'text-text-strong',
       'leading-tight tracking-tight',
-      'border-border-weak border-b pb-4',
       'group heading-group',
       className,
     )}
@@ -65,7 +64,7 @@ export const H2 = ({
   <h2
     id={id}
     className={cn(
-      'group mt-14 mb-8 text-2xl font-semibold md:text-3xl',
+      'group my-2 text-2xl font-semibold md:text-3xl',
       'text-text-strong',
       'leading-snug tracking-tight',
       'group heading-group relative',
@@ -88,7 +87,7 @@ export const H3 = ({
   <h3
     id={id}
     className={cn(
-      'mt-10 mb-6 text-xl font-semibold md:text-2xl',
+      'mt-3 mb-3 text-xl font-semibold md:text-2xl',
       'text-text-strong',
       'tracking-tight',
       'group heading-group relative',
@@ -111,7 +110,7 @@ export const H4 = ({
   <h4
     id={id}
     className={cn(
-      'mt-8 mb-4 text-lg font-medium md:text-xl',
+      'mt-2 mb-2 text-lg font-medium md:text-xl',
       'text-text-strong',
       'tracking-tight',
       'group heading-group',
@@ -134,7 +133,7 @@ export const H5 = ({
   <h5
     id={id}
     className={cn(
-      'mt-6 mb-4 text-base font-medium',
+      'mt-1 mb-1 text-base font-medium',
       'text-text-strong',
       'group heading-group',
       'flex items-center gap-1',
@@ -156,7 +155,7 @@ export const H6 = ({
   <h6
     id={id}
     className={cn(
-      'mt-6 mb-3 text-sm font-medium md:text-base',
+      'mt-1 mb-1 text-sm font-medium md:text-base',
       'text-text-strong/80',
       'tracking-wider uppercase',
       'group heading-group',
@@ -173,7 +172,7 @@ export const H6 = ({
 export const P = ({ children, className, ...props }: ParagraphProps & any) => (
   <p
     className={cn(
-      'mb-2 text-[14px] leading-8',
+      'mb-2 text-[16px] leading-8',
       'text-text-strong/90',
       'font-normal',
       className,
@@ -226,7 +225,7 @@ export const UL = ({ children, className, ...props }: ListProps & any) => (
 export const OL = ({ children, className, ...props }: ListProps & any) => (
   <ol
     className={cn(
-      'mdx-content mb-8 list-none space-y-3 pl-0',
+      'mdx-content mb-2 list-none space-y-3 pl-0',
       'text-text-strong/90',
       className,
     )}
@@ -239,7 +238,7 @@ export const OL = ({ children, className, ...props }: ListProps & any) => (
 export const LI = ({ children, className, ...props }: any) => (
   <li
     className={cn(
-      'relative pl-6 text-lg leading-8',
+      'relative pl-6 text-lg !mb-0 leading-4',
       'before:text-text-weak/40 before:absolute before:left-0 before:font-bold before:content-["•"]',
       '[ol_&]:before:content-none',
       className,
@@ -284,9 +283,9 @@ export const Code = ({ children, className, ...props }: CodeProps & any) => {
   return (
     <code
       className={cn(
-        'rounded border-0 px-1.5 py-0.5 font-mono text-sm',
+        'rounded px-1.5 py-0.5 font-mono text-sm',
         'bg-surface-flat-base-hover text-text-strong',
-        'border-border-weak border whitespace-nowrap',
+        'whitespace-nowrap',
         className,
       )}
       {...props}
@@ -310,7 +309,7 @@ export const HR = ({ className, ...props }: any) => (
 export const Img = ({ className, alt, ...props }: any) => (
   <img
     className={cn(
-      'mb-8 h-auto max-w-full rounded-lg shadow-sm',
+      'mb-2 h-auto max-w-full rounded-lg shadow-sm',
       'border-border-weak border',
       className,
     )}
