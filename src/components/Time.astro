@@ -1,0 +1,32 @@
+---
+interface Props {
+  time: string | Date;
+}
+
+const { time } = Astro.props;
+
+const parsed = new Date(time);
+const isValid = !isNaN(parsed.getTime());
+
+let formattedDate = '';
+let weekday = '';
+
+if (isValid) {
+  formattedDate = new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  }).format(parsed);
+  
+  weekday = new Intl.DateTimeFormat('en-US', {
+    weekday: 'short',
+  }).format(parsed);
+} else {
+  formattedDate = String(time);
+}
+---
+
+<span class="flex items-center gap-x-1.5 whitespace-nowrap">
+  <span class="text-text-secondary text-xs">{formattedDate}</span>
+  {weekday && <span class="text-text-secondary text-xs">{weekday}</span>}
+</span>

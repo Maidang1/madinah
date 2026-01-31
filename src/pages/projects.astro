@@ -1,0 +1,93 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const projects = [
+  {
+    id: 'wallpaper-app',
+    name: 'Wallpaper App',
+    description: 'A beautiful wallpaper application with curated collections',
+    github: 'https://github.com/Maidang1/wallpaper-app',
+    icon: '🎨',
+  },
+  {
+    id: 'farmfe-plugins',
+    name: 'FarmFe Plugins',
+    description: 'Plugin ecosystem for Farm build tool',
+    github: 'https://github.com/farm-fe/plugins',
+    icon: '🔌',
+  },
+  {
+    id: 'pixel-picture',
+    name: 'Pixel Picture',
+    description: 'Pixel art editor and gallery',
+    github: 'https://github.com/Maidang1/pixel-picture',
+    url: 'https://pixel.felixwliu.cn/',
+    icon: '🖼️',
+  },
+  {
+    id: 'reminders',
+    name: 'Reminders',
+    description: 'Simple and elegant reminder application',
+    github: 'https://github.com/Maidang1/reminders',
+    icon: '⏰',
+  },
+  {
+    id: 'tasuku-rs',
+    name: 'tasuku-rs',
+    description: 'Rust implementation of tasuku task runner',
+    github: 'https://github.com/Maidang1/tasuku-rs',
+    icon: '🚀',
+  },
+  {
+    id: 'reminder-cli',
+    name: 'Reminder CLI',
+    description: 'Command-line reminder tool',
+    github: 'https://github.com/Maidang1/reminder-cli',
+    icon: '✅',
+  },
+  {
+    id: 'open-claude-cowork',
+    name: 'open-claude-cowork',
+    description: 'Use Agent Client Protocol Rebuild Cowork',
+    github: 'https://github.com/Maidang1/open-claude-cowork',
+    icon: '🤝',
+  },
+];
+---
+
+<BaseLayout title="Projects - Madinah" description="Projects that I created or maintaining.">
+  <section class="py-12 sm:py-16 lg:py-20">
+    <div>
+      <div class="mb-12 text-center sm:mb-16">
+        <h1 class="mb-4 text-4xl font-bold tracking-tight text-text-primary sm:text-5xl">
+          Projects
+        </h1>
+        <p class="mx-auto max-w-2xl text-lg text-text-secondary">
+          A collection of projects I've built and maintain
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {projects.map((project) => (
+          <div class="group relative overflow-hidden rounded-xl p-6 transition-all duration-300">
+            <a
+              class="flex items-center gap-x-4 transition-colors duration-300 group-hover:text-text-secondary focus-visible:rounded-lg focus-visible:ring-2 focus-visible:ring-text-primary/20 focus-visible:ring-offset-2"
+              href={project.url ?? project.github}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <div>
+                <h3 class="text-text-primary mb-1 text-base font-medium transition-colors group-hover:text-text-secondary">
+                  {project.name}
+                </h3>
+                <p class="text-text-secondary line-clamp-2 text-sm leading-5 transition-colors group-hover:text-text-muted">
+                  {project.description}
+                </p>
+              </div>
+            </a>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+</BaseLayout>

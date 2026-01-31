@@ -1,0 +1,254 @@
+---
+title: 如何高保真克隆一个网站样式
+author: Madinah
+description: 使用 AI 工作流实现高保真克隆网站样式的完整指南
+tags:
+  - AI
+pubDate: 2024-10-24 00:34:00
+---
+
+
+## 如何高保真克隆一个网站样式
+
+某次在 [如何用Claude Code生成顶级 UI ?](https://www.bilibili.com/video/BV1Fx1kBvEFz/) 视频中发现了如何使用 claude code 来高保真克隆一个网站的样式。但是由于
+商业化的问题，视频里面提到的插件需要支付 20 刀才能看到最终 STYLE_GUIDE.md 文件。基于视频的启发，我使用了自己的工作流来实现高保真克隆一个网站的样式。
+
+
+## 工作流
+
+###  让 AI 分析影响网站的布局因素
+
+- USER
+```
+通常一个 web 网站的样式布局受那些因素影响，如果我想复刻一个别的网站的样式，我应该考虑那些因素才能复刻和原本网站一致的体验。列出来一个大纲，
+```
+
+- AI 
+
+```
+复刻一个网站的样式并达到“体验一致”，不仅仅是复制 CSS 代码，更重要的是理解其背后的 设计系统 和 交互逻辑 。
+
+以下是一个复刻网站样式时需要考虑的详细因素大纲：
+
+### 核心大纲：Web 样式复刻要素 1. 基础架构与重置 (The Foundation)
+在开始写任何样式之前，原本网站的基础设置决定了所有元素的默认表现。
+
+- CSS Reset / Normalize: 目标网站是否使用了特定的 CSS 重置样式（如 normalize.css 或自定义 reset）？这决定了浏览器默认的边距、字体大小和行高。
+- 盒模型 (Box Sizing): 全局是使用 border-box 还是 content-box ？这是复刻布局尺寸是否精确的关键。
+- 文档流与层级 (Z-index): 页面是否存在复杂的层叠上下文（Stacking Context），例如模态框、悬浮导航、Tooltips 的层级关系。 2. 布局系统 (Layout System)
+这是网页的“骨架”。
+
+- 布局模式:
+  - Grid (网格): 页面是否基于 12 栅格或其他网格系统？
+  - Flexbox (弹性盒): 元素是如何对齐、分布和换行的？
+  - Positioning (定位): 哪些元素是 fixed (固定)、 sticky (粘性) 或 absolute (绝对定位) 的？
+- 间距系统 (Spacing): 网站是否有统一的间距倍数（如 4px, 8px, 16px...）？Margin 和 Padding 的规律是什么？
+- 容器宽度: 内容区域的最大宽度 ( max-width ) 是多少？是否居中？ 3. 视觉设计语言 (Visual Design Language)
+这是网页的“皮肤”。
+
+- 排版 (Typography):
+  - 字体家族: 使用了哪些特定的 Web Font？备选字体是什么？
+  - 字阶与行高: 标题 (H1-H6) 和正文的字号、行高 ( line-height )、字重 ( font-weight ) 和字间距 ( letter-spacing )。
+- 色彩系统 (Color Palette):
+  - 主色、辅色、强调色。
+  - 背景色（深色模式/浅色模式）。
+  - 文本颜色（主标题、副文本、禁用态文本）。
+  - 透明度与渐变。
+- 形状与装饰:
+  - 圆角 (Border Radius): 卡片、按钮是直角、圆角还是全圆？
+  - 阴影 (Box Shadow): 阴影的扩散程度、颜色、方向（用于表现层级深度）。
+  - 边框 (Borders): 粗细、颜色、虚实。 4. 响应式与适配 (Responsiveness)
+复刻体验一致性的难点在于不同设备上的表现。
+
+- 断点 (Breakpoints): 布局在什么宽度下发生变化（如 Mobile, Tablet, Desktop）？
+- 流式布局: 宽度是固定的 ( px ) 还是百分比 ( % ) 或视口单位 ( vw/vh )？
+- 隐藏与显示: 哪些元素在移动端被隐藏了？导航栏是否变成了汉堡菜单？
+- 图片适配: 图片是否使用了 object-fit: cover 或 contain ？ 5. 交互与动态体验 (Interaction & Motion)
+静态样式只是表象，动态交互才是“体验”。
+
+- 状态 (States):
+  - Hover: 鼠标悬停时的颜色变化、位移或下划线。
+  - Focus: 输入框或按钮聚焦时的轮廓。
+  - Active/Disabled: 点击时和禁用时的样式。
+- 过渡与动画 (Transitions & Animations):
+  - 变化的 时长 (Duration) 和 缓动函数 (Easing function) （如 ease-in-out ）。
+  - 加载动画 (Loading skeletons/spinners)。
+- 滚动行为: 是否有平滑滚动？导航栏是否随滚动隐藏/显示？ 6. 资源与素材 (Assets)
+- 图标 (Icons): 是使用 SVG、Icon Font 还是 PNG？（SVG 通常更清晰且易于着色）。
+- 图片质量: 图片的比例、滤镜处理。
+### 如何着手复刻？(工具建议)
+如果你想开始复刻，建议使用 Chrome DevTools 进行“解剖”：
+
+1. Computed 面板: 查看元素最终计算出来的样式（解决了 CSS 继承和覆盖导致的困惑）。
+2. Layout 面板: 如果网站用了 CSS Grid 或 Flexbox，可以在这里看到可视化的网格线。
+3. Animations 面板: 可以录制和放慢网站的动画，看清具体的关键帧。
+4. 取色器: 拿到精确的十六进制色值。
+通过以上大纲逐一分析目标网站，你就能从“形似”做到“神似”
+```
+
+### 使用 AI 分析具体的网站
+
+- USER
+
+```
+现在你就是一个专业分析网站样式布局的专家，非常擅长根据已经有的网站分析出来关键的样式。  现在根据 https://sandbox.cloudflare.com/ 网站的链接，分析一下这个网站整体的样式规则，以及产出如果我复刻这网站所需要的全部上下文信息。
+```
+
+- AI
+```
+根据 https://sandbox.cloudflare.com/ 的页面特征（基于 Cloudflare 一贯的设计语言和开发者工具类页面的常见模式），我为你整理了一份详细的复刻指南。
+
+这个网站的核心视觉风格是： 现代、技术感、干净 。它大量使用了深色模式（Dark Mode）元素来强调“开发者工具”的属性，同时保持了 Cloudflare 标志性的橙色作为点缀。
+
+以下是复刻该网站所需的全部上下文信息大纲：
+
+### 1. 核心设计系统 (Design Tokens)
+这是复刻的基石，建议在 CSS 变量（ :root ）中定义。
+ 色彩体系 (Color Palette)
+- 主色调 (Primary / Brand):
+  - --color-brand-orange : #F6821F (Cloudflare 标志性橙色，用于 Logo 和关键 CTA 按钮)
+  - --color-accent-blue : #0051C3 (链接色或辅助强调)
+- 中性色 / 背景 (Neutrals):
+  - --bg-body : #FFFFFF (页面主体背景)
+  - --bg-surface : #F9FAFB (浅灰背景，用于区分区块)
+  - --bg-dark : #1D1D1D 或 #161616 (代码编辑器、终端窗口背景，这是 Sandbox 页面的视觉重心)
+- 文本颜色 (Typography Colors):
+  - --text-primary : #111827 (接近纯黑，用于标题)
+  - --text-secondary : #4B5563 (深灰，用于正文描述)
+  - --text-inverse : #FFFFFF (深色背景上的文字)
+- 边框颜色:
+  - --border-light : #E5E7EB 排版系统 (Typography)
+Cloudflare 偏爱干净的无衬线字体。
+
+- 字体家族 (Font Family):
+  - UI 字体: Inter , -apple-system , BlinkMacSystemFont , Segoe UI , Roboto , sans-serif 。
+  - 代码字体: Monaco , Menlo , Fira Code , Courier New , monospace (非常重要，用于代码演示区)。
+- 字重 (Font Weight):
+  - Regular (400): 正文
+  - Medium (500): 按钮文本、小标题
+  - Semibold (600): 章节标题
+  - Bold (700): Hero 区域大标题 间距与形状 (Spacing & Shape)
+- 圆角 (Radius):
+  - --radius-sm : 4px (小按钮、输入框)
+  - --radius-md : 8px (卡片、代码块)
+  - --radius-lg : 12px 或 16px (大的容器、模态框)
+- 阴影 (Shadows):
+  - --shadow-card : 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) (轻微的悬浮感)
+  - --shadow-glow : 针对代码终端可能有微弱的辉光效果。
+### 2. 页面布局架构 (Layout Structure) A. 导航栏 (Header)
+- 布局 : Flexbox, justify-content: space-between , align-items: center 。
+- 高度 : 固定高度 (约 64px - 80px)。
+- 元素 : 左侧 Logo，右侧 "Docs", "Log In", "Sign Up" 按钮。
+- Sticky : 可能会在滚动时吸顶并增加模糊背景 ( backdrop-filter: blur() )。 B. 首屏区域 (Hero Section)
+这是页面的视觉焦点。
+
+- 布局 :
+  - Desktop : 双列布局 (Split Screen)。左侧为文案 (Headline + Subhead + CTA)，右侧为交互式演示 (Code Terminal / Sandbox Preview)。
+  - Mobile : 单列垂直堆叠，文案在上，演示在下。
+- 样式细节 :
+  - 标题字号巨大 (如 3rem / 48px +)，行高紧凑。
+  - 右侧演示区 : 这是一个模拟的 IDE 或终端窗口。需要实现类似 VS Code 的界面（左侧行号、顶部 Tab 栏、深色背景、语法高亮）。 C. 功能特性网格 (Features Grid)
+- 布局 : CSS Grid。通常是 2 列或 3 列布局 ( grid-template-columns: repeat(3, 1fr) ).
+- 卡片样式 :
+  - 包含图标 (Icon)、标题 (H3)、描述文本 (P)。
+  - 背景可能是透明或极淡的灰色。
+  - 对齐方式：通常是左对齐。 D. 示例/用例展示 (Examples / Tabs)
+- 交互 : 使用 Tab 切换组件 (如 "File System", "WebSockets", "Long-running processes")。
+- 布局 : 左侧/上方是 Tab 导航，右侧/下方是对应的代码预览区域。
+- 代码高亮 : 必须使用语法高亮库 (如 Prism.js 或 Highlight.js) 来还原真实的代码阅读体验。
+### 3. 关键组件复刻指南 1. 终端/代码窗口 (The Terminal Window)
+这是 sandbox 概念的核心视觉隐喻。
+
+- Header : 一个深灰色的条，包含三个圆点（Mac 风格的红黄绿窗口控制按钮）。
+- Body : 深黑色背景 ( #1e1e1e )。
+- Font : 等宽字体，亮色文字（绿色、蓝色、黄色用于语法高亮）。
+- Cursor : 一个闪烁的光标动画 ( animation: blink 1s step-end infinite ).
+
+ 2. 按钮 (Buttons)
+- Primary Button :
+  - 背景: --color-brand-orange 或 深蓝/黑色。
+  - 文字: 白色。
+  - Hover: 亮度降低或增加阴影。
+- Secondary Button :
+  - 背景: 透明。
+  - 边框: 1px 实线 --border-light 。
+  - 文字: --text-primary 。
+### 4. 响应式策略 (Responsive Strategy)
+- 断点 (Breakpoints):
+  - md (768px): 平板。Hero 区域从双列变单列。
+  - lg (1024px): 桌面。网格布局从 2 列变 3 列。
+- 移动端调整 :
+  - 适当减小 H1 标题的字号。
+  - 增加 Padding，防止内容贴边。
+  - 代码块可能需要横向滚动 ( overflow-x: auto )。
+### 5. 交互动效 (Interaction & Motion)
+- 打字机效果 : Hero 区域的代码演示通常不是静态图片，而是看起来像正在输入代码的动画。
+- Fade In : 页面滚动时，下方的功能卡片逐渐上浮淡入。
+- Hover States : 链接和按钮必须有明确的 Hover 反馈（颜色变化或下划线）。
+如果你准备开始写代码，我建议从搭建 HTML 骨架 开始，引入 Inter 字体 ，并设置好上述的 CSS 变量
+```
+
+### AI 实现样式克隆
+
+- USER
+现在根据你上面分析出来的结果，写一个 sandbox html 来复刻整个网站的样式。
+
+- AI 
+```
+// 开始具体实现样式
+```
+由于没有提供截图，AI 出现幻觉，随便实现了样式，
+
+- USER
+
+```
+实际的截图效果是这样的，和你实现的完全不一致，重新思考一下如何实现，以及如何描述所需要的样式规则。
+```
+
+- AI 
+```
+感谢你提供的截图！现在我能看到真实的设计了。这个网站的风格和我之前理解的完全不同，它有非常独特的 手绘/蓝图风格 设计语言。让我重新分析：
+
+### 真实设计风格分析
+从截图来看，这个网站的核心特征是：
+
+1. 整体风格 : 类似 建筑蓝图/线框图 的手绘风格，而非传统的现代 UI
+2. 背景 : 浅灰色/米白色带有 斜线填充图案 （类似工程图纸的阴影区域）
+3. 线条 : 大量使用 黑色细线 勾勒边框和连接线
+4. 节点/连接 : 有类似 流程图的圆形节点 和 弯曲的连接管道 （橙色）
+5. 排版 : 使用 衬线字体 的大标题 "sandbox"，有手写/草图感
+6. 布局 : 非对称的、看起来像是 手工摆放 的卡片和元素
+7. 图标 : 简单的线条图标，有些区域用斜线填充表示"占位"
+```
+
+不断使用截图配合 trae 的选中工具，迭代修改样式
+最终实现图片效果如下：
+![sandbox 网站样式复刻](https://images.felixwliu.cn/screenshot-20260106-222415.png)
+
+### 生成 STYLE GUIDE.md
+
+- USER
+```
+现在你已经完全实现了 sandbox 官网的样式，现在，你需要根据上面实现细节的 UI 展示 和最终 sandbox-clone.html 实现出来的 HTML 。总结一套设计规范。作为其他项目的样式指导。请根据业界 UX 设计规范的风格，写一个 style guide 的 md 文件。
+```
+
+最终的 md 文件。
+
+[STYLE GUIDE.md](https://images.felixwliu.cn/STYLE_GUIDE(1).md)
+
+
+## 样式应用其他设计 app
+
+- USER
+```
+STYLE_GUIDE.md 根据这个样式文件，写一个 todo 管理的 html
+```
+
+新的 app 实现效果如下：
+![todo 管理 app 样式复刻](https://images.felixwliu.cn/screenshot-20260106-222951.png)
+
+
+## 总结
+
+实现高保真的关键是让 AI 了解原本网站的样式，布局，字体等详细的细节，仅仅靠截图是无法感知具体的颜色细节等。
+

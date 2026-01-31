@@ -1,111 +1,59 @@
 ---
 import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Time from '../../components/Time.astro';
+import { calculateReadingTime } from '../../utils/reading-time';
 
 const posts = await getCollection('blog');
-posts.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+
+// Calculate reading time, filter WIP posts, and sort
+const postsWithReadingTime = posts
+  .filter(post => post.data.status !== "WIP")
+  .map(post => ({
+    ...post,
+    readingTime: calculateReadingTime(post.body)
+  }));
+
+postsWithReadingTime.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
 ---
 
-<html lang="zh-CN">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width" />
-    <title>我的博客</title>
-  </head>
-  <body>
-    <header>
-      <h1>我的博客</h1>
-      <nav>
-        <a href="/">返回首页</a>
-      </nav>
-    </header>
+<BaseLayout title="Blog - Madinah">
+  <div class="space-y-8">
+    <h1 class="text-text-primary text-4xl font-bold tracking-tight sm:text-5xl">
+      Blog
+    </h1>
 
-    <main>
-      <ul class="post-list">
-        {posts.map(post => (
-          <li>
-            <a href={`/blog/${post.id}`}>
-              <article>
-                <h2>{post.data.title}</h2>
-                <p class="description">{post.data.description}</p>
-                <time datetime={post.data.pubDate.toISOString()}>
-                  {post.data.pubDate.toLocaleDateString('zh-CN', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
-                </time>
-              </article>
-            </a>
-          </li>
-        ))}
-      </ul>
-    </main>
+    <div class="grid grid-cols-1 gap-6">
+      {postsWithReadingTime.map(post => (
+        <a
+          href={`/blog/${post.id}`}
+          class="group block rounded-xl p-0 transition-all duration-200"
+        >
+          <article class="space-y-3">
+            <h2 class="text-text-primary font-sans text-xl font-bold tracking-tight transition-colors group-hover:text-text-secondary">
+              {post.data.title}
+            </h2>
 
-    <style>
-      header {
-        padding: 2rem;
-        text-align: center;
-        border-bottom: 1px solid #eee;
-      }
+            {post.data.description && (
+              <p class="text-text-secondary line-clamp-2 text-sm leading-relaxed transition-colors group-hover:text-text-muted">
+                {post.data.description}
+              </p>
+            )}
 
-      nav {
-        margin-top: 1rem;
-      }
-
-      nav a {
-        color: #0066cc;
-        text-decoration: none;
-      }
-
-      nav a:hover {
-        text-decoration: underline;
-      }
-
-      main {
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 2rem;
-      }
-
-      .post-list {
-        list-style: none;
-        padding: 0;
-      }
-
-      .post-list li {
-        margin-bottom: 1.5rem;
-      }
-
-      .post-list a {
-        text-decoration: none;
-        color: inherit;
-      }
-
-      .post-list article {
-        padding: 1.5rem;
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        transition: box-shadow 0.2s ease;
-      }
-
-      .post-list article:hover {
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      }
-
-      .post-list h2 {
-        margin: 0 0 0.5rem 0;
-        color: #333;
-      }
-
-      .description {
-        color: #666;
-        margin: 0.5rem 0;
-      }
-
-      time {
-        color: #999;
-        font-size: 0.875rem;
-      }
-    </style>
-  </body>
-</html>
+            <div class="text-text-muted flex items-center gap-3 text-xs font-medium transition-colors group-hover:text-text-secondary">
+              <Time time={post.data.pubDate} />
+              <span>·</span>
+              <span>{post.readingTime.minutes} min read</span>
+              {post.data.author && (
+                <>
+                  <span>·</span>
+                  <span>{post.data.author}</span>
+                </>
+              )}
+            </div>
+          </article>
+        </a>
+      ))}
+    </div>
+  </div>
+</BaseLayout>

@@ -1,0 +1,19 @@
+---
+import type { HTMLAttributes } from 'astro/types';
+import { cn } from '../../utils/cn';
+
+interface Props extends HTMLAttributes<'li'> {}
+
+const { class: className, ...props } = Astro.props;
+---
+
+<li
+  class={cn(
+    'relative pl-6 text-[16px] my-2 leading-6',
+    'before:text-text-muted/40 before:absolute before:left-0 before:font-bold before:content-["•"]',
+    className
+  )}
+  {...props}
+>
+  <slot />
+</li>

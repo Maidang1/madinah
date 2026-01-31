@@ -1,0 +1,30 @@
+---
+import type { HTMLAttributes } from 'astro/types';
+import { cn } from '../../utils/cn';
+
+interface Props extends HTMLAttributes<'a'> {}
+
+const { class: className, href, children, ...props } = Astro.props;
+
+const isExternal = href?.startsWith('http') || href?.startsWith('//');
+const isEmail = href?.startsWith('mailto:');
+---
+
+<a
+  href={href}
+  class={cn(
+    'text-text-primary',
+    'decoration-text-muted/30 decoration-1 underline-offset-4',
+    'hover:decoration-text-primary hover:decoration-2',
+    'transition-all duration-200 ease-out',
+    'inline-flex items-center gap-1 font-medium',
+    className
+  )}
+  target={isExternal ? '_blank' : undefined}
+  rel={isExternal ? 'noopener noreferrer' : undefined}
+  {...props}
+>
+  <slot />
+  {isExternal && <span class="text-xs opacity-70">↗</span>}
+  {isEmail && <span class="text-xs opacity-70">✉</span>}
+</a>

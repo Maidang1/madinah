@@ -1,0 +1,473 @@
+@import "tailwindcss";
+@custom-variant dark (&:is(.dark *));
+@config "../../tailwind.config.js";
+
+/*
+  ========================================
+  Astro Blog - Professional Design System
+  Swiss Modernism 2.0 + High Accessibility
+  ========================================
+*/
+
+:root {
+  /*
+    --- Palette (Foundation) ---
+    Based on UI Pro Max recommendations
+  */
+  --palette-black: #111111;
+  --palette-charcoal: #222222;
+  --palette-zinc: #666666;
+  --palette-gray-50: #f5f5f5;
+  --palette-gray-100: #eaeaea;
+  --palette-gray-200: #dcdcdc;
+  --palette-gray-300: #bdbdbd;
+  --palette-gray-400: #989898;
+  --palette-gray-500: #757575;
+  --palette-white: #ffffff;
+  --palette-blue: #2563eb;
+  --palette-blue-light: #3b82f6;
+
+  /*
+    --- Code Hike Theme Variables (Light) ---
+  */
+  --ch-0: light;
+  --ch-1: #6e7781;
+  --ch-2: #0550ae;
+  --ch-3: #953800;
+  --ch-4: #24292f;
+  --ch-5: #8250df;
+  --ch-6: #116329;
+  --ch-7: #cf222e;
+  --ch-8: #0a3069;
+  --ch-9: #82071e;
+  --ch-10: #f6f8fa;
+  --ch-11: #ffebe9;
+  --ch-12: #dafbe1;
+  --ch-13: #ffd8b5;
+  --ch-14: #eaeef2;
+  --ch-15: #57606a;
+  --ch-16: #ffffff;
+  --ch-17: #eaeef280;
+  --ch-18: #fdff0033;
+  --ch-19: #1a85ff;
+  --ch-20: #add6ff;
+  --ch-21: #0969da;
+  --ch-22: #f6f8fa;
+  --ch-23: #d0d7de;
+  --ch-24: #8c959f;
+  --ch-25: #afb8c133;
+  --ch-26: #ffffffe6;
+
+  /*
+    --- Radius Tokens ---
+  */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+
+  /*
+    --- Shadow Tokens ---
+    Subtle shadows for depth without distraction
+  */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+
+  /*
+    --- Text Tokens ---
+    High contrast for readability (WCAG AAA)
+  */
+  --text-primary: var(--palette-black);
+  --text-secondary: var(--palette-zinc);
+  --text-muted: var(--palette-gray-500);
+  --text-inverted: var(--palette-white);
+
+  /*
+    --- Icon Tokens ---
+  */
+  --icon-primary: var(--palette-black);
+  --icon-secondary: var(--palette-gray-400);
+  --icon-inverted: var(--palette-white);
+
+  /*
+    --- Surface Tokens ---
+  */
+  --surface-white: var(--palette-white);
+  --surface-gray-50: var(--palette-gray-50);
+  --surface-gray-100: var(--palette-gray-100);
+  --surface-charcoal: var(--palette-charcoal);
+
+  /*
+    --- Border Tokens ---
+    Visible in both modes
+  */
+  --border-default: var(--palette-gray-200);
+  --border-strong: var(--palette-gray-300);
+
+  /*
+    --- Transition Tokens ---
+  */
+  --transition-fast: 150ms ease-out;
+  --transition-base: 200ms ease-out;
+  --transition-slow: 300ms ease-out;
+}
+
+/*
+  --- Dark Mode Overrides ---
+*/
+.dark {
+  --text-primary: var(--palette-white);
+  --text-secondary: var(--palette-gray-300);
+  --text-muted: var(--palette-gray-400);
+  --text-inverted: var(--palette-black);
+
+  --icon-primary: var(--palette-white);
+  --icon-secondary: var(--palette-gray-500);
+  --icon-inverted: var(--palette-black);
+
+  --surface-white: var(--palette-charcoal);
+  --surface-gray-50: #27272a;
+  --surface-gray-100: #3f3f46;
+  --surface-charcoal: var(--palette-white);
+
+  --border-default: var(--palette-zinc);
+  --border-strong: var(--palette-gray-400);
+
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px -1px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+
+  /*
+    --- Code Hike Theme Variables (Dark) ---
+  */
+  --ch-0: dark;
+  --ch-1: #8b949e;
+  --ch-2: #79c0ff;
+  --ch-3: #ffa657;
+  --ch-4: #c9d1d9;
+  --ch-5: #d2a8ff;
+  --ch-6: #7ee787;
+  --ch-7: #ff7b72;
+  --ch-8: #a5d6ff;
+  --ch-9: #ffa198;
+  --ch-10: #f0f6fc;
+  --ch-11: #490202;
+  --ch-12: #04260f;
+  --ch-13: #5a1e02;
+  --ch-14: #161b22;
+  --ch-15: #8b949e;
+  --ch-16: #0d1117;
+  --ch-17: #6e76811a;
+  --ch-18: #ffffff0b;
+  --ch-19: #3794ff;
+  --ch-20: #264f78;
+  --ch-21: #1f6feb;
+  --ch-22: #010409;
+  --ch-23: #30363d;
+  --ch-24: #6e7681;
+  --ch-25: #6e768166;
+  --ch-26: #0d1117e6;
+}
+
+/*
+  --- Tailwind Theme Mapping ---
+*/
+@theme inline {
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-2xl: var(--radius-2xl);
+
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-text-inverted: var(--text-inverted);
+
+  --color-icon-primary: var(--icon-primary);
+  --color-icon-secondary: var(--icon-secondary);
+  --color-icon-inverted: var(--icon-inverted);
+
+  --color-surface-white: var(--surface-white);
+  --color-surface-gray-50: var(--surface-gray-50);
+  --color-surface-gray-100: var(--surface-gray-100);
+  --color-surface-charcoal: var(--surface-charcoal);
+
+  --color-border-default: var(--border-default);
+  --color-border-strong: var(--border-strong);
+
+  --shadow-xs: var(--shadow-xs);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+
+  --transition-fast: var(--transition-fast);
+  --transition-base: var(--transition-base);
+  --transition-slow: var(--transition-slow);
+}
+
+/*
+  --- Custom Utilities ---
+*/
+@utility shadow-xs {
+  box-shadow: var(--shadow-xs);
+}
+
+@utility shadow-sm {
+  box-shadow: var(--shadow-sm);
+}
+
+@utility shadow-md {
+  box-shadow: var(--shadow-md);
+}
+
+@utility shadow-lg {
+  box-shadow: var(--shadow-lg);
+}
+
+/*
+  --- Base Styles ---
+*/
+@layer base {
+  * {
+    @apply border-border-default outline-none;
+  }
+
+  html {
+    font-size: 16px;
+  }
+
+  body {
+    @apply bg-surface-gray-50 text-text-primary font-sans text-base leading-relaxed antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-sans font-bold tracking-tight;
+  }
+
+  ::selection {
+    @apply bg-text-primary/10 text-text-primary;
+  }
+
+  a:focus-visible,
+  button:focus-visible {
+    @apply ring-text-primary/20 ring-2 ring-offset-2 outline-none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/*
+  --- Component Classes ---
+*/
+@layer components {
+  .btn {
+    @apply focus-visible:ring-text-primary/20 inline-flex cursor-pointer items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-offset-2;
+  }
+
+  .btn-primary {
+    @apply bg-surface-charcoal text-text-inverted hover:bg-surface-charcoal/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-secondary {
+    @apply bg-surface-white border-border-default text-text-primary hover:bg-surface-gray-50 hover:border-border-strong border active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-ghost {
+    @apply text-text-primary hover:bg-surface-gray-100 bg-transparent active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .card {
+    @apply bg-surface-white border-border-default cursor-pointer rounded-lg border shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md;
+  }
+
+  .input {
+    @apply bg-surface-white border-border-default text-text-primary placeholder:text-text-muted focus:border-border-strong focus:ring-text-primary/10 h-10 w-full cursor-pointer rounded-md border px-3 transition-all duration-200 focus:ring-2 focus:outline-none;
+  }
+
+  .link {
+    @apply text-text-primary decoration-text-muted underline decoration-1 underline-offset-4 transition-all duration-200 hover:underline;
+  }
+
+  .link-secondary {
+    @apply text-text-secondary hover:text-text-primary decoration-text-muted underline decoration-1 underline-offset-4 transition-all duration-200 hover:underline;
+  }
+}
+
+/*
+  --- MDX Content Styles ---
+*/
+@layer components {
+  .mdx-content {
+    @apply text-text-primary font-sans text-base leading-relaxed;
+  }
+
+  .mdx-content h1,
+  .mdx-content h2,
+  .mdx-content h3 {
+    @apply font-sans text-text-primary mt-8 mb-4 font-bold tracking-tight;
+  }
+
+  .mdx-content h1 {
+    @apply mb-6 text-4xl leading-tight md:text-5xl;
+  }
+
+  .mdx-content h2 {
+    @apply mt-12 text-2xl leading-tight md:text-3xl;
+  }
+
+  .mdx-content h3 {
+    @apply mt-8 text-xl leading-tight md:text-2xl;
+  }
+
+  .mdx-content p {
+    @apply mb-6 leading-7 text-text-primary/90 text-[1.125rem];
+  }
+
+  .mdx-content p + p {
+    @apply mt-4;
+  }
+
+  .mdx-content a {
+    @apply text-text-primary underline decoration-text-muted/60 underline-offset-4 decoration-1 transition-all hover:decoration-text-primary hover:decoration-2;
+  }
+
+  .mdx-content blockquote {
+    @apply border-border-default text-text-secondary my-8 border-l-4 pl-6 text-lg leading-relaxed font-normal italic bg-surface-gray-100/50 py-2 pr-4 rounded-r-lg;
+  }
+
+  .mdx-content hr {
+    @apply my-12 h-px w-full bg-transparent;
+  }
+
+  /* Code blocks */
+  .mdx-content pre {
+    @apply my-5 overflow-x-auto rounded-lg p-4 bg-transparent;
+  }
+
+  /* Shiki dual theme support */
+  .mdx-content pre code {
+    @apply bg-transparent p-0 text-sm leading-relaxed;
+  }
+
+  /* Light theme - show light colors */
+  html:not(.dark) .mdx-content pre code .line span[style*="--shiki-dark"] {
+    color: var(--shiki-light) !important;
+  }
+
+  /* Dark theme - show dark colors */
+  html.dark .mdx-content pre code .line span[style*="--shiki-light"] {
+    color: var(--shiki-dark) !important;
+  }
+
+  /* Inline code */
+  .mdx-content code {
+    @apply bg-surface-gray-100 text-text-primary rounded-sm px-1.5 py-0.5 font-mono text-[0.9em];
+  }
+
+  /* Code inside pre (code blocks) - override inline styles */
+  .mdx-content pre code {
+    @apply bg-transparent p-0 text-sm leading-relaxed;
+    white-space: pre-wrap !important;
+    word-break: break-word;
+  }
+
+  /* Remove ALL Shiki backgrounds - comprehensive targeting */
+  .mdx-content pre code .line,
+  .mdx-content pre code span.line,
+  .mdx-content pre .line,
+  .mdx-content pre code span,
+  .mdx-content pre span,
+  .mdx-content pre code > span,
+  .mdx-content pre > code > span {
+    background-color: transparent !important;
+    background: none !important;
+  }
+
+  /* Force transparent background on all nested elements */
+  .mdx-content pre * {
+    background-color: transparent !important;
+    background: none !important;
+  }
+
+  /* Code Hike specific styles */
+  .ch-codeblock {
+    margin-top: 8px !important;
+    box-shadow: none !important;
+  }
+
+  .ch-code-wrapper.ch-code {
+    background-color: transparent !important;
+  }
+
+  .mdx-content ul,
+  .mdx-content ol {
+    @apply my-6 space-y-2;
+  }
+
+  .mdx-content ul {
+    @apply list-disc pl-6;
+  }
+
+  .mdx-content ol {
+    @apply list-decimal pl-6;
+  }
+
+  .mdx-content ul li,
+  .mdx-content ol li {
+    @apply text-text-primary/90 leading-7 text-[1.125rem] my-3;
+  }
+
+  .mdx-content ul li::marker,
+  .mdx-content ol li::marker {
+    @apply text-text-muted;
+  }
+
+  /* Nested lists */
+  .mdx-content ul ul,
+  .mdx-content ol ol,
+  .mdx-content ul ol,
+  .mdx-content ol ul {
+    @apply mt-2 mb-0;
+  }
+}
+
+/*
+  --- Scrollbar Styles ---
+*/
+@layer utilities {
+  .mdx-content ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .mdx-content ::-webkit-scrollbar-track {
+    background: var(--surface-gray-50);
+  }
+
+  .mdx-content ::-webkit-scrollbar-thumb {
+    background: var(--border-default);
+  }
+
+  .mdx-content ::-webkit-scrollbar-thumb:hover {
+    background: var(--border-strong);
+  }
+}

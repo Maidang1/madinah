@@ -1,0 +1,96 @@
+---
+import '../styles/global.css';
+import ThemeToggle from '../components/ThemeToggle';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { title = "Madinah's Blog", description = "A modern blog built with Astro" } = Astro.props;
+const currentPath = Astro.url.pathname;
+---
+
+<!doctype html>
+<html lang="zh-CN" class="h-full">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <title>{title}</title>
+    
+    <!-- Theme Script (must run before body renders to prevent flash) -->
+    <script is:inline>
+      // Immediately set theme before page renders
+      (function() {
+        const savedTheme = localStorage.getItem('theme');
+        const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        const theme = savedTheme || systemTheme;
+        
+        if (theme === 'dark') {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-surface-gray-50 text-text-primary min-h-screen antialiased">
+    <div class="flex min-h-screen flex-col">
+      <!-- Header -->
+      <header class="bg-surface-gray-50/95 sticky top-0 z-50 w-full backdrop-blur-sm transition-all duration-200">
+        <div class="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
+          <div class="flex items-center gap-3">
+            <a
+              href="/"
+              class="text-text-primary font-sans text-xl font-bold tracking-tight transition-opacity hover:opacity-70"
+            >
+              Madinah
+            </a>
+
+            <ThemeToggle client:load />
+
+            <span class="text-text-muted">|</span>
+
+            <nav class="flex items-center gap-4">
+              <a
+                href="/"
+                class:list={[
+                  "text-sm transition-colors",
+                  currentPath === "/" ? "text-text-primary font-medium" : "text-text-secondary hover:text-text-primary"
+                ]}
+              >
+                Home
+              </a>
+              <a
+                href="/projects"
+                class:list={[
+                  "text-sm transition-colors",
+                  currentPath === "/projects" ? "text-text-primary font-medium" : "text-text-secondary hover:text-text-primary"
+                ]}
+              >
+                Projects
+              </a>
+            </nav>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Content -->
+      <main
+        id="main-content"
+        class="mx-auto w-full max-w-6xl flex-1 px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20"
+      >
+        <div class="space-y-12">
+          <slot />
+        </div>
+      </main>
+    </div>
+  </body>
+</html>
