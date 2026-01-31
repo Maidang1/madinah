@@ -1,0 +1,27 @@
+---
+const props = Astro.props;
+---
+
+<h1 {...props} class="custom-h1">
+  <span class="h1-prefix">#</span>
+  <slot />
+</h1>
+
+<style>
+  .custom-h1 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 2rem 0 1rem;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #333;
+    line-height: 1.3;
+  }
+
+  .h1-prefix {
+    color: #667eea;
+    font-size: 1.5rem;
+    font-weight: 400;
+  }
+</style>

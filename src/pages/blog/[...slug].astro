@@ -1,0 +1,160 @@
+---
+import { getCollection, render } from "astro:content";
+import H1 from "../../components/H1.astro";
+import Blockquote from "../../components/Blockquote.astro";
+
+// 全局组件映射
+const components = {
+    h1: H1,
+    blockquote: Blockquote,
+};
+
+export async function getStaticPaths() {
+    const posts = await getCollection("blog");
+    return posts.map((post) => ({
+        params: { slug: post.id },
+        props: { post },
+    }));
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+---
+
+<html lang="zh-CN">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width" />
+        <title>{post.data.title}</title>
+    </head>
+    <body>
+        <header>
+            <nav>
+                <a href="/">← 返回首页</a>
+                <a href="/blog">← 返回博客列表</a>
+            </nav>
+        </header>
+
+        <main>
+            <article>
+                <header class="post-header">
+                    <h1>{post.data.title}</h1>
+                    <p class="description">{post.data.description}</p>
+                    <time datetime={post.data.pubDate.toISOString()}>
+                        {
+                            post.data.pubDate.toLocaleDateString("zh-CN", {
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric",
+                            })
+                        }
+                    </time>
+                </header>
+
+                <div class="content">
+                    <Content components={components} />
+                </div>
+            </article>
+        </main>
+
+        <style>
+            header {
+                padding: 1rem 2rem;
+                border-bottom: 1px solid #eee;
+            }
+
+            nav {
+                display: flex;
+                gap: 1rem;
+            }
+
+            nav a {
+                color: #0066cc;
+                text-decoration: none;
+            }
+
+            nav a:hover {
+                text-decoration: underline;
+            }
+
+            main {
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 2rem;
+            }
+
+            .post-header {
+                margin-bottom: 2rem;
+                padding-bottom: 1.5rem;
+                border-bottom: 1px solid #e0e0e0;
+            }
+
+            h1 {
+                margin: 0 0 0.5rem 0;
+                font-size: 2rem;
+                color: #333;
+            }
+
+            .description {
+                color: #666;
+                font-size: 1.1rem;
+                margin: 0.5rem 0;
+            }
+
+            time {
+                color: #999;
+            }
+
+            .content {
+                line-height: 1.8;
+            }
+
+            .content :global(h2) {
+                margin-top: 2rem;
+                margin-bottom: 1rem;
+                color: #333;
+            }
+
+            .content :global(h3) {
+                margin-top: 1.5rem;
+                margin-bottom: 0.75rem;
+                color: #444;
+            }
+
+            .content :global(p) {
+                margin-bottom: 1rem;
+                color: #444;
+            }
+
+            .content :global(ul),
+            .content :global(ol) {
+                margin-bottom: 1rem;
+                padding-left: 1.5rem;
+            }
+
+            .content :global(li) {
+                margin-bottom: 0.5rem;
+                color: #444;
+            }
+
+            .content :global(pre) {
+                padding: 1rem;
+                border-radius: 8px;
+                overflow-x: auto;
+                margin-bottom: 1.5rem;
+            }
+
+            .content :global(code) {
+                font-family: "Menlo", "Monaco", "Courier New", monospace;
+            }
+
+            .content :global(blockquote) {
+                margin: 1.5rem 0;
+                padding: 1rem 1.5rem;
+                background: #f8f9fa;
+                border-left: 4px solid #0066cc;
+                border-radius: 0 8px 8px 0;
+            }
+        </style>
+    </body>
+</html>
