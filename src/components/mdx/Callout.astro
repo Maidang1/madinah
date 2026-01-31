@@ -1,0 +1,40 @@
+---
+import type { HTMLAttributes } from 'astro/types';
+import { cn } from '../../utils/cn';
+
+interface Props {
+  type?: 'info' | 'warning' | 'error' | 'success' | 'note';
+  title?: string;
+  class?: string;
+}
+
+const { type = 'info', title, class: className } = Astro.props;
+
+const typeStyles = {
+  info: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-100',
+  warning: 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 text-yellow-900 dark:text-yellow-100',
+  error: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-900 dark:text-red-100',
+  success: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-900 dark:text-green-100',
+  note: 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100',
+};
+
+const icons = {
+  info: '💡',
+  warning: '⚠️',
+  error: '❌',
+  success: '✅',
+  note: '📝',
+};
+---
+
+<div class={cn('relative mb-8 rounded-lg border p-5', typeStyles[type], className)}>
+  {title && (
+    <div class="mb-2 flex items-center gap-2 font-semibold">
+      <span>{icons[type]}</span>
+      <span>{title}</span>
+    </div>
+  )}
+  <div class="prose prose-lg max-w-none leading-8">
+    <slot />
+  </div>
+</div>

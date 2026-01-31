@@ -1,0 +1,19 @@
+---
+import type { HTMLAttributes } from 'astro/types';
+import { cn } from '../../utils/cn';
+
+interface Props extends HTMLAttributes<'img'> {}
+
+const { class: className, alt, ...props } = Astro.props;
+---
+
+<img
+  class={cn(
+    'mb-2 h-auto max-w-full rounded-lg',
+    'border border-border-default',
+    'shadow-sm',
+    className
+  )}
+  alt={alt}
+  {...props}
+/>

@@ -1,0 +1,922 @@
+---
+title: mini-Kode coding agent 学习记录
+author: Madinah
+description: Mini-Kode 基于 LLM 的命令行编程助手架构设计
+tags:
+  - AI
+  - Agent
+pubDate: 2025-11-16 00:01:23
+---
+
+
+## 系统架构概览
+
+Mini-Kode 是一个基于 LLM 的命令行编程助手，采用 **工具调用（Tool Calling）** 模式与大语言模型交互。
+
+### 核心组件
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                         用户界面层                            │
+│  ┌──────────────────┐              ┌──────────────────┐     │
+│  │  Interactive UI  │              │ Non-Interactive  │     │
+│  │   (Ink + React)  │              │      Mode        │     │
+│  └──────────────────┘              └──────────────────┘     │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                      Agent 执行引擎                           │
+│              (src/agent/executor.ts)                         │
+│  • 管理 LLM 对话循环                                          │
+│  • 协调工具执行                                               │
+│  • 处理权限请求                                               │
+└─────────────────────────────────────────────────────────────┘
+                            │
+        ┌───────────────────┼───────────────────┐
+        ▼                   ▼                   ▼
+┌──────────────┐   ┌──────────────┐   ┌──────────────┐
+│  LLM Client  │   │ Tool System  │   │  Permission  │
+│              │   │              │   │   System     │
+│ • 流式响应    │   │ • 工具注册    │   │ • 权限检查    │
+│ • Token 统计 │   │ • 并发执行    │   │ • 策略管理    │
+└──────────────┘   └──────────────┘   └──────────────┘
+```
+
+### 技术栈
+
+- **TypeScript** - 类型安全
+- **Bun** - 运行时和构建工具
+- **Ink** - 基于 React 的 CLI UI
+- **OpenAI SDK** - LLM 集成
+- **Zod** - 运行时类型验证
+
+---
+
+## 启动流程
+
+### 1. 入口点 (`src/index.ts`)
+
+```typescript
+#!/usr/bin/env -S node --no-warnings=ExperimentalWarning
+
+import { EventEmitter } from "events";
+EventEmitter.defaultMaxListeners = 200; // 支持多个 LLM 流式调用
+
+import { runCli } from "./cli";
+void runCli();
+```
+
+### 2. CLI 解析 (`src/cli.ts`)
+
+系统支持两种运行模式：
+
+#### 交互模式（Interactive Mode）
+```bash
+# 启动交互式 UI
+mini-kode
+```
+
+#### 非交互模式（Non-Interactive Mode）
+```bash
+# 直接执行任务
+mini-kode "修复 auth.ts 中的 bug"
+```
+
+**CLI 参数：**
+- `-a, --approval-mode <mode>`: 权限模式
+  - `default`: 每次都询问
+  - `autoEdit`: 自动批准文件编辑
+  - `yolo`: 自动批准所有操作
+- `-w, --work-dir <path>`: 工作目录
+
+**代码示例：**
+```typescript
+// src/cli.ts
+if (prompt) {
+  // 非交互模式：直接执行任务
+  const exitCode = await runNonInteractive(prompt, workDir, approvalMode);
+  process.exit(exitCode);
+} else {
+  // 交互模式：启动 UI
+  const element = React.createElement(App, { cwd: workDir, approvalMode });
+  const instance = render(element, { exitOnCtrlC: false });
+  await instance.waitUntilExit();
+}
+```
+
+---
+
+## 核心执行循环
+
+### Agent 执行引擎 (`src/agent/executor.ts`)
+
+这是整个系统的核心，负责管理 LLM 与工具之间的交互循环。
+
+### 执行流程图
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ 1. 用户输入 Prompt                                            │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 2. 构建对话上下文                                             │
+│    • System Message (环境信息 + AGENTS.md)                   │
+│    • 历史消息                                                 │
+│    • 当前 Prompt                                              │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 3. 发送请求到 LLM                                             │
+│    • 流式响应                                                 │
+│    • 实时更新 UI                                              │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                ┌───────────┴───────────┐
+                ▼                       ▼
+    ┌──────────────────┐    ┌──────────────────┐
+    │ finish_reason:   │    │ finish_reason:   │
+    │   "stop"         │    │  "tool_calls"    │
+    └──────────────────┘    └──────────────────┘
+                │                       │
+                ▼                       ▼
+    ┌──────────────────┐    ┌──────────────────┐
+    │ 返回最终响应      │    │ 执行工具调用      │
+    └──────────────────┘    └──────────────────┘
+                                        │
+                                        ▼
+                            ┌──────────────────┐
+                            │ 工具执行完成      │
+                            │ 添加结果到对话    │
+                            └──────────────────┘
+                                        │
+                                        ▼
+                            ┌──────────────────┐
+                            │ 回到步骤 3        │
+                            │ (继续循环)        │
+                            └──────────────────┘
+```
+
+### 核心代码解析
+
+```typescript
+// src/agent/executor.ts - executeAgent 函数
+export async function executeAgent(
+  prompt: string,
+  context: ExecutionContext,
+  callbacks: ExecutionCallbacks = {},
+): Promise<ExecutionResult> {
+  // 1. 初始化 LLM 客户端
+  const client = createClient({ cwd });
+  
+  // 2. 构建对话历史
+  const systemMessage = await buildSystemMessage(cwd);
+  let conversationHistory: ChatCompletionMessageParam[] = [
+    systemMessage,
+    ...toOpenAIMessages(session.messages),
+    { role: "user", content: prompt }
+  ];
+
+  // 3. 主循环
+  while (true) {
+    // 3.1 流式调用 LLM
+    const stream = streamChatCompletion(client, conversationHistory, {
+      signal,
+      tools: openaiTools,
+    });
+
+    // 3.2 处理流式响应
+    for await (const response of stream) {
+      callbacks.onLLMMessageUpdate?.({
+        kind: "api",
+        status: response.isComplete ? "complete" : "streaming",
+        message: response.completeMessage,
+      });
+    }
+
+    // 3.3 判断 finish_reason
+    if (finishReason === "tool_calls" && parsedCalls.length > 0) {
+      // 执行工具
+      const toolCalls = await executeToolsWithPermission(
+        parsedCalls,
+        context,
+        callbacks,
+      );
+      
+      // 添加工具结果到对话
+      for (const toolCall of toolCalls) {
+        const toolMessage = formatToolResultMessage(toolCall);
+        conversationHistory.push(toolMessage);
+      }
+      
+      // 继续循环
+      continue;
+    }
+
+    // 3.4 返回最终响应
+    return { success: true, response: assembled };
+  }
+}
+```
+
+### 系统消息构建
+
+系统消息包含环境信息和项目上下文：
+
+```typescript
+// src/agent/context.ts
+async function buildSystemMessage(effectiveCwd: string) {
+  const envInfo: EnvironmentInfo = {
+    cwd: effectiveCwd,
+    isGitRepo: isGitRepository(effectiveCwd),
+    platform: process.platform,
+    date: new Date().toISOString().split("T")[0],
+    model: client.model,
+  };
+
+  // 读取 AGENTS.md 作为项目上下文
+  let projectContext = "";
+  const agentsPath = path.join(envInfo.cwd, "AGENTS.md");
+  if (fs.existsSync(agentsPath)) {
+    projectContext = fs.readFileSync(agentsPath, "utf8");
+  }
+
+  return { role: "system", content: buildSystemPrompt(envDetails, projectContext) };
+}
+```
+
+**AGENTS.md 的作用：**
+- 提供项目特定的上下文信息
+- 记录技术栈、架构、开发规范
+- 帮助 LLM 更好地理解项目
+
+---
+
+## 工具执行机制
+
+### 工具系统架构
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      Tool Definition                         │
+│  • name: 工具名称                                             │
+│  • description: 工具描述                                      │
+│  • inputSchema: Zod 验证模式                                  │
+│  • readonly: 是否只读                                         │
+│  • execute: 执行函数                                          │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   Tool Executor                              │
+│              (src/agent/toolExecutor.ts)                     │
+└─────────────────────────────────────────────────────────────┘
+                            │
+        ┌───────────────────┼───────────────────┐
+        ▼                   ▼                   ▼
+┌──────────────┐   ┌──────────────┐   ┌──────────────┐
+│  Concurrent  │   │  Sequential  │   │  Permission  │
+│  Execution   │   │  Execution   │   │   Handling   │
+│  (只读工具)   │   │  (写入工具)   │   │              │
+└──────────────┘   └──────────────┘   └──────────────┘
+```
+
+### 并发执行策略
+
+```typescript
+// src/agent/toolExecutor.ts
+async function executeToolsWithPermission(
+  calls: ParsedToolCall[],
+  context: ExecutionContext,
+  callbacks: ExecutionCallbacks,
+): Promise<ToolCall[]> {
+  // 检查是否所有工具都是只读的
+  const allReadonly = toolCallsToExecute.every((tc) => {
+    const tool = toolsByName[tc.toolName];
+    return tool?.readonly === true;
+  });
+
+  if (allReadonly) {
+    // 并发执行只读工具
+    return await executeToolsConcurrently(toolCallsToExecute, context, callbacks);
+  } else {
+    // 顺序执行包含写入操作的工具
+    return await executeToolsSequentially(toolCallsToExecute, context, callbacks);
+  }
+}
+```
+
+**为什么需要区分并发和顺序执行？**
+
+1. **只读工具（Concurrent）**：
+   - 例如：`fileRead`, `grepSearch`
+   - 无副作用，可以并发执行提高性能
+   - 结果按照调用顺序返回
+
+2. **写入工具（Sequential）**：
+   - 例如：`fsWrite`, `bash`
+   - 有副作用，必须顺序执行避免冲突
+   - 确保操作的原子性
+
+### 工具执行流程
+
+```typescript
+// src/tools/runner.ts
+async function executeSingleTool(
+  toolCall: ToolCall,
+  execContext: ToolExecutionContext,
+  startedAt: string,
+): Promise<ToolCall> {
+  try {
+    const tool = toolsByName[toolCall.toolName];
+    const result = await tool.execute(toolCall.input, execContext);
+
+    // 检查是否是业务逻辑错误
+    if ("isError" in result && result.isError === true) {
+      return {
+        ...toolCall,
+        status: "error",
+        result,
+      };
+    }
+
+    return {
+      ...toolCall,
+      status: "success",
+      result,
+    };
+  } catch (err) {
+    // 捕获权限错误
+    if (err instanceof PermissionRequiredError) {
+      return {
+        ...toolCall,
+        status: "permission_required",
+        uiHint: err.uiHint,
+      };
+    }
+    
+    return {
+      ...toolCall,
+      status: "error",
+      result: { isError: true, message: String(err?.message) },
+    };
+  }
+}
+```
+
+---
+
+## 权限系统
+
+### 权限架构
+
+Mini-Kode 实现了**两层权限系统**：
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      Approval Mode                           │
+│  • yolo: 自动批准所有操作                                     │
+│  • autoEdit: 自动批准文件编辑                                 │
+│  • default: 每次都询问                                        │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   Permission Policies                        │
+│  ┌──────────────────┐              ┌──────────────────┐     │
+│  │  Project Policy  │              │ Session Policy   │     │
+│  │  (持久化到磁盘)   │              │  (内存中)         │     │
+│  │  .mini-kode/     │              │  运行时授权       │     │
+│  │  config.json     │              │                  │     │
+│  └──────────────────┘              └──────────────────┘     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 权限检查流程
+
+```typescript
+// src/permissions/policyResolver.ts
+export function checkFsPermission(
+  cwd: string,
+  targetPath: string,
+  approvalMode: ApprovalMode,
+): { ok: true } | { ok: false; message: string } {
+  // 1. YOLO 模式：自动批准
+  if (approvalMode === "yolo") {
+    return { ok: true };
+  }
+
+  // 2. AutoEdit 模式：自动批准写操作
+  if (approvalMode === "autoEdit") {
+    return { ok: true };
+  }
+
+  // 3. 检查 Session 权限（内存，快速）
+  if (checkSessionFsPermission(targetPath)) {
+    return { ok: true };
+  }
+
+  // 4. 检查 Project 权限（磁盘，持久化）
+  if (checkProjectFsPermission(cwd, targetPath)) {
+    return { ok: true };
+  }
+
+  // 5. 需要用户授权
+  return {
+    ok: false,
+    message: `Permission required to modify: ${relativePath}`,
+  };
+}
+```
+
+### 权限类型
+
+1. **文件系统权限（FS）**
+   ```typescript
+   type FsGrant = {
+     type: "fs";
+     path: string; // 绝对路径或 "*" 表示全局
+   };
+   ```
+
+2. **Bash 命令权限**
+   ```typescript
+   type BashGrant = {
+     type: "bash";
+     command: string; // 命令或 "npm:*" 表示前缀匹配
+   };
+   ```
+
+3. **MCP 工具权限**
+   ```typescript
+   type MCPGrant = {
+     type: "mcp";
+     serverName: string;
+     toolName?: string; // 可选，特定工具
+   };
+   ```
+
+### 异步权限请求流程
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ 1. 工具执行时检查权限                                         │
+│    checkFsPermission() / checkBashApproval()                │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+                    ┌───────────────┐
+                    │ 权限已授予？   │
+                    └───────────────┘
+                    │               │
+                Yes │               │ No
+                    ▼               ▼
+        ┌──────────────┐   ┌──────────────────┐
+        │ 直接执行      │   │ 抛出              │
+        │              │   │ PermissionRequired│
+        │              │   │ Error             │
+        └──────────────┘   └──────────────────┘
+                                    │
+                                    ▼
+                        ┌──────────────────────┐
+                        │ Executor 捕获错误     │
+                        │ 调用 onPermission    │
+                        │ Required 回调         │
+                        └──────────────────────┘
+                                    │
+                                    ▼
+                        ┌──────────────────────┐
+                        │ UI 显示权限请求       │
+                        │ 等待用户决策          │
+                        └──────────────────────┘
+                                    │
+                        ┌───────────┴───────────┐
+                        ▼                       ▼
+            ┌──────────────────┐    ┌──────────────────┐
+            │ 用户批准          │    │ 用户拒绝          │
+            └──────────────────┘    └──────────────────┘
+                        │                       │
+                        ▼                       ▼
+            ┌──────────────────┐    ┌──────────────────┐
+            │ 应用授权并重新    │    │ 返回              │
+            │ 执行工具          │    │ permission_denied │
+            └──────────────────┘    └──────────────────┘
+```
+
+**代码示例：**
+
+```typescript
+// src/agent/toolExecutor.ts
+async function executeSingleToolWithPermission(
+  toolCallToExecute: ToolCallPending,
+  context: ExecutionContext,
+  callbacks: ExecutionCallbacks,
+): Promise<ToolCall> {
+  // 执行工具
+  const result = await executeSingleToolCall(toolCallToExecute, toolContext);
+
+  if (result.status === "permission_required") {
+    // 处理权限请求
+    const finalResult = await handlePermissionRequest(
+      result,
+      toolContext,
+      callbacks,
+    );
+    return finalResult;
+  }
+  
+  return result;
+}
+
+async function handlePermissionRequest(
+  toolCallToExecute: ToolCallPermissionRequired,
+  toolContext: ToolExecutionContext,
+  callbacks: ExecutionCallbacks,
+): Promise<ToolCall> {
+  // 调用回调，等待用户决策
+  const decision = await callbacks.onPermissionRequired?.(
+    toolCallToExecute.uiHint,
+    toolCallToExecute.requestId,
+  );
+
+  if (decision?.approved) {
+    // 应用授权
+    applyPermissionGrant(decision.grant, toolContext);
+    
+    // 重新执行工具
+    return await executeSingleToolCall(toolCallToExecute, toolContext);
+  } else {
+    // 用户拒绝
+    return {
+      ...toolCallToExecute,
+      status: "permission_denied",
+      result: { isError: true, message: "Permission denied by user" },
+    };
+  }
+}
+```
+
+---
+
+## 消息流转
+
+### OpenAI 消息顺序规则
+
+OpenAI API 对消息顺序有**严格要求**，违反规则会导致 400 错误。
+
+**关键规则：**
+
+1. **Tool 消息必须跟在包含 tool_calls 的 Assistant 消息后面**
+   ```typescript
+   // ✅ 正确
+   [
+     { role: "user", content: "..." },
+     { role: "assistant", tool_calls: [{ id: "call_1", ... }] },
+     { role: "tool", tool_call_id: "call_1", content: "..." },
+   ]
+
+   // ❌ 错误
+   [
+     { role: "user", content: "..." },
+     { role: "tool", tool_call_id: "call_1", content: "..." }, // 没有前置 tool_calls
+   ]
+   ```
+
+2. **每个 tool_call 必须有且仅有一个对应的 tool 消息**
+
+3. **Tool 消息必须按照 tool_calls 数组的顺序**
+   ```typescript
+   // ✅ 正确
+   [
+     { role: "assistant", tool_calls: [{ id: "call_1" }, { id: "call_2" }] },
+     { role: "tool", tool_call_id: "call_1", content: "..." }, // 第一个
+     { role: "tool", tool_call_id: "call_2", content: "..." }, // 第二个
+   ]
+
+   // ❌ 错误（顺序颠倒）
+   [
+     { role: "assistant", tool_calls: [{ id: "call_1" }, { id: "call_2" }] },
+     { role: "tool", tool_call_id: "call_2", content: "..." }, // 顺序错误
+     { role: "tool", tool_call_id: "call_1", content: "..." },
+   ]
+   ```
+
+### 消息格式化
+
+```typescript
+// src/agent/formatters.ts
+export function formatToolResultMessage(
+  result: ToolCall,
+): ChatCompletionToolMessageParam {
+  let content: string;
+
+  if (result.status === "success") {
+    content = JSON.stringify(result.result, null, 2);
+  } else if (result.status === "error") {
+    content = `Error: ${result.result.message}`;
+  } else if (result.status === "abort") {
+    content = result.result.message;
+  } else if (result.status === "permission_denied") {
+    content = `${result.toolName} was rejected by user`;
+  }
+
+  return {
+    role: "tool",
+    tool_call_id: result.requestId,
+    content,
+  };
+}
+```
+
+### 典型消息流
+
+```
+Round 1: 简单工具调用
+1. user: "读取 file.txt"
+2. assistant: { tool_calls: [{ id: "call_1", function: "fileRead" }] }
+3. tool: { tool_call_id: "call_1", content: "{ 文件内容 }" }
+4. assistant: "文件包含..."
+
+Round 2: 多工具调用
+5. user: "比较 file1.txt 和 file2.txt"
+6. assistant: { tool_calls: [
+     { id: "call_2", function: "fileRead", arguments: "file1.txt" },
+     { id: "call_3", function: "fileRead", arguments: "file2.txt" }
+   ]}
+7. tool: { tool_call_id: "call_2", content: "{ file1 内容 }" }
+8. tool: { tool_call_id: "call_3", content: "{ file2 内容 }" }
+9. assistant: "比较结果..."
+```
+
+---
+
+## 错误处理
+
+### 错误分类
+
+```typescript
+// src/agent/types.ts
+type ExecutionError = {
+  type:
+    | "permission_denied"  // 用户拒绝权限 (exit 1)
+    | "aborted"            // 用户取消 (exit 3)
+    | "llm_error"          // LLM API 错误 (exit 2)
+    | "internal_error";    // 内部错误 (exit 4)
+  message: string;
+  cause?: unknown;
+};
+```
+
+### 错误处理流程
+
+```typescript
+// src/agent/executor.ts
+try {
+  // 执行循环
+  while (true) {
+    // LLM 调用和工具执行
+  }
+} catch (err) {
+  // 1. 错误分类
+  let errorType: "aborted" | "llm_error" | "internal_error" = "internal_error";
+  
+  if (err instanceof APIUserAbortError) {
+    errorType = "aborted";
+  } else if (err instanceof OpenAIError) {
+    errorType = "llm_error";
+  }
+
+  // 2. 更新 UI 状态
+  callbacks.onGeneratingChange?.(false);
+
+  // 3. 调用错误回调（用户取消除外）
+  if (errorType !== "aborted") {
+    callbacks.onError?.(err);
+  }
+
+  // 4. 返回错误结果
+  return {
+    success: false,
+    error: { type: errorType, message: errorMessage, cause: err },
+  };
+}
+```
+
+### 常见错误场景
+
+1. **LLM API 错误**
+   - 速率限制（Rate Limit）
+   - 认证失败（Authentication）
+   - 网络错误（Network）
+
+2. **工具执行错误**
+   - 文件不存在
+   - 命令执行失败
+   - 权限不足
+
+3. **用户中断**
+   - Ctrl+C 取消
+   - 拒绝权限请求
+
+---
+
+## 完整执行示例
+
+让我们通过一个完整的例子来理解整个流程：
+
+### 场景：修改文件
+
+**用户输入：**
+```bash
+mini-kode "在 src/main.ts 中添加一个 hello 函数"
+```
+
+### 执行步骤
+
+**Step 1: 启动和初始化**
+```typescript
+// CLI 解析参数
+const prompt = "在 src/main.ts 中添加一个 hello 函数";
+const cwd = "/project";
+const approvalMode = "default";
+
+// 创建 Session
+const session = createSession();
+
+// 调用 executeAgent
+await executeAgent(prompt, { cwd, signal, getApprovalMode, session }, callbacks);
+```
+
+**Step 2: 构建对话上下文**
+```typescript
+// 系统消息
+const systemMessage = {
+  role: "system",
+  content: `
+    Environment: macOS, /project
+    Date: 2025-11-16
+    Model: gpt-4
+    
+    Project Context (AGENTS.md):
+    # Mini-Kode - Development Guide
+    ...
+  `
+};
+
+// 对话历史
+const conversationHistory = [
+  systemMessage,
+  { role: "user", content: "在 src/main.ts 中添加一个 hello 函数" }
+];
+```
+
+**Step 3: LLM 第一次调用**
+```typescript
+// LLM 决定先读取文件
+{
+  role: "assistant",
+  tool_calls: [{
+    id: "call_1",
+    function: {
+      name: "fileRead",
+      arguments: { path: "src/main.ts" }
+    }
+  }]
+}
+```
+
+**Step 4: 执行 fileRead 工具**
+```typescript
+// fileRead 是只读工具，无需权限
+const result = {
+  status: "success",
+  result: {
+    content: "export function main() { console.log('Hello'); }"
+  }
+};
+
+// 添加 tool 消息到对话
+conversationHistory.push({
+  role: "tool",
+  tool_call_id: "call_1",
+  content: JSON.stringify(result.result)
+});
+```
+
+**Step 5: LLM 第二次调用**
+```typescript
+// LLM 决定写入文件
+{
+  role: "assistant",
+  tool_calls: [{
+    id: "call_2",
+    function: {
+      name: "fsWrite",
+      arguments: {
+        path: "src/main.ts",
+        text: "export function hello() { return 'Hello'; }\n\nexport function main() { console.log('Hello'); }"
+      }
+    }
+  }]
+}
+```
+
+**Step 6: 执行 fsWrite 工具（需要权限）**
+```typescript
+// 检查权限
+const permission = checkFsPermission(cwd, "/project/src/main.ts", "default");
+// => { ok: false, message: "Permission required to modify: src/main.ts" }
+
+// 抛出 PermissionRequiredError
+throw new PermissionRequiredError({
+  kind: "fs",
+  path: "/project/src/main.ts",
+  message: "Permission required to modify: src/main.ts"
+});
+```
+
+**Step 7: 处理权限请求**
+```typescript
+// Executor 捕获错误，调用回调
+const decision = await callbacks.onPermissionRequired({
+  kind: "fs",
+  path: "/project/src/main.ts",
+  message: "Permission required to modify: src/main.ts"
+}, "call_2");
+
+// UI 显示权限请求，用户批准
+// decision = {
+//   approved: true,
+//   grant: { type: "fs", path: "/project/src/main.ts" },
+//   scope: "once"
+// }
+
+// 应用授权到 Session Policy
+applySessionGrant(decision.grant);
+
+// 重新执行工具
+const result = await tool.execute(input, context);
+// => { status: "success" }
+```
+
+**Step 8: LLM 第三次调用**
+```typescript
+// 添加 tool 消息
+conversationHistory.push({
+  role: "tool",
+  tool_call_id: "call_2",
+  content: JSON.stringify({ success: true })
+});
+
+// LLM 生成最终响应
+{
+  role: "assistant",
+  content: "我已经在 src/main.ts 中添加了 hello 函数。"
+}
+
+// 返回结果
+return {
+  success: true,
+  response: "我已经在 src/main.ts 中添加了 hello 函数。"
+};
+```
+
+---
+
+## 总结
+
+Mini-Kode 的 Agent 执行流程可以总结为：
+
+1. **用户输入** → CLI 解析 → 选择运行模式
+2. **Agent 初始化** → 构建对话上下文 → 加载 AGENTS.md
+3. **LLM 循环**：
+   - 发送请求到 LLM
+   - 流式接收响应
+   - 判断 finish_reason
+   - 如果是 tool_calls：执行工具 → 添加结果 → 继续循环
+   - 如果是 stop：返回最终响应
+4. **工具执行**：
+   - 只读工具并发执行
+   - 写入工具顺序执行
+   - 权限检查和异步请求
+5. **权限系统**：
+   - Approval Mode 快速路径
+   - Session Policy（内存）
+   - Project Policy（持久化）
+6. **错误处理**：
+   - 分类错误类型
+   - 更新 UI 状态
+   - 返回适当的退出码
+
+这个架构确保了：
+- ✅ **类型安全**：TypeScript + Zod
+- ✅ **高性能**：并发执行只读工具
+- ✅ **安全性**：细粒度权限控制
+- ✅ **可扩展**：工具系统易于扩展
+- ✅ **用户友好**：流式响应和实时反馈
+
+
+

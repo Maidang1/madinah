@@ -1,0 +1,23 @@
+---
+import type { HTMLAttributes } from 'astro/types';
+import { cn } from '../../utils/cn';
+
+interface Props extends HTMLAttributes<'table'> {}
+
+const { class: className, ...props } = Astro.props;
+---
+
+<div class="mb-8 overflow-x-auto">
+  <table
+    class={cn(
+      'w-full border-collapse',
+      'bg-surface-white',
+      'border border-border-default',
+      'rounded-lg shadow-sm',
+      className
+    )}
+    {...props}
+  >
+    <slot />
+  </table>
+</div>
