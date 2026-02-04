@@ -1,0 +1,277 @@
+---
+title: (WIP) Codex Skills 
+author: Madinah
+description: introduce how codex load skills and how that affects the context
+tags:
+  - codex
+pubDate: 2026-02-04 23:33:00
+---
+
+
+# what's skills
+
+[official web](https://agentskills.io/home)，the official web introduce how and why skills. the flowing part will focus on how codex deal with skills.
+
+
+# Codex Skills Flow
+
+
+## High-Level Flow
+
+here is the high level flow of how codex handle skills. then i will deep into the every part
+
+```
+
++------------------------------+
+| Session Spawn (Codex::spawn) |
++--------------+---------------+
+               |
+               v
++------------------------------+
+| SkillsManager::new           |
+| - installs system skills     |
++--------------+---------------+
+               |
+               v
++------------------------------+
+| skills_for_config(config)    |
+| - load roots + cache by cwd  |
+| - disabled paths from config |
++--------------+---------------+
+               |
+               v
++------------------------------+
+| enabled_skills()             |
++--------------+---------------+
+               |
+               v
++------------------------------+
+| get_user_instructions(...)   |
+| - render_skills_section(...) |
+| - append to AGENTS.md output |
++--------------+---------------+
+               |
+               v
++------------------------------+
+| Run Turn (run_turn)          |
++--------------+---------------+
+               |
+               v
++------------------------------+
+| skills_for_cwd(cwd)          |
+| - uses cached or reload      |
++--------------+---------------+
+               |
+               v
++------------------------------+
+| collect_explicit_skill_mentions
+| - parse $skill + [link](path)
+| - disambiguate vs connectors |
++--------------+---------------+
+               |
+               v
++------------------------------+
+| resolve_skill_dependencies   |
+| - env var prompt if missing  |
++--------------+---------------+
+               |
+               v
++------------------------------+
+| build_skill_injections       |
+| - read SKILL.md contents     |
+| - make ResponseItem          |
++--------------+---------------+
+               |
+               v
++------------------------------+
+| record_conversation_items    |
+| - skill instructions in      |
+|   prompt context             |
++--------------+---------------+
+               |
+               v
++------------------------------+
+| run_sampling_request         |
+| - tool filtering using       |
+|   skill name counts          |
++------------------------------+
+
+```
+
+
+## Entry Points in `core/src/codex.rs`
+
+```rust
+
+use crate::skills::SkillsManager;
+pub(crate) async fn spawn( mut config: Config, skills_manager: Arc<SkillsManager>) {
+  // 再通过 codex spawn 新的进程的时候读取读取相关的 skills
+  let loaded_skills = skills_manager.skills_for_config(&config) // loads skills based on config layer stack and seeds the cache.;
+  let enabled_skills = loaded_skills.enabled_skills(); // filters out disabled paths.
+  let user_instructions = get_user_instructions(&config, Some(&enabled_skills)).await; // builds the instruction block and appends a **Skills** section via `render_skills_section`.
+  let session_configuration = SessionConfiguration {
+    user_instructions
+  }
+}
+```
+
+
+The list of skills becomes part of the session’s base instruction context (user instructions + AGENTS.md + skills section), so the model sees what skills exist and how to use them.
+
+
+
+## Per-turn skill resolution and injection
+
+```rust
+
+pub(crate) async fn run_turn(
+) -> Option<String> {
+ let skills_outcome = Some(
+     sess.services
+          .skills_manager
+          .skills_for_cwd(&turn_context.cwd, false)
+          .await?,
+ );
+ let (skill_name_counts, skill_name_counts_lower) = skills_outcome.as_ref().map_or_else(
+     || (HashMap::new(), HashMap::new()),
+     |outcome| build_skill_name_counts(&outcome.skills, &outcome.disabled_paths),
+ ); // creates name counts (exact + lowercase) for disambiguation.
+ 
+ let mentioned_skills = skills_outcome.as_ref().map_or_else(Vec::new, |outcome| {
+     collect_explicit_skill_mentions(
+         &input,
+         &outcome.skills,
+         &outcome.disabled_paths,
+         &skill_name_counts,
+         &connector_slug_counts,
+     )
+ }); // scans user text inputs for `$skill` mentions and linked references like `[$skill](path)`
+ 
+  let explicit_app_paths = collect_explicit_app_paths(&input); // collects explicit `app://` mentions to support app tool routing.
+
+  let config = turn_context.client.config();
+  if config
+    .features
+    .enabled(Feature::SkillEnvVarDependencyPrompt)
+  {
+      let env_var_dependencies = collect_env_var_dependencies(&mentioned_skills); // finds `env_var` dependencies declared in skill metadata
+      resolve_skill_dependencies_for_turn(&sess, &turn_context, &env_var_dependencies).await; // checks session cache and process env; then prompts
+  }
+  
+  let SkillInjections {
+      items: skill_items,
+      warnings: skill_warnings,
+  } = build_skill_injections(
+      &mentioned_skills,
+      Some(&otel_manager),
+      &sess.services.analytics_events_client,
+      tracking.clone(),
+  )
+  .await; // reads each referenced `SKILL.md` and wraps it into
+  
+  if !skill_items.is_empty() {
+      sess.record_conversation_items(&turn_context, &skill_items)
+          .await;
+  } // inserts those skill instructions into the conversation history.
+}
+```
+
+Skill instructions are injected into the prompt context for the sampling request. The model sees the skill content as if it were part of the conversation history.
+
+## Tool selection interaction
+
+```rust
+
+pub(crate) async fn run_sampling_request(
+) -> Option<SamplingResponse> {
+  let filtered_connectors = filter_connectors_for_input(
+    &available_connectors,
+    &explicit_app_paths,
+    &skill_name_counts_lower,
+  ); // filters app connectors based on explicit mentions and skill name disambiguation.
+
+  let connectors_for_tools = if turn_context.client.config().features.enabled(Feature::Apps) {
+    // If a skill and connector share a slug, connectors are filtered unless the connector is explicitly referenced.
+    let connectors = connectors::accessible_connectors_from_mcp_tools(&mcp_tools);
+    Some(filter_connectors_for_input(
+      connectors,
+      &input,
+      tool_selection.explicit_app_paths,
+      tool_selection.skill_name_counts_lower,
+    ))
+  } else {
+    None
+  };
+}
+```
+
+Skills influence which app connectors remain available for tool routing in the prompt.
+
+
+## Skills Loading Details
+
+### 1) SkillsManager setup
+
+- File: `codex-rs/core/src/skills/manager.rs`.
+- `SkillsManager::new` installs embedded system skills into `CODEX_HOME/skills/.system`.
+- A per-cwd cache (`cache_by_cwd`) stores `SkillLoadOutcome` to avoid rescanning on every turn.
+
+### 2) Skill roots and discovery
+
+- File: `codex-rs/core/src/skills/loader.rs`.
+- Roots (ordered by precedence):
+  - Repo skills: `.codex/skills` in project config layer.
+  - User skills:
+    - `CODEX_HOME/skills` (legacy)
+    - `$HOME/.agents/skills`
+  - System skills: `CODEX_HOME/skills/.system` (installed from embedded assets)
+  - Admin skills: `/etc/codex/skills` (system config layer)
+  - Repo-local agents folders: any `.agents/skills` between project root and current cwd.
+- Discovery:
+  - Scans each root for `SKILL.md` within a limited depth.
+  - Parses YAML frontmatter for `name` and `description`.
+  - Optional metadata from `agents/openai.yaml` for UI interface and dependencies.
+  - Dedupe by path and sort by scope priority.
+
+### 3) Disabled skills
+
+- File: `codex-rs/core/src/skills/manager.rs`.
+- Disabled skill paths are read from the user config layer (`skills` config section).
+- Disabled paths are excluded by `enabled_skills()` and by selection logic during injection.
+
+## Input Context: How Skill Content Reaches the Model
+
+1. **Session-level instructions**
+   - `get_user_instructions` appends the Skills section (list + usage rules) into the base instructions.
+   - This is visible to the model before any per-turn content.
+
+2. **Per-turn skill injection**
+   - Skill mentions in the user input drive selection.
+   - The skill file contents are wrapped into `SkillInstructions` and inserted as `ResponseItem`s.
+   - These items are recorded into the conversation history and included in the sampling request input.
+
+3. **Tool filtering**
+   - Skill name counts are used to disambiguate connector mentions during tool selection.
+
+## Output Artifacts Produced by the Skill Flow
+
+- **Skill list output** (session instructions)
+  - `render_skills_section` creates a markdown list of available skills and usage rules.
+
+- **Skill injection items** (per turn)
+  - `SkillInstructions` response items are inserted into the conversation history.
+  - Any failed reads result in warning events for the user.
+
+## Key Files and Call Sites
+
+- Entry points:
+  - `codex-rs/core/src/codex.rs`
+- Skill manager and loader:
+  - `codex-rs/core/src/skills/manager.rs`
+  - `codex-rs/core/src/skills/loader.rs`
+  - `codex-rs/core/src/skills/system.rs`
+- Mention parsing and injection:
+  - `codex-rs/core/src/skills/injection.rs`
+  - `codex-rs/core/src/mentions.rs`
+- Project doc assembly:
+  - `codex-rs/core/src/project_doc.rs`

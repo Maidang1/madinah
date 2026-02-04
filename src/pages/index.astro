@@ -1,60 +1,64 @@
 ---
-import { getCollection } from 'astro:content';
-import BaseLayout from '../layouts/BaseLayout.astro';
-import Hero from '../components/Hero.astro';
-import Time from '../components/Time.astro';
-import { calculateReadingTime } from '../utils/reading-time';
+import { getCollection } from "astro:content";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Hero from "../components/Hero.astro";
+import Time from "../components/Time.astro";
+import { calculateReadingTime } from "../utils/reading-time";
 
-const posts = await getCollection('blog');
+const posts = await getCollection("blog");
 
 // Calculate reading time, filter WIP posts, and sort
 const postsWithReadingTime = posts
-  .filter(post => post.data.status !== "WIP")
-  .map(post => ({
-    ...post,
-    readingTime: calculateReadingTime(post.body)
-  }));
+    .filter((post) => post.data.status !== "WIP")
+    .map((post) => ({
+        ...post,
+        readingTime: calculateReadingTime(post.body),
+    }));
 
-postsWithReadingTime.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+postsWithReadingTime.sort(
+    (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
+);
 ---
 
 <BaseLayout title="Madinah's Blog">
-  <div class="space-y-12">
-    <!-- Hero Section -->
-    <Hero />
+    <div class="space-y-12">
+        <!-- Hero Section -->
+        <Hero />
 
-    <!-- Blog List -->
-    <div class="grid grid-cols-1 gap-6">
-      {postsWithReadingTime.map(post => (
-        <a
-          href={`/blog/${post.id}`}
-          class="group block rounded-xl transition-all duration-200"
-        >
-          <article class="space-y-3">
-            <h3 class="text-text-primary font-sans text-xl font-bold tracking-tight transition-colors group-hover:text-text-secondary">
-              {post.data.title}
-            </h3>
+        <!-- Blog List -->
+        <div class="grid grid-cols-1 gap-6">
+            {
+                postsWithReadingTime.map((post) => (
+                    <a
+                        href={`/blog/${post.id}`}
+                        class="group block rounded-xl transition-all duration-200"
+                    >
+                        <article class="space-y-3">
+                            <h3 class="text-text-primary font-sans text-xl font-bold tracking-tight transition-colors group-hover:text-text-secondary">
+                                {post.data.title}
+                            </h3>
 
-            {post.data.description && (
-              <p class="text-text-secondary line-clamp-2 text-sm leading-relaxed transition-colors group-hover:text-text-muted">
-                {post.data.description}
-              </p>
-            )}
+                            {post.data.description && (
+                                <p class="text-text-secondary line-clamp-2 text-sm leading-relaxed transition-colors group-hover:text-text-muted">
+                                    {post.data.description}
+                                </p>
+                            )}
 
-            <div class="text-text-muted flex items-center gap-3 text-xs font-medium transition-colors group-hover:text-text-secondary">
-              <Time time={post.data.pubDate} />
-              <span>·</span>
-              <span>{post.readingTime.minutes} min read</span>
-              {post.data.author && (
-                <>
-                  <span>·</span>
-                  <span>{post.data.author}</span>
-                </>
-              )}
-            </div>
-          </article>
-        </a>
-      ))}
+                            <div class="text-text-muted flex items-center gap-3 text-xs font-medium transition-colors group-hover:text-text-secondary">
+                                <Time time={post.data.pubDate} />
+                                <span>·</span>
+                                <span>{post.readingTime.minutes} min read</span>
+                                {post.data.author && (
+                                    <>
+                                        <span>·</span>
+                                        <span>{post.data.author}</span>
+                                    </>
+                                )}
+                            </div>
+                        </article>
+                    </a>
+                ))
+            }
+        </div>
     </div>
-  </div>
 </BaseLayout>
