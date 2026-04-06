@@ -1,20 +1,9 @@
 ---
-import { getCollection } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Time from '../../components/Time.astro';
-import { calculateReadingTime } from '../../utils/reading-time';
+import { getPublishedPosts } from '../../utils/posts';
 
-const posts = await getCollection('blog');
-
-// Calculate reading time, filter WIP posts, and sort
-const postsWithReadingTime = posts
-  .filter(post => post.data.status !== "WIP")
-  .map(post => ({
-    ...post,
-    readingTime: calculateReadingTime(post.body)
-  }));
-
-postsWithReadingTime.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+const postsWithReadingTime = await getPublishedPosts();
 ---
 
 <BaseLayout title="Blog - Madinah">

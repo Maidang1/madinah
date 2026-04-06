@@ -1,23 +1,11 @@
 ---
-import { getCollection } from "astro:content";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import Hero from "../components/Hero.astro";
 import Time from "../components/Time.astro";
-import { calculateReadingTime } from "../utils/reading-time";
+import { getPublishedPosts } from "../utils/posts";
 
-const posts = await getCollection("blog");
-
-// Calculate reading time, filter WIP posts, and sort
-const postsWithReadingTime = posts
-    .filter((post) => post.data.status !== "WIP")
-    .map((post) => ({
-        ...post,
-        readingTime: calculateReadingTime(post.body),
-    }));
-
-postsWithReadingTime.sort(
-    (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
-);
+const allPosts = await getPublishedPosts();
+const recentPosts = allPosts.slice(0, 5);
 ---
 
 <BaseLayout title="Madinah's Blog">
@@ -25,40 +13,52 @@ postsWithReadingTime.sort(
         <!-- Hero Section -->
         <Hero />
 
-        <!-- Blog List -->
-        <div class="grid grid-cols-1 gap-6">
-            {
-                postsWithReadingTime.map((post) => (
-                    <a
-                        href={`/blog/${post.id}`}
-                        class="group block rounded-xl transition-all duration-200"
-                    >
-                        <article class="space-y-3">
-                            <h3 class="text-text-primary font-sans text-xl font-bold tracking-tight transition-colors group-hover:text-text-secondary">
-                                {post.data.title}
-                            </h3>
+        <!-- Recent Posts -->
+        <section>
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-text-primary font-sans text-2xl font-bold tracking-tight">Recent Posts</h2>
+                <a
+                    href="/blog"
+                    class="text-sm text-text-secondary hover:text-text-primary transition-colors font-medium"
+                >
+                    View All →
+                </a>
+            </div>
 
-                            {post.data.description && (
-                                <p class="text-text-secondary line-clamp-2 text-sm leading-relaxed transition-colors group-hover:text-text-muted">
-                                    {post.data.description}
-                                </p>
-                            )}
+            <div class="grid grid-cols-1 gap-6">
+                {
+                    recentPosts.map((post) => (
+                        <a
+                            href={`/blog/${post.id}`}
+                            class="group block rounded-xl transition-all duration-200"
+                        >
+                            <article class="space-y-3">
+                                <h3 class="text-text-primary font-sans text-xl font-bold tracking-tight transition-colors group-hover:text-text-secondary">
+                                    {post.data.title}
+                                </h3>
 
-                            <div class="text-text-muted flex items-center gap-3 text-xs font-medium transition-colors group-hover:text-text-secondary">
-                                <Time time={post.data.pubDate} />
-                                <span>·</span>
-                                <span>{post.readingTime.minutes} min read</span>
-                                {post.data.author && (
-                                    <>
-                                        <span>·</span>
-                                        <span>{post.data.author}</span>
-                                    </>
+                                {post.data.description && (
+                                    <p class="text-text-secondary line-clamp-2 text-sm leading-relaxed transition-colors group-hover:text-text-muted">
+                                        {post.data.description}
+                                    </p>
                                 )}
-                            </div>
-                        </article>
-                    </a>
-                ))
-            }
-        </div>
+
+                                <div class="text-text-muted flex items-center gap-3 text-xs font-medium transition-colors group-hover:text-text-secondary">
+                                    <Time time={post.data.pubDate} />
+                                    <span>·</span>
+                                    <span>{post.readingTime.minutes} min read</span>
+                                    {post.data.author && (
+                                        <>
+                                            <span>·</span>
+                                            <span>{post.data.author}</span>
+                                        </>
+                                    )}
+                                </div>
+                            </article>
+                        </a>
+                    ))
+                }
+            </div>
+        </section>
     </div>
 </BaseLayout>

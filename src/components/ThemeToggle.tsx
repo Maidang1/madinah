@@ -1,18 +1,21 @@
 import { useEffect, useState } from 'react';
 
+const getInitialTheme = (): 'light' | 'dark' => {
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('theme') as 'light' | 'dark' | null;
+    const system = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    return saved || system;
+  }
+  return 'light';
+};
+
 export default function ThemeToggle() {
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [theme, setTheme] = useState<'light' | 'dark'>(getInitialTheme);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    // Get theme from localStorage or system preference
-    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
-    const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    const initialTheme = savedTheme || systemTheme;
-    
-    setTheme(initialTheme);
-    document.documentElement.classList.toggle('dark', initialTheme === 'dark');
+    document.documentElement.classList.toggle('dark', theme === 'dark');
   }, []);
 
   const toggleTheme = () => {
@@ -22,7 +25,6 @@ export default function ThemeToggle() {
     document.documentElement.classList.toggle('dark', newTheme === 'dark');
   };
 
-  // Prevent hydration mismatch
   if (!mounted) {
     return (
       <button

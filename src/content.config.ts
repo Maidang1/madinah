@@ -10,7 +10,7 @@ const blog = defineCollection({
     author: z.string().default("Madinah"),
     pubDate: z.coerce.date(),
     tags: z.array(z.string()).optional(),
-    status: z.string().default("published"),
+    status: z.enum(["draft", "published", "archived", "WIP"]).default("published"),
   }),
 });
 
