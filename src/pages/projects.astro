@@ -1,92 +1,163 @@
 ---
-import BaseLayout from '../layouts/BaseLayout.astro';
+import BaseLayout from "../layouts/BaseLayout.astro";
 
 const projects = [
   {
-    id: 'wallpaper-app',
-    name: 'Wallpaper App',
-    description: 'A beautiful wallpaper application with curated collections',
-    github: 'https://github.com/Maidang1/wallpaper-app',
-    icon: '🎨',
+    id: "wallpaper-app",
+    name: "Wallpaper App",
+    description: "A beautiful wallpaper application with curated collections",
+    github: "https://github.com/Maidang1/wallpaper-app",
+    category: "Application",
   },
   {
-    id: 'farmfe-plugins',
-    name: 'FarmFe Plugins',
-    description: 'Plugin ecosystem for Farm build tool',
-    github: 'https://github.com/farm-fe/plugins',
-    icon: '🔌',
+    id: "farmfe-plugins",
+    name: "FarmFe Plugins",
+    description: "Plugin ecosystem for Farm build tool",
+    github: "https://github.com/farm-fe/plugins",
+    category: "Tool",
   },
   {
-    id: 'pixel-picture',
-    name: 'Pixel Picture',
-    description: 'Pixel art editor and gallery',
-    github: 'https://github.com/Maidang1/pixel-picture',
-    url: 'https://pixel.felixwliu.cn/',
-    icon: '🖼️',
+    id: "pixel-picture",
+    name: "Pixel Picture",
+    description: "Pixel art editor and gallery",
+    github: "https://github.com/Maidang1/pixel-picture",
+    url: "https://pixel.felixwliu.cn/",
+    category: "Creative",
   },
   {
-    id: 'reminders',
-    name: 'Reminders',
-    description: 'Simple and elegant reminder application',
-    github: 'https://github.com/Maidang1/reminders',
-    icon: '⏰',
+    id: "reminders",
+    name: "Reminders",
+    description: "Simple and elegant reminder application",
+    github: "https://github.com/Maidang1/reminders",
+    category: "Application",
   },
   {
-    id: 'tasuku-rs',
-    name: 'tasuku-rs',
-    description: 'Rust implementation of tasuku task runner',
-    github: 'https://github.com/Maidang1/tasuku-rs',
-    icon: '🚀',
+    id: "tasuku-rs",
+    name: "tasuku-rs",
+    description: "Rust implementation of tasuku task runner",
+    github: "https://github.com/Maidang1/tasuku-rs",
+    category: "Library",
   },
   {
-    id: 'reminder-cli',
-    name: 'Reminder CLI',
-    description: 'Command-line reminder tool',
-    github: 'https://github.com/Maidang1/reminder-cli',
-    icon: '✅',
+    id: "reminder-cli",
+    name: "Reminder CLI",
+    description: "Command-line reminder tool",
+    github: "https://github.com/Maidang1/reminder-cli",
+    category: "Tool",
   },
   {
-    id: 'open-claude-cowork',
-    name: 'open-claude-cowork',
-    description: 'Use Agent Client Protocol Rebuild Cowork',
-    github: 'https://github.com/Maidang1/open-claude-cowork',
-    icon: '🤝',
+    id: "open-claude-cowork",
+    name: "open-claude-cowork",
+    description: "Use Agent Client Protocol Rebuild Cowork",
+    github: "https://github.com/Maidang1/open-claude-cowork",
+    category: "Framework",
   },
 ];
+
+const categories = [...new Set(projects.map((p) => p.category))];
 ---
 
-<BaseLayout title="Projects - Madinah" description="Projects that I created or maintaining.">
+<BaseLayout
+  title="Projects - Madinah"
+  description="Projects that I created or maintaining."
+>
   <section class="py-12 sm:py-16 lg:py-20">
     <div>
-      <div class="mb-12 text-center sm:mb-16">
-        <h1 class="mb-4 text-4xl font-bold tracking-tight text-text-primary sm:text-5xl">
-          Projects
-        </h1>
-        <p class="mx-auto max-w-2xl text-lg text-text-secondary">
-          A collection of projects I've built and maintain
+      <!-- Page header -->
+      <div class="mb-16">
+        <div class="relative inline-block">
+          <h1 class="text-text-primary font-sans text-4xl font-bold tracking-tight sm:text-5xl">
+            Projects
+          </h1>
+          <div
+            class="absolute -bottom-2 left-0 h-0.5 w-12 bg-gradient-to-r from-text-primary to-transparent"
+          >
+          </div>
+        </div>
+        <p class="mt-4 max-w-xl text-lg text-text-secondary">
+          A collection of projects I've built and maintain over the years
         </p>
       </div>
 
+      <!-- Bento grid layout -->
       <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {projects.map((project) => (
-          <div class="group relative overflow-hidden rounded-xl p-6 transition-all duration-300">
+        {
+          projects.map((project, index) => (
             <a
-              class="flex items-center gap-x-4 transition-colors duration-300 group-hover:text-text-secondary focus-visible:rounded-lg focus-visible:ring-2 focus-visible:ring-text-primary/20 focus-visible:ring-offset-2"
               href={project.url ?? project.github}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
+              class="group relative flex flex-col rounded-2xl border border-border-default/50 bg-surface-white p-6 transition-all duration-300 hover:border-border-strong hover:shadow-lg hover:-translate-y-1"
+              style={`animation-delay: ${index * 60}ms`}
             >
-              <div>
-                <h3 class="text-text-primary mb-1 text-base font-medium transition-colors group-hover:text-text-secondary">
+              <!-- Category badge -->
+              <div class="absolute right-4 top-4">
+                <span class="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-surface-gray-100 text-text-muted transition-colors duration-300 group-hover:bg-text-primary group-hover:text-text-inverted">
+                  {project.category}
+                </span>
+              </div>
+
+              <!-- Icon -->
+              <div class="mb-5 flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-surface-gray-100 text-text-primary transition-all duration-300 group-hover:scale-110 group-hover:bg-surface-gray-200">
+                <svg
+                  class="h-5 w-5"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  viewBox="0 0 24 24"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  {project.id === "wallpaper-app" && (
+                    <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  )}
+                  {project.id === "farmfe-plugins" && (
+                    <path d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
+                  )}
+                  {project.id === "pixel-picture" && (
+                    <path d="M6.75 7.5l3 3-3 3M13.5 7.5h3.75m-7.5 3l3 3-3 3m-3-6l3-3-3-3m7.5-3H6.75m3 0h4.5M13.5 16.5l3-3-3-3m-3 3l-3 3 3 3" />
+                  )}
+                  {project.id === "reminders" && (
+                    <path d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  )}
+                  {project.id === "tasuku-rs" && (
+                    <path d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                  )}
+                  {project.id === "reminder-cli" && (
+                    <path d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  )}
+                  {project.id === "open-claude-cowork" && (
+                    <path d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                  )}
+                </svg>
+              </div>
+
+              <!-- Content -->
+              <div class="flex-1 min-w-0">
+                <h3 class="text-text-primary text-lg font-semibold tracking-tight mb-2 group-hover:text-text-secondary transition-colors duration-200">
                   {project.name}
                 </h3>
-                <p class="text-text-secondary line-clamp-2 text-sm leading-5 transition-colors group-hover:text-text-muted">
+                <p class="text-text-secondary text-sm leading-relaxed line-clamp-2">
                   {project.description}
                 </p>
               </div>
+
+              <!-- Arrow indicator -->
+              <div class="mt-5 flex items-center gap-2 text-sm font-medium text-text-muted transition-all duration-300 group-hover:text-text-primary">
+                <span>View Project</span>
+                <svg
+                  class="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  viewBox="0 0 24 24"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                </svg>
+              </div>
             </a>
-          </div>
-        ))}
+          ))
+        }
       </div>
     </div>
   </section>

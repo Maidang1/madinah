@@ -7,42 +7,80 @@ const postsWithReadingTime = await getPublishedPosts();
 ---
 
 <BaseLayout title="Blog - Madinah">
-  <div class="space-y-8">
-    <h1 class="text-text-primary text-4xl font-bold tracking-tight sm:text-5xl">
-      Blog
-    </h1>
+  <div class="space-y-16">
+    <!-- Page header -->
+    <div class="relative">
+      <div class="relative inline-block">
+        <h1 class="text-text-primary text-4xl font-bold tracking-tight sm:text-5xl">
+          Blog
+        </h1>
+        <div class="absolute -bottom-2 left-0 h-0.5 w-12 bg-gradient-to-r from-text-primary to-transparent"></div>
+      </div>
+      <p class="mt-4 text-lg text-text-secondary max-w-xl">
+        Thoughts on frontend development, Rust, and building tools.
+      </p>
+    </div>
 
-    <div class="grid grid-cols-1 gap-6">
-      {postsWithReadingTime.map(post => (
-        <a
-          href={`/blog/${post.id}`}
-          class="group block rounded-xl p-0 transition-all duration-200"
-        >
-          <article class="space-y-3">
-            <h2 class="text-text-primary font-sans text-xl font-bold tracking-tight transition-colors group-hover:text-text-secondary">
-              {post.data.title}
-            </h2>
+    <!-- Posts list -->
+    <div class="relative">
+      <!-- Vertical line decoration -->
+      <div class="absolute left-[27px] top-0 bottom-0 w-px bg-gradient-to-b from-border-default via-border-default/50 to-transparent"></div>
 
-            {post.data.description && (
-              <p class="text-text-secondary line-clamp-2 text-sm leading-relaxed transition-colors group-hover:text-text-muted">
-                {post.data.description}
-              </p>
-            )}
-
-            <div class="text-text-muted flex items-center gap-3 text-xs font-medium transition-colors group-hover:text-text-secondary">
-              <Time time={post.data.pubDate} />
-              <span>·</span>
-              <span>{post.readingTime.minutes} min read</span>
-              {post.data.author && (
-                <>
-                  <span>·</span>
-                  <span>{post.data.author}</span>
-                </>
-              )}
+      <div class="space-y-1">
+        {postsWithReadingTime.map((post, index) => (
+          <a
+            href={`/blog/${post.id}`}
+            class="group relative flex items-start gap-8 rounded-xl p-5 pl-0 transition-all duration-300 hover:bg-surface-gray-100/30 dark:hover:bg-surface-gray-100/5"
+            style={`animation-delay: ${index * 60}ms`}
+          >
+            <!-- Index with line connector -->
+            <div class="relative flex shrink-0 flex-col items-center">
+              <span class="relative z-10 flex h-10 w-10 items-center justify-center rounded-full bg-surface-white border border-border-default text-sm font-mono text-text-muted transition-all duration-300 group-hover:border-text-primary group-hover:text-text-primary group-hover:scale-110">
+                {String(index + 1).padStart(2, '0')}
+              </span>
             </div>
-          </article>
-        </a>
-      ))}
+
+            <article class="flex-1 min-w-0 pt-1">
+              <div class="mb-3">
+                <h2 class="text-text-primary font-sans text-lg font-medium tracking-tight transition-colors duration-200 group-hover:text-text-secondary leading-snug">
+                  {post.data.title}
+                </h2>
+              </div>
+
+              {post.data.description && (
+                <p class="text-text-secondary mb-4 line-clamp-2 text-[0.9375rem] leading-relaxed transition-colors duration-200 group-hover:text-text-muted">
+                  {post.data.description}
+                </p>
+              )}
+
+              <div class="flex items-center gap-3 text-sm text-text-muted transition-colors duration-200 group-hover:text-text-secondary">
+                <Time time={post.data.pubDate} />
+                <span class="h-1 w-1 rounded-full bg-text-muted/40"></span>
+                <span>{post.readingTime.minutes} min read</span>
+                {post.data.author && (
+                  <>
+                    <span class="h-1 w-1 rounded-full bg-text-muted/40"></span>
+                    <span>{post.data.author}</span>
+                  </>
+                )}
+              </div>
+            </article>
+
+            <!-- Arrow indicator -->
+            <div class="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0">
+              <svg
+                class="h-5 w-5 text-text-muted"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" />
+              </svg>
+            </div>
+          </a>
+        ))}
+      </div>
     </div>
   </div>
 </BaseLayout>
