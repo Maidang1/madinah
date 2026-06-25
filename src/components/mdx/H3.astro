@@ -12,11 +12,7 @@ const { class: className, id, ...props } = Astro.props;
 <h3
   id={id}
   class={cn(
-    'mt-3 mb-3 text-xl font-semibold md:text-2xl',
-    'text-text-primary',
-    'tracking-tight',
-    'group heading-group relative',
-    'flex items-center gap-1',
+    'heading-group',
     className
   )}
   {...props}

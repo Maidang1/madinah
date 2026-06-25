@@ -17,43 +17,62 @@ export async function getStaticPaths() {
 const { post } = Astro.props;
 const { Content } = await render(post);
 const readingTime = calculateReadingTime(post.body);
+const tocItems = Array.from(post.body.matchAll(/^(#{2,3})\s+(.+)$/gm))
+    .map((match) => {
+        const depth = match[1].length;
+        const text = match[2]
+            .replace(/`([^`]+)`/g, "$1")
+            .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+            .replace(/[*_#]/g, "")
+            .trim();
+        const id = text
+            .toLowerCase()
+            .replace(/[^\p{Letter}\p{Number}\s-]/gu, "")
+            .trim()
+            .replace(/\s+/g, "-");
+
+        return { depth, text, id };
+    })
+    .filter((item) => item.text && item.id)
+    .slice(0, 12);
 ---
 
 <BaseLayout title={`${post.data.title} - Madinah's Blog`} description={post.data.description}>
-  <article class="mx-auto w-full max-w-3xl">
-    <!-- Article Header -->
-    <header class="mb-10 space-y-6 border-b border-border-default pb-6">
-      <h1 class="text-text-primary text-left text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl leading-tight">
-        {post.data.title}
-      </h1>
-      
-      <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-text-secondary font-mono">
-        <div class="flex items-center gap-2">
-          <span>Date:</span>
-          <Time time={post.data.pubDate} />
-        </div>
-        
-        <span class="text-text-muted">|</span>
-        
-        <div>
-          Estimated Reading Time: {readingTime.minutes} min
-        </div>
+  <article>
+    <header class="post-header">
+      <h1 class="post-title">{post.data.title}</h1>
 
+      <div class="post-meta">
+        <span>Date:</span>
+        <Time time={post.data.pubDate} />
+        <span>|</span>
+        <span>Estimated Reading Time: {readingTime.minutes} min</span>
         {post.data.author && (
           <>
-            <span class="text-text-muted">|</span>
-            <div>Author: {post.data.author}</div>
+            <span>|</span>
+            <span>Author: {post.data.author}</span>
           </>
         )}
       </div>
     </header>
 
-    <!-- Article Content -->
-    <div class="mdx-content mt-8">
+    {tocItems.length > 0 && (
+      <details class="toc-box">
+        <summary>Table of Contents</summary>
+        <ol>
+          {tocItems.map((item) => (
+            <li class:list={[item.depth === 3 && "ml-4"]}>
+              <a href={`#${item.id}`}>{item.text}</a>
+            </li>
+          ))}
+        </ol>
+      </details>
+    )}
+
+    <div class="mdx-content">
       <Content components={components} />
     </div>
 
-    <!-- License Notice -->
     <LicenseNotice />
   </article>
 </BaseLayout>
