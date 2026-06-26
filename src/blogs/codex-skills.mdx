@@ -1,24 +1,24 @@
 ---
-title: (WIP) Codex Skills 
+title: (WIP) Codex Skills
 author: Madinah
-description: introduce how codex load skills and how that affects the context
+description: How Codex loads skills, injects skill instructions, and uses skill names during tool routing.
 tags:
   - codex
 pubDate: 2026-02-04 23:33:00
 ---
 
 
-# what's skills
+# What are skills?
 
-[official web](https://agentskills.io/home)，the official web introduce how and why skills. the flowing part will focus on how codex deal with skills.
-
-
-# Codex Skills Flow
+[Agent Skills](https://agentskills.io/home) explains the general idea behind skills. This note focuses on the Codex implementation: where skills are loaded, how they enter the prompt context, and how they affect tool routing.
 
 
-## High-Level Flow
+# Codex skills flow
 
-here is the high level flow of how codex handle skills. then i will deep into the every part
+
+## High-level flow
+
+At a high level, Codex loads the available skills during session setup, exposes them in the instruction context, then resolves explicit skill mentions on each turn.
 
 ```
 
@@ -105,7 +105,7 @@ here is the high level flow of how codex handle skills. then i will deep into th
 
 use crate::skills::SkillsManager;
 pub(crate) async fn spawn( mut config: Config, skills_manager: Arc<SkillsManager>) {
-  // 再通过 codex spawn 新的进程的时候读取读取相关的 skills
+  // When Codex spawns a new session, it loads skills from the active config layers.
   let loaded_skills = skills_manager.skills_for_config(&config) // loads skills based on config layer stack and seeds the cache.;
   let enabled_skills = loaded_skills.enabled_skills(); // filters out disabled paths.
   let user_instructions = get_user_instructions(&config, Some(&enabled_skills)).await; // builds the instruction block and appends a **Skills** section via `render_skills_section`.
@@ -116,7 +116,7 @@ pub(crate) async fn spawn( mut config: Config, skills_manager: Arc<SkillsManager
 ```
 
 
-The list of skills becomes part of the session’s base instruction context (user instructions + AGENTS.md + skills section), so the model sees what skills exist and how to use them.
+The skill list becomes part of the session’s base instruction context, together with user instructions and `AGENTS.md`. The model can see which skills exist and how each skill should be used.
 
 
 
@@ -176,7 +176,7 @@ pub(crate) async fn run_turn(
 }
 ```
 
-Skill instructions are injected into the prompt context for the sampling request. The model sees the skill content as if it were part of the conversation history.
+When the user explicitly mentions a skill, Codex reads that skill file and inserts its instructions into the conversation history before the sampling request.
 
 ## Tool selection interaction
 
@@ -205,10 +205,10 @@ pub(crate) async fn run_sampling_request(
 }
 ```
 
-Skills influence which app connectors remain available for tool routing in the prompt.
+Skill names also influence app connector filtering. If a skill and a connector share a slug, Codex keeps the connector available only when the user explicitly references that connector.
 
 
-## Skills Loading Details
+## Skill loading details
 
 ### 1) SkillsManager setup
 
@@ -239,7 +239,7 @@ Skills influence which app connectors remain available for tool routing in the p
 - Disabled skill paths are read from the user config layer (`skills` config section).
 - Disabled paths are excluded by `enabled_skills()` and by selection logic during injection.
 
-## Input Context: How Skill Content Reaches the Model
+## Input context: how skill content reaches the model
 
 1. **Session-level instructions**
    - `get_user_instructions` appends the Skills section (list + usage rules) into the base instructions.
@@ -253,7 +253,7 @@ Skills influence which app connectors remain available for tool routing in the p
 3. **Tool filtering**
    - Skill name counts are used to disambiguate connector mentions during tool selection.
 
-## Output Artifacts Produced by the Skill Flow
+## Output artifacts produced by the skill flow
 
 - **Skill list output** (session instructions)
   - `render_skills_section` creates a markdown list of available skills and usage rules.
@@ -262,7 +262,7 @@ Skills influence which app connectors remain available for tool routing in the p
   - `SkillInstructions` response items are inserted into the conversation history.
   - Any failed reads result in warning events for the user.
 
-## Key Files and Call Sites
+## Key files and call sites
 
 - Entry points:
   - `codex-rs/core/src/codex.rs`

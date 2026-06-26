@@ -1,15 +1,17 @@
 ---
 title: kode-cli 上下文管理
 author: Madinah
-description: Kode CLI 的完整上下文管理流程架构设计
+description: Kode CLI 上下文管理流程分析：静态上下文、动态 reminders、系统提示注入和最终 LLM 请求结构。
 tags:
   - AI
 pubDate: 2024-10-20 00:00:00
 ---
 
-## Kode 完整上下文管理流程
+## Kode CLI 上下文管理流程
 
 ### 架构概览
+
+Kode CLI 的上下文管理由两部分组成：会话启动时加载的静态上下文，以及每次请求前生成的动态 reminders。静态上下文进入系统提示，动态 reminders 会注入到最新的用户消息里。
 
 ```plaintext
 用户输入 → REPL → query() → formatSystemPromptWithContext() → LLM
@@ -19,9 +21,9 @@ pubDate: 2024-10-20 00:00:00
            [静态上下文]              [动态 Reminders]
 ```
 
-### 完整数据流程
+### 数据流程
 
-#### 1. 用户启动会话
+#### 1. 启动会话
 
 ```typescript
 // src/screens/REPL.tsx - 初始化阶段
@@ -44,7 +46,7 @@ useEffect(() => {
 
 ```
 
-#### 2. 静态上下文收集 (src/context.ts)
+#### 2. 收集静态上下文 (`src/context.ts`)
 
 ```typescript
 // getContext() 返回的数据结构
@@ -126,7 +128,7 @@ Team conventions:
 };
 ```
 
-#### 3. 用户发送消息
+#### 3. 处理用户消息
 
 ```typescript
 // 用户输入
@@ -184,7 +186,7 @@ const handleSubmit = async (input: string) => {
 };
 ```
 
-#### 4. query() 函数处理 (src/query.ts)
+#### 4. `query()` 处理请求 (`src/query.ts`)
 
 ```typescript
 export async function* query(
@@ -286,7 +288,7 @@ export async function* query(
 }
 ```
 
-#### 5. formatSystemPromptWithContext() (src/services/claude.ts)
+#### 5. 格式化系统提示 (`src/services/claude.ts`)
 
 ```typescript
 export function formatSystemPromptWithContext(
@@ -381,7 +383,7 @@ export function formatSystemPromptWithContext(
 }
 ```
 
-#### 6. generateSystemReminders() (src/services/systemReminder.ts)
+#### 6. 生成动态 reminders (`src/services/systemReminder.ts`)
 
 ```typescript
 public generateReminders(
@@ -499,7 +501,7 @@ private dispatchTodoEvent(agentId?: string): ReminderMessage | null {
 
 ```
 
-#### 7. 最终发送给 LLM 的数据结构
+#### 7. 发送给 LLM 的最终数据结构
 
 ```typescript
 // queryLLM() 接收的参数
@@ -566,7 +568,7 @@ Your todo list has changed:
 
 ```
 
-### 完整示例：从用户输入到 LLM 响应
+### 示例：从用户输入到 LLM 响应
 
 ```typescript
 // ============================================
@@ -681,12 +683,12 @@ API Request: {
 
 ```
 
-### 关键设计要点
+### 关键设计点
 
-- 静态上下文缓存：getContext() 使用 memoize，会话期间只加载一次
-- 动态 Reminders：每次查询时实时生成，基于当前状态
-- 分离注入：项目文档注入系统提示，reminders 注入用户消息
-- 去重机制：使用 remindersSent Set 避免重复提醒
-- 优先级管理：最多 5 个 reminders，按优先级选择
-- 缓存控制：长文本使用 prompt caching 减少成本
-- 事件驱动：通过事件系统解耦各模块
+- 静态上下文通过 `getContext()` 缓存，会话期间只加载一次。
+- 动态 reminders 在每次查询前生成，内容取决于当前任务状态。
+- 项目文档进入系统提示，reminders 注入用户消息，两类上下文的入口分开。
+- `remindersSent` 用来记录已发送提醒，避免重复注入。
+- 单次最多注入 5 条 reminders，并按优先级筛选。
+- 长文本配合 prompt caching 使用，降低重复上下文成本。
+- 事件系统负责连接 todo、安全、性能等模块，减少模块间直接依赖。

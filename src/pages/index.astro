@@ -1,3 +1,43 @@
 ---
-return Astro.redirect('/blog');
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Time from '../components/Time.astro';
+import { getPublishedPosts } from '../utils/posts';
+
+const postsWithReadingTime = await getPublishedPosts();
 ---
+
+<BaseLayout title="Blog - Madinah" variant="list">
+  <section class="page-intro">
+    <h1>Madinah's Blog</h1>
+    <p>Notes on frontend development, Rust, and tools that improve how software gets built.</p>
+  </section>
+
+  <section aria-label="Published posts">
+    {postsWithReadingTime.map((post) => (
+      <a href={`/blog/${post.id}`} class="entry-card">
+        <article>
+          <header>
+            <h2 class="entry-title">{post.data.title}</h2>
+          </header>
+
+          {post.data.description && (
+            <p class="entry-description">{post.data.description}</p>
+          )}
+
+          <footer class="entry-meta">
+            <span>Date:</span>
+            <Time time={post.data.pubDate} />
+            <span>|</span>
+            <span>Estimated Reading Time: {post.readingTime.minutes} min</span>
+            {post.data.author && (
+              <>
+                <span>|</span>
+                <span>Author: {post.data.author}</span>
+              </>
+            )}
+          </footer>
+        </article>
+      </a>
+    ))}
+  </section>
+</BaseLayout>

@@ -10,6 +10,7 @@ interface Props {
 
 const { title = "Madinah's Blog", description = "A modern blog built with Astro", variant = 'post' } = Astro.props;
 const currentPath = Astro.url.pathname;
+const normalizedPath = currentPath.replace(/\/$/, '') || '/';
 ---
 
 <!doctype html>
@@ -41,7 +42,6 @@ const currentPath = Astro.url.pathname;
 
     <!-- Theme Script (must run before body renders to prevent flash) -->
     <script is:inline>
-      // Immediately set theme before page renders
       (function() {
         const savedTheme = localStorage.getItem('theme');
         const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
@@ -53,12 +53,42 @@ const currentPath = Astro.url.pathname;
       })();
     </script>
 
+    <script is:inline>
+      const markMathJaxParents = () => {
+        document.querySelectorAll('mjx-container').forEach((container) => {
+          container.parentElement?.classList.add('has-jax');
+        });
+      };
+
+      window.MathJax = {
+        tex: {
+          inlineMath: [['$', '$'], ['\\(', '\\)']],
+          displayMath: [['$$', '$$'], ['\\[', '\\]']],
+          processEscapes: true,
+          processEnvironments: true
+        },
+        options: {
+          skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+        },
+        startup: {
+          pageReady: () => window.MathJax.startup.defaultPageReady().then(markMathJaxParents)
+        }
+      };
+
+      window.addEventListener('load', markMathJaxParents);
+    </script>
+    <script
+      id="MathJax-script"
+      async
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
+    ></script>
+
   </head>
-  <body class:list={['site-shell font-sans antialiased', variant === 'list' ? 'site-list-surface' : 'site-post-surface']}>
+  <body id="top" class:list={['site-shell font-sans antialiased', variant === 'list' ? 'site-list-surface' : 'site-post-surface']}>
     <div class="flex min-h-[100dvh] flex-col">
       <header class="site-header">
         <div class="site-nav">
-          <div class="flex items-center gap-3">
+          <div class="site-logo">
             <a href="/" class="site-brand">Madinah</a>
             <ThemeToggle client:idle />
           </div>
@@ -66,13 +96,13 @@ const currentPath = Astro.url.pathname;
           <nav aria-label="Primary navigation">
             <ul class="site-menu">
               <li>
-                <a href="/projects" aria-current={currentPath === "/projects" ? "page" : undefined}>
-                  Projects
+                <a href="/" aria-current={normalizedPath === "/" || normalizedPath.startsWith("/blog") ? "page" : undefined}>
+                  Blog
                 </a>
               </li>
               <li>
-                <a href="/blog" aria-current={currentPath.startsWith("/blog") ? "page" : undefined}>
-                  Blog
+                <a href="/projects" aria-current={normalizedPath === "/projects" ? "page" : undefined}>
+                  Projects
                 </a>
               </li>
             </ul>
@@ -84,10 +114,25 @@ const currentPath = Astro.url.pathname;
         <slot />
       </main>
 
-      <footer class="site-footer flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+      <footer class="site-footer">
         <span>&copy; {new Date().getFullYear()} Madinah</span>
         <span>Built with Astro</span>
       </footer>
+
+      <a class="top-link" href="#top" aria-label="Go to top" title="Go to top">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor" aria-hidden="true">
+          <path d="M12 6H0l6-6z" />
+        </svg>
+      </a>
     </div>
+    <script is:inline>
+      const topLink = document.querySelector('.top-link');
+      const syncTopLink = () => {
+        topLink?.classList.toggle('is-visible', window.scrollY > 400);
+      };
+
+      syncTopLink();
+      window.addEventListener('scroll', syncTopLink, { passive: true });
+    </script>
   </body>
 </html>

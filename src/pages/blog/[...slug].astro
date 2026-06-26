@@ -17,7 +17,7 @@ export async function getStaticPaths() {
 const { post } = Astro.props;
 const { Content } = await render(post);
 const readingTime = calculateReadingTime(post.body);
-const tocItems = Array.from(post.body.matchAll(/^(#{2,3})\s+(.+)$/gm))
+const tocItems = Array.from(post.body.matchAll(/^(#{1,3})\s+(.+)$/gm))
     .map((match) => {
         const depth = match[1].length;
         const text = match[2]
@@ -57,19 +57,26 @@ const tocItems = Array.from(post.body.matchAll(/^(#{2,3})\s+(.+)$/gm))
     </header>
 
     {tocItems.length > 0 && (
-      <details class="toc-box">
-        <summary>Table of Contents</summary>
-        <ol>
-          {tocItems.map((item) => (
-            <li class:list={[item.depth === 3 && "ml-4"]}>
-              <a href={`#${item.id}`}>{item.text}</a>
-            </li>
-          ))}
-        </ol>
-      </details>
+      <div class="toc">
+        <details>
+          <summary accesskey="c" title="(Alt + C)">
+            <span class="details">Table of Contents</span>
+          </summary>
+
+          <div class="inner">
+            <ul>
+              {tocItems.map((item) => (
+                <li class:list={[item.depth > 1 && "toc-depth-3"]}>
+                  <a href={`#${item.id}`} aria-label={item.text}>{item.text}</a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </details>
+      </div>
     )}
 
-    <div class="mdx-content">
+    <div class="post-content">
       <Content components={components} />
     </div>
 

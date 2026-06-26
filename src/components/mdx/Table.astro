@@ -7,10 +7,9 @@ interface Props extends HTMLAttributes<'table'> {}
 const { class: className, ...props } = Astro.props;
 ---
 
-<div class="mb-5 overflow-x-auto">
+<div class="table-wrapper">
   <table
     class={cn(
-      'w-full',
       className
     )}
     {...props}
