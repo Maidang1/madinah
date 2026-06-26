@@ -27,6 +27,7 @@ const normalizedPath = currentPath.replace(/\/$/, '') || '/';
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="stylesheet" href="https://assets.felixwliu.cn/fonts/jinkai/jinkai.css" />
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
@@ -85,6 +86,7 @@ const normalizedPath = currentPath.replace(/\/$/, '') || '/';
 
   </head>
   <body id="top" class:list={['site-shell font-sans antialiased', variant === 'list' ? 'site-list-surface' : 'site-post-surface']}>
+    <div class="top-link-sentinel" aria-hidden="true"></div>
     <div class="flex min-h-[100dvh] flex-col">
       <header class="site-header">
         <div class="site-nav">
@@ -127,12 +129,16 @@ const normalizedPath = currentPath.replace(/\/$/, '') || '/';
     </div>
     <script is:inline>
       const topLink = document.querySelector('.top-link');
-      const syncTopLink = () => {
-        topLink?.classList.toggle('is-visible', window.scrollY > 400);
-      };
+      const sentinel = document.querySelector('.top-link-sentinel');
 
-      syncTopLink();
-      window.addEventListener('scroll', syncTopLink, { passive: true });
+      if (topLink && sentinel && 'IntersectionObserver' in window) {
+        const observer = new IntersectionObserver(
+          ([entry]) => topLink.classList.toggle('is-visible', !entry.isIntersecting),
+          { rootMargin: '-400px 0px 0px 0px' }
+        );
+
+        observer.observe(sentinel);
+      }
     </script>
   </body>
 </html>

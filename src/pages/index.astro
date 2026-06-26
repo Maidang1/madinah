@@ -25,14 +25,13 @@ const postsWithReadingTime = await getPublishedPosts();
           )}
 
           <footer class="entry-meta">
-            <span>Date:</span>
             <Time time={post.data.pubDate} />
-            <span>|</span>
-            <span>Estimated Reading Time: {post.readingTime.minutes} min</span>
+            <span>/</span>
+            <span>{post.readingTime.minutes} min read</span>
             {post.data.author && (
               <>
-                <span>|</span>
-                <span>Author: {post.data.author}</span>
+                <span>/</span>
+                <span>{post.data.author}</span>
               </>
             )}
           </footer>

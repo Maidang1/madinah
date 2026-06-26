@@ -82,7 +82,7 @@ const projects = [
             <p class="entry-description">{project.description}</p>
             <footer class="entry-meta">
               <span>{project.url ? "Website" : "GitHub"}</span>
-              <span>|</span>
+              <span>/</span>
               <span>{new URL(project.url ?? project.github).hostname}</span>
             </footer>
           </article>
