@@ -1,7 +1,8 @@
 use crate::{
-    blog, drafts, file_tree, files, plugins, recent, workspace,
+    acp, blog, drafts, file_tree, files, plugins, recent, workspace,
     errors::AppResult,
     models::{
+        AcpAgentCheckResult, AcpAgentRuntimeConfig, AcpPolishInput, AcpPolishResult,
         ExportDocumentInput, ExportResult, FileTreeEntry, ImportedBlogFile, MarkdownFile,
         ResolvedPlugin, TrustInput, TrustRecord, TrustedPluginBundle, TrustedPluginBundleInput,
         WorkspaceInfo, WriteMarkdownFileInput, WriterDocument,
@@ -138,4 +139,14 @@ pub fn set_workspace_plugin_trust(
 ) -> AppResult<TrustRecord> {
     let trust_path = plugins::trust_path(&app)?;
     plugins::set_plugin_trust_in_file(&trust_path, input)
+}
+
+#[tauri::command]
+pub async fn polish_text_with_acp(input: AcpPolishInput) -> AppResult<AcpPolishResult> {
+    acp::polish_text(input).await
+}
+
+#[tauri::command]
+pub async fn check_acp_agent(input: AcpAgentRuntimeConfig) -> AppResult<AcpAgentCheckResult> {
+    acp::check_agent(input).await
 }

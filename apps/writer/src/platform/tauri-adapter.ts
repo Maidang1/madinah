@@ -2,6 +2,10 @@ import { invoke } from "@tauri-apps/api/core";
 import { confirm, open, save } from "@tauri-apps/plugin-dialog";
 import type { MarkdownDocument } from "../domain/document";
 import type {
+  AcpAgentRuntimeConfig,
+  AcpPolishInput,
+} from "../domain/ai-polish";
+import type {
   ResolvedPlugin,
   TrustedPluginBundle,
   TrustedPluginBundleInput,
@@ -10,6 +14,7 @@ import type {
   WorkspacePluginTrustRecord,
 } from "../domain/engine";
 import type {
+  AiPolishAdapter,
   DocumentStore,
   FileTreeNode,
   FileTreeStore,
@@ -39,6 +44,7 @@ export function createTauriAdapters(): PlatformAdapters {
     },
     pluginResolver: createTauriPluginResolver(),
     windowAdapter: createTauriWindowAdapter(),
+    aiPolish: createTauriAiPolishAdapter(),
   };
 }
 
@@ -137,5 +143,13 @@ function createTauriWindowAdapter(): WindowAdapter {
 
       return typeof selected === "string" ? selected : null;
     },
+  };
+}
+
+function createTauriAiPolishAdapter(): AiPolishAdapter {
+  return {
+    isAvailable: true,
+    polish: (input: AcpPolishInput) => invoke("polish_text_with_acp", { input }),
+    check: (input: AcpAgentRuntimeConfig) => invoke("check_acp_agent", { input }),
   };
 }

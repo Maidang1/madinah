@@ -1,3 +1,4 @@
+pub mod acp;
 pub mod blog;
 pub mod commands;
 pub mod drafts;
@@ -46,6 +47,8 @@ pub fn run() {
             commands::resolve_workspace_plugins,
             commands::read_trusted_plugin_bundle,
             commands::set_workspace_plugin_trust,
+            commands::polish_text_with_acp,
+            commands::check_acp_agent,
         ])
         .run(tauri::generate_context!())
         .expect("failed to run Madinah Writer");

@@ -1,5 +1,11 @@
 import type { MarkdownDocument } from "../domain/document";
 import type {
+  AcpAgentCheckResult,
+  AcpAgentRuntimeConfig,
+  AcpPolishInput,
+  AcpPolishResult,
+} from "../domain/ai-polish";
+import type {
   ResolvedPlugin,
   TrustedPluginBundle,
   TrustedPluginBundleInput,
@@ -80,6 +86,12 @@ export interface WindowAdapter {
   }): Promise<string | null>;
 }
 
+export interface AiPolishAdapter {
+  isAvailable: boolean;
+  polish(input: AcpPolishInput): Promise<AcpPolishResult>;
+  check(input: AcpAgentRuntimeConfig): Promise<AcpAgentCheckResult>;
+}
+
 export interface PlatformAdapters {
   documentStore: DocumentStore;
   fileTreeStore: FileTreeStore;
@@ -88,4 +100,5 @@ export interface PlatformAdapters {
   recentStore: RecentStore;
   pluginResolver: PluginResolver;
   windowAdapter: WindowAdapter;
+  aiPolish: AiPolishAdapter;
 }

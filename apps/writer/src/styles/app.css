@@ -266,6 +266,212 @@ textarea {
   grid-template-columns: var(--writer-sidebar-width) minmax(0, 1fr);
 }
 
+.writer-settings-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(0 0 0 / 0.46);
+}
+
+.writer-settings-dialog {
+  display: grid;
+  width: min(560px, 100%);
+  max-height: min(720px, calc(100dvh - 48px));
+  overflow: auto;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--writer-rule-strong);
+  border-radius: 10px;
+  background: var(--writer-window-bg);
+  box-shadow: 0 24px 70px var(--writer-shadow);
+  color: var(--writer-text);
+  font-family: var(--writer-ui-font);
+}
+
+.writer-settings-header,
+.writer-settings-footer {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.writer-settings-header h2 {
+  margin: 0;
+  color: var(--writer-text);
+  font-size: 16px;
+  font-weight: 760;
+  letter-spacing: 0;
+  line-height: 1.2;
+}
+
+.writer-settings-header p {
+  margin: 4px 0 0;
+  color: var(--writer-muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.writer-settings-close,
+.writer-settings-secondary,
+.writer-settings-primary {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease,
+    opacity 140ms ease,
+    transform 100ms ease;
+}
+
+.writer-settings-close,
+.writer-settings-secondary {
+  border: 1px solid var(--writer-rule-strong);
+  background: var(--writer-control-bg);
+  color: color-mix(in srgb, var(--writer-text) 78%, transparent);
+}
+
+.writer-settings-primary {
+  border: 1px solid color-mix(in srgb, var(--writer-focus) 72%, transparent);
+  background: var(--writer-focus);
+  color: white;
+}
+
+.writer-settings-close:hover,
+.writer-settings-secondary:hover {
+  background: var(--writer-control-hover);
+  color: var(--writer-text);
+}
+
+.writer-settings-primary:hover {
+  border-color: var(--writer-focus);
+}
+
+.writer-settings-close:active,
+.writer-settings-secondary:active,
+.writer-settings-primary:active {
+  transform: translateY(1px);
+}
+
+.writer-settings-secondary:disabled,
+.writer-settings-primary:disabled {
+  opacity: 0.44;
+  cursor: default;
+}
+
+.writer-settings-segments {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--writer-rule);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--writer-sidebar-bg) 78%, transparent);
+}
+
+.writer-settings-segments button {
+  min-height: 30px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--writer-muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 720;
+}
+
+.writer-settings-segments button.is-selected {
+  background: var(--writer-window-bg);
+  color: var(--writer-text);
+  box-shadow: 0 1px 8px rgb(0 0 0 / 0.12);
+}
+
+.writer-settings-field {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.writer-settings-field.is-inline {
+  max-width: 180px;
+}
+
+.writer-settings-field span {
+  color: var(--writer-muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.writer-settings-field input,
+.writer-settings-field textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--writer-rule-strong);
+  border-radius: 7px;
+  background: var(--writer-editor-bg);
+  color: var(--writer-text);
+  font-family: var(--writer-ui-font);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.writer-settings-field input {
+  height: 32px;
+  padding: 0 10px;
+}
+
+.writer-settings-field textarea {
+  resize: vertical;
+  padding: 9px 10px;
+}
+
+.writer-settings-field input:focus,
+.writer-settings-field textarea:focus,
+.writer-settings-close:focus-visible,
+.writer-settings-secondary:focus-visible,
+.writer-settings-primary:focus-visible,
+.writer-settings-segments button:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--writer-focus) 48%, transparent);
+  outline-offset: 2px;
+}
+
+.writer-settings-error,
+.writer-settings-status {
+  min-width: 0;
+  color: var(--writer-muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.writer-settings-error,
+.writer-settings-status.is-error {
+  color: rgb(224, 94, 83);
+}
+
+.writer-settings-status.is-success {
+  color: rgb(70, 164, 103);
+}
+
+.writer-settings-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .writer-window.is-sidebar-hidden .writer-titlebar::before {
   display: none;
 }
@@ -518,6 +724,50 @@ textarea {
   outline: none;
 }
 
+.editor-context-menu {
+  position: fixed;
+  z-index: 45;
+  display: grid;
+  width: 180px;
+  padding: 5px;
+  border: 1px solid var(--writer-rule-strong);
+  border-radius: 7px;
+  background: color-mix(
+    in srgb,
+    var(--writer-editor-bg) 96%,
+    var(--writer-window-bg)
+  );
+  box-shadow: 0 18px 48px var(--writer-shadow);
+  font-family: var(--writer-ui-font);
+}
+
+.editor-context-menu button {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--writer-text);
+  cursor: pointer;
+  font-size: 13px;
+  text-align: left;
+}
+
+.editor-context-menu button:hover,
+.editor-context-menu button:focus-visible {
+  background: color-mix(in srgb, var(--writer-editor-bg) 80%, var(--writer-control-bg));
+  outline: none;
+}
+
+.editor-context-menu button:disabled {
+  color: var(--writer-faint);
+  cursor: default;
+}
+
+.editor-context-menu button:disabled:hover {
+  background: transparent;
+}
+
 .writer-simple-canvas {
   display: flex;
   width: 100%;
@@ -676,15 +926,71 @@ textarea {
   position: fixed;
   z-index: 30;
   display: grid;
+  gap: 2px;
   width: 276px;
   max-height: min(360px, calc(100dvh - 32px));
   overflow: auto;
   padding: 6px;
   border: 1px solid var(--writer-rule-strong);
   border-radius: 10px;
-  background: color-mix(in srgb, var(--writer-control-bg) 96%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--writer-editor-bg) 96%,
+    var(--writer-window-bg)
+  );
   box-shadow: 0 18px 48px var(--writer-shadow);
   font-family: var(--writer-ui-font);
+}
+
+.slash-command-query {
+  display: flex;
+  align-items: center;
+  min-height: 28px;
+  gap: 0;
+  padding: 4px 8px 5px;
+  border-bottom: 1px solid var(--writer-rule);
+  color: var(--writer-faint);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.slash-command-query span {
+  color: var(--writer-muted);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.slash-command-query strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--writer-text);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.slash-command-section {
+  display: grid;
+  gap: 2px;
+}
+
+.slash-command-section + .slash-command-section {
+  margin-top: 3px;
+  padding-top: 3px;
+  border-top: 1px solid var(--writer-rule);
+}
+
+.slash-command-group {
+  padding: 6px 8px 3px;
+  color: var(--writer-faint);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1.2;
+  text-transform: uppercase;
 }
 
 .slash-command-menu button {
@@ -713,6 +1019,13 @@ textarea {
 .slash-command-menu small {
   color: var(--writer-muted);
   font-size: 11px;
+  line-height: 1.35;
+}
+
+.slash-command-empty {
+  padding: 12px 10px 10px;
+  color: var(--writer-muted);
+  font-size: 12px;
   line-height: 1.35;
 }
 

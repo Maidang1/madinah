@@ -2,6 +2,7 @@ import { MDXEditor, type MDXEditorMethods } from "@mdxeditor/editor";
 import "@mdxeditor/editor/style.css";
 import {
   type KeyboardEvent as ReactKeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
   useCallback,
   useEffect,
   useMemo,
@@ -12,6 +13,14 @@ import type { MarkdownDocument } from "../../domain/document";
 import type { SlashCommand, WorkspaceInfo } from "../../domain/engine";
 import { EMPTY_BLOCK_MARKER } from "../engine/builtinProfiles";
 import type { CommandRegistry } from "../engine/CommandRegistry";
+import {
+  createSlashCommandSections,
+  type SlashCommandSection,
+} from "./slash-command-menu";
+import {
+  getEditorContextMenuPosition,
+  type EditorContextMenuItem,
+} from "./editor-context-menu";
 
 interface MarkdownEditorProps {
   value: string;
@@ -19,6 +28,7 @@ interface MarkdownEditorProps {
   workspace: WorkspaceInfo | null;
   editorPlugins: unknown[];
   commandRegistry: CommandRegistry;
+  contextMenuItems?: EditorContextMenuItem[];
   onChange: (value: string) => void;
   onError: (error: string) => void;
 }
@@ -29,6 +39,7 @@ export function MarkdownEditor({
   workspace,
   editorPlugins,
   commandRegistry,
+  contextMenuItems = [],
   onChange,
   onError,
 }: MarkdownEditorProps) {
@@ -38,29 +49,50 @@ export function MarkdownEditor({
     getInitialFocusSelection(value),
   );
   const [position, setPosition] = useState<SlashMenuPosition | null>(null);
+  const [contextMenu, setContextMenu] = useState<EditorContextMenuState | null>(
+    null,
+  );
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [query, setQuery] = useState("");
   const commands = useMemo(
     () => commandRegistry.listSlashCommands(),
     [commandRegistry],
+  );
+  const sections = useMemo(
+    () => createSlashCommandSections(commands, query),
+    [commands, query],
+  );
+  const visibleCommands = useMemo(
+    () => sections.flatMap((section) => section.commands),
+    [sections],
   );
 
   const closeMenu = useCallback(() => {
     setPosition(null);
     setSelectedIndex(0);
+    setQuery("");
+  }, []);
+
+  const closeContextMenu = useCallback(() => {
+    setContextMenu(null);
   }, []);
 
   const runCommand = useCallback(
     async (command: SlashCommand) => {
-      if (command.markdown) {
-        editorRef.current?.insertMarkdown(command.markdown);
-      }
+      try {
+        if (command.markdown) {
+          editorRef.current?.insertMarkdown(command.markdown);
+        }
 
-      if (command.commandId) {
-        await commandRegistry.execute(command.commandId, {
-          document,
-          editor: editorRef.current,
-          workspace,
-        });
+        if (command.commandId) {
+          await commandRegistry.execute(command.commandId, {
+            document,
+            editor: editorRef.current,
+            workspace,
+          });
+        }
+      } catch (error: unknown) {
+        onError(error instanceof Error ? error.message : String(error));
       }
 
       closeMenu();
@@ -72,7 +104,25 @@ export function MarkdownEditor({
       );
       requestAnimationFrame(() => focusInsertedMarker(shellRef.current));
     },
-    [closeMenu, commandRegistry, document, workspace],
+    [closeMenu, commandRegistry, document, onError, workspace],
+  );
+
+  const runContextMenuItem = useCallback(
+    async (item: EditorContextMenuItem) => {
+      if (item.disabled) return;
+
+      closeContextMenu();
+      try {
+        await commandRegistry.execute(item.commandId, {
+          document,
+          editor: editorRef.current,
+          workspace,
+        });
+      } catch (error: unknown) {
+        onError(error instanceof Error ? error.message : String(error));
+      }
+    },
+    [closeContextMenu, commandRegistry, document, onError, workspace],
   );
 
   useEffect(() => {
@@ -85,29 +135,58 @@ export function MarkdownEditor({
   }, []);
 
   useEffect(() => {
-    if (!position || commands.length === 0) return;
+    if (!contextMenu) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        closeContextMenu();
+      }
+    };
+
+    window.addEventListener("click", closeContextMenu);
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("resize", closeContextMenu);
+    window.addEventListener("scroll", closeContextMenu, true);
+    return () => {
+      window.removeEventListener("click", closeContextMenu);
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("resize", closeContextMenu);
+      window.removeEventListener("scroll", closeContextMenu, true);
+    };
+  }, [closeContextMenu, contextMenu]);
+
+  useEffect(() => {
+    if (!position) return;
 
     const handleMenuKey = (event: KeyboardEvent) => {
       if (event.key === "ArrowDown") {
         event.preventDefault();
         event.stopPropagation();
-        setSelectedIndex((current) => (current + 1) % commands.length);
+        if (visibleCommands.length > 0) {
+          setSelectedIndex((current) => (current + 1) % visibleCommands.length);
+        }
         return;
       }
 
       if (event.key === "ArrowUp") {
         event.preventDefault();
         event.stopPropagation();
-        setSelectedIndex(
-          (current) => (current - 1 + commands.length) % commands.length,
-        );
+        if (visibleCommands.length > 0) {
+          setSelectedIndex(
+            (current) =>
+              (current - 1 + visibleCommands.length) % visibleCommands.length,
+          );
+        }
         return;
       }
 
       if (event.key === "Enter") {
         event.preventDefault();
         event.stopPropagation();
-        void runCommand(commands[selectedIndex]);
+        const command = visibleCommands[selectedIndex];
+        if (command) {
+          void runCommand(command);
+        }
         return;
       }
 
@@ -118,6 +197,30 @@ export function MarkdownEditor({
         return;
       }
 
+      if (event.key === "Backspace") {
+        event.preventDefault();
+        event.stopPropagation();
+        if (query.length > 0) {
+          setQuery((current) => current.slice(0, -1));
+        } else {
+          closeMenu();
+        }
+        return;
+      }
+
+      if (
+        event.key.length === 1 &&
+        !event.metaKey &&
+        !event.ctrlKey &&
+        !event.altKey
+      ) {
+        event.preventDefault();
+        event.stopPropagation();
+        setQuery((current) => current + event.key);
+        setSelectedIndex(0);
+        return;
+      }
+
       if (event.key.length === 1) {
         closeMenu();
       }
@@ -125,7 +228,21 @@ export function MarkdownEditor({
 
     window.addEventListener("keydown", handleMenuKey, true);
     return () => window.removeEventListener("keydown", handleMenuKey, true);
-  }, [closeMenu, commands, position, runCommand, selectedIndex]);
+  }, [
+    closeMenu,
+    position,
+    query.length,
+    runCommand,
+    selectedIndex,
+    visibleCommands,
+  ]);
+
+  useEffect(() => {
+    setSelectedIndex((current) => {
+      if (visibleCommands.length === 0) return 0;
+      return Math.min(current, visibleCommands.length - 1);
+    });
+  }, [visibleCommands.length]);
 
   const handleKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -145,8 +262,35 @@ export function MarkdownEditor({
       event.stopPropagation();
       setPosition(getSlashMenuPosition(shellRef.current));
       setSelectedIndex(0);
+      setQuery("");
     },
     [commands.length],
+  );
+
+  const handleContextMenu = useCallback(
+    (event: ReactMouseEvent<HTMLDivElement>) => {
+      if (contextMenuItems.length === 0) return;
+
+      const target = event.target;
+      if (
+        target instanceof HTMLElement &&
+        target.closest(".slash-command-menu, .editor-context-menu")
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+      closeMenu();
+      setContextMenu({
+        position: getEditorContextMenuPosition(
+          event,
+          { width: 180, height: contextMenuItems.length * 34 + 10 },
+          { width: window.innerWidth, height: window.innerHeight },
+        ),
+      });
+    },
+    [closeMenu, contextMenuItems.length],
   );
 
   return (
@@ -154,6 +298,7 @@ export function MarkdownEditor({
       className="live-mdx-shell"
       ref={shellRef}
       onKeyDownCapture={handleKeyDown}
+      onContextMenu={handleContextMenu}
     >
       <MDXEditor
         ref={editorRef}
@@ -177,11 +322,19 @@ export function MarkdownEditor({
       />
       {position && commands.length > 0 ? (
         <SlashCommandMenu
-          commands={commands}
+          query={query}
+          sections={sections}
           position={position}
           selectedIndex={selectedIndex}
           onSelect={setSelectedIndex}
           onRun={(command) => void runCommand(command)}
+        />
+      ) : null}
+      {contextMenu ? (
+        <EditorContextMenu
+          items={contextMenuItems}
+          position={contextMenu.position}
+          onRun={(item) => void runContextMenuItem(item)}
         />
       ) : null}
     </div>
@@ -232,8 +385,16 @@ interface SlashMenuPosition {
   top: number;
 }
 
+interface EditorContextMenuState {
+  position: {
+    x: number;
+    y: number;
+  };
+}
+
 interface SlashCommandMenuProps {
-  commands: SlashCommand[];
+  query: string;
+  sections: SlashCommandSection[];
   position: SlashMenuPosition;
   selectedIndex: number;
   onSelect: (index: number) => void;
@@ -241,12 +402,21 @@ interface SlashCommandMenuProps {
 }
 
 function SlashCommandMenu({
-  commands,
+  query,
+  sections,
   position,
   selectedIndex,
   onSelect,
   onRun,
 }: SlashCommandMenuProps) {
+  const selectedButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    selectedButtonRef.current?.scrollIntoView({ block: "nearest" });
+  }, [selectedIndex, sections]);
+
+  let commandIndex = 0;
+
   return (
     <div
       className="slash-command-menu"
@@ -254,20 +424,77 @@ function SlashCommandMenu({
       role="menu"
       aria-label="Slash commands"
     >
-      {commands.map((command, index) => (
+      <div className="slash-command-query" aria-hidden="true">
+        <span>/</span>
+        {query ? <strong>{query}</strong> : null}
+      </div>
+
+      {sections.length > 0 ? (
+        sections.map((section) => (
+          <div className="slash-command-section" key={section.group}>
+            <div className="slash-command-group">{section.group}</div>
+            {section.commands.map((command) => {
+              const index = commandIndex;
+              const isSelected = index === selectedIndex;
+              commandIndex += 1;
+
+              return (
+                <button
+                  type="button"
+                  key={command.id}
+                  ref={isSelected ? selectedButtonRef : undefined}
+                  className={isSelected ? "is-selected" : undefined}
+                  onMouseEnter={() => onSelect(index)}
+                  onMouseDown={(event) => {
+                    event.preventDefault();
+                    onRun(command);
+                  }}
+                  role="menuitem"
+                >
+                  <span>{command.label}</span>
+                  <small>{command.hint}</small>
+                </button>
+              );
+            })}
+          </div>
+        ))
+      ) : (
+        <div className="slash-command-empty">No commands</div>
+      )}
+    </div>
+  );
+}
+
+function EditorContextMenu({
+  items,
+  position,
+  onRun,
+}: {
+  items: EditorContextMenuItem[];
+  position: {
+    x: number;
+    y: number;
+  };
+  onRun: (item: EditorContextMenuItem) => void;
+}) {
+  return (
+    <div
+      className="editor-context-menu"
+      style={{ left: position.x, top: position.y }}
+      role="menu"
+      aria-label="Editor actions"
+      onClick={(event) => event.stopPropagation()}
+      onMouseDown={(event) => event.preventDefault()}
+    >
+      {items.map((item) => (
         <button
+          key={item.id}
           type="button"
-          key={command.id}
-          className={index === selectedIndex ? "is-selected" : undefined}
-          onMouseEnter={() => onSelect(index)}
-          onMouseDown={(event) => {
-            event.preventDefault();
-            onRun(command);
-          }}
           role="menuitem"
+          disabled={item.disabled}
+          onClick={() => onRun(item)}
         >
-          <span>{command.label}</span>
-          <small>{command.hint}</small>
+          {item.label}
         </button>
       ))}
     </div>

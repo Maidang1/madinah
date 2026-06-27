@@ -15,8 +15,10 @@ import {
   FileCode2,
   Folder,
   PanelRight,
+  Settings,
 } from "lucide-react";
 import type { TreeApi } from "react-arborist";
+import type { AcpAgentRuntimeConfig } from "./domain/ai-polish";
 import {
   extractDocumentTitle,
   type MarkdownDocument,
@@ -25,6 +27,19 @@ import {
   WRITER_COMMAND_EVENT,
   getWriterCommandIdFromPayload,
 } from "./features/commands/native-menu";
+import {
+  AcpSettingsDialog,
+  type AcpCheckState,
+} from "./features/ai-polish/AcpSettingsDialog";
+import {
+  AI_POLISH_COMMAND_ID,
+  createAiPolishCommand,
+} from "./features/ai-polish/command";
+import {
+  loadAcpSettings,
+  saveAcpSettings as persistAcpSettings,
+  type AcpSettings,
+} from "./features/ai-polish/settings";
 import { MarkdownEditor } from "./features/editor/MarkdownEditor";
 import { CommandRegistry } from "./features/engine/CommandRegistry";
 import { EngineProvider, useEngine } from "./features/engine/EngineProvider";
@@ -115,6 +130,12 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
   const showsFileDetails = true;
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
   const [theme, setTheme] = useState<WriterTheme>(getInitialTheme);
+  const [acpSettings, setAcpSettings] = useState<AcpSettings>(loadAcpSettings);
+  const [isAcpSettingsOpen, setIsAcpSettingsOpen] = useState(false);
+  const [acpCheckState, setAcpCheckState] = useState<AcpCheckState>({
+    status: "idle",
+    message: "Ready",
+  });
   const documentTitle = session.document
     ? getDocumentDisplayTitle(session.document)
     : "Madinah Writer";
@@ -123,11 +144,21 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
     [session.document?.body],
   );
   const documentStatus = getDocumentStatusLabel(status, session.isDirty);
+  const aiPolishCommand = useMemo(
+    () =>
+      createAiPolishCommand({
+        aiPolish: platform.aiPolish,
+        settings: acpSettings,
+        setStatus,
+      }),
+    [acpSettings, platform.aiPolish, setStatus],
+  );
   const commandRegistry = useMemo(
     () =>
       new CommandRegistry(
         [
           ...(engine.profile.commands ?? []),
+          aiPolishCommand,
           ...createDocumentCommands({
             open: openFromDialog,
             save: saveNow,
@@ -139,6 +170,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
         engine.profile.slashCommands ?? [],
       ),
     [
+      aiPolishCommand,
       close,
       engine.profile.commands,
       engine.profile.slashCommands,
@@ -147,6 +179,35 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
       saveAs,
       saveNow,
     ],
+  );
+  const saveAcpSettings = useCallback(
+    (nextSettings: AcpSettings) => {
+      persistAcpSettings(nextSettings);
+      setAcpSettings(nextSettings);
+      setAcpCheckState({ status: "idle", message: "Saved" });
+      setIsAcpSettingsOpen(false);
+      setStatus("AI settings saved");
+    },
+    [setStatus],
+  );
+  const checkAcpAgent = useCallback(
+    async (config: AcpAgentRuntimeConfig) => {
+      setAcpCheckState({ status: "checking", message: "Checking" });
+
+      try {
+        const result = await platform.aiPolish.check(config);
+        setAcpCheckState({
+          status: result.ok ? "success" : "error",
+          message: result.message,
+        });
+      } catch (error: unknown) {
+        setAcpCheckState({
+          status: "error",
+          message: error instanceof Error ? error.message : String(error),
+        });
+      }
+    },
+    [platform.aiPolish],
   );
   const runCommand = useCallback(
     (commandId: string) => {
@@ -532,6 +593,16 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
             </span>
             <button
               type="button"
+              className="writer-sidebar-toggle"
+              data-tauri-no-drag
+              aria-label="AI settings"
+              title="AI settings"
+              onClick={() => setIsAcpSettingsOpen(true)}
+            >
+              <Settings size={14} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
               className="writer-theme-toggle"
               data-tauri-no-drag
               aria-label={theme === "dark" ? "切换到浅色模式" : "切换到深色模式"}
@@ -596,6 +667,13 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
                 workspace={session.workspace}
                 editorPlugins={engine.profile.editorPlugins ?? []}
                 commandRegistry={commandRegistry}
+                contextMenuItems={[
+                  {
+                    id: "ai-polish",
+                    label: "AI Polish",
+                    commandId: AI_POLISH_COMMAND_ID,
+                  },
+                ]}
                 onChange={changeSource}
                 onError={(error) => setStatus(error)}
               />
@@ -605,6 +683,15 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
           </section>
         </div>
       </section>
+      <AcpSettingsDialog
+        isOpen={isAcpSettingsOpen}
+        isAvailable={platform.aiPolish.isAvailable}
+        settings={acpSettings}
+        checkState={acpCheckState}
+        onClose={() => setIsAcpSettingsOpen(false)}
+        onSave={saveAcpSettings}
+        onCheck={(config) => void checkAcpAgent(config)}
+      />
     </main>
   );
 }

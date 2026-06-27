@@ -1,6 +1,11 @@
 import type { MarkdownDocument } from "../domain/document";
+import type {
+  AcpAgentRuntimeConfig,
+  AcpPolishInput,
+} from "../domain/ai-polish";
 import type { WorkspacePluginTrustInput } from "../domain/engine";
 import type {
+  AiPolishAdapter,
   DocumentStore,
   DraftStore,
   FileTreeStore,
@@ -25,6 +30,7 @@ export function createBrowserAdapters(): PlatformAdapters {
     recentStore: createBrowserRecentStore(),
     pluginResolver: createBrowserPluginResolver(),
     windowAdapter: createBrowserWindowAdapter(),
+    aiPolish: createBrowserAiPolishAdapter(),
   };
 }
 
@@ -168,6 +174,22 @@ function createBrowserWindowAdapter(): WindowAdapter {
     },
     async saveMarkdownFile(options) {
       return window.prompt("Save Markdown file path", options?.defaultPath ?? "");
+    },
+  };
+}
+
+function createBrowserAiPolishAdapter(): AiPolishAdapter {
+  const unavailable = () =>
+    Promise.reject(new Error("ACP polishing requires the desktop app"));
+
+  return {
+    isAvailable: false,
+    polish: (_input: AcpPolishInput) => unavailable(),
+    async check(_input: AcpAgentRuntimeConfig) {
+      return {
+        ok: false,
+        message: "ACP polishing requires the desktop app",
+      };
     },
   };
 }

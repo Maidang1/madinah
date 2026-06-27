@@ -134,3 +134,49 @@ pub struct TrustedPluginBundle {
     pub code: String,
     pub hash: String,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct AcpEnvVar {
+    pub name: String,
+    pub value: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AcpAgentRuntimeConfig {
+    pub provider: String,
+    pub command: String,
+    #[serde(default)]
+    pub env: Vec<AcpEnvVar>,
+    pub instruction: String,
+    pub timeout_seconds: u64,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AcpPolishInput {
+    pub provider: String,
+    pub command: String,
+    #[serde(default)]
+    pub env: Vec<AcpEnvVar>,
+    pub instruction: String,
+    pub timeout_seconds: u64,
+    pub workspace_root: Option<String>,
+    pub content: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AcpPolishResult {
+    pub content: String,
+    pub provider: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AcpAgentCheckResult {
+    pub ok: bool,
+    pub agent_name: Option<String>,
+    pub message: String,
+}

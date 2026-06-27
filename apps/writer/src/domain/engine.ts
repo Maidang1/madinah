@@ -20,6 +20,8 @@ export interface SlashCommand {
   id: string;
   label: string;
   hint: string;
+  group?: string;
+  keywords?: string[];
   markdown?: string;
   commandId?: string;
 }

@@ -21,6 +21,9 @@ tauri-plugin-dialog = "2.7.1"
 walkdir = "2"
 notify = "8"
 notify-debouncer-mini = "0.7"
+agent-client-protocol = "1.0.0"
+shell-words = "1"
+tokio = { version = "1", features = ["time"] }
 
 [dev-dependencies]
 tempfile = "3"
