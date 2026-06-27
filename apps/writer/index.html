@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN" class="h-full scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Madinah Writer</title>
+    <link rel="icon" type="image/png" href="./src-tauri/icons/32x32.png" />
+    <link rel="stylesheet" href="https://assets.felixwliu.cn/fonts/jinkai/jinkai.css" />
+    <script>
+      window.MathJax = {
+        tex: {
+          inlineMath: [["$", "$"], ["\\(", "\\)"]],
+          displayMath: [["$$", "$$"], ["\\[", "\\]"]],
+          processEscapes: true,
+          processEnvironments: true
+        },
+        options: {
+          skipHtmlTags: ["script", "noscript", "style", "textarea", "pre"]
+        }
+      };
+    </script>
+    <script
+      id="MathJax-script"
+      async
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
+    ></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
