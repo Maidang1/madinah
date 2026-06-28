@@ -49,6 +49,56 @@ describe("document session reducer", () => {
     expect(saved.lastSavedDocument?.body).toBe("# Updated\n\nBody");
   });
 
+  it("tracks metadata changes as dirty document edits", () => {
+    const opened = documentSessionReducer(createDocumentSession(), {
+      type: "openSucceeded",
+      document: documentFixture,
+      workspace: { root: "/tmp/project", profile: "gfm", plugins: [] },
+    });
+
+    const changed = documentSessionReducer(opened, {
+      type: "changeMetadata",
+      patch: {
+        title: "Updated title",
+        tags: "writing, notes, writing",
+        status: "WIP",
+      },
+      timestamp: "2026-06-27T12:00:00.000Z",
+    });
+
+    expect(changed.document).toMatchObject({
+      title: "Updated title",
+      tags: ["writing", "notes"],
+      status: "WIP",
+      updatedAt: "2026-06-27T12:00:00.000Z",
+    });
+    expect(changed.isDirty).toBe(true);
+  });
+
+  it("restores a previous document version as a dirty edit", () => {
+    const opened = documentSessionReducer(createDocumentSession(), {
+      type: "openSucceeded",
+      document: documentFixture,
+      workspace: { root: "/tmp/project", profile: "gfm", plugins: [] },
+    });
+
+    const restored = documentSessionReducer(opened, {
+      type: "restoreDocument",
+      document: {
+        ...documentFixture,
+        title: "Restored",
+        body: "# Restored",
+      },
+      timestamp: "2026-06-27T12:30:00.000Z",
+    });
+
+    expect(restored.document?.title).toBe("Restored");
+    expect(restored.document?.body).toBe("# Restored");
+    expect(restored.document?.updatedAt).toBe("2026-06-27T12:30:00.000Z");
+    expect(restored.isDirty).toBe(true);
+    expect(restored.lastSavedDocument?.title).toBe("Original");
+  });
+
   it("reverts to the last saved document", () => {
     const opened = documentSessionReducer(createDocumentSession(), {
       type: "openSucceeded",

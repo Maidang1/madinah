@@ -1,4 +1,8 @@
-import type { MarkdownDocument } from "../../domain/document";
+import {
+  updateDocumentMetadata,
+  type DocumentMetadataPatch,
+  type MarkdownDocument,
+} from "../../domain/document";
 import type { WorkspaceInfo } from "../../domain/engine";
 
 export interface DocumentSession {
@@ -23,6 +27,16 @@ export type DocumentSessionAction =
   | {
       type: "changeSource";
       source: string;
+      timestamp: string;
+    }
+  | {
+      type: "changeMetadata";
+      patch: DocumentMetadataPatch;
+      timestamp: string;
+    }
+  | {
+      type: "restoreDocument";
+      document: MarkdownDocument;
       timestamp: string;
     }
   | {
@@ -93,6 +107,31 @@ export function documentSessionReducer(
         document: {
           ...state.document,
           body: action.source,
+          updatedAt: action.timestamp,
+        },
+        isDirty: true,
+        draftStatus: "idle",
+        error: null,
+      };
+    case "changeMetadata":
+      if (!state.document) return state;
+      return {
+        ...state,
+        document: updateDocumentMetadata(
+          state.document,
+          action.patch,
+          action.timestamp,
+        ),
+        isDirty: true,
+        draftStatus: "idle",
+        error: null,
+      };
+    case "restoreDocument":
+      if (!state.document) return state;
+      return {
+        ...state,
+        document: {
+          ...action.document,
           updatedAt: action.timestamp,
         },
         isDirty: true,

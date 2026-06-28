@@ -21,6 +21,7 @@
   --writer-radius: 5px;
   --writer-titlebar-height: 34px;
   --writer-sidebar-width: 360px;
+  --writer-inspector-width: 312px;
   --writer-content-width: 920px;
   --writer-ui-font: -apple-system, BlinkMacSystemFont, "SF Pro Text",
     "Segoe UI", sans-serif;
@@ -123,7 +124,7 @@ textarea {
   gap: 10px;
   padding: 0 10px 0 0;
   border-bottom: 0;
-  background: var(--writer-titlebar-bg);
+  background: var(--writer-editor-bg);
   user-select: none;
 }
 
@@ -131,7 +132,7 @@ textarea {
   position: absolute;
   inset: 0 auto 0 0;
   width: var(--writer-sidebar-width);
-  background: var(--writer-titlebar-bg);
+  background: var(--writer-sidebar-bg);
   content: "";
 }
 
@@ -263,7 +264,21 @@ textarea {
   display: grid;
   min-width: 0;
   min-height: 0;
+  grid-template-columns:
+    var(--writer-sidebar-width) minmax(0, 1fr)
+    var(--writer-inspector-width);
+}
+
+.writer-window.is-sidebar-hidden .writer-workbench {
+  grid-template-columns: minmax(0, 1fr) var(--writer-inspector-width);
+}
+
+.writer-window.is-inspector-hidden .writer-workbench {
   grid-template-columns: var(--writer-sidebar-width) minmax(0, 1fr);
+}
+
+.writer-window.is-sidebar-hidden.is-inspector-hidden .writer-workbench {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .writer-settings-backdrop {
@@ -476,12 +491,9 @@ textarea {
   display: none;
 }
 
-.writer-window.is-sidebar-hidden .writer-workbench {
-  grid-template-columns: minmax(0, 1fr);
-}
-
 .writer-sidebar,
-.writer-simple-canvas {
+.writer-simple-canvas,
+.writer-inspector {
   min-width: 0;
   min-height: 0;
 }
@@ -541,6 +553,377 @@ textarea {
 .writer-sidebar-icon-button:disabled {
   opacity: 0.35;
   cursor: default;
+}
+
+.writer-inspector {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  overflow: auto;
+  padding: 16px 14px 28px;
+  border-left: 0;
+  background: var(--writer-editor-bg);
+  font-family: var(--writer-ui-font);
+  scrollbar-width: none;
+}
+
+.writer-inspector::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.inspector-section {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.inspector-section + .inspector-section {
+  padding-top: 18px;
+  border-top: 1px solid var(--writer-rule);
+}
+
+.inspector-section-header {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: color-mix(in srgb, var(--writer-text) 66%, transparent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.inspector-section-header button:not(.magic-button),
+.version-row button {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  border: 1px solid var(--writer-rule-strong);
+  border-radius: 5px;
+  background: transparent;
+  color: color-mix(in srgb, var(--writer-text) 76%, transparent);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.inspector-section-header button:not(.magic-button):hover,
+.version-row button:hover {
+  background: var(--writer-control-hover);
+  color: var(--writer-text);
+}
+
+.inspector-field {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+}
+
+.inspector-field span {
+  color: var(--writer-muted);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.inspector-field input,
+.inspector-field textarea,
+.inspector-field select {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--writer-rule-strong);
+  border-radius: 6px;
+  background: var(--writer-editor-bg);
+  color: var(--writer-text);
+  font-family: var(--writer-ui-font);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.inspector-field input,
+.inspector-field select {
+  height: 30px;
+  padding: 0 9px;
+}
+
+.inspector-field textarea {
+  resize: vertical;
+  padding: 8px 9px;
+}
+
+.inspector-field input:focus,
+.inspector-field textarea:focus,
+.inspector-field select:focus,
+.inspector-section-header button:not(.magic-button):focus-visible,
+.version-row button:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--writer-focus) 48%, transparent);
+  outline-offset: 2px;
+}
+
+.magic-shine-border {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  opacity: 0;
+  pointer-events: none;
+  will-change: background-position;
+  animation: magic-shine var(--duration) linear infinite;
+  transition: opacity 160ms ease;
+}
+
+.magic-control-frame {
+  position: relative;
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--writer-text) 13%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--writer-editor-bg) 88%, var(--writer-window-bg));
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.magic-control-frame:hover {
+  border-color: color-mix(in srgb, var(--writer-text) 20%, transparent);
+}
+
+.magic-control-frame:focus-within {
+  border-color: color-mix(in srgb, var(--writer-focus) 60%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--writer-focus) 18%, transparent);
+}
+
+.magic-control-frame:hover .magic-control-shine,
+.magic-control-frame:focus-within .magic-control-shine,
+.magic-button:hover .magic-button-shine,
+.magic-button:focus-visible .magic-button-shine {
+  opacity: 1;
+}
+
+.inspector-field .magic-control-input {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  min-width: 0;
+  height: 34px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--writer-text);
+  font-family: var(--writer-ui-font);
+  font-size: 12px;
+  line-height: 1.45;
+  outline: none;
+}
+
+.inspector-field textarea.magic-control-input {
+  height: auto;
+  min-height: 98px;
+  padding: 10px 11px;
+  resize: vertical;
+}
+
+.inspector-field select.magic-control-input {
+  appearance: none;
+  padding-right: 32px;
+  cursor: pointer;
+}
+
+.magic-control-select-icon {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  z-index: 2;
+  color: var(--writer-muted);
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.magic-button {
+  position: relative;
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 0 12px;
+  border: 1px solid color-mix(in srgb, var(--writer-text) 16%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--writer-editor-bg) 92%, var(--writer-window-bg));
+  color: color-mix(in srgb, var(--writer-text) 78%, transparent);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 740;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease,
+    transform 100ms ease;
+}
+
+.magic-button > span {
+  position: relative;
+  z-index: 1;
+}
+
+.magic-button:hover {
+  border-color: color-mix(in srgb, var(--writer-text) 24%, transparent);
+  background: color-mix(in srgb, var(--writer-text) 6%, var(--writer-editor-bg));
+  color: var(--writer-text);
+}
+
+.magic-button:active {
+  transform: translateY(1px);
+}
+
+.magic-button:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--writer-focus) 36%, transparent);
+  outline-offset: 2px;
+}
+
+@keyframes magic-shine {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.inspector-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+}
+
+.inspector-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.inspector-stat-card {
+  display: grid;
+  min-width: 0;
+  min-height: 72px;
+  align-content: space-between;
+  gap: 9px;
+  padding: 10px;
+  border: 1px solid var(--writer-rule);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--writer-window-bg) 34%, transparent);
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.03) inset;
+}
+
+.inspector-stat-card span {
+  overflow: hidden;
+  color: var(--writer-muted);
+  font-size: 10px;
+  font-weight: 760;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.inspector-stat-card strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: color-mix(in srgb, var(--writer-text) 88%, transparent);
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 760;
+  letter-spacing: 0;
+  line-height: 1.1;
+}
+
+.magic-number-ticker {
+  display: inline-block;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.magic-animated-list {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+}
+
+.magic-animated-list-item {
+  width: 100%;
+  min-width: 0;
+}
+
+.version-list {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.version-row {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--writer-rule);
+  color: color-mix(in srgb, var(--writer-text) 74%, transparent);
+}
+
+.version-row svg {
+  color: var(--writer-muted);
+}
+
+.version-row span {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.version-row strong,
+.version-row small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.version-row strong {
+  color: var(--writer-text);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.version-row small,
+.version-empty {
+  color: var(--writer-muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.version-empty {
+  padding: 8px 0;
 }
 
 .file-tree {
@@ -766,6 +1149,110 @@ textarea {
 
 .editor-context-menu button:disabled:hover {
   background: transparent;
+}
+
+.quick-open-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: max(52px, 10dvh) 18px 18px;
+  background: rgb(0 0 0 / 0.28);
+}
+
+.quick-open-dialog {
+  display: grid;
+  width: min(620px, 100%);
+  overflow: hidden;
+  border: 1px solid var(--writer-rule-strong);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--writer-window-bg) 96%, black);
+  box-shadow: 0 24px 70px var(--writer-shadow);
+  font-family: var(--writer-ui-font);
+}
+
+.quick-open-input-row {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  min-height: 46px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--writer-rule);
+  color: var(--writer-muted);
+}
+
+.quick-open-input-row input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--writer-text);
+  font-size: 14px;
+  outline: none;
+}
+
+.quick-open-input-row input::placeholder {
+  color: var(--writer-muted);
+}
+
+.quick-open-results {
+  display: grid;
+  max-height: min(440px, calc(100dvh - 150px));
+  overflow: auto;
+  padding: 6px;
+}
+
+.quick-open-results button {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--writer-text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.quick-open-results button.is-selected,
+.quick-open-results button:hover {
+  background: color-mix(in srgb, var(--writer-text) 9%, transparent);
+}
+
+.quick-open-results button span {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.quick-open-results button strong,
+.quick-open-results button small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quick-open-results button strong {
+  font-size: 13px;
+  font-weight: 720;
+  line-height: 1.25;
+}
+
+.quick-open-results button small,
+.quick-open-empty {
+  color: var(--writer-muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.quick-open-empty {
+  padding: 18px 14px;
 }
 
 .writer-simple-canvas {
@@ -1084,6 +1571,10 @@ textarea {
     display: none;
   }
 
+  .writer-inspector {
+    display: none;
+  }
+
   .writer-titlebar {
     grid-template-columns: minmax(0, 1fr) auto;
     padding-left: 22px;
@@ -1147,7 +1638,11 @@ textarea {
 @media (prefers-reduced-motion: reduce) {
   .writer-theme-toggle,
   .writer-sidebar-toggle,
-  .tree-row {
+  .tree-row,
+  .magic-shine-border,
+  .magic-button,
+  .magic-control-frame {
+    animation: none;
     transition: none;
   }
 

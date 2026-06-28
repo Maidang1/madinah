@@ -3,6 +3,7 @@ import {
   createEmptyDocument,
   parseMdxDocument,
   serializeMdxDocument,
+  type DocumentMetadataPatch,
   type MarkdownDocument,
 } from "../../domain/document";
 import type { WorkspaceInfo, WriterPlugin } from "../../domain/engine";
@@ -127,6 +128,24 @@ export function useDocumentSession(
       timestamp: new Date().toISOString(),
     });
     setStatus("Unsaved changes");
+  }, []);
+
+  const changeMetadata = useCallback((patch: DocumentMetadataPatch) => {
+    dispatch({
+      type: "changeMetadata",
+      patch,
+      timestamp: new Date().toISOString(),
+    });
+    setStatus("Unsaved changes");
+  }, []);
+
+  const restoreDocument = useCallback((document: MarkdownDocument) => {
+    dispatch({
+      type: "restoreDocument",
+      document,
+      timestamp: new Date().toISOString(),
+    });
+    setStatus("Version restored");
   }, []);
 
   const openMarkdownPath = useCallback(
@@ -302,6 +321,8 @@ export function useDocumentSession(
     documents,
     status,
     changeSource,
+    changeMetadata,
+    restoreDocument,
     openFromDialog,
     openStoredDocument,
     createNewDocument,

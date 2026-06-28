@@ -1,5 +1,14 @@
 export type DocumentStatus = "draft" | "published" | "archived" | "WIP";
 
+export type DocumentMetadataPatch = Partial<
+  Omit<
+    MarkdownDocument,
+    "id" | "slug" | "tags" | "body" | "createdAt" | "updatedAt"
+  >
+> & {
+  tags?: string[] | string;
+};
+
 export interface MarkdownDocument {
   id: string;
   slug: string;
@@ -117,6 +126,18 @@ export function serializeMdxDocument(document: MarkdownDocument): string {
 
 export const serializeMarkdownDocument = serializeMdxDocument;
 
+export function updateDocumentMetadata(
+  document: MarkdownDocument,
+  patch: DocumentMetadataPatch,
+  updatedAt = new Date().toISOString(),
+): MarkdownDocument {
+  return {
+    ...document,
+    ...normalizeMetadataPatch(patch),
+    updatedAt,
+  };
+}
+
 export function extractDocumentTitle(source: string): string {
   const frontmatterTitle = parseFrontmatter(source).data.title;
   const parsedTitle = toStringValue(frontmatterTitle, "");
@@ -164,6 +185,28 @@ function toStringArray(value: unknown): string[] {
   return value
     .map((item) => (typeof item === "string" ? item.trim() : String(item)))
     .filter(Boolean);
+}
+
+function normalizeMetadataPatch(
+  patch: DocumentMetadataPatch,
+): Partial<MarkdownDocument> {
+  const next: Partial<MarkdownDocument> = {};
+
+  if (patch.title !== undefined) next.title = String(patch.title).trim();
+  if (patch.description !== undefined) {
+    next.description = String(patch.description).trim();
+  }
+  if (patch.author !== undefined) next.author = String(patch.author).trim();
+  if (patch.pubDate !== undefined) next.pubDate = String(patch.pubDate).trim();
+  if (patch.status !== undefined) next.status = toStatus(patch.status);
+  if (patch.tags !== undefined) next.tags = normalizeTags(patch.tags);
+
+  return next;
+}
+
+function normalizeTags(value: string[] | string): string[] {
+  const rawTags = Array.isArray(value) ? value : value.split(",");
+  return [...new Set(rawTags.map((tag) => tag.trim()).filter(Boolean))];
 }
 
 function toStatus(value: unknown): DocumentStatus {

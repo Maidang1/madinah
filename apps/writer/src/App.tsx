@@ -12,14 +12,27 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
   ChevronDown,
   ChevronRight,
+  Clock3,
   FileCode2,
   Folder,
   PanelRight,
+  Search,
   Settings,
+  SlidersHorizontal,
 } from "lucide-react";
 import type { TreeApi } from "react-arborist";
 import type { AcpAgentRuntimeConfig } from "./domain/ai-polish";
+import { AnimatedList } from "./components/magicui/animated-list";
 import {
+  MagicButton,
+  MagicInput,
+  MagicSelect,
+  MagicTextarea,
+} from "./components/magicui/form-controls";
+import { NumberTicker } from "./components/magicui/number-ticker";
+import {
+  type DocumentMetadataPatch,
+  type DocumentStatus,
   extractDocumentTitle,
   type MarkdownDocument,
 } from "./domain/document";
@@ -48,6 +61,18 @@ import {
   type FileTreeMenuAction,
   type FileTreeNode,
 } from "./features/file-tree/file-tree";
+import {
+  createDocumentVersion,
+  documentFromVersion,
+  getVersionTargetId,
+  type DocumentVersion,
+} from "./features/history/document-history";
+import { createLocalDocumentHistoryStore } from "./features/history/local-document-history";
+import {
+  buildQuickOpenItems,
+  searchQuickOpenItems,
+  type QuickOpenItem,
+} from "./features/search/document-search";
 import { createDocumentCommands } from "./features/session/document-commands";
 import { useDocumentSession } from "./features/session/useDocumentSession";
 import {
@@ -59,6 +84,12 @@ const THEME_STORAGE_KEY = "madinah-writer-theme";
 const THEME_STORAGE_VERSION_KEY = "madinah-writer-theme-version";
 const THEME_STORAGE_VERSION = "2";
 const FILE_TREE_ROOT_STORAGE_KEY = "madinah-writer-file-tree-root";
+const DOCUMENT_STATUSES: DocumentStatus[] = [
+  "draft",
+  "WIP",
+  "published",
+  "archived",
+];
 const WINDOW_DRAG_IGNORE_SELECTOR =
   "button, a, input, textarea, select, [role='button'], [data-tauri-no-drag]";
 
@@ -96,6 +127,8 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
     documents,
     status,
     changeSource,
+    changeMetadata,
+    restoreDocument,
     openFromDialog,
     openStoredDocument,
     openMarkdownPath,
@@ -129,9 +162,14 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
   const fileTreeRef = useRef<TreeApi<FileTreeNode> | null>(null);
   const showsFileDetails = true;
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
+  const [isInspectorVisible, setIsInspectorVisible] = useState(true);
+  const [isQuickOpenOpen, setIsQuickOpenOpen] = useState(false);
+  const [quickOpenQuery, setQuickOpenQuery] = useState("");
   const [theme, setTheme] = useState<WriterTheme>(getInitialTheme);
   const [acpSettings, setAcpSettings] = useState<AcpSettings>(loadAcpSettings);
   const [isAcpSettingsOpen, setIsAcpSettingsOpen] = useState(false);
+  const [versions, setVersions] = useState<DocumentVersion[]>([]);
+  const historyStore = useMemo(() => createLocalDocumentHistoryStore(), []);
   const [acpCheckState, setAcpCheckState] = useState<AcpCheckState>({
     status: "idle",
     message: "Ready",
@@ -143,6 +181,22 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
     () => getDocumentMetrics(session.document?.body ?? ""),
     [session.document?.body],
   );
+  const quickOpenItems = useMemo(
+    () =>
+      buildQuickOpenItems({
+        documents: visibleDocuments,
+        fileTreeNodes,
+        workspaceRoot: fileTreeRoot,
+      }),
+    [fileTreeNodes, fileTreeRoot, visibleDocuments],
+  );
+  const quickOpenResults = useMemo(
+    () => searchQuickOpenItems(quickOpenItems, quickOpenQuery).slice(0, 12),
+    [quickOpenItems, quickOpenQuery],
+  );
+  const historyTargetId = session.document
+    ? getVersionTargetId(session.document, session.filePath)
+    : null;
   const documentStatus = getDocumentStatusLabel(status, session.isDirty);
   const aiPolishCommand = useMemo(
     () =>
@@ -287,6 +341,20 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
       await openMarkdownPath(path);
     },
     [openMarkdownPath, saveNow, session.filePath, session.isDirty],
+  );
+  const runQuickOpenItem = useCallback(
+    async (item: QuickOpenItem) => {
+      setIsQuickOpenOpen(false);
+      setQuickOpenQuery("");
+
+      if (item.kind === "document") {
+        await openStoredDocument(item.documentId);
+        return;
+      }
+
+      await openFileTreePath(item.path);
+    },
+    [openFileTreePath, openStoredDocument],
   );
   const createInTree = useCallback(
     async (parentPath: string, kind: "file" | "directory") => {
@@ -459,12 +527,50 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
     ],
   );
 
+  const saveCurrentVersion = useCallback(
+    (reason = "Manual snapshot") => {
+      if (!session.document || !historyTargetId) return;
+
+      const nextVersions = historyStore.save(
+        createDocumentVersion({
+          targetId: historyTargetId,
+          document: session.document,
+          reason,
+        }),
+      );
+      setVersions(nextVersions);
+      setStatus("Version saved");
+    },
+    [historyStore, historyTargetId, session.document, setStatus],
+  );
+
+  const restoreDocumentVersion = useCallback(
+    (version: DocumentVersion) => {
+      if (!session.document || !historyTargetId) return;
+
+      historyStore.save(
+        createDocumentVersion({
+          targetId: historyTargetId,
+          document: session.document,
+          reason: "Before restore",
+        }),
+      );
+      restoreDocument(documentFromVersion(session.document, version));
+      setVersions(historyStore.list(historyTargetId));
+    },
+    [historyStore, historyTargetId, restoreDocument, session.document],
+  );
+
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
     document.documentElement.classList.toggle("light", theme === "light");
     window.localStorage.setItem(THEME_STORAGE_KEY, theme);
     window.localStorage.setItem(THEME_STORAGE_VERSION_KEY, THEME_STORAGE_VERSION);
   }, [theme]);
+
+  useEffect(() => {
+    setVersions(historyTargetId ? historyStore.list(historyTargetId) : []);
+  }, [historyStore, historyTargetId]);
 
   useEffect(() => {
     void loadFileTree();
@@ -513,6 +619,12 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
       if (!modifier) return;
 
       const key = event.key.toLowerCase();
+      if (key === "p") {
+        event.preventDefault();
+        setIsQuickOpenOpen(true);
+        return;
+      }
+
       if (key === "n") {
         event.preventDefault();
         void createNewDocument();
@@ -572,7 +684,13 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
   return (
     <main className="writer-simple-app">
       <section
-        className={`writer-window${isSidebarVisible ? "" : " is-sidebar-hidden"}`}
+        className={[
+          "writer-window",
+          isSidebarVisible ? "" : "is-sidebar-hidden",
+          isInspectorVisible ? "" : "is-inspector-hidden",
+        ]
+          .filter(Boolean)
+          .join(" ")}
         aria-label="Madinah Writer"
       >
         <header
@@ -595,6 +713,16 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
               type="button"
               className="writer-sidebar-toggle"
               data-tauri-no-drag
+              aria-label="Quick open"
+              title="Quick open"
+              onClick={() => setIsQuickOpenOpen(true)}
+            >
+              <Search size={14} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              className="writer-sidebar-toggle"
+              data-tauri-no-drag
               aria-label="AI settings"
               title="AI settings"
               onClick={() => setIsAcpSettingsOpen(true)}
@@ -612,6 +740,16 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
               }
             >
               {theme === "dark" ? "Light" : "Dark"}
+            </button>
+            <button
+              type="button"
+              className={`writer-sidebar-toggle${isInspectorVisible ? " is-active" : ""}`}
+              data-tauri-no-drag
+              aria-label={isInspectorVisible ? "隐藏属性面板" : "显示属性面板"}
+              title={isInspectorVisible ? "隐藏属性面板" : "显示属性面板"}
+              onClick={() => setIsInspectorVisible((current) => !current)}
+            >
+              <SlidersHorizontal size={15} aria-hidden="true" />
             </button>
             <button
               type="button"
@@ -681,8 +819,30 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
               <div className="writer-empty-state">{status}</div>
             )}
           </section>
+
+          {isInspectorVisible && session.document ? (
+            <DocumentInspector
+              document={session.document}
+              versions={versions}
+              onMetadataChange={changeMetadata}
+              onSaveVersion={() => saveCurrentVersion()}
+              onRestoreVersion={restoreDocumentVersion}
+            />
+          ) : null}
         </div>
       </section>
+      {isQuickOpenOpen ? (
+        <QuickOpenDialog
+          query={quickOpenQuery}
+          results={quickOpenResults}
+          onQueryChange={setQuickOpenQuery}
+          onClose={() => {
+            setIsQuickOpenOpen(false);
+            setQuickOpenQuery("");
+          }}
+          onRun={(item) => void runQuickOpenItem(item)}
+        />
+      ) : null}
       <AcpSettingsDialog
         isOpen={isAcpSettingsOpen}
         isAvailable={platform.aiPolish.isAvailable}
@@ -735,6 +895,278 @@ function WriterSidebar({
       </nav>
     </aside>
   );
+}
+
+function QuickOpenDialog({
+  query,
+  results,
+  onQueryChange,
+  onClose,
+  onRun,
+}: {
+  query: string;
+  results: QuickOpenItem[];
+  onQueryChange: (query: string) => void;
+  onClose: () => void;
+  onRun: (item: QuickOpenItem) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    setSelectedIndex((current) =>
+      results.length === 0 ? 0 : Math.min(current, results.length - 1),
+    );
+  }, [results.length]);
+
+  return (
+    <div className="quick-open-backdrop" role="presentation" onMouseDown={onClose}>
+      <div
+        className="quick-open-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Quick open"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <div className="quick-open-input-row">
+          <Search size={16} aria-hidden="true" />
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={(event) => {
+              onQueryChange(event.currentTarget.value);
+              setSelectedIndex(0);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                event.preventDefault();
+                onClose();
+                return;
+              }
+
+              if (event.key === "ArrowDown") {
+                event.preventDefault();
+                if (results.length > 0) {
+                  setSelectedIndex((current) => (current + 1) % results.length);
+                }
+                return;
+              }
+
+              if (event.key === "ArrowUp") {
+                event.preventDefault();
+                if (results.length > 0) {
+                  setSelectedIndex(
+                    (current) => (current - 1 + results.length) % results.length,
+                  );
+                }
+                return;
+              }
+
+              if (event.key === "Enter") {
+                event.preventDefault();
+                const item = results[selectedIndex];
+                if (item) onRun(item);
+              }
+            }}
+            placeholder="Search notes and files"
+            aria-label="Search notes and files"
+          />
+        </div>
+        <div className="quick-open-results" role="listbox">
+          {results.length > 0 ? (
+            results.map((item, index) => (
+              <button
+                key={item.id}
+                type="button"
+                className={index === selectedIndex ? "is-selected" : undefined}
+                onMouseEnter={() => setSelectedIndex(index)}
+                onClick={() => onRun(item)}
+                role="option"
+                aria-selected={index === selectedIndex}
+              >
+                <FileCode2 size={16} aria-hidden="true" />
+                <span>
+                  <strong>{item.title}</strong>
+                  <small>{item.detail || item.kind}</small>
+                </span>
+              </button>
+            ))
+          ) : (
+            <div className="quick-open-empty">No results</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DocumentInspector({
+  document,
+  versions,
+  onMetadataChange,
+  onSaveVersion,
+  onRestoreVersion,
+}: {
+  document: MarkdownDocument;
+  versions: DocumentVersion[];
+  onMetadataChange: (patch: DocumentMetadataPatch) => void;
+  onSaveVersion: () => void;
+  onRestoreVersion: (version: DocumentVersion) => void;
+}) {
+  const [tagsInput, setTagsInput] = useState(document.tags.join(", "));
+  const metrics = useMemo(
+    () => getDocumentMetrics(document.body),
+    [document.body],
+  );
+
+  useEffect(() => {
+    setTagsInput(document.tags.join(", "));
+  }, [document.id, document.tags]);
+
+  return (
+    <aside className="writer-inspector" aria-label="Document properties">
+      <section className="inspector-section">
+        <div className="inspector-section-header">
+          <span>Properties</span>
+        </div>
+        <label className="inspector-field">
+          <span>Title</span>
+          <MagicInput
+            value={document.title}
+            onChange={(event) =>
+              onMetadataChange({ title: event.currentTarget.value })
+            }
+          />
+        </label>
+        <label className="inspector-field">
+          <span>Description</span>
+          <MagicTextarea
+            rows={3}
+            value={document.description}
+            onChange={(event) =>
+              onMetadataChange({ description: event.currentTarget.value })
+            }
+          />
+        </label>
+        <label className="inspector-field">
+          <span>Tags</span>
+          <MagicInput
+            value={tagsInput}
+            onChange={(event) => setTagsInput(event.currentTarget.value)}
+            onBlur={() => onMetadataChange({ tags: tagsInput })}
+          />
+        </label>
+        <div className="inspector-grid">
+          <label className="inspector-field">
+            <span>Status</span>
+            <MagicSelect
+              value={document.status}
+              onChange={(event) =>
+                onMetadataChange({
+                  status: event.currentTarget.value as DocumentStatus,
+                })
+              }
+            >
+              {DOCUMENT_STATUSES.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </MagicSelect>
+          </label>
+          <label className="inspector-field">
+            <span>Author</span>
+            <MagicInput
+              value={document.author}
+              onChange={(event) =>
+                onMetadataChange({ author: event.currentTarget.value })
+              }
+            />
+          </label>
+        </div>
+        <label className="inspector-field">
+          <span>Publish date</span>
+          <MagicInput
+            value={document.pubDate}
+            onChange={(event) =>
+              onMetadataChange({ pubDate: event.currentTarget.value })
+            }
+          />
+        </label>
+      </section>
+
+      <section className="inspector-section">
+        <div className="inspector-section-header">
+          <span>Writing</span>
+        </div>
+        <div className="inspector-stat-grid" aria-label="Writing metrics">
+          <div className="inspector-stat-card">
+            <span>Words</span>
+            <strong>
+              <NumberTicker value={metrics.words} />
+            </strong>
+          </div>
+          <div className="inspector-stat-card">
+            <span>Characters</span>
+            <strong>
+              <NumberTicker value={metrics.characters} />
+            </strong>
+          </div>
+          <div className="inspector-stat-card">
+            <span>Blocks</span>
+            <strong>
+              <NumberTicker value={metrics.blocks} />
+            </strong>
+          </div>
+        </div>
+      </section>
+
+      <section className="inspector-section">
+        <div className="inspector-section-header">
+          <span>History</span>
+          <MagicButton type="button" onClick={onSaveVersion}>
+            Save version
+          </MagicButton>
+        </div>
+        {versions.length > 0 ? (
+          <AnimatedList key={document.id} className="version-list" delay={45}>
+            {versions.map((version) => (
+              <div className="version-row" key={version.id}>
+                <Clock3 size={14} aria-hidden="true" />
+                <span>
+                  <strong>{version.title || "Untitled"}</strong>
+                  <small>
+                    {formatVersionTimestamp(version.createdAt)} / {version.reason}
+                  </small>
+                </span>
+                <button type="button" onClick={() => onRestoreVersion(version)}>
+                  Restore
+                </button>
+              </div>
+            ))}
+          </AnimatedList>
+        ) : (
+          <div className="version-empty">No versions saved</div>
+        )}
+      </section>
+    </aside>
+  );
+}
+
+function formatVersionTimestamp(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
 }
 
 function getInitialTheme(): WriterTheme {
