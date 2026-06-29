@@ -2,10 +2,13 @@ import type { DocumentSession } from "../session/document-session";
 
 export type WriterViewMode = "write" | "preview";
 
+export type WriterEditorMode = "rich-text" | "source";
+
 export type InspectorTab = "outline" | "properties" | "stats" | "history";
 
 export interface WorkbenchState {
   viewMode: WriterViewMode;
+  editorMode: WriterEditorMode;
   inspectorTab: InspectorTab;
   isSidebarVisible: boolean;
   isInspectorVisible: boolean;
@@ -15,6 +18,7 @@ export interface WorkbenchState {
 
 export type WorkbenchAction =
   | { type: "setViewMode"; viewMode: WriterViewMode }
+  | { type: "setEditorMode"; editorMode: WriterEditorMode }
   | { type: "showInspectorTab"; tab: InspectorTab }
   | { type: "toggleSidebar" }
   | { type: "toggleInspector" }
@@ -37,6 +41,7 @@ export const WORKBENCH_INSPECTOR_TAB_STORAGE_KEY =
 
 export const DEFAULT_WORKBENCH_STATE: WorkbenchState = {
   viewMode: "write",
+  editorMode: "rich-text",
   inspectorTab: "outline",
   isSidebarVisible: true,
   isInspectorVisible: true,
@@ -74,7 +79,17 @@ export function workbenchStateReducer(
 ): WorkbenchState {
   switch (action.type) {
     case "setViewMode":
-      return { ...state, viewMode: action.viewMode };
+      return {
+        ...state,
+        viewMode: action.viewMode,
+        editorMode: action.viewMode === "write" ? "rich-text" : state.editorMode,
+      };
+    case "setEditorMode":
+      return {
+        ...state,
+        viewMode: "write",
+        editorMode: action.editorMode,
+      };
     case "showInspectorTab":
       return {
         ...state,

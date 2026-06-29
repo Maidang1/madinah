@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { createBuiltinProfiles, EMPTY_BLOCK_MARKER } from "./builtinProfiles";
+import {
+  createBuiltinProfiles,
+  createSourceModeEditorPlugin,
+  EMPTY_BLOCK_MARKER,
+} from "./builtinProfiles";
 
 describe("built-in engine profiles", () => {
   it("exposes professional markdown profiles in the expected order", () => {
@@ -101,6 +105,14 @@ describe("built-in engine profiles", () => {
     expect(frontmatter?.keywords).toEqual(
       expect.arrayContaining(["Blocks", "YAML metadata block", "yaml"]),
     );
+  });
+
+  it("creates a source-mode editor plugin for Markdown source editing", () => {
+    expect(createSourceModeEditorPlugin("source")).toMatchObject({
+      init: expect.any(Function),
+      postInit: expect.any(Function),
+      update: expect.any(Function),
+    });
   });
 
   it("inserts visible selected placeholders for insert commands", async () => {

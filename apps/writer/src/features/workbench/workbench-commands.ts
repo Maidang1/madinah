@@ -113,6 +113,15 @@ export function createWorkbenchCommands({
       priority: 34,
       run: () => dispatch({ type: "setViewMode", viewMode: "preview" }),
     },
+    {
+      id: "view.source",
+      label: "Source Mode",
+      group: "View",
+      keywords: ["markdown", "frontmatter", "raw"],
+      scope: "view",
+      priority: 33,
+      run: () => dispatch({ type: "setEditorMode", editorMode: "source" }),
+    },
     ...createInspectorTabCommands(dispatch),
   ];
 }

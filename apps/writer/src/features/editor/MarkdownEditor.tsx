@@ -5,12 +5,17 @@ import {
   type RefObject,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
 import type { MarkdownDocument } from "../../domain/document";
 import type { WorkspaceInfo, WriterEditor } from "../../domain/engine";
-import { EMPTY_BLOCK_MARKER } from "../engine/builtinProfiles";
+import {
+  createSourceModeEditorPlugin,
+  EMPTY_BLOCK_MARKER,
+  type MarkdownEditorMode,
+} from "../engine/builtinProfiles";
 import type { CommandRegistry } from "../engine/CommandRegistry";
 import {
   getEditorContextMenuSize,
@@ -34,6 +39,7 @@ interface MarkdownEditorProps {
   document: MarkdownDocument | null;
   workspace: WorkspaceInfo | null;
   editorPlugins: unknown[];
+  editorMode?: MarkdownEditorMode;
   commandRegistry: CommandRegistry;
   autoFocus?: boolean;
   contextMenuItems?: EditorContextMenuItem[];
@@ -49,6 +55,7 @@ export function MarkdownEditor({
   document,
   workspace,
   editorPlugins,
+  editorMode = "rich-text",
   commandRegistry,
   autoFocus = true,
   contextMenuItems = [],
@@ -67,6 +74,10 @@ export function MarkdownEditor({
   );
   const [selectionToolbar, setSelectionToolbar] =
     useState<EditorSelectionToolbarState | null>(null);
+  const resolvedEditorPlugins = useMemo(
+    () => [...editorPlugins, createSourceModeEditorPlugin(editorMode)],
+    [editorMode, editorPlugins],
+  );
 
   useEffect(() => {
     if (!onEditorReady) return;
@@ -268,7 +279,7 @@ export function MarkdownEditor({
           onChange(cleanEmptyBlockMarkers(markdown));
         }}
         onError={(payload) => onError(payload.error)}
-        plugins={editorPlugins as never}
+        plugins={resolvedEditorPlugins as never}
         contentEditableClassName="post-content live-mdx-content"
         className="live-mdx-editor"
         autoFocus={

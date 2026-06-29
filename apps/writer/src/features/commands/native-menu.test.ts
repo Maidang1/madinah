@@ -33,6 +33,7 @@ describe("native menu command events", () => {
       "view.typewriterMode",
       "view.write",
       "view.preview",
+      "view.source",
       "go.outline",
       "inspector.showOutline",
       "inspector.showProperties",

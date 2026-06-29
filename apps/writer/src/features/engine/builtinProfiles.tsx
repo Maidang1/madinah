@@ -2,6 +2,7 @@ import {
   GenericJsxEditor,
   codeBlockPlugin,
   codeMirrorPlugin,
+  diffSourcePlugin,
   headingsPlugin,
   imagePlugin,
   jsxPlugin,
@@ -13,6 +14,7 @@ import {
   tablePlugin,
   thematicBreakPlugin,
   type JsxComponentDescriptor,
+  type ViewMode,
 } from "@mdxeditor/editor";
 import remarkFrontmatter from "remark-frontmatter";
 import remarkGfm from "remark-gfm";
@@ -20,6 +22,8 @@ import type { EngineProfile, WriterCommand } from "../../domain/engine";
 import { mdxComponents } from "../../components/mdx-components";
 
 export const EMPTY_BLOCK_MARKER = "\u200b";
+
+export type MarkdownEditorMode = Extract<ViewMode, "rich-text" | "source">;
 
 interface InsertMarkdownTemplate {
   id: string;
@@ -341,6 +345,10 @@ export function createBuiltinProfiles(): EngineProfile[] {
   };
 
   return [commonmark, gfm, mdx, blogMdx];
+}
+
+export function createSourceModeEditorPlugin(mode: MarkdownEditorMode): unknown {
+  return diffSourcePlugin({ viewMode: mode });
 }
 
 function createInsertMarkdownCommand(command: InsertMarkdownTemplate): WriterCommand {

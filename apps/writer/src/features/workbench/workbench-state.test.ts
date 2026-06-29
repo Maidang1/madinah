@@ -120,6 +120,7 @@ describe("workbench state", () => {
 
     expect(getInitialWorkbenchState(storage)).toEqual({
       viewMode: "preview",
+      editorMode: "rich-text",
       inspectorTab: "history",
       isSidebarVisible: true,
       isInspectorVisible: true,
@@ -136,6 +137,7 @@ describe("workbench state", () => {
 
     expect(getInitialWorkbenchState(storage)).toMatchObject({
       viewMode: "write",
+      editorMode: "rich-text",
       inspectorTab: "outline",
     });
   });
@@ -168,12 +170,17 @@ describe("workbench state", () => {
       viewMode: "preview",
     });
     state = workbenchStateReducer(state, {
+      type: "setEditorMode",
+      editorMode: "source",
+    });
+    state = workbenchStateReducer(state, {
       type: "showInspectorTab",
       tab: "properties",
     });
 
     expect(state).toEqual({
-      viewMode: "preview",
+      editorMode: "source",
+      viewMode: "write",
       inspectorTab: "properties",
       isSidebarVisible: false,
       isInspectorVisible: true,

@@ -241,6 +241,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
   );
   const {
     viewMode,
+    editorMode,
     inspectorTab,
     isSidebarVisible,
     isInspectorVisible,
@@ -1116,11 +1117,12 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
                       onTitleChange={changeDocumentTitle}
                     >
                       <MarkdownEditor
-                        key={session.document.id}
+                        key={`${session.document.id}:${editorMode}`}
                         value={documentEditor.body}
                         document={session.document}
                         workspace={session.workspace}
                         editorPlugins={engine.profile.editorPlugins ?? []}
+                        editorMode={editorMode}
                         commandRegistry={commandRegistry}
                         autoFocus={
                           !shouldAutoFocusDocumentTitle(documentEditor.title)

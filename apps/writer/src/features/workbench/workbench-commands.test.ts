@@ -15,6 +15,7 @@ describe("workbench commands", () => {
       "go.outline",
       "view.write",
       "view.preview",
+      "view.source",
       "inspector.showOutline",
       "inspector.showProperties",
       "inspector.showStats",
@@ -50,6 +51,7 @@ describe("workbench commands", () => {
     run(commands, "go.outline");
     run(commands, "view.write");
     run(commands, "view.preview");
+    run(commands, "view.source");
     run(commands, "inspector.showOutline");
     run(commands, "inspector.showProperties");
     run(commands, "inspector.showStats");
@@ -63,6 +65,7 @@ describe("workbench commands", () => {
       { type: "showInspectorTab", tab: "outline" },
       { type: "setViewMode", viewMode: "write" },
       { type: "setViewMode", viewMode: "preview" },
+      { type: "setEditorMode", editorMode: "source" },
       { type: "showInspectorTab", tab: "outline" },
       { type: "showInspectorTab", tab: "properties" },
       { type: "showInspectorTab", tab: "stats" },

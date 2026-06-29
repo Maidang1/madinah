@@ -79,6 +79,8 @@ pub fn writer_menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
     let write_mode = MenuItemBuilder::with_id("writer-menu-view-write", "Write Mode").build(app)?;
     let preview_mode =
         MenuItemBuilder::with_id("writer-menu-view-preview", "Preview Mode").build(app)?;
+    let source_mode =
+        MenuItemBuilder::with_id("writer-menu-view-source", "Source Mode").build(app)?;
     let inspector_outline =
         MenuItemBuilder::with_id("writer-menu-inspector-outline", "Outline").build(app)?;
     let inspector_properties =
@@ -99,6 +101,7 @@ pub fn writer_menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
         .separator()
         .item(&write_mode)
         .item(&preview_mode)
+        .item(&source_mode)
         .separator()
         .item(&toggle_sidebar)
         .item(&toggle_inspector)
@@ -154,6 +157,7 @@ pub fn menu_item_command_id(menu_item_id: &str) -> Option<&'static str> {
         "writer-menu-view-typewriter-mode" => Some("view.typewriterMode"),
         "writer-menu-view-write" => Some("view.write"),
         "writer-menu-view-preview" => Some("view.preview"),
+        "writer-menu-view-source" => Some("view.source"),
         "writer-menu-go-outline" => Some("go.outline"),
         "writer-menu-inspector-outline" => Some("inspector.showOutline"),
         "writer-menu-inspector-properties" => Some("inspector.showProperties"),
@@ -183,6 +187,7 @@ mod tests {
             ("writer-menu-view-typewriter-mode", "view.typewriterMode"),
             ("writer-menu-view-write", "view.write"),
             ("writer-menu-view-preview", "view.preview"),
+            ("writer-menu-view-source", "view.source"),
             ("writer-menu-go-outline", "go.outline"),
             ("writer-menu-inspector-outline", "inspector.showOutline"),
             ("writer-menu-inspector-properties", "inspector.showProperties"),

@@ -19,6 +19,7 @@ export const NATIVE_MENU_COMMAND_IDS = [
   "view.typewriterMode",
   "view.write",
   "view.preview",
+  "view.source",
   "go.outline",
   "inspector.showOutline",
   "inspector.showProperties",
