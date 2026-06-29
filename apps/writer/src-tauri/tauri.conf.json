@@ -17,13 +17,12 @@
         "height": 900,
         "minWidth": 900,
         "minHeight": 560,
-        "theme": "Dark",
         "titleBarStyle": "Overlay",
         "hiddenTitle": true,
-        "shadow": false,
+        "shadow": true,
         "trafficLightPosition": {
-          "x": 12,
-          "y": 12
+          "x": 14,
+          "y": 22
         }
       }
     ],

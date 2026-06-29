@@ -16,25 +16,26 @@ export interface CodeLanguage {
   aliases?: string[];
 }
 
-export interface SlashCommand {
-  id: string;
-  label: string;
-  hint: string;
-  group?: string;
-  keywords?: string[];
-  markdown?: string;
-  commandId?: string;
-}
-
 export interface WriterCommandContext {
   document: MarkdownDocument | null;
-  editor?: unknown;
+  editor?: WriterEditor | null;
   workspace?: WorkspaceInfo | null;
+}
+
+export interface WriterEditor {
+  getMarkdown?: () => string;
+  setMarkdown?: (markdown: string) => void;
+  insertMarkdown?: (markdown: string) => void;
+  getSelectionMarkdown?: () => string;
+  replaceSelection?: (markdown: string) => void;
+  focus?: () => void;
 }
 
 export interface WriterCommand {
   id: string;
   label: string;
+  group?: string;
+  keywords?: string[];
   run: (ctx: WriterCommandContext) => void | Promise<void>;
 }
 
@@ -45,7 +46,6 @@ export interface EngineProfile {
   rehypePlugins?: unknown[];
   editorPlugins?: unknown[];
   previewComponents?: PreviewComponentMap;
-  slashCommands?: SlashCommand[];
   codeLanguages?: CodeLanguage[];
   commands?: WriterCommand[];
 }
@@ -56,7 +56,6 @@ export interface PluginContribution {
   rehypePlugins?: unknown[];
   editorPlugins?: unknown[];
   previewComponents?: PreviewComponentMap;
-  slashCommands?: SlashCommand[];
   codeLanguages?: CodeLanguage[];
   commands?: WriterCommand[];
 }
@@ -138,7 +137,6 @@ export function mergeEngineProfiles(profiles: EngineProfile[]): EngineProfile {
     rehypePlugins: [],
     editorPlugins: [],
     previewComponents: {},
-    slashCommands: [],
     codeLanguages: [],
     commands: [],
   };
@@ -148,7 +146,6 @@ export function mergeEngineProfiles(profiles: EngineProfile[]): EngineProfile {
     merged.rehypePlugins.push(...(profile.rehypePlugins ?? []));
     merged.editorPlugins.push(...(profile.editorPlugins ?? []));
     Object.assign(merged.previewComponents, profile.previewComponents ?? {});
-    merged.slashCommands.push(...(profile.slashCommands ?? []));
     merged.codeLanguages.push(...(profile.codeLanguages ?? []));
 
     for (const command of profile.commands ?? []) {
@@ -174,7 +171,6 @@ export function profileFromPluginContribution(
     rehypePlugins: contribution.rehypePlugins,
     editorPlugins: contribution.editorPlugins,
     previewComponents: contribution.previewComponents,
-    slashCommands: contribution.slashCommands,
     codeLanguages: contribution.codeLanguages,
     commands: contribution.commands,
   };

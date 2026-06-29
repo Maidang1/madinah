@@ -7,12 +7,13 @@ describe("macOS document window layout", () => {
   it("uses full-window editor layout instead of a centered webpage card", () => {
     expect(css).toMatch(/\.writer-simple-app\s*\{[^}]*overflow: hidden;/);
     expect(css).toMatch(/\.writer-simple-app\s*\{[^}]*padding: 0;/);
-    expect(css).toMatch(
-      /\.writer-simple-app\s*\{[^}]*--reader-page: var\(--writer-editor-bg\);/,
-    );
-    expect(css).toMatch(
-      /\.writer-simple-app\s*\{[^}]*--reader-paper: var\(--writer-editor-bg\);/,
-    );
+    expect(css).toMatch(/\.writer-simple-app\s*\{[^}]*--reader-page: rgb\(29, 30, 32\);/);
+    expect(css).toMatch(/\.writer-simple-app\s*\{[^}]*--reader-paper: rgb\(46, 46, 51\);/);
+    expect(css).toMatch(/\.writer-simple-app\s*\{[^}]*--reader-width: 900px;/);
+    expect(css).toMatch(/\.writer-simple-app\s*\{[^}]*--reader-font: "TsangerJinKai02"/);
+    expect(css).toMatch(/\.light \.writer-simple-app\s*\{[^}]*--reader-page: rgb\(245, 244, 237\);/);
+    expect(css).toMatch(/\.light \.writer-simple-app\s*\{[^}]*--reader-paper: rgb\(255, 255, 255\);/);
+    expect(css).toMatch(/\.light \.writer-simple-app\s*\{[^}]*--reader-ink: rgba\(36, 41, 47, 0\.9\);/);
     expect(css).toMatch(/\.writer-simple-canvas\s*\{[^}]*width: 100%;/);
     expect(css).toMatch(/\.writer-simple-canvas\s*\{[^}]*height: 100%;/);
     expect(css).toMatch(/\.writer-simple-canvas\s*\{[^}]*border: 0;/);
@@ -22,28 +23,40 @@ describe("macOS document window layout", () => {
     );
     expect(css).toMatch(/\.writer-window\s*\{[^}]*margin: 0;/);
     expect(css).toMatch(/\.writer-window\s*\{[^}]*box-shadow: none;/);
-    expect(css).toMatch(/--writer-titlebar-height: 34px;/);
-    expect(css).toMatch(/--writer-sidebar-width: 360px;/);
-    expect(css).toMatch(/--writer-desktop-bg: rgb\(18, 18, 18\);/);
-    expect(css).toMatch(/--writer-window-bg: rgb\(18, 18, 18\);/);
+    expect(css).toMatch(/--writer-titlebar-height: 44px;/);
+    expect(css).toMatch(/--writer-sidebar-width: 320px;/);
+    expect(css).toMatch(/--writer-desktop-bg: rgb\(28, 28, 30\);/);
+    expect(css).toMatch(/--writer-window-bg: rgb\(30, 30, 32\);/);
+    expect(css).toMatch(/\.light\s*\{[^}]*--writer-desktop-bg: rgb\(245, 244, 237\);/);
+    expect(css).toMatch(/\.light\s*\{[^}]*--writer-window-bg: rgb\(245, 244, 237\);/);
+    expect(css).toMatch(/\.light\s*\{[^}]*--writer-titlebar-bg: rgb\(245, 244, 237\);/);
+    expect(css).toMatch(/\.light\s*\{[^}]*--writer-sidebar-bg: rgb\(242, 240, 231\);/);
+    expect(css).toMatch(/\.light\s*\{[^}]*--writer-sidebar-active: rgb\(232, 229, 217\);/);
+    expect(css).toMatch(/\.light\s*\{[^}]*--writer-editor-bg: rgb\(245, 244, 237\);/);
     expect(css).toMatch(/\.writer-titlebar\s*\{[^}]*grid-template-rows: minmax\(0, 1fr\);/);
+    expect(css).toMatch(/\.writer-titlebar-leading\s*\{/);
     expect(css).toMatch(/\.writer-titlebar-title\s*\{[^}]*grid-row: 1;/);
     expect(css).toMatch(/\.writer-titlebar-title\s*\{[^}]*font-size: 13px;/);
     expect(css).toMatch(/\.writer-titlebar-meta\s*\{[^}]*grid-row: 1;/);
     expect(css).toMatch(/\.writer-titlebar-meta\s*\{[^}]*font-size: 13px;/);
     expect(css).toMatch(/\.file-tree\s*\{/);
-    expect(css).toMatch(/margin: 34px auto 0;/);
-    expect(css).not.toMatch(/\.writer-toolbar-button/);
-    expect(css).toMatch(/\.writer-theme-toggle\s*\{[^}]*min-width: 40px;/);
-    expect(css).toMatch(/\.writer-theme-toggle\s*\{[^}]*font-size: 12px;/);
-    expect(css).toMatch(/\.writer-theme-toggle:focus-visible\s*,/);
-    expect(css).toMatch(/\.writer-sidebar-toggle\s*\{[^}]*width: 20px;/);
-    expect(css).toMatch(/\.writer-sidebar-toggle:focus-visible\s*,/);
+    expect(css).toMatch(/margin: 30px auto 0;/);
+    expect(css).toMatch(/\.writer-toolbar-button\s*\{[^}]*width: 28px;/);
+    expect(css).toMatch(/\.writer-toolbar-button\s*\{[^}]*height: 28px;/);
+    expect(css).toMatch(/\.writer-toolbar-button:focus-visible\s*,/);
     expect(css).toMatch(
       /\.writer-simple-canvas \.live-mdx-content\s*\{[^}]*font-family: var\(--reader-font\);/,
     );
     expect(css).toMatch(
       /\.writer-simple-canvas \.live-mdx-content\s*\{[^}]*font-size: 16\.15px;/,
     );
+    expect(css).toMatch(/\.writer-simple-canvas \.live-mdx-content\s*\{[^}]*letter-spacing: 0\.42px;/);
+    expect(css).toMatch(/\.writer-simple-canvas \.live-mdx-content\s*\{[^}]*line-height: 1\.76;/);
+    expect(css).toMatch(/\.file-tree-draft-row \.tree-copy\s*\{[^}]*display: flex;/);
+    expect(css).toMatch(/\.file-tree-draft-row \.tree-copy\s*\{[^}]*align-items: baseline;/);
+    expect(css).toMatch(/\.file-tree-draft-row small\s*\{[^}]*white-space: nowrap;/);
+    expect(css).toMatch(/\.inspector-stat-grid\s*\{[^}]*grid-template-columns: 1fr;/);
+    expect(css).not.toMatch(/\.magic-control-frame/);
+    expect(css).not.toMatch(/\.magic-button/);
   });
 });

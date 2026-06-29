@@ -53,8 +53,8 @@ export function buildQuickOpenItems({
         document.body,
       ]),
     })),
-    ...flattenFileNodes(fileTreeNodes).map((node) => {
-      const detail = toRelativePath(workspaceRoot, node.path);
+    ...flattenFileNodes(fileTreeNodes).map(({ node, root }) => {
+      const detail = toRelativePath(root ?? workspaceRoot, node.path);
       return {
         id: `file:${node.path}`,
         kind: "file" as const,
@@ -135,9 +135,14 @@ function compareRecency(left: QuickOpenItem, right: QuickOpenItem): number {
   return left.detail.localeCompare(right.detail);
 }
 
-function flattenFileNodes(nodes: FileTreeNode[]): FileTreeNode[] {
+function flattenFileNodes(
+  nodes: FileTreeNode[],
+  root: string | null = null,
+): Array<{ node: FileTreeNode; root: string | null }> {
   return nodes.flatMap((node) =>
-    node.kind === "file" ? [node] : flattenFileNodes(node.children),
+    node.kind === "file"
+      ? [{ node, root }]
+      : flattenFileNodes(node.children, node.isRoot ? node.path : root),
   );
 }
 

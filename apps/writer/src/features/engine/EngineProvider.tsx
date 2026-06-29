@@ -19,12 +19,16 @@ import { ExtensionHost } from "./ExtensionHost";
 import { ProfileRegistry } from "./ProfileRegistry";
 import { createBuiltinProfiles } from "./builtinProfiles";
 
+const PROFILE_STORAGE_KEY = "madinah-writer-profile";
+
 interface EngineContextValue {
   profile: EngineProfile;
+  profiles: EngineProfile[];
   commandRegistry: CommandRegistry;
   diagnostics: PluginDiagnostic[];
   workspace: WorkspaceInfo | null;
   compilePreview: (source: string) => Promise<MdxPreviewContent>;
+  setProfileId: (profileId: string) => void;
   activateWorkspacePlugins: (
     workspace: WorkspaceInfo,
     plugins: WriterPlugin[],
@@ -46,14 +50,17 @@ export function EngineProvider({
     () => new ProfileRegistry(createBuiltinProfiles()),
     [],
   );
+  const savedProfileId = getSavedProfileId();
   const initialProfile =
-    profileRegistry.get(initialProfileId) ?? profileRegistry.list()[0];
+    profileRegistry.get(savedProfileId ?? initialProfileId) ??
+    profileRegistry.list()[0];
   const [profile, setProfile] = useState<EngineProfile>(initialProfile);
   const [diagnostics, setDiagnostics] = useState<PluginDiagnostic[]>([]);
   const [workspace, setWorkspace] = useState<WorkspaceInfo | null>(null);
+  const profiles = useMemo(() => profileRegistry.list(), [profileRegistry]);
 
   const commandRegistry = useMemo(
-    () => new CommandRegistry(profile.commands ?? [], profile.slashCommands ?? []),
+    () => new CommandRegistry(profile.commands ?? []),
     [profile],
   );
 
@@ -86,13 +93,23 @@ export function EngineProvider({
     [profileRegistry],
   );
 
+  const setProfileId = useCallback(
+    (profileId: string) => {
+      setProfile(profileRegistry.require(profileId));
+      window.localStorage.setItem(PROFILE_STORAGE_KEY, profileId);
+    },
+    [profileRegistry],
+  );
+
   const value = useMemo<EngineContextValue>(
     () => ({
       profile,
+      profiles,
       commandRegistry,
       diagnostics,
       workspace,
       compilePreview,
+      setProfileId,
       activateWorkspacePlugins,
     }),
     [
@@ -101,11 +118,18 @@ export function EngineProvider({
       compilePreview,
       diagnostics,
       profile,
+      profiles,
+      setProfileId,
       workspace,
     ],
   );
 
   return <EngineContext.Provider value={value}>{children}</EngineContext.Provider>;
+}
+
+function getSavedProfileId(): string | null {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem(PROFILE_STORAGE_KEY);
 }
 
 export function useEngine(): EngineContextValue {

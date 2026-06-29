@@ -78,6 +78,53 @@ describe("document search", () => {
     ]);
   });
 
+  it("uses each file tree root when showing file details", () => {
+    const fileTreeNodes: Array<FileTreeNode & { isRoot: true }> = [
+      {
+        kind: "directory",
+        name: "blog",
+        path: "/workspace/blog",
+        isRoot: true,
+        childrenCount: 1,
+        children: [
+          {
+            kind: "file",
+            name: "post.md",
+            path: "/workspace/blog/post.md",
+            childrenCount: 0,
+            children: [],
+          },
+        ],
+      },
+      {
+        kind: "directory",
+        name: "notes",
+        path: "/workspace/notes",
+        isRoot: true,
+        childrenCount: 1,
+        children: [
+          {
+            kind: "file",
+            name: "daily.md",
+            path: "/workspace/notes/daily.md",
+            childrenCount: 0,
+            children: [],
+          },
+        ],
+      },
+    ];
+
+    const items = buildQuickOpenItems({
+      documents: [],
+      fileTreeNodes,
+    });
+
+    expect(searchQuickOpenItems(items, "md").map((item) => item.detail).sort()).toEqual([
+      "daily.md",
+      "post.md",
+    ]);
+  });
+
   it("returns recent documents for an empty query before file paths", () => {
     const items = buildQuickOpenItems({
       documents: [

@@ -1,6 +1,7 @@
 import type { WriterCommand } from "../../domain/engine";
 
 export interface DocumentCommandHandlers {
+  newDocument: () => void | Promise<void>;
   open: () => void | Promise<void>;
   save: () => void | Promise<void>;
   saveAs: () => void | Promise<void>;
@@ -12,6 +13,11 @@ export function createDocumentCommands(
   handlers: DocumentCommandHandlers,
 ): WriterCommand[] {
   return [
+    {
+      id: "document.new",
+      label: "New Document",
+      run: handlers.newDocument,
+    },
     {
       id: "document.open",
       label: "Open",

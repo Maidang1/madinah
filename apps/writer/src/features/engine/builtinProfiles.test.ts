@@ -1,20 +1,26 @@
 import { describe, expect, it } from "vitest";
-import { createBuiltinProfiles } from "./builtinProfiles";
+import { createBuiltinProfiles, EMPTY_BLOCK_MARKER } from "./builtinProfiles";
 
 describe("built-in engine profiles", () => {
-  it("maps built-in slash commands to writer command ids", () => {
+  it("exposes professional markdown profiles in the expected order", () => {
+    expect(createBuiltinProfiles().map((profile) => profile.id)).toEqual([
+      "commonmark",
+      "gfm",
+      "mdx",
+      "blog-mdx",
+    ]);
+  });
+
+  it("maps built-in insert templates to writer command ids", () => {
     const gfm = createBuiltinProfiles().find((profile) => profile.id === "gfm");
 
-    expect(gfm?.slashCommands?.every((command) => command.commandId)).toBe(true);
-    expect(gfm?.commands?.map((command) => command.id)).toContain(
-      "editor.insert.callout",
-    );
+    expect(gfm?.commands?.map((command) => command.id)).toContain("editor.insert.table");
   });
 
   it("exposes the complete GFM writing-block command set", () => {
     const gfm = createBuiltinProfiles().find((profile) => profile.id === "gfm");
 
-    expect(gfm?.slashCommands?.map((command) => command.id)).toEqual([
+    expect(getInsertCommandIds(gfm)).toEqual([
       "paragraph",
       "h1",
       "h2",
@@ -28,7 +34,6 @@ describe("built-in engine profiles", () => {
       "quote",
       "table",
       "divider",
-      "frontmatter",
       "footnote",
       "code",
       "code-typescript",
@@ -41,32 +46,74 @@ describe("built-in engine profiles", () => {
       "code-plaintext",
       "link",
       "image",
-      "callout",
-      "callout-note",
-      "callout-warning",
-      "callout-success",
-      "callout-error",
     ]);
-    expect(gfm?.slashCommands?.every((command) => command.group)).toBe(true);
-    expect(gfm?.slashCommands?.every((command) => command.commandId)).toBe(true);
+    expect(gfm?.commands?.every((command) => command.group)).toBe(true);
     expect(gfm?.commands?.map((command) => command.id)).toContain(
-      "editor.insert.callout-warning",
+      "editor.insert.footnote",
     );
   });
 
-  it("keeps standard markdown commands free of MDX-only callouts", () => {
-    const standard = createBuiltinProfiles().find(
-      (profile) => profile.id === "standard-markdown",
+  it("keeps CommonMark free of GFM, frontmatter, and MDX-only commands", () => {
+    const commonmark = createBuiltinProfiles().find(
+      (profile) => profile.id === "commonmark",
     );
 
-    expect(standard?.slashCommands?.map((command) => command.id)).toContain(
-      "frontmatter",
-    );
-    expect(standard?.slashCommands?.map((command) => command.id)).not.toContain(
-      "callout",
-    );
-    expect(standard?.commands?.map((command) => command.id)).not.toContain(
+    const commandIds = getInsertCommandIds(commonmark);
+
+    expect(commandIds).toContain("quote");
+    expect(commandIds).not.toContain("table");
+    expect(commandIds).not.toContain("checklist");
+    expect(commandIds).not.toContain("frontmatter");
+    expect(commandIds).not.toContain("callout");
+    expect(commonmark?.commands?.map((command) => command.id)).not.toContain(
       "editor.insert.callout",
     );
   });
+
+  it("puts MDX callouts in MDX profiles and blog frontmatter in the blog profile", () => {
+    const profiles = createBuiltinProfiles();
+    const mdx = profiles.find((profile) => profile.id === "mdx");
+    const blogMdx = profiles.find((profile) => profile.id === "blog-mdx");
+
+    expect(getInsertCommandIds(mdx)).toContain("callout");
+    expect(getInsertCommandIds(mdx)).not.toContain("frontmatter");
+    expect(getInsertCommandIds(blogMdx)).toContain("frontmatter");
+    expect(getInsertCommandIds(blogMdx)).toContain("callout-warning");
+  });
+
+  it("inserts visible selected placeholders for insert commands", async () => {
+    const blogMdx = createBuiltinProfiles().find(
+      (profile) => profile.id === "blog-mdx",
+    );
+    const inserted: string[] = [];
+    const editor = {
+      insertMarkdown: (markdown: string) => {
+        inserted.push(markdown);
+      },
+    };
+
+    await blogMdx?.commands
+      ?.find((command) => command.id === "editor.insert.paragraph")
+      ?.run({ document: null, editor });
+    await blogMdx?.commands
+      ?.find((command) => command.id === "editor.insert.h3")
+      ?.run({ document: null, editor });
+
+    expect(inserted[0]).toBe(
+      `${EMPTY_BLOCK_MARKER}Text${EMPTY_BLOCK_MARKER}\n`,
+    );
+    expect(inserted[1]).toBe(
+      `### ${EMPTY_BLOCK_MARKER}Heading 3${EMPTY_BLOCK_MARKER}\n\n`,
+    );
+  });
 });
+
+function getInsertCommandIds(
+  profile: ReturnType<typeof createBuiltinProfiles>[number] | undefined,
+): string[] {
+  return (
+    profile?.commands?.map((command) =>
+      command.id.replace("editor.insert.", ""),
+    ) ?? []
+  );
+}

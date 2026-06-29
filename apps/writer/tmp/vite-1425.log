@@ -1,0 +1,165 @@
+
+  VITE v7.3.6  ready in 220 ms
+
+  ➜  Local:   http://127.0.0.1:1425/
+2:22:33 PM [vite] (client) hmr update /src/styles/app.css, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:22:43 PM [vite] (client) hmr update /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:22:51 PM [vite] (client) hmr update /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:24:35 PM [vite] (client) hmr update /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:25:30 PM [vite] (client) hmr update /src/features/file-tree/FileTreeSidebar.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:25:46 PM [vite] (client) hmr update /src/features/file-tree/FileTreeSidebar.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:25:58 PM [vite] (client) hmr update /src/App.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:26:10 PM [vite] (client) hmr update /src/styles/app.css, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:26:22 PM [vite] (client) hmr update /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:27:01 PM [vite] (client) hmr update /src/features/file-tree/FileTreeSidebar.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:28:50 PM [vite] (client) hmr update /src/features/file-tree/FileTreeSidebar.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:29:09 PM [vite] (client) hmr update /src/features/file-tree/FileTreeSidebar.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:29:24 PM [vite] (client) hmr update /src/App.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:29:54 PM [vite] (client) hmr update /src/App.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:30:04 PM [vite] (client) hmr update /src/App.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:30:14 PM [vite] (client) hmr update /src/App.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:30:21 PM [vite] (client) hmr update /src/App.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:30:34 PM [vite] (client) hmr update /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:31:07 PM [vite] (client) hmr update /src/App.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:31:46 PM [vite] (client) hmr update /src/styles/app.css, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:37:06 PM [vite] (client) hmr update /src/styles/app.css, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:37:23 PM [vite] (client) hmr update /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:42:05 PM [vite] (client) hmr update /src/features/editor/MarkdownEditor.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:42:14 PM [vite] (client) hmr update /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:42:37 PM [vite] (client) hmr update /src/features/editor/MarkdownEditor.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:42:56 PM [vite] (client) hmr update /src/features/editor/MarkdownEditor.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:43:03 PM [vite] (client) hmr update /src/features/editor/MarkdownEditor.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:46:12 PM [vite] (client) hmr update /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:46:23 PM [vite] (client) hmr update /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:46:53 PM [vite] (client) hmr update /src/features/file-tree/FileTreeSidebar.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:47:05 PM [vite] (client) hmr update /src/App.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:47:35 PM [vite] (client) hmr update /src/App.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:47:48 PM [vite] (client) hmr update /src/App.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:48:11 PM [vite] (client) hmr update /src/App.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:48:21 PM [vite] (client) hmr update /src/App.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:48:32 PM [vite] (client) hmr update /src/App.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:48:38 PM [vite] (client) hmr update /src/App.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:48:57 PM [vite] (client) hmr update /src/App.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:49:23 PM [vite] (client) hmr update /src/features/file-tree/FileTreeSidebar.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:49:40 PM [vite] (client) Pre-transform error: /Users/bytedance/codes/myself/madinah/apps/writer/src/features/file-tree/FileTreeSidebar.tsx: Unexpected token (501:6)
+
+  499 |           <ChevronRight className="tree-chevron" size={14} aria-hidden="true" />
+  500 |         )
+> 501 |       ) : null}
+      |       ^
+  502 |       {isDirectory ? (
+  503 |         <Folder className="tree-icon" size={16} aria-hidden="true" />
+  504 |       ) : (
+  Plugin: vite:react-babel
+  File: /Users/bytedance/codes/myself/madinah/apps/writer/src/features/file-tree/FileTreeSidebar.tsx:501:6
+  499 |            <ChevronRight className="tree-chevron" size={14} aria-hidden="true" />
+  500 |          )
+  501 |        ) : null}
+      |        ^
+  502 |        {isDirectory ? (
+  503 |          <Folder className="tree-icon" size={16} aria-hidden="true" />
+2:49:41 PM [vite] Internal server error: /Users/bytedance/codes/myself/madinah/apps/writer/src/features/file-tree/FileTreeSidebar.tsx: Unexpected token (501:6)
+
+  499 |           <ChevronRight className="tree-chevron" size={14} aria-hidden="true" />
+  500 |         )
+> 501 |       ) : null}
+      |       ^
+  502 |       {isDirectory ? (
+  503 |         <Folder className="tree-icon" size={16} aria-hidden="true" />
+  504 |       ) : (
+  Plugin: vite:react-babel
+  File: /Users/bytedance/codes/myself/madinah/apps/writer/src/features/file-tree/FileTreeSidebar.tsx:501:6
+  499 |            <ChevronRight className="tree-chevron" size={14} aria-hidden="true" />
+  500 |          )
+  501 |        ) : null}
+      |        ^
+  502 |        {isDirectory ? (
+  503 |          <Folder className="tree-icon" size={16} aria-hidden="true" />
+      at constructor (/Users/bytedance/codes/myself/madinah/node_modules/.pnpm/@babel+parser@7.29.7/node_modules/@babel/parser/lib/index.js:365:19)
+      at TypeScriptParserMixin.raise (/Users/bytedance/codes/myself/madinah/node_modules/.pnpm/@babel+parser@7.29.7/node_modules/@babel/parser/lib/index.js:6616:19)
+      at TypeScriptParserMixin.unexpected (/Users/bytedance/codes/myself/madinah/node_modules/.pnpm/@babel+parser@7.29.7/node_modules/@babel/parser/lib/index.js:6636:16)
+      at TypeScriptParserMixin.parseExprAtom (/Users/bytedance/codes/myself/madinah/node_modules/.pnpm/@babel+parser@7.29.7/node_modules/@babel/parser/lib/index.js:11459:22)
+      at TypeScriptParserMixin.parseExprAtom (/Users/bytedance/codes/myself/madinah/node_modules/.pnpm/@babel+parser@7.29.7/node_modules/@babel/parser/lib/index.js:4776:20)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/bytedance/codes/myself/madinah/node_modules/.pnpm/@babel+parser@7.29.7/node_modules/@babel/parser/lib/index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/bytedance/codes/myself/madinah/node_modules/.pnpm/@babel+parser@7.29.7/node_modules/@babel/parser/lib/index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/bytedance/codes/myself/madinah/node_modules/.pnpm/@babel+parser@7.29.7/node_modules/@babel/parser/lib/index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/bytedance/codes/myself/madinah/node_modules/.pnpm/@babel+parser@7.29.7/node_modules/@babel/parser/lib/index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/bytedance/codes/myself/madinah/node_modules/.pnpm/@babel+parser@7.29.7/node_modules/@babel/parser/lib/index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (/Users/bytedance/codes/myself/madinah/node_modules/.pnpm/@babel+parser@7.29.7/node_modules/@babel/parser/lib/index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/Users/bytedance/codes/myself/madinah/node_modules/.pnpm/@babel+parser@7.29.7/node_modules/@babel/parser/lib/index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/bytedance/codes/myself/madinah/node_modules/.pnpm/@babel+parser@7.29.7/node_modules/@babel/parser/lib/index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/bytedance/codes/myself/madinah/node_modules/.pnpm/@babel+parser@7.29.7/node_modules/@babel/parser/lib/index.js:9803:20)
+      at TypeScriptParserMixin.parseExpressionBase (/Users/bytedance/codes/myself/madinah/node_modules/.pnpm/@babel+parser@7.29.7/node_modules/@babel/parser/lib/index.js:10801:23)
+      at /Users/bytedance/codes/myself/madinah/node_modules/.pnpm/@babel+parser@7.29.7/node_modules/@babel/parser/lib/index.js:10797:39
+      at TypeScriptParserMixin.allowInAnd (/Users/bytedance/codes/myself/madinah/node_modules/.pnpm/@babel+parser@7.29.7/node_modules/@babel/parser/lib/index.js:12438:16)
+      at TypeScriptParserMixin.parseExpression (/Users/bytedance/codes/myself/madinah/node_modules/.pnpm/@babel+parser@7.29.7/node_modules/@babel/parser/lib/index.js:10797:17)
+      at TypeScriptParserMixin.parseStatementContent (/Users/bytedance/codes/myself/madinah/node_modules/.pnpm/@babel+parser@7.29.7/node_modules/@babel/parser/lib/index.js:12912:23)
+      at TypeScriptParserMixin.parseStatementContent (/Users/bytedance/codes/myself/madinah/node_modules/.pnpm/@babel+parser@7.29.7/node_modules/@babel/parser/lib/index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (/Users/bytedance/codes/myself/madinah/node_modules/.pnpm/@babel+parser@7.29.7/node_modules/@babel/parser/lib/index.js:12784:17)
+      at TypeScriptParserMixin.parseModuleItem (/Users/bytedance/codes/myself/madinah/node_modules/.pnpm/@babel+parser@7.29.7/node_modules/@babel/parser/lib/index.js:12761:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (/Users/bytedance/codes/myself/madinah/node_modules/.pnpm/@babel+parser@7.29.7/node_modules/@babel/parser/lib/index.js:13333:36)
+      at TypeScriptParserMixin.parseBlockBody (/Users/bytedance/codes/myself/madinah/node_modules/.pnpm/@babel+parser@7.29.7/node_modules/@babel/parser/lib/index.js:13326:10)
+      at TypeScriptParserMixin.parseProgram (/Users/bytedance/codes/myself/madinah/node_modules/.pnpm/@babel+parser@7.29.7/node_modules/@babel/parser/lib/index.js:12639:10)
+      at TypeScriptParserMixin.parseTopLevel (/Users/bytedance/codes/myself/madinah/node_modules/.pnpm/@babel+parser@7.29.7/node_modules/@babel/parser/lib/index.js:12629:25)
+      at TypeScriptParserMixin.parse (/Users/bytedance/codes/myself/madinah/node_modules/.pnpm/@babel+parser@7.29.7/node_modules/@babel/parser/lib/index.js:14505:25)
+      at TypeScriptParserMixin.parse (/Users/bytedance/codes/myself/madinah/node_modules/.pnpm/@babel+parser@7.29.7/node_modules/@babel/parser/lib/index.js:10143:18)
+      at parse (/Users/bytedance/codes/myself/madinah/node_modules/.pnpm/@babel+parser@7.29.7/node_modules/@babel/parser/lib/index.js:14539:38)
+      at parser (/Users/bytedance/codes/myself/madinah/node_modules/.pnpm/@babel+core@7.29.7/node_modules/@babel/core/lib/parser/index.js:41:34)
+      at parser.next (<anonymous>)
+      at normalizeFile (/Users/bytedance/codes/myself/madinah/node_modules/.pnpm/@babel+core@7.29.7/node_modules/@babel/core/lib/transformation/normalize-file.js:51:37)
+      at normalizeFile.next (<anonymous>)
+      at run (/Users/bytedance/codes/myself/madinah/node_modules/.pnpm/@babel+core@7.29.7/node_modules/@babel/core/lib/transformation/index.js:22:50)
+      at run.next (<anonymous>)
+      at transform (/Users/bytedance/codes/myself/madinah/node_modules/.pnpm/@babel+core@7.29.7/node_modules/@babel/core/lib/transform.js:22:33)
+      at transform.next (<anonymous>)
+      at step (/Users/bytedance/codes/myself/madinah/node_modules/.pnpm/gensync@1.0.0-beta.2/node_modules/gensync/index.js:261:32)
+      at /Users/bytedance/codes/myself/madinah/node_modules/.pnpm/gensync@1.0.0-beta.2/node_modules/gensync/index.js:273:13
+      at async.call.result.err.err (/Users/bytedance/codes/myself/madinah/node_modules/.pnpm/gensync@1.0.0-beta.2/node_modules/gensync/index.js:223:11)
+      at /Users/bytedance/codes/myself/madinah/node_modules/.pnpm/gensync@1.0.0-beta.2/node_modules/gensync/index.js:189:28
+      at /Users/bytedance/codes/myself/madinah/node_modules/.pnpm/@babel+core@7.29.7/node_modules/@babel/core/lib/gensync-utils/async.js:67:7
+      at /Users/bytedance/codes/myself/madinah/node_modules/.pnpm/gensync@1.0.0-beta.2/node_modules/gensync/index.js:113:33
+      at step (/Users/bytedance/codes/myself/madinah/node_modules/.pnpm/gensync@1.0.0-beta.2/node_modules/gensync/index.js:287:14)
+      at /Users/bytedance/codes/myself/madinah/node_modules/.pnpm/gensync@1.0.0-beta.2/node_modules/gensync/index.js:273:13
+      at async.call.result.err.err (/Users/bytedance/codes/myself/madinah/node_modules/.pnpm/gensync@1.0.0-beta.2/node_modules/gensync/index.js:223:11)
+2:49:57 PM [vite] (client) hmr update /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:50:00 PM [vite] (client) hmr update /src/features/file-tree/FileTreeSidebar.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:50:09 PM [vite] (client) hmr update /src/styles/app.css, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:50:26 PM [vite] (client) hmr update /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:50:56 PM [vite] (client) hmr update /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:51:38 PM [vite] (client) hmr update /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:52:19 PM [vite] (client) hmr update /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:52:33 PM [vite] (client) hmr update /src/App.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:54:01 PM [vite] (client) hmr update /src/features/engine/EngineProvider.tsx, /src/features/editor/MarkdownEditor.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:54:10 PM [vite] (client) hmr update /src/features/engine/EngineProvider.tsx, /src/features/editor/MarkdownEditor.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:54:21 PM [vite] (client) hmr update /src/features/editor/MarkdownEditor.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:54:29 PM [vite] (client) hmr update /src/features/editor/MarkdownEditor.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:54:40 PM [vite] (client) hmr update /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:54:48 PM [vite] (client) hmr update /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:55:32 PM [vite] (client) hmr update /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+2:56:06 PM [vite] (client) hmr update /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+3:05:37 PM [vite] (client) hmr update /src/features/editor/MarkdownEditor.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+3:07:10 PM [vite] (client) hmr update /src/features/editor/MarkdownEditor.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+3:07:37 PM [vite] (client) hmr update /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+3:23:10 PM [vite] (client) hmr update /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+3:26:30 PM [vite] (client) hmr update /src/features/editor/MarkdownEditor.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+3:26:41 PM [vite] (client) hmr update /src/features/editor/MarkdownEditor.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+3:26:58 PM [vite] (client) hmr update /src/features/editor/MarkdownEditor.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+3:27:07 PM [vite] (client) hmr update /src/features/editor/MarkdownEditor.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+3:27:32 PM [vite] (client) hmr update /src/features/editor/MarkdownEditor.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+3:27:44 PM [vite] (client) hmr update /src/features/editor/MarkdownEditor.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+3:28:06 PM [vite] (client) hmr update /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+3:28:21 PM [vite] (client) hmr update /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+3:28:30 PM [vite] (client) hmr update /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css, /src/features/engine/EngineProvider.tsx
+3:28:38 PM [vite] (client) hmr update /src/App.tsx, /src/features/engine/EngineProvider.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+3:28:45 PM [vite] (client) hmr update /src/App.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+3:28:51 PM [vite] (client) hmr update /src/features/engine/EngineProvider.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+3:29:13 PM [vite] (client) hmr update /src/features/engine/EngineProvider.tsx, /src/features/editor/MarkdownEditor.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+3:29:38 PM [vite] (client) hmr update /src/styles/app.css, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+3:29:43 PM [vite] (client) hmr update /src/features/editor/MarkdownEditor.tsx, /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+3:29:43 PM [vite] (client) hmr update /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+3:29:43 PM [vite] (client) hmr update /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css, /src/features/editor/MarkdownEditor.tsx
+3:29:43 PM [vite] (client) hmr update /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+3:29:53 PM [vite] (client) hmr update /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+3:30:11 PM [vite] (client) hmr update /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+3:30:22 PM [vite] (client) hmr update /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css
+3:30:32 PM [vite] (client) hmr update /@fs/Users/bytedance/codes/myself/madinah/src/styles/global.css

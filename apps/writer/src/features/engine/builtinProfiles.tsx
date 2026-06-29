@@ -16,14 +16,23 @@ import {
 } from "@mdxeditor/editor";
 import remarkFrontmatter from "remark-frontmatter";
 import remarkGfm from "remark-gfm";
-import type {
-  EngineProfile,
-  SlashCommand,
-  WriterCommand,
-} from "../../domain/engine";
+import type { EngineProfile, WriterCommand } from "../../domain/engine";
 import { mdxComponents } from "../../components/mdx-components";
 
 export const EMPTY_BLOCK_MARKER = "\u200b";
+
+interface InsertMarkdownTemplate {
+  id: string;
+  label: string;
+  hint: string;
+  group?: string;
+  keywords?: string[];
+  markdown: string;
+}
+
+function editablePlaceholder(value: string): string {
+  return `${EMPTY_BLOCK_MARKER}${value}${EMPTY_BLOCK_MARKER}`;
+}
 
 const jsxComponentDescriptors: JsxComponentDescriptor[] = [
   {
@@ -53,16 +62,14 @@ const codeBlockLanguages = {
   markdown: "Markdown",
 };
 
-const baseEditorPlugins = [
+const commonmarkEditorPlugins = [
   headingsPlugin(),
   listsPlugin(),
   quotePlugin(),
   thematicBreakPlugin(),
-  tablePlugin(),
   linkPlugin(),
   linkDialogPlugin(),
   imagePlugin(),
-  jsxPlugin({ jsxComponentDescriptors }),
   codeBlockPlugin({ defaultCodeBlockLanguage: "typescript" }),
   codeMirrorPlugin({
     codeBlockLanguages,
@@ -71,14 +78,20 @@ const baseEditorPlugins = [
   markdownShortcutPlugin(),
 ];
 
-const baseSlashCommands: SlashCommand[] = [
+const gfmEditorPlugins = [tablePlugin(), ...commonmarkEditorPlugins];
+const mdxEditorPlugins = [
+  jsxPlugin({ jsxComponentDescriptors }),
+  ...gfmEditorPlugins,
+];
+
+const baseInsertTemplates: InsertMarkdownTemplate[] = [
   {
     id: "paragraph",
     label: "Text",
     hint: "Plain paragraph",
     group: "Text",
     keywords: ["paragraph", "body"],
-    markdown: `${EMPTY_BLOCK_MARKER}\n`,
+    markdown: `${editablePlaceholder("Text")}\n`,
   },
   {
     id: "h1",
@@ -86,7 +99,7 @@ const baseSlashCommands: SlashCommand[] = [
     hint: "Large section title",
     group: "Text",
     keywords: ["title"],
-    markdown: `# ${EMPTY_BLOCK_MARKER}\n\n`,
+    markdown: `# ${editablePlaceholder("Heading 1")}\n\n`,
   },
   {
     id: "h2",
@@ -94,7 +107,7 @@ const baseSlashCommands: SlashCommand[] = [
     hint: "Medium section title",
     group: "Text",
     keywords: ["subtitle", "section"],
-    markdown: `## ${EMPTY_BLOCK_MARKER}\n\n`,
+    markdown: `## ${editablePlaceholder("Heading 2")}\n\n`,
   },
   {
     id: "h3",
@@ -102,7 +115,7 @@ const baseSlashCommands: SlashCommand[] = [
     hint: "Small section title",
     group: "Text",
     keywords: ["subsection"],
-    markdown: `### ${EMPTY_BLOCK_MARKER}\n\n`,
+    markdown: `### ${editablePlaceholder("Heading 3")}\n\n`,
   },
   {
     id: "h4",
@@ -110,7 +123,7 @@ const baseSlashCommands: SlashCommand[] = [
     hint: "Compact section title",
     group: "Text",
     keywords: ["subheading"],
-    markdown: `#### ${EMPTY_BLOCK_MARKER}\n\n`,
+    markdown: `#### ${editablePlaceholder("Heading 4")}\n\n`,
   },
   {
     id: "h5",
@@ -118,7 +131,7 @@ const baseSlashCommands: SlashCommand[] = [
     hint: "Small nested title",
     group: "Text",
     keywords: ["subheading"],
-    markdown: `##### ${EMPTY_BLOCK_MARKER}\n\n`,
+    markdown: `##### ${editablePlaceholder("Heading 5")}\n\n`,
   },
   {
     id: "h6",
@@ -126,7 +139,7 @@ const baseSlashCommands: SlashCommand[] = [
     hint: "Tiny nested title",
     group: "Text",
     keywords: ["subheading"],
-    markdown: `###### ${EMPTY_BLOCK_MARKER}\n\n`,
+    markdown: `###### ${editablePlaceholder("Heading 6")}\n\n`,
   },
   {
     id: "bullet",
@@ -134,7 +147,7 @@ const baseSlashCommands: SlashCommand[] = [
     hint: "Simple unordered list",
     group: "Lists",
     keywords: ["ul", "unordered"],
-    markdown: `- ${EMPTY_BLOCK_MARKER}\n`,
+    markdown: `- ${editablePlaceholder("List item")}\n`,
   },
   {
     id: "number",
@@ -142,7 +155,7 @@ const baseSlashCommands: SlashCommand[] = [
     hint: "Ordered list",
     group: "Lists",
     keywords: ["ol", "ordered"],
-    markdown: `1. ${EMPTY_BLOCK_MARKER}\n`,
+    markdown: `1. ${editablePlaceholder("List item")}\n`,
   },
   {
     id: "checklist",
@@ -150,7 +163,7 @@ const baseSlashCommands: SlashCommand[] = [
     hint: "Task list item",
     group: "Lists",
     keywords: ["todo", "task"],
-    markdown: `- [ ] ${EMPTY_BLOCK_MARKER}\n`,
+    markdown: `- [ ] ${editablePlaceholder("Task")}\n`,
   },
   {
     id: "quote",
@@ -158,7 +171,7 @@ const baseSlashCommands: SlashCommand[] = [
     hint: "Block quote",
     group: "Blocks",
     keywords: ["blockquote", "citation"],
-    markdown: `> ${EMPTY_BLOCK_MARKER}\n\n`,
+    markdown: `> ${editablePlaceholder("Quote")}\n\n`,
   },
   {
     id: "table",
@@ -182,7 +195,7 @@ const baseSlashCommands: SlashCommand[] = [
     hint: "YAML metadata block",
     group: "Blocks",
     keywords: ["yaml", "metadata"],
-    markdown: `---\ntitle: ${EMPTY_BLOCK_MARKER}\ndescription: \npubDate: \n---\n\n`,
+    markdown: `---\ntitle: ${editablePlaceholder("Untitled")}\ndescription: \npubDate: \n---\n\n`,
   },
   {
     id: "footnote",
@@ -190,7 +203,7 @@ const baseSlashCommands: SlashCommand[] = [
     hint: "Reference and note pair",
     group: "Blocks",
     keywords: ["reference", "note"],
-    markdown: `Here is a footnote reference[^1].\n\n[^1]: ${EMPTY_BLOCK_MARKER}\n`,
+    markdown: `Here is a footnote reference[^1].\n\n[^1]: ${editablePlaceholder("Footnote")}\n`,
   },
   {
     id: "code",
@@ -198,23 +211,23 @@ const baseSlashCommands: SlashCommand[] = [
     hint: "Fenced code block",
     group: "Code",
     keywords: ["fence", "snippet"],
-    markdown: `\`\`\`\n${EMPTY_BLOCK_MARKER}\n\`\`\`\n\n`,
+    markdown: `\`\`\`\n${editablePlaceholder("code")}\n\`\`\`\n\n`,
   },
-  createCodeSlashCommand("typescript", "TypeScript"),
-  createCodeSlashCommand("tsx", "TSX"),
-  createCodeSlashCommand("javascript", "JavaScript"),
-  createCodeSlashCommand("rust", "Rust"),
-  createCodeSlashCommand("json", "JSON"),
-  createCodeSlashCommand("bash", "Bash"),
-  createCodeSlashCommand("markdown", "Markdown"),
-  createCodeSlashCommand("plaintext", "Plain text"),
+  createCodeInsertTemplate("typescript", "TypeScript"),
+  createCodeInsertTemplate("tsx", "TSX"),
+  createCodeInsertTemplate("javascript", "JavaScript"),
+  createCodeInsertTemplate("rust", "Rust"),
+  createCodeInsertTemplate("json", "JSON"),
+  createCodeInsertTemplate("bash", "Bash"),
+  createCodeInsertTemplate("markdown", "Markdown"),
+  createCodeInsertTemplate("plaintext", "Plain text"),
   {
     id: "link",
     label: "Link",
     hint: "Inline hyperlink",
     group: "Media",
     keywords: ["href", "anchor", "url"],
-    markdown: `[${EMPTY_BLOCK_MARKER}](https://)`,
+    markdown: `[${editablePlaceholder("link text")}](https://)`,
   },
   {
     id: "image",
@@ -222,7 +235,7 @@ const baseSlashCommands: SlashCommand[] = [
     hint: "Inline image",
     group: "Media",
     keywords: ["img", "photo", "asset"],
-    markdown: `![${EMPTY_BLOCK_MARKER}](https://)`,
+    markdown: `![${editablePlaceholder("Alt text")}](https://)`,
   },
   {
     id: "callout",
@@ -230,31 +243,25 @@ const baseSlashCommands: SlashCommand[] = [
     hint: "Info callout block",
     group: "MDX",
     keywords: ["aside", "info"],
-    markdown: `<Callout type="info">\n\n${EMPTY_BLOCK_MARKER}\n\n</Callout>\n\n`,
+    markdown: `<Callout type="info">\n\n${editablePlaceholder("Callout content")}\n\n</Callout>\n\n`,
   },
-  createCalloutSlashCommand("note", "Note callout", "Neutral callout block"),
-  createCalloutSlashCommand(
+  createCalloutInsertTemplate("note", "Note callout", "Neutral callout block"),
+  createCalloutInsertTemplate(
     "warning",
     "Warning callout",
     "Caution callout block",
   ),
-  createCalloutSlashCommand("success", "Success callout", "Positive callout block"),
-  createCalloutSlashCommand("error", "Error callout", "Critical callout block"),
+  createCalloutInsertTemplate("success", "Success callout", "Positive callout block"),
+  createCalloutInsertTemplate("error", "Error callout", "Critical callout block"),
 ];
 
-const baseWriterCommands = baseSlashCommands.map(createInsertMarkdownCommand);
-const commandBackedSlashCommands = baseSlashCommands.map((command) => ({
-  id: command.id,
-  label: command.label,
-  hint: command.hint,
-  group: command.group,
-  keywords: command.keywords,
-  commandId: toInsertCommandId(command.id),
-}));
+const baseWriterCommands = baseInsertTemplates.map(createInsertMarkdownCommand);
 
-const standardExcludedCommandIds = new Set([
+const commonmarkExcludedCommandIds = new Set([
+  "table",
   "checklist",
   "footnote",
+  "frontmatter",
   "callout",
   "callout-note",
   "callout-warning",
@@ -262,55 +269,89 @@ const standardExcludedCommandIds = new Set([
   "callout-error",
 ]);
 
-export function createBuiltinProfiles(): EngineProfile[] {
-  const standardMarkdown: EngineProfile = {
-    id: "standard-markdown",
-    name: "Standard Markdown",
-    editorPlugins: baseEditorPlugins,
-    previewComponents: mdxComponents,
-    slashCommands: commandBackedSlashCommands.filter(
-      (command) => !standardExcludedCommandIds.has(command.id),
-    ),
+const gfmExcludedCommandIds = new Set([
+  "frontmatter",
+  "callout",
+  "callout-note",
+  "callout-warning",
+  "callout-success",
+  "callout-error",
+]);
+
+const mdxExcludedCommandIds = new Set([
+  "frontmatter",
+]);
+
+function excludeCommands(excludedIds: Set<string>) {
+  return {
     commands: baseWriterCommands.filter(
-      (command) =>
-        !standardExcludedCommandIds.has(command.id.replace("editor.insert.", "")),
+      (command) => !excludedIds.has(command.id.replace("editor.insert.", "")),
     ),
-    codeLanguages: [
-      { id: "plaintext", label: "Plain text" },
-      { id: "markdown", label: "Markdown" },
-    ],
+  };
+}
+
+const commonmarkCommands = excludeCommands(commonmarkExcludedCommandIds);
+const gfmCommands = excludeCommands(gfmExcludedCommandIds);
+const mdxCommands = excludeCommands(mdxExcludedCommandIds);
+
+const commonmarkCodeLanguages = [
+  { id: "plaintext", label: "Plain text" },
+  { id: "markdown", label: "Markdown" },
+];
+
+const fullCodeLanguages = Object.entries(codeBlockLanguages).map(([id, label]) => ({
+  id,
+  label,
+}));
+
+export function createBuiltinProfiles(): EngineProfile[] {
+  const commonmark: EngineProfile = {
+    id: "commonmark",
+    name: "CommonMark",
+    editorPlugins: commonmarkEditorPlugins,
+    commands: commonmarkCommands.commands,
+    codeLanguages: commonmarkCodeLanguages,
   };
 
   const gfm: EngineProfile = {
-    ...standardMarkdown,
     id: "gfm",
     name: "GitHub Flavored Markdown",
+    remarkPlugins: [remarkGfm],
+    editorPlugins: gfmEditorPlugins,
+    commands: gfmCommands.commands,
+    codeLanguages: fullCodeLanguages,
+  };
+
+  const mdx: EngineProfile = {
+    id: "mdx",
+    name: "MDX",
+    remarkPlugins: [remarkGfm],
+    editorPlugins: mdxEditorPlugins,
+    previewComponents: mdxComponents,
+    commands: mdxCommands.commands,
+    codeLanguages: fullCodeLanguages,
+  };
+
+  const blogMdx: EngineProfile = {
+    ...mdx,
+    id: "blog-mdx",
+    name: "Blog MDX",
     remarkPlugins: [remarkFrontmatter, remarkGfm],
-    slashCommands: commandBackedSlashCommands,
     commands: baseWriterCommands,
-    codeLanguages: Object.entries(codeBlockLanguages).map(([id, label]) => ({
-      id,
-      label,
-    })),
   };
 
-  const mdxCompatible: EngineProfile = {
-    ...gfm,
-    id: "mdx-compatible",
-    name: "MDX Compatible",
-  };
-
-  return [standardMarkdown, gfm, mdxCompatible];
+  return [commonmark, gfm, mdx, blogMdx];
 }
 
-function createInsertMarkdownCommand(command: SlashCommand): WriterCommand {
+function createInsertMarkdownCommand(command: InsertMarkdownTemplate): WriterCommand {
   return {
     id: toInsertCommandId(command.id),
     label: command.label,
+    group: command.group ?? "Insert",
+    keywords: command.keywords,
     run: ({ editor }) => {
-      const target = editor as { insertMarkdown?: (markdown: string) => void } | null;
       if (command.markdown) {
-        target?.insertMarkdown?.(command.markdown);
+        editor?.insertMarkdown?.(command.markdown);
       }
     },
   };
@@ -320,22 +361,25 @@ function toInsertCommandId(id: string): string {
   return `editor.insert.${id}`;
 }
 
-function createCodeSlashCommand(language: string, label: string): SlashCommand {
+function createCodeInsertTemplate(
+  language: string,
+  label: string,
+): InsertMarkdownTemplate {
   return {
     id: `code-${language}`,
     label: `${label} code`,
     hint: `Fenced ${label} block`,
     group: "Code",
     keywords: [language, "code", "fence", "snippet"],
-    markdown: `\`\`\`${language}\n${EMPTY_BLOCK_MARKER}\n\`\`\`\n\n`,
+    markdown: `\`\`\`${language}\n${editablePlaceholder(`${label} code`)}\n\`\`\`\n\n`,
   };
 }
 
-function createCalloutSlashCommand(
+function createCalloutInsertTemplate(
   type: "note" | "warning" | "success" | "error",
   label: string,
   hint: string,
-): SlashCommand {
+): InsertMarkdownTemplate {
   const title = label.replace(" callout", "");
 
   return {
@@ -344,6 +388,6 @@ function createCalloutSlashCommand(
     hint,
     group: "MDX",
     keywords: ["callout", "aside", type],
-    markdown: `<Callout type="${type}" title="${title}">\n\n${EMPTY_BLOCK_MARKER}\n\n</Callout>\n\n`,
+    markdown: `<Callout type="${type}" title="${title}">\n\n${editablePlaceholder(`${title} content`)}\n\n</Callout>\n\n`,
   };
 }

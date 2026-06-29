@@ -1,16 +1,13 @@
 import type {
-  SlashCommand,
   WriterCommand,
   WriterCommandContext,
 } from "../../domain/engine";
 
 export class CommandRegistry {
   private readonly commands = new Map<string, WriterCommand>();
-  private slashCommands: SlashCommand[] = [];
 
-  constructor(commands: WriterCommand[] = [], slashCommands: SlashCommand[] = []) {
+  constructor(commands: WriterCommand[] = []) {
     commands.forEach((command) => this.register(command));
-    this.slashCommands = [...slashCommands];
   }
 
   register(command: WriterCommand) {
@@ -37,7 +34,4 @@ export class CommandRegistry {
     await command.run(ctx);
   }
 
-  listSlashCommands(): SlashCommand[] {
-    return [...this.slashCommands];
-  }
 }

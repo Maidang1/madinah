@@ -17,8 +17,8 @@ describe("ExtensionHost", () => {
       pluginContext,
     );
 
-    expect((result.profile.slashCommands ?? []).map((command) => command.id)).toEqual([
-      "paragraph",
+    expect((result.profile.commands ?? []).map((command) => command.id)).toEqual([
+      "editor.insert.paragraph",
       "alpha",
       "beta",
     ]);
@@ -45,8 +45,8 @@ describe("ExtensionHost", () => {
     );
 
     expect(result.profile.id).toBe("gfm");
-    expect((result.profile.slashCommands ?? []).map((command) => command.id)).toEqual([
-      "paragraph",
+    expect((result.profile.commands ?? []).map((command) => command.id)).toEqual([
+      "editor.insert.paragraph",
     ]);
     expect(result.diagnostics).toEqual([
       {
@@ -85,12 +85,11 @@ describe("ExtensionHost", () => {
 const baseProfile: EngineProfile = {
   id: "gfm",
   name: "GitHub Flavored Markdown",
-  slashCommands: [
+  commands: [
     {
-      id: "paragraph",
+      id: "editor.insert.paragraph",
       label: "Text",
-      hint: "Plain paragraph",
-      markdown: "\u200b\n",
+      run: () => undefined,
     },
   ],
 };
@@ -112,12 +111,11 @@ function pluginWithCommand(id: string, commandId: string): WriterPlugin {
     name: id,
     version: "1.0.0",
     activate: () => ({
-      slashCommands: [
+      commands: [
         {
           id: commandId,
           label: commandId,
-          hint: commandId,
-          markdown: `${commandId}\n`,
+          run: () => undefined,
         },
       ],
     }),

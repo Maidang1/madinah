@@ -16,11 +16,11 @@ export class ProfileRegistry {
   }
 
   get(id: string): EngineProfile | undefined {
-    return this.profiles.get(id);
+    return this.profiles.get(id) ?? this.profiles.get(legacyProfileAliases[id] ?? "");
   }
 
   require(id: string): EngineProfile {
-    const profile = this.profiles.get(id);
+    const profile = this.get(id);
     if (!profile) {
       throw new Error(`Unknown profile id: ${id}`);
     }
@@ -36,3 +36,8 @@ export class ProfileRegistry {
     return mergeEngineProfiles([this.require(baseProfileId), ...profiles]);
   }
 }
+
+const legacyProfileAliases: Record<string, string> = {
+  "standard-markdown": "commonmark",
+  "mdx-compatible": "mdx",
+};

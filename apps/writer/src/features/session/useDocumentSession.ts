@@ -3,6 +3,7 @@ import {
   createEmptyDocument,
   parseMdxDocument,
   serializeMdxDocument,
+  type DocumentStatus,
   type DocumentMetadataPatch,
   type MarkdownDocument,
 } from "../../domain/document";
@@ -295,6 +296,67 @@ export function useDocumentSession(
     }
   }, [platform, session.document, session.filePath]);
 
+  const updateStoredDocumentStatus = useCallback(
+    async (id: string, documentStatus: DocumentStatus) => {
+      try {
+        setStatus("Updating");
+        const current =
+          session.document?.id === id && !session.filePath
+            ? session.document
+            : await platform.documentStore.get(id);
+        const updated: MarkdownDocument = {
+          ...current,
+          status: documentStatus,
+          updatedAt: new Date().toISOString(),
+        };
+        const saved = await platform.documentStore.save(updated);
+        upsertDocument(saved);
+
+        if (session.document?.id === id && !session.filePath) {
+          dispatch({ type: "saveSucceeded", document: saved });
+        }
+
+        setStatus(statusLabelForDocumentStatus(documentStatus));
+      } catch (error: unknown) {
+        setStatus(String(error));
+      }
+    },
+    [platform, session.document, session.filePath, upsertDocument],
+  );
+
+  const deleteStoredDocument = useCallback(
+    async (id: string) => {
+      try {
+        setStatus("Deleting");
+        saveTokenRef.current += 1;
+        await platform.documentStore.delete(id);
+
+        let nextDocuments = sortDocuments(
+          documents.filter((document) => document.id !== id),
+        );
+
+        if (session.document?.id === id && !session.filePath) {
+          const nextDocument =
+            nextDocuments[0] ??
+            (await platform.documentStore.save(createEmptyDocument()));
+          nextDocuments =
+            nextDocuments.length > 0 ? nextDocuments : [nextDocument];
+          dispatch({
+            type: "openSucceeded",
+            document: nextDocument,
+            workspace: LOCAL_WORKSPACE,
+          });
+        }
+
+        setDocuments(nextDocuments);
+        setStatus("Deleted");
+      } catch (error: unknown) {
+        setStatus(String(error));
+      }
+    },
+    [documents, platform, session.document?.id, session.filePath],
+  );
+
   const revert = useCallback(() => {
     dispatch({ type: "revert" });
     setStatus("Reverted");
@@ -327,6 +389,8 @@ export function useDocumentSession(
     openStoredDocument,
     createNewDocument,
     openMarkdownPath,
+    updateStoredDocumentStatus,
+    deleteStoredDocument,
     saveNow,
     saveAs,
     revert,
@@ -343,4 +407,11 @@ function sortDocuments<T extends { updatedAt: string }>(documents: T[]): T[] {
 function slugFromPath(path: string): string {
   const fileName = path.split(/[\\/]/).pop() ?? "untitled";
   return fileName.replace(/\.(md|mdx|markdown)$/i, "") || "untitled";
+}
+
+function statusLabelForDocumentStatus(status: DocumentStatus): string {
+  if (status === "published") return "Published";
+  if (status === "archived") return "Archived";
+  if (status === "WIP") return "Marked as WIP";
+  return "Marked as draft";
 }

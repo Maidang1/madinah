@@ -9,7 +9,7 @@ import { compileMdxPreview } from "../../lib/mdx-preview";
 import { ExtensionHost } from "./ExtensionHost";
 
 describe("workspace plugin integration", () => {
-  it("activates parser, preview, slash, language, and registered command contributions", async () => {
+  it("activates parser, preview, language, and registered command contributions", async () => {
     const host = new ExtensionHost({
       baseProfiles: [baseProfile],
       baseProfileId: "gfm",
@@ -32,14 +32,6 @@ describe("workspace plugin integration", () => {
               <span data-plugin-badge="true">{label}</span>
             ),
           },
-          slashCommands: [
-            {
-              id: "badge",
-              label: "Badge",
-              hint: "Plugin badge",
-              commandId: "plugin.badge.insert",
-            },
-          ],
           codeLanguages: [{ id: "mermaid", label: "Mermaid" }],
         };
       },
@@ -56,9 +48,6 @@ describe("workspace plugin integration", () => {
     expect(result.diagnostics).toEqual([]);
     expect(result.profile.commands?.map((command) => command.id)).toContain(
       "plugin.badge.insert",
-    );
-    expect(result.profile.slashCommands?.map((command) => command.id)).toContain(
-      "badge",
     );
     expect(result.profile.codeLanguages?.map((language) => language.id)).toContain(
       "mermaid",

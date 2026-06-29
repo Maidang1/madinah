@@ -30,14 +30,6 @@ describe("engine profile merge", () => {
       previewComponents: {
         Callout: NullComponent,
       },
-      slashCommands: [
-        {
-          id: "heading-1",
-          label: "Heading 1",
-          hint: "Large section title",
-          markdown: "# \n\n",
-        },
-      ],
       codeLanguages: [{ id: "typescript", label: "TypeScript" }],
       commands: [saveCommand],
     };
@@ -50,14 +42,6 @@ describe("engine profile merge", () => {
       previewComponents: {
         Chart: NullComponent,
       },
-      slashCommands: [
-        {
-          id: "callout",
-          label: "Callout",
-          hint: "Madinah callout block",
-          markdown: "<Callout />\n",
-        },
-      ],
       codeLanguages: [{ id: "rust", label: "Rust" }],
       commands: [exportCommand],
     };
@@ -76,10 +60,6 @@ describe("engine profile merge", () => {
     ]);
     expect(merged.editorPlugins).toEqual(["headings", "lists", "callout-editor"]);
     expect(Object.keys(merged.previewComponents ?? {})).toEqual(["Callout", "Chart"]);
-    expect((merged.slashCommands ?? []).map((command) => command.id)).toEqual([
-      "heading-1",
-      "callout",
-    ]);
     expect((merged.codeLanguages ?? []).map((language) => language.id)).toEqual([
       "typescript",
       "rust",

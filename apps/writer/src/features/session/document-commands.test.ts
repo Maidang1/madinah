@@ -5,6 +5,9 @@ describe("document commands", () => {
   it("dispatches document workflow commands by command id", async () => {
     const calls: string[] = [];
     const commands = createDocumentCommands({
+      newDocument: () => {
+        calls.push("new");
+      },
       open: async () => {
         calls.push("open");
       },
@@ -27,12 +30,13 @@ describe("document commands", () => {
     }
 
     expect(commands.map((command) => command.id)).toEqual([
+      "document.new",
       "document.open",
       "document.save",
       "document.saveAs",
       "document.revert",
       "document.close",
     ]);
-    expect(calls).toEqual(["open", "save", "saveAs", "revert", "close"]);
+    expect(calls).toEqual(["new", "open", "save", "saveAs", "revert", "close"]);
   });
 });

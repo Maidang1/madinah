@@ -1,9 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
+  addFileTreeRoot,
+  buildFileTreeRootNodes,
+  filterFileTreeDrafts,
+  findFileTreeRootForPath,
   flattenVisibleFileTree,
+  getActiveFileTreeRoot,
   getArboristOpenState,
   getContextMenuPosition,
+  getFileTreeDraftMenuItems,
   getFileTreeMenuItems,
+  parseFileTreeRoots,
+  serializeFileTreeRoots,
   type FileTreeNode,
 } from "./file-tree";
 
@@ -104,5 +112,97 @@ describe("file tree view helpers", () => {
       "/workspace/docs": true,
       "/workspace/docs/nested": false,
     });
+  });
+
+  it("wraps added folders as visible root groups", () => {
+    const nodes = buildFileTreeRootNodes([
+      {
+        path: "/workspace/blog",
+        nodes: [
+          {
+            kind: "file",
+            name: "post.md",
+            path: "/workspace/blog/post.md",
+            childrenCount: 0,
+            children: [],
+          },
+        ],
+      },
+      {
+        path: "/workspace/notes",
+        nodes: [],
+      },
+    ]);
+
+    expect(nodes.map((node) => [node.name, node.path, node.kind, node.isRoot])).toEqual([
+      ["blog", "/workspace/blog", "directory", true],
+      ["notes", "/workspace/notes", "directory", true],
+    ]);
+    expect(nodes[0].children.map((node) => node.name)).toEqual(["post.md"]);
+    expect(nodes[1].childrenCount).toBe(0);
+  });
+
+  it("deduplicates stored roots and chooses the containing root", () => {
+    expect(addFileTreeRoot(["/workspace/blog"], "/workspace/notes")).toEqual([
+      "/workspace/blog",
+      "/workspace/notes",
+    ]);
+    expect(addFileTreeRoot(["/workspace/blog"], "/workspace/blog")).toEqual([
+      "/workspace/blog",
+    ]);
+    expect(parseFileTreeRoots(JSON.stringify(["/workspace/blog", "", "/workspace/blog"]))).toEqual([
+      "/workspace/blog",
+    ]);
+    expect(parseFileTreeRoots(null, "/legacy/root")).toEqual(["/legacy/root"]);
+    expect(serializeFileTreeRoots(["/workspace/blog", "/workspace/notes"])).toBe(
+      JSON.stringify(["/workspace/blog", "/workspace/notes"]),
+    );
+    expect(
+      findFileTreeRootForPath(
+        ["/workspace", "/workspace/blog"],
+        "/workspace/blog/post.md",
+      ),
+    ).toBe("/workspace/blog");
+    expect(getActiveFileTreeRoot(["/workspace/blog", "/workspace/notes"], null)).toBe(
+      "/workspace/notes",
+    );
+  });
+
+  it("filters draft entries by title and detail", () => {
+    const drafts = [
+      { id: "prompt", title: "Prompt 学习笔记", detail: "draft / 今天", status: "draft" },
+      { id: "async", title: "Async Notes", detail: "WIP / 昨天", status: "WIP" },
+    ];
+
+    expect(filterFileTreeDrafts(drafts, "prompt").map((draft) => draft.id)).toEqual([
+      "prompt",
+    ]);
+    expect(filterFileTreeDrafts(drafts, "昨天").map((draft) => draft.id)).toEqual([
+      "async",
+    ]);
+    expect(filterFileTreeDrafts(drafts, "").map((draft) => draft.id)).toEqual([
+      "prompt",
+      "async",
+    ]);
+  });
+
+  it("returns draft context menu actions for publishing and deletion", () => {
+    expect(
+      getFileTreeDraftMenuItems({
+        id: "prompt",
+        title: "Prompt",
+        detail: "draft / 今天",
+        status: "draft",
+      }).map((item) => item.id),
+    ).toEqual(["open", "publish", "archive", "delete"]);
+
+    expect(
+      getFileTreeDraftMenuItems({
+        id: "published",
+        title: "Published",
+        detail: "published / 今天",
+        status: "published",
+      }).map((item) => item.id),
+    ).toEqual(["open", "mark-wip", "archive", "delete"]);
   });
 });

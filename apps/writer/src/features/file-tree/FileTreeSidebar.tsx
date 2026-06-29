@@ -20,24 +20,32 @@ import {
 } from "react";
 import { Tree, type NodeRendererProps, type TreeApi } from "react-arborist";
 import {
+  filterFileTreeDrafts,
   getArboristOpenState,
   getContextMenuPosition,
+  getFileTreeDraftMenuItems,
   getFileTreeMenuItems,
+  type FileTreeDraftAction,
+  type FileTreeDraftItem,
   type FileTreeMenuAction,
   type FileTreeNode,
 } from "./file-tree";
 
 interface FileTreeSidebarProps {
   activePath: string | null;
+  activeDocumentId: string | null;
+  drafts: FileTreeDraftItem[];
   expandedPaths: Set<string>;
   isAvailable: boolean;
   nodes: FileTreeNode[];
-  root: string | null;
+  roots: string[];
   status: string;
   treeRef: RefObject<TreeApi<FileTreeNode> | null>;
   onAction: (action: FileTreeMenuAction, node: FileTreeNode) => void;
+  onDraftAction: (action: FileTreeDraftAction, draft: FileTreeDraftItem) => void;
   onNewFile: () => void;
   onNewFolder: () => void;
+  onOpenDraft: (id: string) => void;
   onOpenFile: (path: string) => void;
   onOpenFolder: () => void;
   onRefresh: () => void;
@@ -45,25 +53,39 @@ interface FileTreeSidebarProps {
   onToggleDirectory: (path: string) => void;
 }
 
-interface ContextMenuState {
-  node: FileTreeNode;
-  position: {
-    x: number;
-    y: number;
-  };
-}
+type ContextMenuState =
+  | {
+      kind: "file";
+      node: FileTreeNode;
+      position: {
+        x: number;
+        y: number;
+      };
+    }
+  | {
+      kind: "draft";
+      draft: FileTreeDraftItem;
+      position: {
+        x: number;
+        y: number;
+      };
+    };
 
 export function FileTreeSidebar({
   activePath,
+  activeDocumentId,
+  drafts,
   expandedPaths,
   isAvailable,
   nodes,
-  root,
+  roots,
   status,
   treeRef,
   onAction,
+  onDraftAction,
   onNewFile,
   onNewFolder,
+  onOpenDraft,
   onOpenFile,
   onOpenFolder,
   onRefresh,
@@ -75,6 +97,10 @@ export function FileTreeSidebar({
   const initialOpenState = useMemo(
     () => getArboristOpenState(nodes, expandedPaths),
     [expandedPaths, nodes],
+  );
+  const visibleDrafts = useMemo(
+    () => filterFileTreeDrafts(drafts, searchTerm),
+    [drafts, searchTerm],
   );
 
   useEffect(() => {
@@ -97,6 +123,7 @@ export function FileTreeSidebar({
     event.preventDefault();
     event.stopPropagation();
     setContextMenu({
+      kind: "file",
       node,
       position: getContextMenuPosition(
         event,
@@ -105,18 +132,31 @@ export function FileTreeSidebar({
       ),
     });
   };
+  const openDraftContextMenu = (event: MouseEvent, draft: FileTreeDraftItem) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setContextMenu({
+      kind: "draft",
+      draft,
+      position: getContextMenuPosition(
+        event,
+        { width: 180, height: 146 },
+        { width: window.innerWidth, height: window.innerHeight },
+      ),
+    });
+  };
 
   return (
     <aside className="writer-sidebar" aria-label="文稿列表">
       <div className="writer-sidebar-header" data-tauri-drag-region>
-        <span>{root ? rootLabel(root) : "FILES"}</span>
+        <span>{roots.length > 0 ? `${roots.length} FOLDERS` : "FILES"}</span>
         <div className="writer-sidebar-actions">
           <button
             type="button"
             className="writer-sidebar-icon-button"
             aria-label="新建文件"
             title="新建文件"
-            disabled={!root || !isAvailable}
+            disabled={roots.length === 0 || !isAvailable}
             onClick={onNewFile}
           >
             <FilePlus size={15} aria-hidden="true" />
@@ -126,7 +166,7 @@ export function FileTreeSidebar({
             className="writer-sidebar-icon-button"
             aria-label="新建文件夹"
             title="新建文件夹"
-            disabled={!root || !isAvailable}
+            disabled={roots.length === 0 || !isAvailable}
             onClick={onNewFolder}
           >
             <FolderPlus size={15} aria-hidden="true" />
@@ -134,8 +174,8 @@ export function FileTreeSidebar({
           <button
             type="button"
             className="writer-sidebar-icon-button"
-            aria-label="打开文件夹"
-            title="打开文件夹"
+            aria-label="添加文件夹"
+            title="添加文件夹"
             onClick={onOpenFolder}
           >
             <FolderOpen size={15} aria-hidden="true" />
@@ -145,7 +185,7 @@ export function FileTreeSidebar({
             className="writer-sidebar-icon-button"
             aria-label="刷新文件树"
             title="刷新文件树"
-            disabled={!root || !isAvailable}
+            disabled={roots.length === 0 || !isAvailable}
             onClick={onRefresh}
           >
             <RefreshCw size={14} aria-hidden="true" />
@@ -155,10 +195,10 @@ export function FileTreeSidebar({
 
       {!isAvailable ? (
         <div className="file-tree-message">使用桌面版打开文件夹</div>
-      ) : !root ? (
+      ) : roots.length === 0 && drafts.length === 0 ? (
         <div className="file-tree-message">
           <button type="button" onClick={onOpenFolder}>
-            Open Folder
+            Add Folder
           </button>
         </div>
       ) : (
@@ -167,13 +207,39 @@ export function FileTreeSidebar({
             <input
               type="search"
               className="file-tree-search"
-              placeholder="筛选文件…"
-              aria-label="筛选文件"
+              placeholder="筛选文件或草稿…"
+              aria-label="筛选文件或草稿"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
             />
           </div>
-          {nodes.length === 0 ? (
+          {visibleDrafts.length > 0 ? (
+            <section className="file-tree-drafts" aria-label="Drafts">
+              <div className="file-tree-section-title">DRAFTS</div>
+              <div className="file-tree-draft-list">
+                {visibleDrafts.map((draft) => (
+                  <button
+                    key={draft.id}
+                    type="button"
+                    className={`tree-row is-file file-tree-draft-row${
+                      draft.id === activeDocumentId ? " is-active" : ""
+                    }`}
+                    style={{ "--tree-depth": 0 } as CSSProperties}
+                    aria-current={draft.id === activeDocumentId ? "page" : undefined}
+                    onClick={() => onOpenDraft(draft.id)}
+                    onContextMenu={(event) => openDraftContextMenu(event, draft)}
+                  >
+                    <FileCode2 className="tree-icon" size={15} aria-hidden="true" />
+                    <span className="tree-copy">
+                      <span className="tree-label">{draft.title}</span>
+                      <small>{draft.detail}</small>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          ) : null}
+          {roots.length === 0 ? null : nodes.length === 0 ? (
             <div className="file-tree-message">{status}</div>
           ) : (
             <div className="file-tree" aria-label="Files">
@@ -225,13 +291,23 @@ export function FileTreeSidebar({
         </>
       )}
 
-      {contextMenu ? (
+      {contextMenu?.kind === "file" ? (
         <FileTreeContextMenu
           node={contextMenu.node}
           position={contextMenu.position}
           onAction={(action, node) => {
             setContextMenu(null);
             onAction(action, node);
+          }}
+        />
+      ) : null}
+      {contextMenu?.kind === "draft" ? (
+        <FileTreeDraftContextMenu
+          draft={contextMenu.draft}
+          position={contextMenu.position}
+          onAction={(action, draft) => {
+            setContextMenu(null);
+            onDraftAction(action, draft);
           }}
         />
       ) : null}
@@ -272,7 +348,9 @@ const FileTreeNodeRow = memo(function FileTreeNodeRow({
 
     return (
       <div
-        className={`tree-row ${isDirectory ? "is-folder" : "is-file"} is-editing`}
+        className={`tree-row ${isDirectory ? "is-folder" : "is-file"}${
+          node.data.isRoot ? " is-root" : ""
+        } is-editing`}
         style={rowStyle}
       >
         {isDirectory ? (
@@ -301,7 +379,7 @@ const FileTreeNodeRow = memo(function FileTreeNodeRow({
       type="button"
       className={`tree-row ${isDirectory ? "is-folder" : "is-file"}${
         node.isSelected ? " is-active" : ""
-      }`}
+      }${node.data.isRoot ? " is-root" : ""}`}
       style={rowStyle}
       aria-current={node.isSelected ? "page" : undefined}
       aria-expanded={isDirectory ? node.isOpen : undefined}
@@ -323,7 +401,11 @@ const FileTreeNodeRow = memo(function FileTreeNodeRow({
         )
       ) : null}
       {isDirectory ? (
-        <Folder className="tree-icon" size={16} aria-hidden="true" />
+        node.data.isRoot ? (
+          <FolderOpen className="tree-icon" size={16} aria-hidden="true" />
+        ) : (
+          <Folder className="tree-icon" size={16} aria-hidden="true" />
+        )
       ) : (
         <FileCode2 className="tree-icon" size={15} aria-hidden="true" />
       )}
@@ -373,8 +455,40 @@ function FileTreeContextMenu({
   );
 }
 
-function rootLabel(root: string): string {
-  return root.split(/[\\/]/).filter(Boolean).at(-1) ?? root;
+function FileTreeDraftContextMenu({
+  draft,
+  position,
+  onAction,
+}: {
+  draft: FileTreeDraftItem;
+  position: {
+    x: number;
+    y: number;
+  };
+  onAction: (action: FileTreeDraftAction, draft: FileTreeDraftItem) => void;
+}) {
+  const items = getFileTreeDraftMenuItems(draft);
+
+  return (
+    <div
+      className="file-tree-context-menu file-tree-draft-context-menu"
+      style={{ left: position.x, top: position.y }}
+      role="menu"
+      aria-label={`${draft.title} actions`}
+      onClick={(event) => event.stopPropagation()}
+    >
+      {items.map((item) => (
+        <button
+          key={item.id}
+          type="button"
+          role="menuitem"
+          onClick={() => onAction(item.id, draft)}
+        >
+          {item.label}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 function getFileTreeRowStyle(style: CSSProperties, level: number): CSSProperties {
