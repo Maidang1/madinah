@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import type { WriterCommand } from "../../domain/engine";
+import { createFormattingCommands } from "../editor/formatting-commands";
+import { createDocumentCommands } from "../session/document-commands";
+import { createWorkbenchCommands } from "../workbench/workbench-commands";
 import {
+  CommandPalette,
   createCommandPaletteItems,
+  groupCommandPaletteItems,
   searchCommandPaletteItems,
 } from "./command-palette";
 
@@ -38,15 +45,128 @@ describe("command palette", () => {
     ]);
   });
 
-  it("keeps empty-query results grouped in command registration order", () => {
+  it("keeps command metadata on palette items", () => {
     const items = createCommandPaletteItems([
-      { id: "a", label: "A", group: "File", run: () => {} },
-      { id: "b", label: "B", group: "View", run: () => {} },
+      {
+        id: "document.save",
+        label: "Save",
+        group: "File",
+        shortcut: "⌘S",
+        scope: "file",
+        priority: 100,
+        run: () => {},
+      },
+    ]);
+
+    expect(items[0]).toMatchObject({
+      id: "document.save",
+      shortcut: "⌘S",
+      scope: "file",
+      priority: 100,
+    });
+  });
+
+  it("places high-priority commands first for an empty query", () => {
+    const items = createCommandPaletteItems([
+      { id: "low", label: "Low", group: "View", priority: 10, run: () => {} },
+      { id: "high", label: "High", group: "File", priority: 90, run: () => {} },
+      { id: "middle", label: "Middle", group: "Edit", priority: 50, run: () => {} },
     ]);
 
     expect(searchCommandPaletteItems(items, "").map((item) => item.id)).toEqual([
-      "a",
-      "b",
+      "high",
+      "middle",
+      "low",
     ]);
+  });
+
+  it("groups sorted command results by their display group", () => {
+    const items = createCommandPaletteItems([
+      { id: "document.save", label: "Save", group: "File", priority: 100, run: () => {} },
+      { id: "editor.format.bold", label: "Bold", group: "Edit", priority: 90, run: () => {} },
+      { id: "view.quickOpen", label: "Quick Open", group: "File", priority: 80, run: () => {} },
+      { id: "editor.format.italic", label: "Italic", group: "Edit", priority: 70, run: () => {} },
+    ]);
+
+    expect(
+      groupCommandPaletteItems(searchCommandPaletteItems(items, "")).map((group) => ({
+        group: group.group,
+        ids: group.items.map((item) => item.id),
+      })),
+    ).toEqual([
+      { group: "File", ids: ["document.save", "view.quickOpen"] },
+      { group: "Edit", ids: ["editor.format.bold", "editor.format.italic"] },
+    ]);
+  });
+
+  it("renders grouped results with shortcut hints", () => {
+    const commands: WriterCommand[] = [
+      {
+        id: "document.save",
+        label: "Save",
+        group: "File",
+        shortcut: "⌘S",
+        priority: 100,
+        run: () => {},
+      },
+      {
+        id: "view.commandPalette",
+        label: "Command Palette",
+        group: "View",
+        shortcut: "⇧⌘P",
+        priority: 90,
+        run: () => {},
+      },
+    ];
+
+    const html = renderToStaticMarkup(
+      createElement(CommandPalette, {
+        commands,
+        query: "",
+        onQueryChange: () => {},
+        onClose: () => {},
+        onRun: () => {},
+      }),
+    );
+
+    expect(html).toContain("command-palette-group-label");
+    expect(html).toContain("File");
+    expect(html).toContain("View");
+    expect(html).toContain("command-palette-shortcut");
+    expect(html).toContain("⌘S");
+    expect(html).toContain("⇧⌘P");
+  });
+
+  it("adds shortcut metadata to common built-in commands", () => {
+    const commands = [
+      ...createDocumentCommands({
+        newDocument: () => {},
+        open: () => {},
+        save: () => {},
+        saveAs: () => {},
+        revert: () => {},
+        close: () => {},
+      }),
+      ...createWorkbenchCommands({
+        dispatch: () => {},
+        openDocumentSearch: () => {},
+        openCommandPalette: () => {},
+        openQuickOpen: () => {},
+      }),
+      ...createFormattingCommands(),
+    ];
+    const shortcutsById = Object.fromEntries(
+      createCommandPaletteItems(commands).map((item) => [item.id, item.shortcut]),
+    );
+
+    expect(shortcutsById).toMatchObject({
+      "document.save": "⌘S",
+      "view.quickOpen": "⌘P",
+      "view.commandPalette": "⇧⌘P",
+      "document.search": "⌘F",
+      "editor.format.bold": "⌃B",
+      "editor.format.italic": "⌘I",
+      "editor.format.link": "⌘K",
+    });
   });
 });

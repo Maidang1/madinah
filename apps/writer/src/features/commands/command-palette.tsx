@@ -7,8 +7,16 @@ export interface CommandPaletteItem {
   label: string;
   group: string;
   keywords: string[];
+  shortcut: string;
+  scope: string;
+  priority: number;
   command: WriterCommand;
   order: number;
+}
+
+export interface CommandPaletteGroup {
+  group: string;
+  items: CommandPaletteItem[];
 }
 
 export function createCommandPaletteItems(
@@ -19,6 +27,9 @@ export function createCommandPaletteItems(
     label: command.label,
     group: command.group ?? "Commands",
     keywords: command.keywords ?? [],
+    shortcut: command.shortcut ?? "",
+    scope: command.scope ?? "",
+    priority: command.priority ?? 0,
     command,
     order,
   }));
@@ -29,7 +40,7 @@ export function searchCommandPaletteItems(
   query: string,
 ): CommandPaletteItem[] {
   const normalized = query.trim().toLowerCase();
-  if (!normalized) return [...items].sort((a, b) => a.order - b.order);
+  if (!normalized) return [...items].sort(compareCommandPaletteItems);
 
   return items
     .map((item) => ({
@@ -37,8 +48,31 @@ export function searchCommandPaletteItems(
       score: getCommandPaletteScore(item, normalized),
     }))
     .filter((entry) => entry.score >= 0)
-    .sort((a, b) => a.score - b.score || a.item.order - b.item.order)
+    .sort(
+      (a, b) => a.score - b.score || compareCommandPaletteItems(a.item, b.item),
+    )
     .map((entry) => entry.item);
+}
+
+export function groupCommandPaletteItems(
+  items: CommandPaletteItem[],
+): CommandPaletteGroup[] {
+  const groups: CommandPaletteGroup[] = [];
+  const groupsByName = new Map<string, CommandPaletteGroup>();
+
+  for (const item of items) {
+    const group = groupsByName.get(item.group);
+    if (group) {
+      group.items.push(item);
+      continue;
+    }
+
+    const nextGroup = { group: item.group, items: [item] };
+    groupsByName.set(item.group, nextGroup);
+    groups.push(nextGroup);
+  }
+
+  return groups;
 }
 
 interface CommandPaletteProps {
@@ -63,6 +97,14 @@ export function CommandPalette({
     () => searchCommandPaletteItems(items, query).slice(0, 12),
     [items, query],
   );
+  const groupedResults = useMemo(
+    () => groupCommandPaletteItems(results),
+    [results],
+  );
+  const displayResults = useMemo(
+    () => groupedResults.flatMap((group) => group.items),
+    [groupedResults],
+  );
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -70,9 +112,9 @@ export function CommandPalette({
 
   useEffect(() => {
     setSelectedIndex((current) =>
-      results.length === 0 ? 0 : Math.min(current, results.length - 1),
+      displayResults.length === 0 ? 0 : Math.min(current, displayResults.length - 1),
     );
-  }, [results.length]);
+  }, [displayResults.length]);
 
   return (
     <div className="command-palette-backdrop" role="presentation" onMouseDown={onClose}>
@@ -101,17 +143,18 @@ export function CommandPalette({
 
               if (event.key === "ArrowDown") {
                 event.preventDefault();
-                if (results.length > 0) {
-                  setSelectedIndex((current) => (current + 1) % results.length);
+                if (displayResults.length > 0) {
+                  setSelectedIndex((current) => (current + 1) % displayResults.length);
                 }
                 return;
               }
 
               if (event.key === "ArrowUp") {
                 event.preventDefault();
-                if (results.length > 0) {
+                if (displayResults.length > 0) {
                   setSelectedIndex(
-                    (current) => (current - 1 + results.length) % results.length,
+                    (current) =>
+                      (current - 1 + displayResults.length) % displayResults.length,
                   );
                 }
                 return;
@@ -119,7 +162,7 @@ export function CommandPalette({
 
               if (event.key === "Enter") {
                 event.preventDefault();
-                const item = results[selectedIndex];
+                const item = displayResults[selectedIndex];
                 if (item) onRun(item.command);
               }
             }}
@@ -129,21 +172,40 @@ export function CommandPalette({
         </div>
         <div className="command-palette-results" role="listbox">
           {results.length > 0 ? (
-            results.map((item, index) => (
-              <button
-                key={item.id}
-                type="button"
-                className={index === selectedIndex ? "is-selected" : undefined}
-                onMouseEnter={() => setSelectedIndex(index)}
-                onClick={() => onRun(item.command)}
-                role="option"
-                aria-selected={index === selectedIndex}
+            groupedResults.map((group, groupIndex) => (
+              <div
+                key={`${group.group}-${groupIndex}`}
+                className="command-palette-group"
+                role="group"
+                aria-label={group.group}
               >
-                <span>
-                  <strong>{item.label}</strong>
-                  <small>{item.group}</small>
-                </span>
-              </button>
+                <div className="command-palette-group-label">{group.group}</div>
+                {group.items.map((item) => {
+                  const index = displayResults.indexOf(item);
+
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={index === selectedIndex ? "is-selected" : undefined}
+                      onMouseEnter={() => setSelectedIndex(index)}
+                      onClick={() => onRun(item.command)}
+                      role="option"
+                      aria-selected={index === selectedIndex}
+                    >
+                      <span>
+                        <strong>{item.label}</strong>
+                        <small>{item.id}</small>
+                      </span>
+                      {item.shortcut ? (
+                        <kbd className="command-palette-shortcut">
+                          {item.shortcut}
+                        </kbd>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
             ))
           ) : (
             <div className="command-palette-empty">No commands</div>
@@ -152,6 +214,13 @@ export function CommandPalette({
       </div>
     </div>
   );
+}
+
+function compareCommandPaletteItems(
+  a: CommandPaletteItem,
+  b: CommandPaletteItem,
+): number {
+  return b.priority - a.priority || a.order - b.order;
 }
 
 function getCommandPaletteScore(

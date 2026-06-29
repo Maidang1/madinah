@@ -347,8 +347,10 @@ function createInsertMarkdownCommand(command: InsertMarkdownTemplate): WriterCom
   return {
     id: toInsertCommandId(command.id),
     label: command.label,
-    group: command.group ?? "Insert",
-    keywords: command.keywords,
+    group: "Insert",
+    keywords: [command.group ?? "Insert", command.hint, ...(command.keywords ?? [])],
+    scope: "insert",
+    priority: 10,
     run: ({ editor }) => {
       if (command.markdown) {
         editor?.insertMarkdown?.(command.markdown);

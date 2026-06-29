@@ -1478,8 +1478,33 @@ textarea {
   padding: 6px;
 }
 
+.command-palette-group {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.command-palette-group + .command-palette-group {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--writer-rule);
+}
+
+.command-palette-group-label {
+  padding: 5px 9px 3px;
+  color: var(--writer-muted);
+  font-size: 10px;
+  font-weight: 760;
+  letter-spacing: 0;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
 .command-palette-results button {
   display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
   min-width: 0;
   padding: 10px;
   border: 0;
@@ -1519,6 +1544,22 @@ textarea {
   color: var(--writer-muted);
   font-size: 11px;
   line-height: 1.35;
+}
+
+.command-palette-shortcut {
+  display: inline-flex;
+  min-width: 28px;
+  justify-content: center;
+  padding: 3px 6px;
+  border: 1px solid var(--writer-rule);
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--writer-text) 5%, transparent);
+  color: var(--writer-muted);
+  font-family: var(--writer-ui-font);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.1;
+  white-space: nowrap;
 }
 
 .command-palette-empty {

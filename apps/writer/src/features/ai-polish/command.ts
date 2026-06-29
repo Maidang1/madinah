@@ -30,6 +30,10 @@ export function createAiPolishCommand(
   return {
     id: AI_POLISH_COMMAND_ID,
     label: "AI Polish",
+    group: "AI",
+    keywords: ["rewrite", "polish", "improve"],
+    scope: "ai",
+    priority: 70,
     run: async ({ document, editor, workspace }) => {
       const target = editor as MarkdownEditorLike | null;
       const content = target?.getMarkdown?.() ?? document?.body ?? "";

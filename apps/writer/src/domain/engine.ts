@@ -36,8 +36,19 @@ export interface WriterCommand {
   label: string;
   group?: string;
   keywords?: string[];
+  shortcut?: string;
+  scope?: WriterCommandScope;
+  priority?: number;
   run: (ctx: WriterCommandContext) => void | Promise<void>;
 }
+
+export type WriterCommandScope =
+  | "file"
+  | "edit"
+  | "view"
+  | "insert"
+  | "ai"
+  | (string & {});
 
 export interface EngineProfile {
   id: string;
