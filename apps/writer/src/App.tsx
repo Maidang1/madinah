@@ -5,6 +5,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useReducer,
   useRef,
   useState,
 } from "react";
@@ -15,7 +16,6 @@ import {
   ChevronRight,
   ChevronUp,
   CircleAlert,
-  Clock3,
   FileCheck2,
   FileClock,
   FileCode2,
@@ -34,8 +34,6 @@ import type { TreeApi } from "react-arborist";
 import type { AcpAgentRuntimeConfig } from "./domain/ai-polish";
 import type { WriterEditor } from "./domain/engine";
 import {
-  type DocumentStatus,
-  type DocumentMetadataPatch,
   type MarkdownDocument,
 } from "./domain/document";
 import { getWriterKeyboardShortcutAction } from "./features/commands/keyboard-shortcuts";
@@ -103,25 +101,25 @@ import {
   getAdjacentMatchIndex,
   type DocumentSearchMatch,
 } from "./features/search/in-document-search";
-import { DocumentOutline } from "./features/outline/DocumentOutline";
+import { DocumentInspector } from "./features/inspector/DocumentInspector";
 import { createDocumentCommands } from "./features/session/document-commands";
 import { useDocumentSession } from "./features/session/useDocumentSession";
+import { createWorkbenchCommands } from "./features/workbench/workbench-commands";
 import {
+  getInitialWorkbenchState,
   getSavePresentation,
+  persistWorkbenchState,
   type SavePresentation,
   type SavePresentationIcon,
+  workbenchStateReducer,
 } from "./features/workbench/workbench-state";
 import {
-  DOCUMENT_STATUSES,
   buildFileTreeDraftItems,
   buildSidebarTree,
   collectFolderIds,
-  formatMetric,
-  formatVersionTimestamp,
   formatWordCount,
   getDocumentDisplayTitle,
   getDocumentMetrics,
-  getWritingMetricItems,
   mergeActiveDocument,
   type SidebarTreeNode,
 } from "./features/workbench/document-summary";
@@ -233,8 +231,19 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
   const fileTreeRef = useRef<TreeApi<FileTreeNode> | null>(null);
   const activeEditorRef = useRef<WriterEditor | null>(null);
   const showsFileDetails = true;
-  const [isSidebarVisible, setIsSidebarVisible] = useState(true);
-  const [isInspectorVisible, setIsInspectorVisible] = useState(true);
+  const [workbenchState, dispatchWorkbenchState] = useReducer(
+    workbenchStateReducer,
+    undefined,
+    () => getInitialWorkbenchState(window.localStorage),
+  );
+  const {
+    viewMode,
+    inspectorTab,
+    isSidebarVisible,
+    isInspectorVisible,
+    isFocusMode,
+    isTypewriterMode,
+  } = workbenchState;
   const [isQuickOpenOpen, setIsQuickOpenOpen] = useState(false);
   const [quickOpenQuery, setQuickOpenQuery] = useState("");
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
@@ -242,8 +251,6 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
   const [isDocumentSearchOpen, setIsDocumentSearchOpen] = useState(false);
   const [documentSearchQuery, setDocumentSearchQuery] = useState("");
   const [activeSearchIndex, setActiveSearchIndex] = useState(-1);
-  const [isFocusMode, setIsFocusMode] = useState(false);
-  const [isTypewriterMode, setIsTypewriterMode] = useState(false);
   const [startedEmptyDocumentId, setStartedEmptyDocumentId] = useState<
     string | null
   >(null);
@@ -350,65 +357,14 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
     [acpSettings, platform.aiPolish, setStatus],
   );
   const formattingCommands = useMemo(() => createFormattingCommands(), []);
-  const viewCommands = useMemo(
-    () => [
-      {
-        id: "document.search",
-        label: "Find in Document",
-        group: "Navigate",
-        keywords: ["search", "find", "current file"],
-        run: () => setIsDocumentSearchOpen(true),
-      },
-      {
-        id: "view.commandPalette",
-        label: "Command Palette",
-        group: "View",
-        keywords: ["commands"],
-        run: () => setIsCommandPaletteOpen(true),
-      },
-      {
-        id: "view.quickOpen",
-        label: "Quick Open",
-        group: "Navigate",
-        keywords: ["files", "documents"],
-        run: () => setIsQuickOpenOpen(true),
-      },
-      {
-        id: "view.toggleSidebar",
-        label: "Toggle Sidebar",
-        group: "View",
-        keywords: ["files"],
-        run: () => setIsSidebarVisible((current) => !current),
-      },
-      {
-        id: "view.toggleInspector",
-        label: "Toggle Inspector",
-        group: "View",
-        keywords: ["properties", "outline"],
-        run: () => setIsInspectorVisible((current) => !current),
-      },
-      {
-        id: "view.focusMode",
-        label: "Focus Mode",
-        group: "View",
-        keywords: ["zen"],
-        run: () => setIsFocusMode((current) => !current),
-      },
-      {
-        id: "view.typewriterMode",
-        label: "Typewriter Mode",
-        group: "View",
-        keywords: ["writing"],
-        run: () => setIsTypewriterMode((current) => !current),
-      },
-      {
-        id: "go.outline",
-        label: "Show Outline",
-        group: "Navigate",
-        keywords: ["toc", "headings"],
-        run: () => setIsInspectorVisible(true),
-      },
-    ],
+  const workbenchCommands = useMemo(
+    () =>
+      createWorkbenchCommands({
+        dispatch: dispatchWorkbenchState,
+        openDocumentSearch: () => setIsDocumentSearchOpen(true),
+        openCommandPalette: () => setIsCommandPaletteOpen(true),
+        openQuickOpen: () => setIsQuickOpenOpen(true),
+      }),
     [],
   );
   const commandRegistry = useMemo(
@@ -418,7 +374,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
           ...(engine.profile.commands ?? []),
           ...formattingCommands,
           aiPolishCommand,
-          ...viewCommands,
+          ...workbenchCommands,
           ...createDocumentCommands({
             newDocument: createNewDocument,
             open: openFromDialog,
@@ -439,7 +395,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
       revert,
       saveAs,
       saveNow,
-      viewCommands,
+      workbenchCommands,
     ],
   );
   const saveAcpSettings = useCallback(
@@ -850,6 +806,10 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
   }, [theme]);
 
   useEffect(() => {
+    persistWorkbenchState({ viewMode, inspectorTab }, window.localStorage);
+  }, [viewMode, inspectorTab]);
+
+  useEffect(() => {
     setVersions(historyTargetId ? historyStore.list(historyTargetId) : []);
   }, [historyStore, historyTargetId]);
 
@@ -967,6 +927,8 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
         ]
           .filter(Boolean)
           .join(" ")}
+        data-view-mode={viewMode}
+        data-inspector-tab={inspectorTab}
         aria-label="Madinah Writer"
       >
         <header
@@ -981,7 +943,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
               data-tauri-no-drag
               aria-label={isSidebarVisible ? "隐藏侧边栏" : "显示侧边栏"}
               title={isSidebarVisible ? "隐藏侧边栏" : "显示侧边栏"}
-              onClick={() => setIsSidebarVisible((current) => !current)}
+              onClick={() => dispatchWorkbenchState({ type: "toggleSidebar" })}
             >
               <PanelLeft size={16} aria-hidden="true" />
             </button>
@@ -1043,7 +1005,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
               data-tauri-no-drag
               aria-label={isInspectorVisible ? "隐藏属性面板" : "显示属性面板"}
               title={isInspectorVisible ? "隐藏属性面板" : "显示属性面板"}
-              onClick={() => setIsInspectorVisible((current) => !current)}
+              onClick={() => dispatchWorkbenchState({ type: "toggleInspector" })}
             >
               <PanelRight size={16} aria-hidden="true" />
             </button>
@@ -1176,6 +1138,10 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
               document={session.document}
               versions={versions}
               profileName={engine.profile.name}
+              activeTab={inspectorTab}
+              onTabChange={(tab) =>
+                dispatchWorkbenchState({ type: "showInspectorTab", tab })
+              }
               onMetadataChange={changeMetadata}
               onOutlineJump={jumpToOutlineItem}
               onSaveVersion={() => saveCurrentVersion()}
@@ -1471,158 +1437,6 @@ function DocumentSearchBar({
         <X size={14} aria-hidden="true" />
       </button>
     </div>
-  );
-}
-
-function DocumentInspector({
-  document,
-  versions,
-  profileName,
-  onMetadataChange,
-  onOutlineJump,
-  onSaveVersion,
-  onRestoreVersion,
-}: {
-  document: MarkdownDocument;
-  versions: DocumentVersion[];
-  profileName: string;
-  onMetadataChange: (patch: DocumentMetadataPatch) => void;
-  onOutlineJump: (item: TocItem) => void;
-  onSaveVersion: () => void;
-  onRestoreVersion: (version: DocumentVersion) => void;
-}) {
-  const [tagsInput, setTagsInput] = useState(document.tags.join(", "));
-  const metrics = useMemo(
-    () => getDocumentMetrics(document.body),
-    [document.body],
-  );
-  const writingMetricItems = useMemo(
-    () => getWritingMetricItems(metrics),
-    [metrics],
-  );
-
-  useEffect(() => {
-    setTagsInput(document.tags.join(", "));
-  }, [document.id, document.tags]);
-
-  return (
-    <aside className="writer-inspector" aria-label="Document properties">
-      <section className="inspector-section">
-        <div className="inspector-section-header">
-          <span>Properties</span>
-        </div>
-        <label className="inspector-field">
-          <span>Title</span>
-          <input
-            value={document.title}
-            onChange={(event) =>
-              onMetadataChange({ title: event.currentTarget.value })
-            }
-          />
-        </label>
-        <label className="inspector-field">
-          <span>Description</span>
-          <textarea
-            rows={3}
-            value={document.description}
-            onChange={(event) =>
-              onMetadataChange({ description: event.currentTarget.value })
-            }
-          />
-        </label>
-        <label className="inspector-field">
-          <span>Tags</span>
-          <input
-            value={tagsInput}
-            onChange={(event) => setTagsInput(event.currentTarget.value)}
-            onBlur={() => onMetadataChange({ tags: tagsInput })}
-          />
-        </label>
-        <div className="inspector-grid">
-          <label className="inspector-field">
-            <span>Status</span>
-            <select
-              value={document.status}
-              onChange={(event) =>
-                onMetadataChange({
-                  status: event.currentTarget.value as DocumentStatus,
-                })
-              }
-            >
-              {DOCUMENT_STATUSES.map((status) => (
-                <option key={status} value={status}>
-                  {status}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="inspector-field">
-            <span>Author</span>
-            <input
-              value={document.author}
-              onChange={(event) =>
-                onMetadataChange({ author: event.currentTarget.value })
-              }
-            />
-          </label>
-        </div>
-        <label className="inspector-field">
-          <span>Publish date</span>
-          <input
-            value={document.pubDate}
-            onChange={(event) =>
-              onMetadataChange({ pubDate: event.currentTarget.value })
-            }
-          />
-        </label>
-      </section>
-
-      <DocumentOutline source={document.body} onJump={onOutlineJump} />
-
-      <section className="inspector-section">
-        <div className="inspector-section-header">
-          <span>Writing</span>
-          <small>{profileName}</small>
-        </div>
-        <div className="inspector-stat-grid" aria-label="Writing metrics">
-          {writingMetricItems.map((item) => (
-            <div className="inspector-stat-card" key={item.id}>
-              <span>{item.label}</span>
-              <strong>{formatMetric(item.value)}</strong>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="inspector-section">
-        <div className="inspector-section-header">
-          <span>History</span>
-          <button type="button" onClick={onSaveVersion}>
-            Save version
-          </button>
-        </div>
-        {versions.length > 0 ? (
-          <div key={document.id} className="version-list">
-            {versions.map((version) => (
-              <div className="version-row" key={version.id}>
-                <Clock3 size={14} aria-hidden="true" />
-                <span>
-                  <strong>{version.title || "Untitled"}</strong>
-                  <small>
-                    {formatVersionTimestamp(version.createdAt)} / {version.reason}
-                  </small>
-                </span>
-                <button type="button" onClick={() => onRestoreVersion(version)}>
-                  Restore
-                </button>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="version-empty">No versions saved</div>
-        )}
-      </section>
-    </aside>
   );
 }
 

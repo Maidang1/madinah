@@ -144,6 +144,10 @@ export interface SavePresentation {
 - view mode 和 inspector tab 通过 localStorage 持久化。
 - 现有快捷键保持稳定。
 
+**架构决策：**
+- 当前工作台状态采用 reducer + command registry 管理。Reducer 负责 `viewMode`、`inspectorTab`、sidebar/inspector visible、Focus Mode、Typewriter Mode；Command Registry 负责 Command Palette、快捷键、macOS 菜单触发同一批稳定 command id。
+- F05 接入 Preview、F11 接入 Source Mode 后，把 `viewMode` 升级成更明确的有限状态机，统一表达 `write`、`preview`、`source` 及其互斥关系。
+
 **涉及文件：**
 - 新建：`src/features/workbench/workbench-state.ts`
 - 新建：`src/features/workbench/workbench-commands.ts`

@@ -654,9 +654,9 @@ textarea {
 .writer-inspector {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
   overflow: auto;
-  padding: 16px 14px 28px;
+  padding: 12px 12px 28px;
   border-left: 1px solid var(--writer-rule);
   background: var(--writer-window-bg);
   font-family: var(--writer-ui-font);
@@ -666,6 +666,65 @@ textarea {
 .writer-inspector::-webkit-scrollbar {
   width: 0;
   height: 0;
+}
+
+.inspector-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  min-width: 0;
+  padding: 3px;
+  border: 1px solid var(--writer-rule);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--writer-control-bg) 60%, transparent);
+}
+
+.inspector-tab {
+  display: inline-flex;
+  min-width: 0;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 0 3px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--writer-muted);
+  cursor: pointer;
+  font-family: var(--writer-ui-font);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.inspector-tab span {
+  min-width: 0;
+}
+
+.inspector-tab:hover {
+  background: var(--writer-control-hover);
+  color: var(--writer-text);
+}
+
+.inspector-tab.is-active {
+  background: var(--writer-sidebar-active);
+  color: var(--writer-text);
+  box-shadow: inset 0 0 0 1px var(--writer-rule);
+}
+
+.inspector-tab:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--writer-focus) 48%, transparent);
+  outline-offset: 2px;
+}
+
+.inspector-tab-panel {
+  display: grid;
+  min-width: 0;
+  gap: 12px;
 }
 
 .inspector-section {
@@ -1941,6 +2000,7 @@ textarea {
   .writer-toolbar-button,
   .tree-row,
   .writer-sidebar-icon-button,
+  .inspector-tab,
   .inspector-section-header button,
   .version-row button {
     animation: none;

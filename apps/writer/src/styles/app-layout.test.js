@@ -85,6 +85,9 @@ describe("macOS document window layout", () => {
     expect(css).toMatch(/\.file-tree-draft-row \.tree-copy\s*\{[^}]*display: flex;/);
     expect(css).toMatch(/\.file-tree-draft-row \.tree-copy\s*\{[^}]*align-items: baseline;/);
     expect(css).toMatch(/\.file-tree-draft-row small\s*\{[^}]*white-space: nowrap;/);
+    expect(css).toMatch(/\.inspector-tabs\s*\{[^}]*grid-template-columns: repeat\(4, minmax\(0, 1fr\)\);/);
+    expect(css).toMatch(/\.inspector-tab\s*\{[^}]*white-space: nowrap;/);
+    expect(css).toMatch(/\.inspector-tab-panel\s*\{[^}]*min-width: 0;/);
     expect(css).toMatch(/\.inspector-stat-grid\s*\{[^}]*grid-template-columns: 1fr;/);
     expect(css).not.toMatch(/\.magic-control-frame/);
     expect(css).not.toMatch(/\.magic-button/);
