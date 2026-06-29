@@ -8,6 +8,7 @@ import {
   getActiveFileTreeRoot,
   getArboristOpenState,
   getContextMenuPosition,
+  getFileTreeFileMarker,
   getFileTreeStatus,
   getFileTreeDraftMenuItems,
   getFileTreeMenuItems,
@@ -250,5 +251,39 @@ describe("file tree view helpers", () => {
         status: "published",
       }).map((item) => item.id),
     ).toEqual(["open", "mark-wip", "archive", "delete"]);
+  });
+
+  it("marks the active file as edited or draft-saved without changing tree data", () => {
+    expect(
+      getFileTreeFileMarker("/workspace/docs/intro.md", {
+        filePath: "/workspace/docs/intro.md",
+        isDirty: true,
+        draftStatus: "idle",
+      }),
+    ).toBe("edited");
+
+    expect(
+      getFileTreeFileMarker("/workspace/docs/intro.md", {
+        filePath: "/workspace/docs/intro.md",
+        isDirty: true,
+        draftStatus: "saved",
+      }),
+    ).toBe("draft-saved");
+
+    expect(
+      getFileTreeFileMarker("/workspace/docs/intro.md", {
+        filePath: "/workspace/docs/other.md",
+        isDirty: true,
+        draftStatus: "saved",
+      }),
+    ).toBeNull();
+
+    expect(
+      getFileTreeFileMarker("/workspace/docs/intro.md", {
+        filePath: null,
+        isDirty: true,
+        draftStatus: "saved",
+      }),
+    ).toBeNull();
   });
 });

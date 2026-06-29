@@ -1043,6 +1043,11 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
           {isSidebarVisible ? (
             platform.fileTreeStore.isAvailable ? (
               <FileTreeSidebar
+                activeFileState={{
+                  filePath: session.filePath,
+                  isDirty: session.isDirty,
+                  draftStatus: session.draftStatus,
+                }}
                 activePath={session.filePath}
                 activeDocumentId={session.filePath ? null : session.document?.id ?? null}
                 drafts={sidebarDrafts}

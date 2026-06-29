@@ -16,6 +16,14 @@ export interface FileTreeDraftItem {
   status: string;
 }
 
+export type FileTreeFileMarker = "edited" | "draft-saved";
+
+export interface FileTreeActiveFileState {
+  filePath: string | null;
+  isDirty: boolean;
+  draftStatus: "idle" | "saving" | "saved" | "error";
+}
+
 export interface VisibleFileTreeNode extends FileTreeNode {
   depth: number;
   isActive: boolean;
@@ -178,6 +186,16 @@ export function getFileTreeStatus(
   }
 
   return "Ready";
+}
+
+export function getFileTreeFileMarker(
+  nodePath: string,
+  activeFile: FileTreeActiveFileState,
+): FileTreeFileMarker | null {
+  if (!activeFile.filePath || activeFile.filePath !== nodePath) return null;
+  if (!activeFile.isDirty) return null;
+  if (activeFile.draftStatus === "saved") return "draft-saved";
+  return "edited";
 }
 
 export function getContextMenuPosition(

@@ -1115,8 +1115,13 @@ textarea {
 }
 
 .tree-row.is-file {
-  grid-template-columns: 22px minmax(0, 1fr);
+  grid-template-columns: 22px minmax(0, 1fr) 14px;
   padding-left: calc(14px + var(--tree-depth) * 16px);
+}
+
+.tree-row.is-file.is-editing,
+.tree-row.is-file.file-tree-draft-row {
+  grid-template-columns: 22px minmax(0, 1fr);
 }
 
 .tree-chevron,
@@ -1149,6 +1154,22 @@ textarea {
   line-height: 1.1;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.file-tree-file-marker {
+  width: 8px;
+  height: 8px;
+  justify-self: end;
+  border-radius: 999px;
+  box-shadow: 0 0 0 2px var(--writer-sidebar-bg);
+}
+
+.file-tree-file-marker.is-edited {
+  background: var(--writer-save-edited);
+}
+
+.file-tree-file-marker.is-draft-saved {
+  background: var(--writer-save-draft);
 }
 
 .file-tree.is-compact .tree-row.is-file {
