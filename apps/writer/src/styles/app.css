@@ -1284,7 +1284,7 @@ textarea {
   position: fixed;
   z-index: 45;
   display: grid;
-  width: 180px;
+  width: 200px;
   padding: 5px;
   border: 1px solid var(--writer-rule-strong);
   border-radius: 7px;
@@ -1322,6 +1322,12 @@ textarea {
 
 .editor-context-menu button:disabled:hover {
   background: transparent;
+}
+
+.editor-context-menu-separator {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--writer-rule);
 }
 
 .editor-selection-toolbar {

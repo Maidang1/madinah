@@ -13,7 +13,11 @@ import type { WorkspaceInfo, WriterEditor } from "../../domain/engine";
 import { EMPTY_BLOCK_MARKER } from "../engine/builtinProfiles";
 import type { CommandRegistry } from "../engine/CommandRegistry";
 import {
+  getEditorContextMenuSize,
   getEditorContextMenuPosition,
+  isEditorContextMenuSeparator,
+  resolveEditorContextMenuItems,
+  type EditorContextMenuCommandItem,
   type EditorContextMenuItem,
 } from "./editor-context-menu";
 import {
@@ -80,7 +84,7 @@ export function MarkdownEditor({
   }, []);
 
   const runContextMenuItem = useCallback(
-    async (item: EditorContextMenuItem) => {
+    async (item: EditorContextMenuCommandItem) => {
       if (item.disabled) return;
 
       closeContextMenu();
@@ -229,15 +233,20 @@ export function MarkdownEditor({
       event.preventDefault();
       event.stopPropagation();
       closeSelectionToolbar();
+      const items = resolveEditorContextMenuItems(
+        contextMenuItems,
+        Boolean(getSelectionRangeInside(shellRef.current, window.getSelection())),
+      );
       setContextMenu({
         position: getEditorContextMenuPosition(
           event,
-          { width: 180, height: contextMenuItems.length * 34 + 10 },
+          getEditorContextMenuSize(items),
           { width: window.innerWidth, height: window.innerHeight },
         ),
+        items,
       });
     },
-    [closeSelectionToolbar, contextMenuItems.length],
+    [closeSelectionToolbar, contextMenuItems],
   );
 
   return (
@@ -275,7 +284,7 @@ export function MarkdownEditor({
       />
       {contextMenu ? (
         <EditorContextMenu
-          items={contextMenuItems}
+          items={contextMenu.items}
           position={contextMenu.position}
           onRun={(item) => void runContextMenuItem(item)}
         />
@@ -375,6 +384,7 @@ interface EditorContextMenuState {
     x: number;
     y: number;
   };
+  items: EditorContextMenuItem[];
 }
 
 interface EditorSelectionToolbarState {
@@ -391,7 +401,7 @@ function EditorContextMenu({
     x: number;
     y: number;
   };
-  onRun: (item: EditorContextMenuItem) => void;
+  onRun: (item: EditorContextMenuCommandItem) => void;
 }) {
   return (
     <div
@@ -402,17 +412,25 @@ function EditorContextMenu({
       onClick={(event) => event.stopPropagation()}
       onMouseDown={(event) => event.preventDefault()}
     >
-      {items.map((item) => (
-        <button
-          key={item.id}
-          type="button"
-          role="menuitem"
-          disabled={item.disabled}
-          onClick={() => onRun(item)}
-        >
-          {item.label}
-        </button>
-      ))}
+      {items.map((item) =>
+        isEditorContextMenuSeparator(item) ? (
+          <div
+            key={item.id}
+            className="editor-context-menu-separator"
+            role="separator"
+          />
+        ) : (
+          <button
+            key={item.id}
+            type="button"
+            role="menuitem"
+            disabled={item.disabled}
+            onClick={() => onRun(item)}
+          >
+            {item.label}
+          </button>
+        ),
+      )}
     </div>
   );
 }

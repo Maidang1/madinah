@@ -1132,19 +1132,32 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
                             commandId: AI_POLISH_COMMAND_ID,
                           },
                           {
+                            id: "format-separator",
+                            type: "separator",
+                          },
+                          {
                             id: "bold",
                             label: "Bold",
                             commandId: "editor.format.bold",
+                            requiresSelection: true,
                           },
                           {
                             id: "italic",
                             label: "Italic",
                             commandId: "editor.format.italic",
+                            requiresSelection: true,
                           },
                           {
                             id: "link",
                             label: "Link",
                             commandId: "editor.format.link",
+                            requiresSelection: true,
+                          },
+                          {
+                            id: "inline-code",
+                            label: "Inline Code",
+                            commandId: "editor.format.inlineCode",
+                            requiresSelection: true,
                           },
                         ]}
                         onEditorReady={(editor) => {

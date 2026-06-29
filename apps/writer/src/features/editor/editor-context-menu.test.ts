@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { getEditorContextMenuPosition } from "./editor-context-menu";
+import {
+  getEditorContextMenuPosition,
+  getEditorContextMenuSize,
+  resolveEditorContextMenuItems,
+} from "./editor-context-menu";
 
 describe("editor context menu helpers", () => {
   it("keeps the menu inside the viewport", () => {
@@ -20,5 +24,43 @@ describe("editor context menu helpers", () => {
         { width: 800, height: 600 },
       ),
     ).toEqual({ x: 8, y: 8 });
+  });
+
+  it("uses a stable 200px menu width with separators", () => {
+    expect(
+      getEditorContextMenuSize([
+        { id: "ai", label: "AI Polish", commandId: "ai.polish.document" },
+        { id: "format-separator", type: "separator" },
+        { id: "bold", label: "Bold", commandId: "editor.format.bold" },
+      ]),
+    ).toEqual({ width: 200, height: 83 });
+  });
+
+  it("disables selection-only commands when the selection is empty", () => {
+    const items = resolveEditorContextMenuItems(
+      [
+        { id: "ai", label: "AI Polish", commandId: "ai.polish.document" },
+        { id: "format-separator", type: "separator" },
+        {
+          id: "bold",
+          label: "Bold",
+          commandId: "editor.format.bold",
+          requiresSelection: true,
+        },
+      ],
+      false,
+    );
+
+    expect(items).toEqual([
+      { id: "ai", label: "AI Polish", commandId: "ai.polish.document" },
+      { id: "format-separator", type: "separator" },
+      {
+        id: "bold",
+        label: "Bold",
+        commandId: "editor.format.bold",
+        requiresSelection: true,
+        disabled: true,
+      },
+    ]);
   });
 });
