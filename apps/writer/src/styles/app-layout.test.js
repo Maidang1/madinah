@@ -88,7 +88,16 @@ describe("macOS document window layout", () => {
     expect(css).toMatch(/\.inspector-tabs\s*\{[^}]*grid-template-columns: repeat\(4, minmax\(0, 1fr\)\);/);
     expect(css).toMatch(/\.inspector-tab\s*\{[^}]*white-space: nowrap;/);
     expect(css).toMatch(/\.inspector-tab-panel\s*\{[^}]*min-width: 0;/);
-    expect(css).toMatch(/\.inspector-stat-grid\s*\{[^}]*grid-template-columns: 1fr;/);
+    expect(css).toMatch(/\.inspector-stat-list\s*\{[^}]*grid-template-columns: 1fr;/);
+    expect(css).toMatch(
+      /\.inspector-stat-row\s*\{[^}]*grid-template-columns: max-content minmax\(0, 1fr\);/,
+    );
+    expect(css).toMatch(/\.inspector-stat-label\s*\{[^}]*white-space: nowrap;/);
+    expect(css).toMatch(/\.inspector-stat-value\s*\{[^}]*font-variant-numeric: tabular-nums;/);
+    expect(css).toMatch(/\.inspector-stat-value\s*\{[^}]*text-align: right;/);
+    expect(css).toMatch(
+      /@media \(min-width: 681px\) and \(max-width: 900px\)\s*\{[\s\S]*?\.writer-window\.is-sidebar-hidden:not\(\.is-inspector-hidden\):not\(\.is-focus-mode\)\s+\.writer-inspector\s*\{[^}]*display: flex;/,
+    );
     expect(css).not.toMatch(/\.magic-control-frame/);
     expect(css).not.toMatch(/\.magic-button/);
   });

@@ -7,10 +7,10 @@ import {
 } from "../../domain/document";
 import {
   DOCUMENT_STATUSES,
-  formatMetric,
   formatVersionTimestamp,
   getDocumentMetrics,
   getWritingMetricItems,
+  type WritingMetricItem,
 } from "../workbench/document-summary";
 import type { InspectorTab } from "../workbench/workbench-state";
 import type { DocumentVersion } from "../history/document-history";
@@ -21,6 +21,7 @@ import {
   getInspectorTabPanelId,
   InspectorTabs,
 } from "./InspectorTabs";
+import { WritingStats } from "./WritingStats";
 
 interface DocumentInspectorProps {
   document: MarkdownDocument;
@@ -199,7 +200,7 @@ function StatsPanel({
   writingMetricItems,
 }: {
   profileName: string;
-  writingMetricItems: Array<{ id: string; label: string; value: number }>;
+  writingMetricItems: WritingMetricItem[];
 }) {
   return (
     <section className="inspector-section">
@@ -207,14 +208,7 @@ function StatsPanel({
         <span>Writing</span>
         <small>{profileName}</small>
       </div>
-      <div className="inspector-stat-grid" aria-label="Writing metrics">
-        {writingMetricItems.map((item) => (
-          <div className="inspector-stat-card" key={item.id}>
-            <span>{item.label}</span>
-            <strong>{formatMetric(item.value)}</strong>
-          </div>
-        ))}
-      </div>
+      <WritingStats items={writingMetricItems} />
     </section>
   );
 }
