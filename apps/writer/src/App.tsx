@@ -97,8 +97,10 @@ import {
   type QuickOpenItem,
 } from "./features/search/document-search";
 import {
+  clearActiveDocumentSearchMatch,
   findDocumentMatches,
   getAdjacentMatchIndex,
+  scrollActiveDocumentSearchMatchIntoView,
   type DocumentSearchMatch,
 } from "./features/search/in-document-search";
 import { DocumentInspector } from "./features/inspector/DocumentInspector";
@@ -1090,11 +1092,13 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
                       onQueryChange={(query) => {
                         setDocumentSearchQuery(query);
                         setActiveSearchIndex(query ? 0 : -1);
+                        clearDocumentSearchHighlight();
                       }}
                       onClose={() => {
                         setIsDocumentSearchOpen(false);
                         setDocumentSearchQuery("");
                         setActiveSearchIndex(-1);
+                        clearDocumentSearchHighlight();
                       }}
                       onNavigate={(direction) => {
                         const nextIndex = getAdjacentMatchIndex(
@@ -1103,9 +1107,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
                           direction,
                         );
                         setActiveSearchIndex(nextIndex);
-                        scrollSearchMatchIntoView(
-                          documentSearchMatches[nextIndex],
-                        );
+                        scrollSearchMatchIntoView(documentSearchQuery, nextIndex);
                       }}
                     />
                   ) : null}
@@ -1592,13 +1594,16 @@ function persistFileTreeRoots(roots: string[]) {
   window.localStorage.removeItem(LEGACY_FILE_TREE_ROOT_STORAGE_KEY);
 }
 
-function scrollSearchMatchIntoView(match: DocumentSearchMatch | undefined) {
-  if (!match) return;
+function scrollSearchMatchIntoView(query: string, occurrenceIndex: number) {
+  scrollActiveDocumentSearchMatchIntoView({
+    root: document.querySelector<HTMLElement>(".live-mdx-content, .cm-content"),
+    query,
+    occurrenceIndex,
+  });
+}
 
-  const find = (window as Window & {
-    find?: (query: string, caseSensitive?: boolean, backwards?: boolean) => boolean;
-  }).find;
-  find?.(match.preview, false, false);
+function clearDocumentSearchHighlight() {
+  clearActiveDocumentSearchMatch(document);
 }
 
 function startWindowDrag(event: ReactPointerEvent<HTMLElement>) {

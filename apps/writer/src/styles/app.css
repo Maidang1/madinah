@@ -1806,6 +1806,12 @@ textarea {
   outline: none;
 }
 
+.document-search-active-match {
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--writer-accent) 16%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--writer-accent) 20%, transparent);
+}
+
 .writer-command-bar {
   display: none;
   width: min(var(--writer-content-width), calc(100% - 112px));
