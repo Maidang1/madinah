@@ -8,10 +8,13 @@ import {
   getActiveFileTreeRoot,
   getArboristOpenState,
   getContextMenuPosition,
+  getFileTreeStatus,
   getFileTreeDraftMenuItems,
   getFileTreeMenuItems,
+  pathContains,
   parseFileTreeRoots,
   serializeFileTreeRoots,
+  toRelativePath,
   type FileTreeNode,
 } from "./file-tree";
 
@@ -165,6 +168,49 @@ describe("file tree view helpers", () => {
     ).toBe("/workspace/blog");
     expect(getActiveFileTreeRoot(["/workspace/blog", "/workspace/notes"], null)).toBe(
       "/workspace/notes",
+    );
+  });
+
+  it("summarizes multi-root loading, empty, ready, and failure states", () => {
+    expect(getFileTreeStatus([], {}, true)).toBe("Open a folder");
+    expect(getFileTreeStatus(["/workspace"], {}, false)).toBe(
+      "使用桌面版打开文件夹",
+    );
+    expect(getFileTreeStatus(["/workspace"], { "/workspace": "Loading" }, true)).toBe(
+      "Loading",
+    );
+    expect(
+      getFileTreeStatus(
+        ["/workspace/blog", "/workspace/notes"],
+        {
+          "/workspace/blog": "Ready",
+          "/workspace/notes": "No Markdown files",
+        },
+        true,
+      ),
+    ).toBe("Ready");
+    expect(
+      getFileTreeStatus(
+        ["/workspace/blog", "/workspace/notes"],
+        {
+          "/workspace/blog": "Permission denied",
+          "/workspace/notes": "No Markdown files",
+        },
+        true,
+      ),
+    ).toBe("Permission denied");
+  });
+
+  it("shares path containment and relative path helpers", () => {
+    expect(pathContains("/workspace/blog", "/workspace/blog/post.md")).toBe(true);
+    expect(pathContains("/workspace/blog", "/workspace/blogger/post.md")).toBe(
+      false,
+    );
+    expect(toRelativePath("/workspace/blog", "/workspace/blog/post.md")).toBe(
+      "post.md",
+    );
+    expect(toRelativePath(null, "/workspace/blog/post.md")).toBe(
+      "/workspace/blog/post.md",
     );
   });
 

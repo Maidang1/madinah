@@ -52,6 +52,36 @@ describe("macOS document window layout", () => {
     );
     expect(css).toMatch(/\.writer-simple-canvas \.live-mdx-content\s*\{[^}]*letter-spacing: 0\.42px;/);
     expect(css).toMatch(/\.writer-simple-canvas \.live-mdx-content\s*\{[^}]*line-height: 1\.76;/);
+    expect(css).toMatch(
+      /\.live-mdx-shell\.is-empty-document \.live-mdx-content\s*\{[^}]*margin: 0 auto;/,
+    );
+    expect(css).toMatch(
+      /\.live-mdx-shell\.is-empty-document \.live-mdx-content\s*\{[^}]*min-height: 100%;/,
+    );
+    expect(css).toMatch(
+      /\.live-mdx-shell\.is-empty-document \.live-mdx-content\s*\{[^}]*border-radius: 0;/,
+    );
+    expect(css).toMatch(
+      /\.live-mdx-shell\.is-empty-document \.live-mdx-content\s*\{[^}]*background: transparent;/,
+    );
+    expect(css).toMatch(/\.document-start-state\s*\{[^}]*place-items: center;/);
+    expect(css).toMatch(/\.document-start-state\s*\{[^}]*text-align: center;/);
+    expect(css).toMatch(/\.document-start-copy p\s*\{[^}]*font-size: 24px;/);
+    expect(css).toMatch(/\.document-start-button\s*\{[^}]*display: inline-flex;/);
+    expect(css).toMatch(/\.document-start-button\s*\{[^}]*gap: 8px;/);
+    expect(css).toMatch(/\.document-editor-shell\s*\{[^}]*background: var\(--reader-paper\);/);
+    expect(css).toMatch(/\.document-editor-shell\s*\{[^}]*overflow: auto;/);
+    expect(css).toMatch(/\.document-title-input\s*\{[^}]*font-size: 32px;/);
+    expect(css).toMatch(/\.document-title-input\s*\{[^}]*border: 0;/);
+    expect(css).toMatch(/\.document-title-input::placeholder\s*\{/);
+    expect(css).toMatch(
+      /@media \(max-width: 680px\)\s*\{[\s\S]*?\.document-editor-shell\s*\{[^}]*width: 100%;/,
+    );
+    expect(css).toMatch(
+      /@media \(max-width: 680px\)\s*\{[\s\S]*?\.document-title-input\s*\{[^}]*font-size: 28px;/,
+    );
+    expect(css).not.toContain("Start writing...");
+    expect(css).not.toMatch(/\.live-mdx-content p:empty::before\s*\{[^}]*content:/);
     expect(css).toMatch(/\.file-tree-draft-row \.tree-copy\s*\{[^}]*display: flex;/);
     expect(css).toMatch(/\.file-tree-draft-row \.tree-copy\s*\{[^}]*align-items: baseline;/);
     expect(css).toMatch(/\.file-tree-draft-row small\s*\{[^}]*white-space: nowrap;/);

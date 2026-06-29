@@ -16,6 +16,11 @@
   --writer-rule: rgb(255 255 255 / 0.08);
   --writer-rule-strong: rgb(255 255 255 / 0.16);
   --writer-focus: rgb(10, 132, 255);
+  --writer-save-edited: rgb(255, 159, 10);
+  --writer-save-draft: rgb(255, 214, 10);
+  --writer-save-saved: rgb(48, 209, 88);
+  --writer-save-busy: rgb(10, 132, 255);
+  --writer-save-error: rgb(255, 69, 58);
   --writer-shadow: rgb(0 0 0 / 0.34);
   --writer-code-text: rgb(235, 235, 240);
   --writer-radius: 6px;
@@ -46,6 +51,11 @@
   --writer-rule: rgb(76 66 47 / 0.12);
   --writer-rule-strong: rgb(76 66 47 / 0.22);
   --writer-focus: rgb(0, 122, 255);
+  --writer-save-edited: rgb(180, 105, 0);
+  --writer-save-draft: rgb(166, 116, 0);
+  --writer-save-saved: rgb(36, 138, 61);
+  --writer-save-busy: rgb(0, 122, 255);
+  --writer-save-error: rgb(194, 57, 52);
   --writer-shadow: rgb(74 62 42 / 0.14);
   --writer-code-text: rgb(93, 70, 168);
 }
@@ -187,28 +197,59 @@ textarea {
   white-space: nowrap;
 }
 
-.writer-titlebar-title strong,
-.writer-titlebar-file {
+.writer-titlebar-title strong {
   overflow: hidden;
   max-width: min(34vw, 420px);
   color: color-mix(in srgb, var(--writer-text) 78%, transparent);
   text-overflow: ellipsis;
 }
 
-.writer-titlebar-file {
-  color: var(--writer-muted);
-  font-size: 13px;
-  font-weight: 650;
-}
-
-.writer-titlebar-file::before {
-  content: "•";
-  margin-right: 7px;
+.writer-save-indicator {
+  display: inline-grid;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  place-items: center;
   color: var(--writer-faint);
+  border-radius: 999px;
 }
 
-.writer-titlebar-file.is-edited::before {
-  color: var(--writer-focus);
+.writer-save-indicator svg {
+  width: 15px;
+  height: 15px;
+  stroke-width: 2.25;
+}
+
+.writer-save-indicator.is-edited {
+  color: var(--writer-save-edited);
+}
+
+.writer-save-indicator.is-draft {
+  color: var(--writer-save-draft);
+}
+
+.writer-save-indicator.is-saved {
+  color: var(--writer-save-saved);
+}
+
+.writer-save-indicator.is-busy {
+  color: var(--writer-save-busy);
+}
+
+.writer-save-indicator.is-error {
+  color: var(--writer-save-error);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .writer-save-indicator.is-busy svg {
+    animation: writer-spin 880ms linear infinite;
+  }
+}
+
+@keyframes writer-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .writer-titlebar-meta {
@@ -1396,6 +1437,126 @@ textarea {
   background: var(--reader-page);
 }
 
+.document-start-state {
+  display: grid;
+  min-height: 100%;
+  place-items: center;
+  align-content: center;
+  gap: 22px;
+  padding: 48px;
+  color: var(--reader-ink);
+  font-family: var(--reader-font);
+  text-align: center;
+}
+
+.document-start-copy {
+  display: grid;
+  max-width: 520px;
+  gap: 10px;
+}
+
+.document-start-copy p {
+  margin: 0;
+  color: color-mix(in srgb, var(--reader-ink) 88%, transparent);
+  font-size: 24px;
+  font-weight: 650;
+  letter-spacing: 0;
+  line-height: 1.4;
+}
+
+.document-start-copy span {
+  color: var(--reader-muted);
+  font-size: 15px;
+  letter-spacing: 0;
+  line-height: 1.7;
+}
+
+.document-start-button {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 14px;
+  border: 1px solid var(--writer-rule-strong);
+  border-radius: 6px;
+  background: var(--writer-control-bg);
+  color: color-mix(in srgb, var(--writer-text) 82%, transparent);
+  cursor: pointer;
+  font-family: var(--writer-ui-font);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.document-start-button:hover,
+.document-start-button:focus-visible {
+  background: var(--writer-control-hover);
+  color: var(--writer-text);
+  outline: none;
+}
+
+.document-start-button:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--writer-focus) 48%, transparent);
+  outline-offset: 2px;
+}
+
+.document-editor-shell {
+  display: flex;
+  width: min(var(--reader-width), calc(100% - 144px));
+  min-height: calc(100dvh - var(--writer-titlebar-height) - 30px);
+  flex: 1 1 auto;
+  flex-direction: column;
+  margin: 30px auto 0;
+  overflow: auto;
+  padding: 34px 68px 120px;
+  border-radius: var(--radius);
+  background: var(--reader-paper);
+  color: var(--reader-ink);
+  scrollbar-width: none;
+}
+
+.document-editor-shell::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.document-title-input {
+  width: 100%;
+  min-width: 0;
+  margin: 0 0 18px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--reader-ink);
+  font-family: var(--reader-font);
+  font-size: 32px;
+  font-weight: 760;
+  letter-spacing: 0;
+  line-height: 1.34;
+  outline: none;
+}
+
+.document-title-input::placeholder {
+  color: color-mix(in srgb, var(--reader-muted) 72%, transparent);
+}
+
+.document-editor-shell .live-mdx-shell {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: visible;
+  background: transparent;
+}
+
+.writer-simple-canvas .document-editor-shell .live-mdx-content {
+  width: 100%;
+  min-height: 52vh;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
 .document-search-bar {
   position: absolute;
   top: 10px;
@@ -1573,6 +1734,14 @@ textarea {
   text-autospace: ideograph-alpha ideograph-numeric;
 }
 
+.live-mdx-shell.is-empty-document .live-mdx-content {
+  min-height: 100%;
+  margin: 0 auto;
+  padding-top: 64px;
+  border-radius: 0;
+  background: transparent;
+}
+
 .writer-window.is-typewriter-mode .writer-simple-canvas .live-mdx-content {
   margin-top: max(18vh, 86px);
   padding-bottom: 42vh;
@@ -1580,12 +1749,6 @@ textarea {
 
 .live-mdx-content [contenteditable="true"] {
   outline: none;
-}
-
-.live-mdx-content p:empty::before {
-  color: var(--reader-muted);
-  content: "Start writing...";
-  opacity: 0.55;
 }
 
 .live-mdx-content .mdxeditor-nested-editor,
@@ -1668,6 +1831,7 @@ textarea {
 }
 
 @media (max-width: 1180px) {
+  .document-editor-shell,
   .writer-simple-canvas .live-mdx-content {
     width: min(var(--reader-width), calc(100% - 112px));
   }
@@ -1714,6 +1878,7 @@ textarea {
     grid-column: 3;
   }
 
+  .document-editor-shell,
   .writer-simple-canvas .live-mdx-content {
     margin-top: 0;
   }
@@ -1744,8 +1909,20 @@ textarea {
     max-width: 42vw;
   }
 
-  .writer-titlebar-title span {
+  .writer-titlebar-title .writer-titlebar-file {
     display: none;
+  }
+
+  .document-editor-shell {
+    width: 100%;
+    min-height: 100%;
+    margin: 0;
+    padding: 28px 15px 72px;
+    border-radius: 0;
+  }
+
+  .document-title-input {
+    font-size: 28px;
   }
 
   .writer-simple-canvas .live-mdx-content {

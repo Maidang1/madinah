@@ -81,10 +81,11 @@ export function useDocumentSession(
     const snapshot = session.document;
     const token = saveTokenRef.current + 1;
     saveTokenRef.current = token;
-    dispatch({ type: "saveStarted" });
-    setStatus("Saving");
 
     const timeout = window.setTimeout(() => {
+      dispatch({ type: "saveStarted" });
+      setStatus("Saving");
+
       const saveTask = session.filePath
         ? platform.draftStore
             .write(session.filePath, snapshot.body)

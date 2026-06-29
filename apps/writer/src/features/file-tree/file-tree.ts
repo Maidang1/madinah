@@ -155,6 +155,31 @@ export function getActiveFileTreeRoot(
   return findFileTreeRootForPath(roots, activePath) ?? roots.at(-1) ?? null;
 }
 
+export function getFileTreeStatus(
+  roots: string[],
+  statuses: Record<string, string>,
+  isAvailable: boolean,
+): string {
+  if (!isAvailable) return "使用桌面版打开文件夹";
+  if (roots.length === 0) return "Open a folder";
+  if (roots.some((root) => statuses[root] === "Loading")) return "Loading";
+
+  const failures = roots
+    .map((root) => statuses[root])
+    .filter(
+      (status) =>
+        status && status !== "Ready" && status !== "No Markdown files",
+    );
+
+  if (failures.length === 1) return failures[0];
+  if (failures.length > 1) return `${failures.length} folders failed`;
+  if (roots.every((root) => statuses[root] === "No Markdown files")) {
+    return "No Markdown files";
+  }
+
+  return "Ready";
+}
+
 export function getContextMenuPosition(
   pointer: PointerPosition,
   menu: Size,
@@ -231,6 +256,26 @@ export function filterFileTreeDrafts(
   );
 }
 
+export function pathContains(
+  root: string,
+  path: string | null | undefined,
+): boolean {
+  if (!path) return false;
+  return path === root || path.startsWith(`${root}/`) || path.startsWith(`${root}\\`);
+}
+
+export function toRelativePath(
+  root: string | null | undefined,
+  path: string,
+): string {
+  if (!root) return path;
+  for (const separator of ["/", "\\"]) {
+    const prefix = `${root}${separator}`;
+    if (path.startsWith(prefix)) return path.slice(prefix.length);
+  }
+  return path;
+}
+
 function appendVisibleNode(
   rows: VisibleFileTreeNode[],
   node: FileTreeNode,
@@ -303,8 +348,4 @@ function uniqueFileTreeRoots(roots: string[]): string[] {
 
 function getFileTreeRootName(path: string): string {
   return path.split(/[\\/]/).filter(Boolean).at(-1) ?? path;
-}
-
-function pathContains(root: string, path: string): boolean {
-  return path === root || path.startsWith(`${root}/`) || path.startsWith(`${root}\\`);
 }

@@ -1,5 +1,5 @@
 import type { MarkdownDocument } from "../../domain/document";
-import type { FileTreeNode } from "../file-tree/file-tree";
+import { toRelativePath, type FileTreeNode } from "../file-tree/file-tree";
 
 export type QuickOpenItem =
   | {
@@ -148,13 +148,4 @@ function flattenFileNodes(
 
 function normalizeSearchText(values: string[]): string {
   return values.join(" ").toLowerCase().replace(/\s+/g, " ").trim();
-}
-
-function toRelativePath(root: string | null | undefined, path: string): string {
-  if (!root) return path;
-  for (const separator of ["/", "\\"]) {
-    const prefix = `${root}${separator}`;
-    if (path.startsWith(prefix)) return path.slice(prefix.length);
-  }
-  return path;
 }

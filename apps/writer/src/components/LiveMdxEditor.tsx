@@ -101,9 +101,7 @@ export function LiveMdxEditor({ value, onChange, onError }: LiveMdxEditorProps) 
         contentEditableClassName="post-content live-mdx-content"
         className="live-mdx-editor"
         autoFocus={{ defaultSelection: "rootEnd", preventScroll: true }}
-        placeholder={
-          <span className="live-mdx-placeholder">Start writing...</span>
-        }
+        placeholder={null}
         spellCheck
       />
     </div>

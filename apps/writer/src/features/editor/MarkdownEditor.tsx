@@ -23,11 +23,14 @@ interface MarkdownEditorProps {
   workspace: WorkspaceInfo | null;
   editorPlugins: unknown[];
   commandRegistry: CommandRegistry;
+  autoFocus?: boolean;
   contextMenuItems?: EditorContextMenuItem[];
   onEditorReady?: (editor: WriterEditor | null) => void;
   onChange: (value: string) => void;
   onError: (error: string) => void;
 }
+
+export const DOCUMENT_TITLE_PLACEHOLDER = "写下标题";
 
 export function MarkdownEditor({
   value,
@@ -35,6 +38,7 @@ export function MarkdownEditor({
   workspace,
   editorPlugins,
   commandRegistry,
+  autoFocus = true,
   contextMenuItems = [],
   onEditorReady,
   onChange,
@@ -42,6 +46,7 @@ export function MarkdownEditor({
 }: MarkdownEditorProps) {
   const editorRef = useRef<MDXEditorMethods>(null);
   const shellRef = useRef<HTMLDivElement>(null);
+  const shouldAutoFocusRef = useRef(autoFocus);
   const initialFocusSelectionRef = useRef<"rootStart" | "rootEnd">(
     getInitialFocusSelection(value),
   );
@@ -79,6 +84,8 @@ export function MarkdownEditor({
   );
 
   useEffect(() => {
+    if (!shouldAutoFocusRef.current) return;
+
     requestAnimationFrame(() =>
       editorRef.current?.focus(undefined, {
         defaultSelection: initialFocusSelectionRef.current,
@@ -135,7 +142,12 @@ export function MarkdownEditor({
 
   return (
     <div
-      className="live-mdx-shell"
+      className={[
+        "live-mdx-shell",
+        isEditorEmptyDocument(value) ? "is-empty-document" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
       ref={shellRef}
       onContextMenu={handleContextMenu}
     >
@@ -150,13 +162,15 @@ export function MarkdownEditor({
         plugins={editorPlugins as never}
         contentEditableClassName="post-content live-mdx-content"
         className="live-mdx-editor"
-        autoFocus={{
-          defaultSelection: initialFocusSelectionRef.current,
-          preventScroll: true,
-        }}
-        placeholder={
-          <span className="live-mdx-placeholder">Start writing...</span>
+        autoFocus={
+          shouldAutoFocusRef.current
+            ? {
+                defaultSelection: initialFocusSelectionRef.current,
+                preventScroll: true,
+              }
+            : undefined
         }
+        placeholder={getEditorInlinePlaceholder()}
         spellCheck
       />
       {contextMenu ? (
@@ -170,8 +184,78 @@ export function MarkdownEditor({
   );
 }
 
+export function isEditorEmptyDocument(markdown: string): boolean {
+  const normalized = cleanEmptyBlockMarkers(markdown).trim();
+  return normalized === "" || normalized === "# Untitled";
+}
+
+export function getEditableEmptyDocumentMarkdown(markdown: string): string {
+  return cleanEmptyBlockMarkers(markdown).trim() === "# Untitled" ? "" : markdown;
+}
+
+export function shouldShowDocumentStartState(
+  markdown: string,
+  hasStartedEditing: boolean,
+): boolean {
+  return isEditorEmptyDocument(markdown) && !hasStartedEditing;
+}
+
+export function getEditorInlinePlaceholder() {
+  return null;
+}
+
+export function splitDocumentEditorMarkdown(markdown: string): {
+  title: string;
+  body: string;
+} {
+  const match = markdown.match(
+    /^(?:[ \t]*\r?\n)*#\s+([^\r\n]+?)[ \t]*(?:\r?\n|$)/,
+  );
+
+  if (!match || match.index !== 0) {
+    return { title: "", body: markdown };
+  }
+
+  return {
+    title: normalizeDocumentTitle(match[1]),
+    body: markdown.slice(match[0].length).replace(/^(?:[ \t]*\r?\n)+/, ""),
+  };
+}
+
+export function composeDocumentEditorMarkdown(
+  title: string,
+  body: string,
+): string {
+  const normalizedTitle = normalizeDocumentTitle(title);
+  const normalizedBody = body.replace(/^(?:[ \t]*\r?\n)+/, "");
+
+  if (!normalizedTitle) return normalizedBody;
+  if (!normalizedBody.trim()) return `# ${normalizedTitle}\n\n`;
+
+  return `# ${normalizedTitle}\n\n${normalizedBody}`;
+}
+
+export function getDocumentEditorTitle(
+  markdown: string,
+  metadataTitle: string,
+): string {
+  const { title } = splitDocumentEditorMarkdown(markdown);
+  if (title) return title;
+
+  const normalizedMetadataTitle = normalizeDocumentTitle(metadataTitle);
+  return normalizedMetadataTitle === "Untitled" ? "" : normalizedMetadataTitle;
+}
+
+export function shouldAutoFocusDocumentTitle(title: string): boolean {
+  return normalizeDocumentTitle(title) === "";
+}
+
 function cleanEmptyBlockMarkers(markdown: string): string {
   return markdown.replaceAll(EMPTY_BLOCK_MARKER, "");
+}
+
+function normalizeDocumentTitle(title: string): string {
+  return title.replace(/\s+/g, " ").trim();
 }
 
 function getInitialFocusSelection(markdown: string): "rootStart" | "rootEnd" {

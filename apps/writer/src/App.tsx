@@ -10,15 +10,21 @@ import {
 } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
+  CheckCircle2,
   ChevronDown,
   ChevronRight,
   ChevronUp,
+  CircleAlert,
   Clock3,
+  FileCheck2,
+  FileClock,
   FileCode2,
   Folder,
+  LoaderCircle,
   Moon,
   PanelLeft,
   PanelRight,
+  PencilLine,
   Search,
   Settings,
   Sun,
@@ -28,11 +34,11 @@ import type { TreeApi } from "react-arborist";
 import type { AcpAgentRuntimeConfig } from "./domain/ai-polish";
 import type { WriterEditor } from "./domain/engine";
 import {
-  type DocumentMetadataPatch,
   type DocumentStatus,
-  extractDocumentTitle,
+  type DocumentMetadataPatch,
   type MarkdownDocument,
 } from "./domain/document";
+import { getWriterKeyboardShortcutAction } from "./features/commands/keyboard-shortcuts";
 import {
   WRITER_COMMAND_EVENT,
   getWriterCommandIdFromPayload,
@@ -51,7 +57,16 @@ import {
   saveAcpSettings as persistAcpSettings,
   type AcpSettings,
 } from "./features/ai-polish/settings";
-import { MarkdownEditor } from "./features/editor/MarkdownEditor";
+import {
+  composeDocumentEditorMarkdown,
+  DOCUMENT_TITLE_PLACEHOLDER,
+  getEditableEmptyDocumentMarkdown,
+  getDocumentEditorTitle,
+  MarkdownEditor,
+  shouldAutoFocusDocumentTitle,
+  splitDocumentEditorMarkdown,
+  shouldShowDocumentStartState,
+} from "./features/editor/MarkdownEditor";
 import { createFormattingCommands } from "./features/editor/formatting-commands";
 import { CommandRegistry } from "./features/engine/CommandRegistry";
 import { EngineProvider, useEngine } from "./features/engine/EngineProvider";
@@ -65,8 +80,11 @@ import {
   type FileTreeMenuAction,
   type FileTreeNode,
   getActiveFileTreeRoot,
+  getFileTreeStatus,
+  pathContains,
   parseFileTreeRoots,
   serializeFileTreeRoots,
+  toRelativePath,
 } from "./features/file-tree/file-tree";
 import {
   createDocumentVersion,
@@ -88,6 +106,25 @@ import {
 import { DocumentOutline } from "./features/outline/DocumentOutline";
 import { createDocumentCommands } from "./features/session/document-commands";
 import { useDocumentSession } from "./features/session/useDocumentSession";
+import {
+  getSavePresentation,
+  type SavePresentation,
+  type SavePresentationIcon,
+} from "./features/workbench/workbench-state";
+import {
+  DOCUMENT_STATUSES,
+  buildFileTreeDraftItems,
+  buildSidebarTree,
+  collectFolderIds,
+  formatMetric,
+  formatVersionTimestamp,
+  formatWordCount,
+  getDocumentDisplayTitle,
+  getDocumentMetrics,
+  getWritingMetricItems,
+  mergeActiveDocument,
+  type SidebarTreeNode,
+} from "./features/workbench/document-summary";
 import type { TocItem } from "./lib/toc";
 import {
   createPlatformAdapters,
@@ -99,31 +136,10 @@ const THEME_STORAGE_VERSION_KEY = "madinah-writer-theme-version";
 const THEME_STORAGE_VERSION = "2";
 const FILE_TREE_ROOTS_STORAGE_KEY = "madinah-writer-file-tree-roots";
 const LEGACY_FILE_TREE_ROOT_STORAGE_KEY = "madinah-writer-file-tree-root";
-const DOCUMENT_STATUSES: DocumentStatus[] = [
-  "draft",
-  "WIP",
-  "published",
-  "archived",
-];
 const WINDOW_DRAG_IGNORE_SELECTOR =
   "button, a, input, textarea, select, [role='button'], [data-tauri-no-drag]";
 
 type WriterTheme = "dark" | "light";
-
-type SidebarTreeNode =
-  | {
-      id: string;
-      kind: "folder";
-      label: string;
-      children: SidebarTreeNode[];
-    }
-  | {
-      id: string;
-      kind: "document";
-      label: string;
-      detail: string;
-      document: MarkdownDocument;
-    };
 
 export default function App() {
   const platform = useMemo(() => createPlatformAdapters(), []);
@@ -228,6 +244,9 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
   const [activeSearchIndex, setActiveSearchIndex] = useState(-1);
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [isTypewriterMode, setIsTypewriterMode] = useState(false);
+  const [startedEmptyDocumentId, setStartedEmptyDocumentId] = useState<
+    string | null
+  >(null);
   const [theme, setTheme] = useState<WriterTheme>(getInitialTheme);
   const [acpSettings, setAcpSettings] = useState<AcpSettings>(loadAcpSettings);
   const [isAcpSettingsOpen, setIsAcpSettingsOpen] = useState(false);
@@ -244,6 +263,18 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
     () => getDocumentMetrics(session.document?.body ?? ""),
     [session.document?.body],
   );
+  const documentEditor = useMemo(() => {
+    if (!session.document) return null;
+
+    const parts = splitDocumentEditorMarkdown(session.document.body);
+    return {
+      body: parts.body,
+      title: getDocumentEditorTitle(
+        session.document.body,
+        session.document.title,
+      ),
+    };
+  }, [session.document]);
   const quickOpenItems = useMemo(
     () =>
       buildQuickOpenItems({
@@ -258,16 +289,57 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
   );
   const documentSearchMatches = useMemo(
     () =>
-      findDocumentMatches(session.document?.body ?? "", documentSearchQuery).slice(
-        0,
-        500,
-      ),
-    [documentSearchQuery, session.document?.body],
+      findDocumentMatches(documentEditor?.body ?? "", documentSearchQuery).slice(0, 500),
+    [documentEditor?.body, documentSearchQuery],
   );
   const historyTargetId = session.document
     ? getVersionTargetId(session.document, session.filePath)
     : null;
-  const documentStatus = getDocumentStatusLabel(status, session.isDirty);
+  const savePresentation = useMemo(
+    () => getSavePresentation(session, status),
+    [session, status],
+  );
+  const isDocumentStartStateVisible = session.document
+    ? shouldShowDocumentStartState(
+        session.document.body,
+        startedEmptyDocumentId === session.document.id,
+      )
+    : false;
+  const startEditingEmptyDocument = useCallback(() => {
+    if (!session.document) return;
+
+    setStartedEmptyDocumentId(session.document.id);
+    const editableMarkdown = getEditableEmptyDocumentMarkdown(
+      session.document.body,
+    );
+    if (editableMarkdown !== session.document.body) {
+      changeSource(editableMarkdown);
+    }
+  }, [changeSource, session.document]);
+  const changeDocumentTitle = useCallback(
+    (title: string) => {
+      if (!session.document || !documentEditor) return;
+
+      const nextSource = composeDocumentEditorMarkdown(title, documentEditor.body);
+      const nextMetadataTitle = title.trim() || "Untitled";
+
+      if (nextSource !== session.document.body) {
+        changeSource(nextSource);
+      }
+      if (nextMetadataTitle !== session.document.title) {
+        changeMetadata({ title: nextMetadataTitle });
+      }
+    },
+    [changeMetadata, changeSource, documentEditor, session.document],
+  );
+  const changeDocumentBody = useCallback(
+    (body: string) => {
+      if (!session.document || !documentEditor) return;
+
+      changeSource(composeDocumentEditorMarkdown(documentEditor.title, body));
+    },
+    [changeSource, documentEditor, session.document],
+  );
   const aiPolishCommand = useMemo(
     () =>
       createAiPolishCommand({
@@ -828,87 +900,31 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      const modifier = event.metaKey || event.ctrlKey;
-      if (!modifier) return;
+      const action = getWriterKeyboardShortcutAction(event);
+      if (action.kind === "none") return;
 
-      const key = event.key.toLowerCase();
-      if (event.altKey) {
-        const viewCommandId =
-          key === "s"
-            ? "view.toggleSidebar"
-            : key === "i"
-              ? "view.toggleInspector"
-              : key === "f"
-                ? "view.focusMode"
-                : key === "t"
-                  ? "view.typewriterMode"
-                  : key === "o"
-                    ? "go.outline"
-                    : null;
-
-        if (viewCommandId) {
-          event.preventDefault();
-          runCommand(viewCommandId);
-          return;
-        }
+      event.preventDefault();
+      if (action.kind === "command") {
+        runCommand(action.commandId);
+        return;
       }
 
-      if (key === "p" && event.shiftKey) {
-        event.preventDefault();
+      if (action.kind === "command-palette") {
         setIsCommandPaletteOpen(true);
         return;
       }
 
-      if (key === "p") {
-        event.preventDefault();
+      if (action.kind === "quick-open") {
         setIsQuickOpenOpen(true);
         return;
       }
 
-      if (key === "f") {
-        event.preventDefault();
-        setIsDocumentSearchOpen(true);
-        return;
-      }
-
-      if (key === "n") {
-        event.preventDefault();
-        void createNewDocument();
-        return;
-      }
-
-      const commandId =
-        key === "o"
-          ? "document.open"
-          : key === "b"
-            ? "editor.format.bold"
-            : key === "i"
-              ? "editor.format.italic"
-              : key === "k"
-                ? "editor.format.link"
-                : event.altKey && key === "1"
-                  ? "editor.format.heading1"
-                  : event.altKey && key === "2"
-                    ? "editor.format.heading2"
-                    : event.altKey && key === "3"
-                      ? "editor.format.heading3"
-          : key === "s" && event.shiftKey
-            ? "document.saveAs"
-            : key === "s"
-              ? "document.save"
-              : key === "w"
-                ? "document.close"
-                : null;
-
-      if (!commandId) return;
-
-      event.preventDefault();
-      runCommand(commandId);
+      setIsDocumentSearchOpen(true);
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [createNewDocument, runCommand]);
+  }, [runCommand]);
 
   useEffect(() => {
     let active = true;
@@ -973,12 +989,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
 
           <div className="writer-titlebar-title" data-tauri-drag-region>
             <strong data-tauri-drag-region>{documentTitle}</strong>
-            <span
-              className={`writer-titlebar-file${session.isDirty ? " is-edited" : ""}`}
-              data-tauri-drag-region
-            >
-              {documentStatus}
-            </span>
+            <SaveStatusIndicator presentation={savePresentation} />
           </div>
 
           <div className="writer-titlebar-meta">
@@ -1077,68 +1088,84 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
 
           <section className="writer-simple-canvas" aria-label="Editor">
             {session.document ? (
-              <>
-                {isDocumentSearchOpen ? (
-                  <DocumentSearchBar
-                    query={documentSearchQuery}
-                    matches={documentSearchMatches}
-                    activeIndex={activeSearchIndex}
-                    onQueryChange={(query) => {
-                      setDocumentSearchQuery(query);
-                      setActiveSearchIndex(query ? 0 : -1);
-                    }}
-                    onClose={() => {
-                      setIsDocumentSearchOpen(false);
-                      setDocumentSearchQuery("");
-                      setActiveSearchIndex(-1);
-                    }}
-                    onNavigate={(direction) => {
-                      const nextIndex = getAdjacentMatchIndex(
-                        activeSearchIndex,
-                        documentSearchMatches.length,
-                        direction,
-                      );
-                      setActiveSearchIndex(nextIndex);
-                      scrollSearchMatchIntoView(documentSearchMatches[nextIndex]);
-                    }}
-                  />
-                ) : null}
-                <MarkdownEditor
-                  key={session.document.id}
-                  value={session.document.body}
-                  document={session.document}
-                  workspace={session.workspace}
-                  editorPlugins={engine.profile.editorPlugins ?? []}
-                  commandRegistry={commandRegistry}
-                  contextMenuItems={[
-                    {
-                      id: "ai-polish",
-                      label: "AI Polish",
-                      commandId: AI_POLISH_COMMAND_ID,
-                    },
-                    {
-                      id: "bold",
-                      label: "Bold",
-                      commandId: "editor.format.bold",
-                    },
-                    {
-                      id: "italic",
-                      label: "Italic",
-                      commandId: "editor.format.italic",
-                    },
-                    {
-                      id: "link",
-                      label: "Link",
-                      commandId: "editor.format.link",
-                    },
-                  ]}
-                  onEditorReady={(editor) => {
-                    activeEditorRef.current = editor;
-                  }}
-                  onChange={changeSource}
-                  onError={(error) => setStatus(error)}
-                />
-              </>
+              isDocumentStartStateVisible ? (
+                <DocumentStartState onStart={startEditingEmptyDocument} />
+              ) : (
+                <>
+                  {isDocumentSearchOpen ? (
+                    <DocumentSearchBar
+                      query={documentSearchQuery}
+                      matches={documentSearchMatches}
+                      activeIndex={activeSearchIndex}
+                      onQueryChange={(query) => {
+                        setDocumentSearchQuery(query);
+                        setActiveSearchIndex(query ? 0 : -1);
+                      }}
+                      onClose={() => {
+                        setIsDocumentSearchOpen(false);
+                        setDocumentSearchQuery("");
+                        setActiveSearchIndex(-1);
+                      }}
+                      onNavigate={(direction) => {
+                        const nextIndex = getAdjacentMatchIndex(
+                          activeSearchIndex,
+                          documentSearchMatches.length,
+                          direction,
+                        );
+                        setActiveSearchIndex(nextIndex);
+                        scrollSearchMatchIntoView(
+                          documentSearchMatches[nextIndex],
+                        );
+                      }}
+                    />
+                  ) : null}
+                  {documentEditor ? (
+                    <DocumentEditorShell
+                      title={documentEditor.title}
+                      onTitleChange={changeDocumentTitle}
+                    >
+                      <MarkdownEditor
+                        key={session.document.id}
+                        value={documentEditor.body}
+                        document={session.document}
+                        workspace={session.workspace}
+                        editorPlugins={engine.profile.editorPlugins ?? []}
+                        commandRegistry={commandRegistry}
+                        autoFocus={
+                          !shouldAutoFocusDocumentTitle(documentEditor.title)
+                        }
+                        contextMenuItems={[
+                          {
+                            id: "ai-polish",
+                            label: "AI Polish",
+                            commandId: AI_POLISH_COMMAND_ID,
+                          },
+                          {
+                            id: "bold",
+                            label: "Bold",
+                            commandId: "editor.format.bold",
+                          },
+                          {
+                            id: "italic",
+                            label: "Italic",
+                            commandId: "editor.format.italic",
+                          },
+                          {
+                            id: "link",
+                            label: "Link",
+                            commandId: "editor.format.link",
+                          },
+                        ]}
+                        onEditorReady={(editor) => {
+                          activeEditorRef.current = editor;
+                        }}
+                        onChange={changeDocumentBody}
+                        onError={(error) => setStatus(error)}
+                      />
+                    </DocumentEditorShell>
+                  ) : null}
+                </>
+              )
             ) : (
               <div className="writer-empty-state">{status}</div>
             )}
@@ -1469,6 +1496,10 @@ function DocumentInspector({
     () => getDocumentMetrics(document.body),
     [document.body],
   );
+  const writingMetricItems = useMemo(
+    () => getWritingMetricItems(metrics),
+    [metrics],
+  );
 
   useEffect(() => {
     setTagsInput(document.tags.join(", "));
@@ -1554,34 +1585,12 @@ function DocumentInspector({
           <small>{profileName}</small>
         </div>
         <div className="inspector-stat-grid" aria-label="Writing metrics">
-          <div className="inspector-stat-card">
-            <span>Words</span>
-            <strong>{formatMetric(metrics.words)}</strong>
-          </div>
-          <div className="inspector-stat-card">
-            <span>Characters</span>
-            <strong>{formatMetric(metrics.characters)}</strong>
-          </div>
-          <div className="inspector-stat-card">
-            <span>Blocks</span>
-            <strong>{formatMetric(metrics.blocks)}</strong>
-          </div>
-          <div className="inspector-stat-card">
-            <span>Headings</span>
-            <strong>{formatMetric(metrics.headings)}</strong>
-          </div>
-          <div className="inspector-stat-card">
-            <span>Links</span>
-            <strong>{formatMetric(metrics.links)}</strong>
-          </div>
-          <div className="inspector-stat-card">
-            <span>Images</span>
-            <strong>{formatMetric(metrics.images)}</strong>
-          </div>
-          <div className="inspector-stat-card">
-            <span>Read Min</span>
-            <strong>{formatMetric(metrics.readingMinutes)}</strong>
-          </div>
+          {writingMetricItems.map((item) => (
+            <div className="inspector-stat-card" key={item.id}>
+              <span>{item.label}</span>
+              <strong>{formatMetric(item.value)}</strong>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -1617,18 +1626,6 @@ function DocumentInspector({
   );
 }
 
-function formatVersionTimestamp(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-}
-
 function getInitialTheme(): WriterTheme {
   const version = window.localStorage.getItem(THEME_STORAGE_VERSION_KEY);
   const saved = window.localStorage.getItem(THEME_STORAGE_KEY);
@@ -1642,218 +1639,91 @@ function getInitialTheme(): WriterTheme {
     : "light";
 }
 
-function formatMetric(value: number): string {
-  return new Intl.NumberFormat(undefined).format(value);
-}
-
-function mergeActiveDocument(
-  documents: MarkdownDocument[],
-  document: MarkdownDocument | null,
-): MarkdownDocument[] {
-  if (!document) return documents;
-
-  return sortDocuments(
-    documents.some((item) => item.id === document.id)
-      ? documents.map((item) => (item.id === document.id ? document : item))
-      : [...documents, document],
+function DocumentStartState({ onStart }: { onStart: () => void }) {
+  return (
+    <div className="document-start-state">
+      <div className="document-start-copy">
+        <p>纸页已铺开，第一行正等风来。</p>
+        <span>把今天没说完的念头，交给这一页。</span>
+      </div>
+      <button
+        type="button"
+        className="document-start-button"
+        onClick={onStart}
+      >
+        <PencilLine size={15} aria-hidden="true" />
+        开始书写
+      </button>
+    </div>
   );
 }
 
-function sortDocuments(documents: MarkdownDocument[]): MarkdownDocument[] {
-  return [...documents].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+function DocumentEditorShell({
+  children,
+  title,
+  onTitleChange,
+}: {
+  children: ReactNode;
+  title: string;
+  onTitleChange: (title: string) => void;
+}) {
+  return (
+    <div className="document-editor-shell">
+      <input
+        aria-label="标题"
+        autoFocus={shouldAutoFocusDocumentTitle(title)}
+        className="document-title-input"
+        placeholder={DOCUMENT_TITLE_PLACEHOLDER}
+        value={title}
+        onChange={(event) => onTitleChange(event.currentTarget.value)}
+      />
+      {children}
+    </div>
+  );
 }
 
-function getDocumentDisplayTitle(document: MarkdownDocument): string {
-  const heading = extractDocumentTitle(document.body);
-  if (heading && heading !== "Untitled") return heading;
+function SaveStatusIndicator({
+  presentation,
+}: {
+  presentation: SavePresentation;
+}) {
+  const Icon = getSaveStatusIcon(presentation.icon);
 
-  return document.title || "Untitled";
+  return (
+    <span
+      className={[
+        "writer-save-indicator",
+        `is-${presentation.tone}`,
+        presentation.isBusy ? "is-busy" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      data-save-state={presentation.state}
+      data-tauri-drag-region
+      role="img"
+      aria-label={presentation.label}
+      title={presentation.tooltip}
+    >
+      <Icon size={15} aria-hidden="true" />
+    </span>
+  );
 }
 
-function getDocumentFileName(
-  document: MarkdownDocument,
-  filePath: string | null,
-): string {
-  if (filePath) {
-    return filePath.split(/[\\/]/).pop() || `${document.slug}.md`;
+function getSaveStatusIcon(icon: SavePresentationIcon) {
+  switch (icon) {
+    case "pencil":
+      return PencilLine;
+    case "file-clock":
+      return FileClock;
+    case "file-check":
+      return FileCheck2;
+    case "loader":
+      return LoaderCircle;
+    case "alert":
+      return CircleAlert;
+    case "check":
+      return CheckCircle2;
   }
-
-  return `${document.slug || "untitled"}.md`;
-}
-
-function getDocumentStatusLabel(status: string, isDirty: boolean): string {
-  if (isDirty || status === "Unsaved changes") return "Edited";
-  if (status === "Saving") return "Saving";
-  if (status === "Opening") return "Opening";
-  if (status === "Creating") return "Creating";
-  if (status === "Ready" || status === "Saved" || status === "Draft saved") {
-    return "Saved";
-  }
-
-  return status;
-}
-
-function getDocumentMetrics(source: string): {
-  characters: number;
-  blocks: number;
-  headings: number;
-  images: number;
-  links: number;
-  readingMinutes: number;
-  words: number;
-} {
-  const content = stripFrontmatter(source);
-  const images = content.match(/!\[[^\]]*]\([^)]+\)/g)?.length ?? 0;
-  const links = content.match(/(?<!!)\[[^\]]+]\([^)]+\)/g)?.length ?? 0;
-  const headings = content.match(/^#{1,6}\s+.+$/gm)?.length ?? 0;
-  const readableText = content
-    .replace(/```[\s\S]*?```/g, " ")
-    .replace(/`([^`]+)`/g, "$1")
-    .replace(/!\[[^\]]*]\([^)]+\)/g, " ")
-    .replace(/\[([^\]]+)]\([^)]+\)/g, "$1")
-    .replace(/^[#>\s-]+/gm, "")
-    .replace(/[>*_~`[\](){}|\\-]/g, " ")
-    .replace(/\s+/g, "");
-  const words =
-    content.match(
-      /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]|[\p{Letter}\p{Number}]+(?:['’-][\p{Letter}\p{Number}]+)*/gu,
-    )?.length ?? 0;
-  const blocks = content
-    .trim()
-    .split(/\n{2,}/)
-    .map((block) => block.trim())
-    .filter(Boolean).length;
-
-  return {
-    characters: readableText.length,
-    blocks,
-    headings,
-    images,
-    links,
-    readingMinutes: Math.max(1, Math.ceil(words / 220)),
-    words,
-  };
-}
-
-function stripFrontmatter(source: string): string {
-  return source.replace(/^---[\s\S]*?\n---\s*/u, "");
-}
-
-function formatRelativeDate(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "今天";
-
-  const today = startOfDay(new Date()).getTime();
-  const target = startOfDay(date).getTime();
-  const days = Math.max(0, Math.round((today - target) / 86_400_000));
-
-  if (days === 0) return "今天";
-  if (days === 1) return "昨天";
-  if (days < 7) return `${days} 天前`;
-  if (days < 14) return "上周";
-
-  return `${date.getMonth() + 1}月${date.getDate()}日`;
-}
-
-function startOfDay(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
-function buildSidebarTree(documents: MarkdownDocument[]): SidebarTreeNode[] {
-  const grouped = new Map<string, MarkdownDocument[]>();
-
-  for (const document of documents) {
-    const group = formatTreeDate(document.updatedAt);
-    grouped.set(group, [...(grouped.get(group) ?? []), document]);
-  }
-
-  const children = [...grouped.entries()]
-    .sort(([left], [right]) => right.localeCompare(left))
-    .map(([date, items]) => ({
-      id: `folder-${date}`,
-      kind: "folder" as const,
-      label: date,
-      children: sortDocuments(items).map((document) => ({
-        id: document.id,
-        kind: "document" as const,
-        label: getDocumentDisplayTitle(document),
-        detail: getDocumentFileName(document, null),
-        document,
-      })),
-    }));
-
-  return [
-    {
-      id: "root",
-      kind: "folder",
-      label: "Codex",
-      children,
-    },
-  ];
-}
-
-function buildFileTreeDraftItems(
-  documents: MarkdownDocument[],
-): FileTreeDraftItem[] {
-  return sortDocuments(documents).map((document) => ({
-    id: document.id,
-    title: getDocumentDisplayTitle(document),
-    status: document.status,
-    detail: [
-      document.status,
-      formatRelativeDate(document.updatedAt),
-    ]
-      .filter(Boolean)
-      .join(" / "),
-  }));
-}
-
-function collectFolderIds(nodes: SidebarTreeNode[]): string[] {
-  return nodes.flatMap((node) => {
-    if (node.kind === "document") return [];
-    return [node.id, ...collectFolderIds(node.children)];
-  });
-}
-
-function formatTreeDate(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Drafts";
-
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function formatWordCount(words: number): string {
-  return `${words} ${words === 1 ? "Word" : "Words"}`;
-}
-
-function getFileTreeStatus(
-  roots: string[],
-  statuses: Record<string, string>,
-  isAvailable: boolean,
-): string {
-  if (!isAvailable) return "使用桌面版打开文件夹";
-  if (roots.length === 0) return "Open a folder";
-  if (roots.some((root) => statuses[root] === "Loading")) return "Loading";
-
-  const failures = roots
-    .map((root) => statuses[root])
-    .filter(
-      (status) =>
-        status &&
-        status !== "Ready" &&
-        status !== "No Markdown files",
-    );
-
-  if (failures.length === 1) return failures[0];
-  if (failures.length > 1) return `${failures.length} folders failed`;
-  if (roots.every((root) => statuses[root] === "No Markdown files")) {
-    return "No Markdown files";
-  }
-
-  return "Ready";
 }
 
 function persistFileTreeRoots(roots: string[]) {
@@ -1862,20 +1732,6 @@ function persistFileTreeRoots(roots: string[]) {
     serializeFileTreeRoots(roots),
   );
   window.localStorage.removeItem(LEGACY_FILE_TREE_ROOT_STORAGE_KEY);
-}
-
-function pathContains(parent: string, child: string | null): boolean {
-  if (!child) return false;
-  return child === parent || child.startsWith(`${parent}/`) || child.startsWith(`${parent}\\`);
-}
-
-function toRelativePath(root: string, path: string): string {
-  if (path === root) return path.split(/[\\/]/).filter(Boolean).at(-1) ?? path;
-  for (const separator of ["/", "\\"]) {
-    const prefix = `${root}${separator}`;
-    if (path.startsWith(prefix)) return path.slice(prefix.length);
-  }
-  return path;
 }
 
 function scrollSearchMatchIntoView(match: DocumentSearchMatch | undefined) {
