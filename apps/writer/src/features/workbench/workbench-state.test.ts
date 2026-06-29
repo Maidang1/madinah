@@ -9,6 +9,7 @@ import {
   getInitialWorkbenchState,
   getSavePresentation,
   persistWorkbenchState,
+  shouldRestoreEditorFocus,
   workbenchStateReducer,
   type WorkbenchStorage,
 } from "./workbench-state";
@@ -179,6 +180,12 @@ describe("workbench state", () => {
       isFocusMode: true,
       isTypewriterMode: true,
     });
+  });
+
+  it("restores editor focus only when returning from preview to write", () => {
+    expect(shouldRestoreEditorFocus("preview", "write")).toBe(true);
+    expect(shouldRestoreEditorFocus("write", "preview")).toBe(false);
+    expect(shouldRestoreEditorFocus("write", "write")).toBe(false);
   });
 });
 

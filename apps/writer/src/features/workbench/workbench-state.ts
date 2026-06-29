@@ -92,6 +92,13 @@ export function workbenchStateReducer(
   }
 }
 
+export function shouldRestoreEditorFocus(
+  previousViewMode: WriterViewMode,
+  nextViewMode: WriterViewMode,
+): boolean {
+  return previousViewMode === "preview" && nextViewMode === "write";
+}
+
 export type SaveSemanticState =
   | "edited"
   | "draft-saved"

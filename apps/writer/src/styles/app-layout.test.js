@@ -44,6 +44,9 @@ describe("macOS document window layout", () => {
     expect(css).toMatch(/\.writer-toolbar-button\s*\{[^}]*width: 28px;/);
     expect(css).toMatch(/\.writer-toolbar-button\s*\{[^}]*height: 28px;/);
     expect(css).toMatch(/\.writer-toolbar-button:focus-visible\s*,/);
+    expect(css).toMatch(/\.writer-view-mode-control\s*\{/);
+    expect(css).toMatch(/\.writer-view-mode-option\s*\{[^}]*min-width: 64px;/);
+    expect(css).toMatch(/\.writer-view-mode-option\.is-active\s*\{/);
     expect(css).toMatch(
       /\.writer-simple-canvas \.live-mdx-content\s*\{[^}]*font-family: var\(--reader-font\);/,
     );
@@ -76,6 +79,9 @@ describe("macOS document window layout", () => {
     expect(css).toMatch(/\.document-title-input::placeholder\s*\{/);
     expect(css).toMatch(
       /@media \(max-width: 680px\)\s*\{[\s\S]*?\.document-editor-shell\s*\{[^}]*width: 100%;/,
+    );
+    expect(css).toMatch(
+      /@media \(max-width: 680px\)\s*\{[\s\S]*?\.writer-preview \.post-shell\s*\{[^}]*width: 100%;/,
     );
     expect(css).toMatch(
       /@media \(max-width: 680px\)\s*\{[\s\S]*?\.document-title-input\s*\{[^}]*font-size: 28px;/,

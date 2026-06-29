@@ -102,13 +102,16 @@ import {
   type DocumentSearchMatch,
 } from "./features/search/in-document-search";
 import { DocumentInspector } from "./features/inspector/DocumentInspector";
+import { PreviewPane } from "./features/preview/PreviewPane";
 import { createDocumentCommands } from "./features/session/document-commands";
 import { useDocumentSession } from "./features/session/useDocumentSession";
+import { ViewModeControl } from "./features/workbench/ViewModeControl";
 import { createWorkbenchCommands } from "./features/workbench/workbench-commands";
 import {
   getInitialWorkbenchState,
   getSavePresentation,
   persistWorkbenchState,
+  shouldRestoreEditorFocus,
   type SavePresentation,
   type SavePresentationIcon,
   workbenchStateReducer,
@@ -244,6 +247,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
     isFocusMode,
     isTypewriterMode,
   } = workbenchState;
+  const previousViewModeRef = useRef(viewMode);
   const [isQuickOpenOpen, setIsQuickOpenOpen] = useState(false);
   const [quickOpenQuery, setQuickOpenQuery] = useState("");
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
@@ -810,6 +814,17 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
   }, [viewMode, inspectorTab]);
 
   useEffect(() => {
+    const previousViewMode = previousViewModeRef.current;
+    previousViewModeRef.current = viewMode;
+
+    if (!shouldRestoreEditorFocus(previousViewMode, viewMode)) return;
+
+    window.requestAnimationFrame(() => {
+      activeEditorRef.current?.focus?.();
+    });
+  }, [viewMode]);
+
+  useEffect(() => {
     setVersions(historyTargetId ? historyStore.list(historyTargetId) : []);
   }, [historyStore, historyTargetId]);
 
@@ -952,6 +967,15 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
           <div className="writer-titlebar-title" data-tauri-drag-region>
             <strong data-tauri-drag-region>{documentTitle}</strong>
             <SaveStatusIndicator presentation={savePresentation} />
+            <ViewModeControl
+              viewMode={viewMode}
+              onViewModeChange={(nextViewMode) =>
+                dispatchWorkbenchState({
+                  type: "setViewMode",
+                  viewMode: nextViewMode,
+                })
+              }
+            />
           </div>
 
           <div className="writer-titlebar-meta">
@@ -1048,13 +1072,16 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
             )
           ) : null}
 
-          <section className="writer-simple-canvas" aria-label="Editor">
+          <section
+            className="writer-simple-canvas"
+            aria-label={viewMode === "preview" ? "Preview" : "Editor"}
+          >
             {session.document ? (
-              isDocumentStartStateVisible ? (
+              viewMode === "write" && isDocumentStartStateVisible ? (
                 <DocumentStartState onStart={startEditingEmptyDocument} />
               ) : (
                 <>
-                  {isDocumentSearchOpen ? (
+                  {viewMode === "write" && isDocumentSearchOpen ? (
                     <DocumentSearchBar
                       query={documentSearchQuery}
                       matches={documentSearchMatches}
@@ -1081,7 +1108,9 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
                       }}
                     />
                   ) : null}
-                  {documentEditor ? (
+                  {viewMode === "preview" ? (
+                    <PreviewPane document={session.document} />
+                  ) : documentEditor ? (
                     <DocumentEditorShell
                       title={documentEditor.title}
                       onTitleChange={changeDocumentTitle}

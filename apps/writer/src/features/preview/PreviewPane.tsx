@@ -104,10 +104,7 @@ export function PreviewPane({ document }: PreviewPaneProps) {
 
         <div className="post-content" ref={previewRef}>
           {error ? (
-            <div className="preview-error" role="alert">
-              <AlertTriangle size={18} aria-hidden="true" />
-              <span>{error}</span>
-            </div>
+            renderPreviewError(error)
           ) : Content ? (
             renderPreviewContent(Content, engine.profile.previewComponents ?? {})
           ) : null}
@@ -122,6 +119,15 @@ export function renderPreviewContent(
   components: PreviewComponentMap,
 ): ReactElement {
   return createElement(Content, { components });
+}
+
+export function renderPreviewError(error: string): ReactElement {
+  return (
+    <div className="preview-error" role="alert">
+      <AlertTriangle size={18} aria-hidden="true" />
+      <span>{error}</span>
+    </div>
+  );
 }
 
 function markMathJaxParents() {
