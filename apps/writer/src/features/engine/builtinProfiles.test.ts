@@ -81,6 +81,28 @@ describe("built-in engine profiles", () => {
     expect(getInsertCommandIds(blogMdx)).toContain("callout-warning");
   });
 
+  it("adds command palette metadata to built-in insert commands", () => {
+    const blogMdx = createBuiltinProfiles().find(
+      (profile) => profile.id === "blog-mdx",
+    );
+    const frontmatter = blogMdx?.commands?.find(
+      (command) => command.id === "editor.insert.frontmatter",
+    );
+
+    expect(blogMdx?.commands?.every((command) => command.group === "Insert")).toBe(
+      true,
+    );
+    expect(blogMdx?.commands?.every((command) => command.scope === "insert")).toBe(
+      true,
+    );
+    expect(blogMdx?.commands?.every((command) => (command.priority ?? 0) > 0)).toBe(
+      true,
+    );
+    expect(frontmatter?.keywords).toEqual(
+      expect.arrayContaining(["Blocks", "YAML metadata block", "yaml"]),
+    );
+  });
+
   it("inserts visible selected placeholders for insert commands", async () => {
     const blogMdx = createBuiltinProfiles().find(
       (profile) => profile.id === "blog-mdx",

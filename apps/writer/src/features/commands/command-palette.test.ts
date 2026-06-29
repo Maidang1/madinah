@@ -3,6 +3,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { WriterCommand } from "../../domain/engine";
 import { createFormattingCommands } from "../editor/formatting-commands";
+import { createBuiltinProfiles } from "../engine/builtinProfiles";
 import { createDocumentCommands } from "../session/document-commands";
 import { createWorkbenchCommands } from "../workbench/workbench-commands";
 import {
@@ -168,5 +169,23 @@ describe("command palette", () => {
       "editor.format.italic": "⌘I",
       "editor.format.link": "⌘K",
     });
+  });
+
+  it("groups profile insert commands under Insert in search results", () => {
+    const gfm = createBuiltinProfiles().find((profile) => profile.id === "gfm");
+    const items = createCommandPaletteItems(gfm?.commands ?? []);
+    const insertGroups = groupCommandPaletteItems(
+      searchCommandPaletteItems(items, "insert"),
+    );
+
+    expect(insertGroups).toHaveLength(1);
+    expect(insertGroups[0].group).toBe("Insert");
+    expect(insertGroups[0].items.map((item) => item.id)).toEqual(
+      expect.arrayContaining([
+        "editor.insert.table",
+        "editor.insert.checklist",
+        "editor.insert.footnote",
+      ]),
+    );
   });
 });
