@@ -80,6 +80,31 @@ describe("ExtensionHost", () => {
       },
     ]);
   });
+
+  it("records non-error plugin failures as diagnostics", async () => {
+    const host = new ExtensionHost({
+      baseProfiles: [baseProfile],
+      baseProfileId: "gfm",
+    });
+    const brokenPlugin: WriterPlugin = {
+      id: "plugin.string-error",
+      name: "String Error",
+      version: "1.0.0",
+      activate: () => {
+        throw "string failure";
+      },
+    };
+
+    const result = await host.activatePlugins([brokenPlugin], pluginContext);
+
+    expect(result.diagnostics).toEqual([
+      {
+        pluginId: "plugin.string-error",
+        severity: "error",
+        message: "string failure",
+      },
+    ]);
+  });
 });
 
 const baseProfile: EngineProfile = {

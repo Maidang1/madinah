@@ -5,6 +5,11 @@ import {
   type DocumentStatus,
   type MarkdownDocument,
 } from "../../domain/document";
+import type {
+  PluginDiagnostic,
+  WorkspaceInfo,
+} from "../../domain/engine";
+import { PluginDiagnostics } from "../engine/PluginDiagnostics";
 import {
   DOCUMENT_STATUSES,
   formatVersionTimestamp,
@@ -27,6 +32,8 @@ interface DocumentInspectorProps {
   document: MarkdownDocument;
   versions: DocumentVersion[];
   profileName: string;
+  pluginDiagnostics: PluginDiagnostic[];
+  workspace: WorkspaceInfo | null;
   activeTab: InspectorTab;
   onTabChange: (tab: InspectorTab) => void;
   onMetadataChange: (patch: DocumentMetadataPatch) => void;
@@ -39,6 +46,8 @@ export function DocumentInspector({
   document,
   versions,
   profileName,
+  pluginDiagnostics,
+  workspace,
   activeTab,
   onTabChange,
   onMetadataChange,
@@ -75,7 +84,9 @@ export function DocumentInspector({
         {activeTab === "properties" ? (
           <PropertiesPanel
             document={document}
+            pluginDiagnostics={pluginDiagnostics}
             tagsInput={tagsInput}
+            workspace={workspace}
             onTagsInputChange={setTagsInput}
             onMetadataChange={onMetadataChange}
           />
@@ -101,97 +112,107 @@ export function DocumentInspector({
 
 function PropertiesPanel({
   document,
+  pluginDiagnostics,
   tagsInput,
+  workspace,
   onTagsInputChange,
   onMetadataChange,
 }: {
   document: MarkdownDocument;
+  pluginDiagnostics: PluginDiagnostic[];
   tagsInput: string;
+  workspace: WorkspaceInfo | null;
   onTagsInputChange: (value: string) => void;
   onMetadataChange: (patch: DocumentMetadataPatch) => void;
 }) {
   return (
-    <section className="inspector-section">
-      <div className="inspector-section-header">
-        <span>Properties</span>
-      </div>
-      <label className="inspector-field">
-        <span>Title</span>
-        <input
-          id="inspector-property-title"
-          name="inspector-property-title"
-          value={document.title}
-          onChange={(event) =>
-            onMetadataChange({ title: event.currentTarget.value })
-          }
-        />
-      </label>
-      <label className="inspector-field">
-        <span>Description</span>
-        <textarea
-          id="inspector-property-description"
-          name="inspector-property-description"
-          rows={3}
-          value={document.description}
-          onChange={(event) =>
-            onMetadataChange({ description: event.currentTarget.value })
-          }
-        />
-      </label>
-      <label className="inspector-field">
-        <span>Tags</span>
-        <input
-          id="inspector-property-tags"
-          name="inspector-property-tags"
-          value={tagsInput}
-          onChange={(event) => onTagsInputChange(event.currentTarget.value)}
-          onBlur={() => onMetadataChange({ tags: tagsInput })}
-        />
-      </label>
-      <div className="inspector-grid">
+    <>
+      <section className="inspector-section">
+        <div className="inspector-section-header">
+          <span>Properties</span>
+        </div>
         <label className="inspector-field">
-          <span>Status</span>
-          <select
-            id="inspector-property-status"
-            name="inspector-property-status"
-            value={document.status}
-            onChange={(event) =>
-              onMetadataChange({
-                status: event.currentTarget.value as DocumentStatus,
-              })
-            }
-          >
-            {DOCUMENT_STATUSES.map((status) => (
-              <option key={status} value={status}>
-                {status}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="inspector-field">
-          <span>Author</span>
+          <span>Title</span>
           <input
-            id="inspector-property-author"
-            name="inspector-property-author"
-            value={document.author}
+            id="inspector-property-title"
+            name="inspector-property-title"
+            value={document.title}
             onChange={(event) =>
-              onMetadataChange({ author: event.currentTarget.value })
+              onMetadataChange({ title: event.currentTarget.value })
             }
           />
         </label>
-      </div>
-      <label className="inspector-field">
-        <span>Publish date</span>
-        <input
-          id="inspector-property-pub-date"
-          name="inspector-property-pub-date"
-          value={document.pubDate}
-          onChange={(event) =>
-            onMetadataChange({ pubDate: event.currentTarget.value })
-          }
-        />
-      </label>
-    </section>
+        <label className="inspector-field">
+          <span>Description</span>
+          <textarea
+            id="inspector-property-description"
+            name="inspector-property-description"
+            rows={3}
+            value={document.description}
+            onChange={(event) =>
+              onMetadataChange({ description: event.currentTarget.value })
+            }
+          />
+        </label>
+        <label className="inspector-field">
+          <span>Tags</span>
+          <input
+            id="inspector-property-tags"
+            name="inspector-property-tags"
+            value={tagsInput}
+            onChange={(event) => onTagsInputChange(event.currentTarget.value)}
+            onBlur={() => onMetadataChange({ tags: tagsInput })}
+          />
+        </label>
+        <div className="inspector-grid">
+          <label className="inspector-field">
+            <span>Status</span>
+            <select
+              id="inspector-property-status"
+              name="inspector-property-status"
+              value={document.status}
+              onChange={(event) =>
+                onMetadataChange({
+                  status: event.currentTarget.value as DocumentStatus,
+                })
+              }
+            >
+              {DOCUMENT_STATUSES.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="inspector-field">
+            <span>Author</span>
+            <input
+              id="inspector-property-author"
+              name="inspector-property-author"
+              value={document.author}
+              onChange={(event) =>
+                onMetadataChange({ author: event.currentTarget.value })
+              }
+            />
+          </label>
+        </div>
+        <label className="inspector-field">
+          <span>Publish date</span>
+          <input
+            id="inspector-property-pub-date"
+            name="inspector-property-pub-date"
+            value={document.pubDate}
+            onChange={(event) =>
+              onMetadataChange({ pubDate: event.currentTarget.value })
+            }
+          />
+        </label>
+      </section>
+      <PluginDiagnostics
+        workspace={workspace}
+        diagnostics={pluginDiagnostics}
+      />
+    </>
   );
 }
 

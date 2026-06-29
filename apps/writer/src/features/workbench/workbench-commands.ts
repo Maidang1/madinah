@@ -6,6 +6,7 @@ export interface WorkbenchCommandOptions {
   openDocumentSearch: () => void;
   openCommandPalette: () => void;
   openQuickOpen: () => void;
+  showWorkspaceDiagnostics?: () => void;
 }
 
 export function createWorkbenchCommands({
@@ -13,6 +14,7 @@ export function createWorkbenchCommands({
   openDocumentSearch,
   openCommandPalette,
   openQuickOpen,
+  showWorkspaceDiagnostics,
 }: WorkbenchCommandOptions): WriterCommand[] {
   return [
     {
@@ -121,6 +123,17 @@ export function createWorkbenchCommands({
       scope: "view",
       priority: 33,
       run: () => dispatch({ type: "setEditorMode", editorMode: "source" }),
+    },
+    {
+      id: "workspace.showDiagnostics",
+      label: "Show Workspace Diagnostics",
+      group: "Workspace",
+      keywords: ["plugins", "extensions", "diagnostics"],
+      scope: "view",
+      priority: 32,
+      run:
+        showWorkspaceDiagnostics ??
+        (() => dispatch({ type: "showInspectorTab", tab: "properties" })),
     },
     ...createInspectorTabCommands(dispatch),
   ];

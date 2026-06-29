@@ -42,6 +42,7 @@ import {
   getWriterCommandIdFromPayload,
 } from "./features/commands/native-menu";
 import { CommandPalette } from "./features/commands/command-palette";
+import { PLUGIN_DIAGNOSTICS_PANEL_ID } from "./features/engine/PluginDiagnostics";
 import {
   AcpSettingsDialog,
   type AcpCheckState,
@@ -364,6 +365,14 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
     [acpSettings, platform.aiPolish, setStatus],
   );
   const formattingCommands = useMemo(() => createFormattingCommands(), []);
+  const showWorkspaceDiagnostics = useCallback(() => {
+    dispatchWorkbenchState({ type: "showInspectorTab", tab: "properties" });
+    requestAnimationFrame(() => {
+      document
+        .getElementById(PLUGIN_DIAGNOSTICS_PANEL_ID)
+        ?.scrollIntoView({ block: "nearest" });
+    });
+  }, []);
   const workbenchCommands = useMemo(
     () =>
       createWorkbenchCommands({
@@ -371,8 +380,9 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
         openDocumentSearch: () => setIsDocumentSearchOpen(true),
         openCommandPalette: () => setIsCommandPaletteOpen(true),
         openQuickOpen: () => setIsQuickOpenOpen(true),
+        showWorkspaceDiagnostics,
       }),
-    [],
+    [showWorkspaceDiagnostics],
   );
   const commandRegistry = useMemo(
     () =>
@@ -1189,6 +1199,8 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
               document={session.document}
               versions={versions}
               profileName={engine.profile.name}
+              pluginDiagnostics={engine.diagnostics}
+              workspace={engine.workspace}
               activeTab={inspectorTab}
               onTabChange={(tab) =>
                 dispatchWorkbenchState({ type: "showInspectorTab", tab })
