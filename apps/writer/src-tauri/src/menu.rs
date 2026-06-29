@@ -76,12 +76,33 @@ pub fn writer_menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
         MenuItemBuilder::with_id("writer-menu-view-typewriter-mode", "Typewriter Mode")
             .accelerator("CmdOrCtrl+Alt+T")
             .build(app)?;
+    let write_mode = MenuItemBuilder::with_id("writer-menu-view-write", "Write Mode").build(app)?;
+    let preview_mode =
+        MenuItemBuilder::with_id("writer-menu-view-preview", "Preview Mode").build(app)?;
+    let inspector_outline =
+        MenuItemBuilder::with_id("writer-menu-inspector-outline", "Outline").build(app)?;
+    let inspector_properties =
+        MenuItemBuilder::with_id("writer-menu-inspector-properties", "Properties").build(app)?;
+    let inspector_stats =
+        MenuItemBuilder::with_id("writer-menu-inspector-stats", "Writing Stats").build(app)?;
+    let inspector_history =
+        MenuItemBuilder::with_id("writer-menu-inspector-history", "History").build(app)?;
+    let inspector = SubmenuBuilder::new(app, "Inspector")
+        .item(&inspector_outline)
+        .item(&inspector_properties)
+        .item(&inspector_stats)
+        .item(&inspector_history)
+        .build()?;
     let view = SubmenuBuilder::new(app, "View")
         .item(&command_palette)
         .item(&quick_open)
         .separator()
+        .item(&write_mode)
+        .item(&preview_mode)
+        .separator()
         .item(&toggle_sidebar)
         .item(&toggle_inspector)
+        .item(&inspector)
         .separator()
         .item(&focus_mode)
         .item(&typewriter_mode)
@@ -131,7 +152,13 @@ pub fn menu_item_command_id(menu_item_id: &str) -> Option<&'static str> {
         "writer-menu-view-toggle-inspector" => Some("view.toggleInspector"),
         "writer-menu-view-focus-mode" => Some("view.focusMode"),
         "writer-menu-view-typewriter-mode" => Some("view.typewriterMode"),
+        "writer-menu-view-write" => Some("view.write"),
+        "writer-menu-view-preview" => Some("view.preview"),
         "writer-menu-go-outline" => Some("go.outline"),
+        "writer-menu-inspector-outline" => Some("inspector.showOutline"),
+        "writer-menu-inspector-properties" => Some("inspector.showProperties"),
+        "writer-menu-inspector-stats" => Some("inspector.showStats"),
+        "writer-menu-inspector-history" => Some("inspector.showHistory"),
         _ => None,
     }
 }
@@ -154,7 +181,13 @@ mod tests {
             ("writer-menu-view-toggle-inspector", "view.toggleInspector"),
             ("writer-menu-view-focus-mode", "view.focusMode"),
             ("writer-menu-view-typewriter-mode", "view.typewriterMode"),
+            ("writer-menu-view-write", "view.write"),
+            ("writer-menu-view-preview", "view.preview"),
             ("writer-menu-go-outline", "go.outline"),
+            ("writer-menu-inspector-outline", "inspector.showOutline"),
+            ("writer-menu-inspector-properties", "inspector.showProperties"),
+            ("writer-menu-inspector-stats", "inspector.showStats"),
+            ("writer-menu-inspector-history", "inspector.showHistory"),
         ];
 
         for (menu_id, command_id) in cases {

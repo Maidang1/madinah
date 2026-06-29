@@ -17,7 +17,13 @@ export const NATIVE_MENU_COMMAND_IDS = [
   "view.toggleInspector",
   "view.focusMode",
   "view.typewriterMode",
+  "view.write",
+  "view.preview",
   "go.outline",
+  "inspector.showOutline",
+  "inspector.showProperties",
+  "inspector.showStats",
+  "inspector.showHistory",
 ] as const;
 
 export function getWriterCommandIdFromPayload(payload: unknown): string | null {

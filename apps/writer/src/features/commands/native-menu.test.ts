@@ -31,7 +31,13 @@ describe("native menu command events", () => {
       "view.toggleInspector",
       "view.focusMode",
       "view.typewriterMode",
+      "view.write",
+      "view.preview",
       "go.outline",
+      "inspector.showOutline",
+      "inspector.showProperties",
+      "inspector.showStats",
+      "inspector.showHistory",
     ]);
   });
 });
