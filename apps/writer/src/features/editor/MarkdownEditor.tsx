@@ -16,6 +16,14 @@ import {
   getEditorContextMenuPosition,
   type EditorContextMenuItem,
 } from "./editor-context-menu";
+import {
+  EDITOR_SELECTION_TOOLBAR_ACTIONS,
+  EDITOR_SELECTION_TOOLBAR_SIZE,
+  EditorSelectionToolbar,
+  getEditorSelectionToolbarPosition,
+  type EditorSelectionToolbarAction,
+  type EditorSelectionToolbarPosition,
+} from "./EditorSelectionToolbar";
 
 interface MarkdownEditorProps {
   value: string;
@@ -53,6 +61,8 @@ export function MarkdownEditor({
   const [contextMenu, setContextMenu] = useState<EditorContextMenuState | null>(
     null,
   );
+  const [selectionToolbar, setSelectionToolbar] =
+    useState<EditorSelectionToolbarState | null>(null);
 
   useEffect(() => {
     if (!onEditorReady) return;
@@ -63,6 +73,10 @@ export function MarkdownEditor({
 
   const closeContextMenu = useCallback(() => {
     setContextMenu(null);
+  }, []);
+
+  const closeSelectionToolbar = useCallback(() => {
+    setSelectionToolbar(null);
   }, []);
 
   const runContextMenuItem = useCallback(
@@ -83,6 +97,32 @@ export function MarkdownEditor({
     [closeContextMenu, commandRegistry, document, onError, value, workspace],
   );
 
+  const runSelectionToolbarAction = useCallback(
+    async (action: EditorSelectionToolbarAction) => {
+      const editor = createWriterEditor(editorRef, shellRef, value);
+      closeSelectionToolbar();
+
+      try {
+        await commandRegistry.execute(action.commandId, {
+          document,
+          editor,
+          workspace,
+        });
+        editor.focus?.();
+      } catch (error: unknown) {
+        onError(error instanceof Error ? error.message : String(error));
+      }
+    },
+    [
+      closeSelectionToolbar,
+      commandRegistry,
+      document,
+      onError,
+      value,
+      workspace,
+    ],
+  );
+
   useEffect(() => {
     if (!shouldAutoFocusRef.current) return;
 
@@ -93,6 +133,65 @@ export function MarkdownEditor({
       }),
     );
   }, []);
+
+  const updateSelectionToolbar = useCallback(() => {
+    if (contextMenu) return;
+
+    const selection = window.getSelection();
+    const range = getSelectionRangeInside(shellRef.current, selection);
+    if (!range) {
+      setSelectionToolbar(null);
+      return;
+    }
+
+    const rect = range.getBoundingClientRect();
+    setSelectionToolbar({
+      position: getEditorSelectionToolbarPosition(
+        rect,
+        EDITOR_SELECTION_TOOLBAR_SIZE,
+        { width: window.innerWidth, height: window.innerHeight },
+      ),
+    });
+  }, [contextMenu]);
+
+  const scheduleSelectionToolbarUpdate = useCallback(() => {
+    requestAnimationFrame(updateSelectionToolbar);
+  }, [updateSelectionToolbar]);
+
+  useEffect(() => {
+    globalThis.document.addEventListener(
+      "selectionchange",
+      scheduleSelectionToolbarUpdate,
+    );
+    window.addEventListener("mouseup", scheduleSelectionToolbarUpdate);
+    window.addEventListener("keyup", scheduleSelectionToolbarUpdate);
+    window.addEventListener("resize", closeSelectionToolbar);
+    window.addEventListener("scroll", closeSelectionToolbar, true);
+
+    return () => {
+      globalThis.document.removeEventListener(
+        "selectionchange",
+        scheduleSelectionToolbarUpdate,
+      );
+      window.removeEventListener("mouseup", scheduleSelectionToolbarUpdate);
+      window.removeEventListener("keyup", scheduleSelectionToolbarUpdate);
+      window.removeEventListener("resize", closeSelectionToolbar);
+      window.removeEventListener("scroll", closeSelectionToolbar, true);
+    };
+  }, [closeSelectionToolbar, scheduleSelectionToolbarUpdate]);
+
+  useEffect(() => {
+    if (!selectionToolbar) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        closeSelectionToolbar();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [closeSelectionToolbar, selectionToolbar]);
 
   useEffect(() => {
     if (!contextMenu) return;
@@ -129,6 +228,7 @@ export function MarkdownEditor({
 
       event.preventDefault();
       event.stopPropagation();
+      closeSelectionToolbar();
       setContextMenu({
         position: getEditorContextMenuPosition(
           event,
@@ -137,7 +237,7 @@ export function MarkdownEditor({
         ),
       });
     },
-    [contextMenuItems.length],
+    [closeSelectionToolbar, contextMenuItems.length],
   );
 
   return (
@@ -178,6 +278,13 @@ export function MarkdownEditor({
           items={contextMenuItems}
           position={contextMenu.position}
           onRun={(item) => void runContextMenuItem(item)}
+        />
+      ) : null}
+      {selectionToolbar ? (
+        <EditorSelectionToolbar
+          actions={EDITOR_SELECTION_TOOLBAR_ACTIONS}
+          position={selectionToolbar.position}
+          onRun={(action) => void runSelectionToolbarAction(action)}
         />
       ) : null}
     </div>
@@ -270,6 +377,10 @@ interface EditorContextMenuState {
   };
 }
 
+interface EditorSelectionToolbarState {
+  position: EditorSelectionToolbarPosition;
+}
+
 function EditorContextMenu({
   items,
   position,
@@ -330,15 +441,9 @@ function createWriterEditor(
 }
 
 function getSelectedTextInside(element: HTMLElement | null): string {
-  if (!element) return "";
-
   const selection = window.getSelection();
-  if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return "";
-
-  const anchorNode = selection.anchorNode;
-  if (!anchorNode || !element.contains(anchorNode)) return "";
-
-  return selection.toString();
+  if (!getSelectionRangeInside(element, selection)) return "";
+  return selection?.toString() ?? "";
 }
 
 function replaceSelectedTextInside(
@@ -348,18 +453,51 @@ function replaceSelectedTextInside(
   if (!element) return false;
 
   const selection = window.getSelection();
-  if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return false;
+  const range = getSelectionRangeInside(element, selection);
+  if (!selection || !range) return false;
 
-  const anchorNode = selection.anchorNode;
-  if (!anchorNode || !element.contains(anchorNode)) return false;
+  if (
+    typeof document.execCommand === "function" &&
+    document.execCommand("insertText", false, text)
+  ) {
+    return true;
+  }
 
-  const range = selection.getRangeAt(0);
   range.deleteContents();
   range.insertNode(document.createTextNode(text));
   range.collapse(false);
   selection.removeAllRanges();
   selection.addRange(range);
 
-  element.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertText", data: text }));
+  element.dispatchEvent(
+    new InputEvent("input", {
+      bubbles: true,
+      inputType: "insertText",
+      data: text,
+    }),
+  );
   return true;
+}
+
+function getSelectionRangeInside(
+  element: HTMLElement | null,
+  selection: Selection | null,
+): Range | null {
+  if (!element || !selection || selection.rangeCount === 0 || selection.isCollapsed) {
+    return null;
+  }
+
+  const anchorNode = selection.anchorNode;
+  const focusNode = selection.focusNode;
+  if (!anchorNode || !focusNode) return null;
+  if (!element.contains(anchorNode) || !element.contains(focusNode)) return null;
+
+  const text = selection.toString();
+  if (!text.trim()) return null;
+
+  const range = selection.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  if (rect.width === 0 && rect.height === 0) return null;
+
+  return range;
 }
