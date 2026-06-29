@@ -1,7 +1,11 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { ComponentType } from "react";
-import { renderPreviewContent, renderPreviewError } from "./PreviewPane";
+import {
+  renderPreviewContent,
+  renderPreviewError,
+  renderPreviewLoading,
+} from "./PreviewPane";
 
 describe("feature preview pane", () => {
   it("renders compiled content with profile preview components", async () => {
@@ -31,5 +35,12 @@ describe("feature preview pane", () => {
     expect(html).toContain('class="preview-error"');
     expect(html).toContain('role="alert"');
     expect(html).toContain("Unexpected token");
+  });
+
+  it("renders a preview loading state", () => {
+    const html = renderToStaticMarkup(renderPreviewLoading());
+
+    expect(html).toContain("preview-loading");
+    expect(html).toContain("Compiling preview");
   });
 });

@@ -138,6 +138,27 @@ describe("command palette", () => {
     expect(html).toContain("⇧⌘P");
   });
 
+  it("renders the active query in the empty state", () => {
+    const html = renderToStaticMarkup(
+      createElement(CommandPalette, {
+        commands: [
+          {
+            id: "document.save",
+            label: "Save",
+            run: () => {},
+          },
+        ],
+        query: "publish",
+        onQueryChange: () => {},
+        onClose: () => {},
+        onRun: () => {},
+      }),
+    );
+
+    expect(html).toContain("No commands for");
+    expect(html).toContain("publish");
+  });
+
   it("adds shortcut metadata to common built-in commands", () => {
     const commands = [
       ...createDocumentCommands({

@@ -47,6 +47,7 @@ interface FileTreeSidebarProps {
   treeRef: RefObject<TreeApi<FileTreeNode> | null>;
   onAction: (action: FileTreeMenuAction, node: FileTreeNode) => void;
   onDraftAction: (action: FileTreeDraftAction, draft: FileTreeDraftItem) => void;
+  onNewDocument: () => void;
   onNewFile: () => void;
   onNewFolder: () => void;
   onOpenDraft: (id: string) => void;
@@ -88,6 +89,7 @@ export function FileTreeSidebar({
   treeRef,
   onAction,
   onDraftAction,
+  onNewDocument,
   onNewFile,
   onNewFolder,
   onOpenDraft,
@@ -201,9 +203,12 @@ export function FileTreeSidebar({
       {!isAvailable ? (
         <div className="file-tree-message">使用桌面版打开文件夹</div>
       ) : roots.length === 0 && drafts.length === 0 ? (
-        <div className="file-tree-message">
+        <div className="file-tree-message file-tree-empty-actions">
           <button type="button" onClick={onOpenFolder}>
-            Add Folder
+            Open Folder
+          </button>
+          <button type="button" onClick={onNewDocument}>
+            New Document
           </button>
         </div>
       ) : (

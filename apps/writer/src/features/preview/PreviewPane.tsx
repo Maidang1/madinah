@@ -1,4 +1,4 @@
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, LoaderCircle } from "lucide-react";
 import {
   createElement,
   useEffect,
@@ -22,6 +22,7 @@ export function PreviewPane({ document }: PreviewPaneProps) {
   const engine = useEngine();
   const [Content, setContent] = useState<MdxPreviewContent | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isCompiling, setIsCompiling] = useState(true);
   const previewRef = useRef<HTMLDivElement>(null);
   const tocItems = useMemo(() => buildToc(document.body), [document.body]);
   const readingTime = useMemo(
@@ -31,6 +32,7 @@ export function PreviewPane({ document }: PreviewPaneProps) {
 
   useEffect(() => {
     let cancelled = false;
+    setIsCompiling(true);
     const timer = window.setTimeout(() => {
       engine
         .compilePreview(document.body)
@@ -38,10 +40,12 @@ export function PreviewPane({ document }: PreviewPaneProps) {
           if (cancelled) return;
           setContent(() => component);
           setError(null);
+          setIsCompiling(false);
         })
         .catch((compileError: unknown) => {
           if (cancelled) return;
           setError(String(compileError));
+          setIsCompiling(false);
         });
     }, 300);
 
@@ -103,9 +107,9 @@ export function PreviewPane({ document }: PreviewPaneProps) {
         ) : null}
 
         <div className="post-content" ref={previewRef}>
-          {error ? (
-            renderPreviewError(error)
-          ) : Content ? (
+          {isCompiling ? renderPreviewLoading() : null}
+          {error ? renderPreviewError(error) : null}
+          {Content ? (
             renderPreviewContent(Content, engine.profile.previewComponents ?? {})
           ) : null}
         </div>
@@ -126,6 +130,15 @@ export function renderPreviewError(error: string): ReactElement {
     <div className="preview-error" role="alert">
       <AlertTriangle size={18} aria-hidden="true" />
       <span>{error}</span>
+    </div>
+  );
+}
+
+export function renderPreviewLoading(): ReactElement {
+  return (
+    <div className="preview-loading" role="status">
+      <LoaderCircle size={18} aria-hidden="true" />
+      <span>Compiling preview</span>
     </div>
   );
 }

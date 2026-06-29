@@ -208,10 +208,24 @@ export function CommandPalette({
               </div>
             ))
           ) : (
-            <div className="command-palette-empty">No commands</div>
+            <CommandPaletteEmpty query={query} />
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function CommandPaletteEmpty({ query }: { query: string }) {
+  const normalized = query.trim();
+
+  if (!normalized) {
+    return <div className="command-palette-empty">No commands</div>;
+  }
+
+  return (
+    <div className="command-palette-empty">
+      No commands for <strong>{normalized}</strong>
     </div>
   );
 }

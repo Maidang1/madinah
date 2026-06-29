@@ -89,6 +89,49 @@ textarea {
   font-size: 13px;
 }
 
+.writer-empty-panel {
+  display: grid;
+  width: min(360px, calc(100% - 32px));
+  gap: 14px;
+  justify-items: center;
+  color: var(--writer-muted);
+  text-align: center;
+}
+
+.writer-empty-panel p {
+  margin: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.45;
+}
+
+.writer-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.writer-empty-actions button {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 11px;
+  border: 1px solid var(--writer-rule-strong);
+  border-radius: 6px;
+  background: var(--writer-control-bg);
+  color: color-mix(in srgb, var(--writer-text) 76%, transparent);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.writer-empty-actions button:hover,
+.writer-empty-actions button:focus-visible {
+  background: var(--writer-control-hover);
+  color: var(--writer-text);
+}
+
 .writer-simple-app {
   --reader-page: rgb(29, 30, 32);
   --reader-paper: rgb(46, 46, 51);
@@ -1134,6 +1177,11 @@ textarea {
   text-align: center;
 }
 
+.file-tree-empty-actions {
+  align-content: center;
+  gap: 8px;
+}
+
 .file-tree-message button {
   min-height: 30px;
   padding: 0 12px;
@@ -1570,6 +1618,13 @@ textarea {
 
 .quick-open-empty {
   padding: 18px 14px;
+}
+
+.quick-open-empty strong,
+.command-palette-empty strong {
+  color: color-mix(in srgb, var(--writer-text) 82%, transparent);
+  font-weight: 700;
+  overflow-wrap: anywhere;
 }
 
 .command-palette-backdrop {
@@ -2082,17 +2137,31 @@ textarea {
   padding: 0;
 }
 
-.preview-error {
+.preview-error,
+.preview-loading {
   display: flex;
   gap: 10px;
   padding: 12px 14px;
-  border: 1px solid rgb(194, 88, 80);
   border-radius: 8px;
-  background: rgb(255, 246, 244);
-  color: rgb(133, 44, 38);
   font-family: var(--writer-ui-font);
   font-size: 13px;
   line-height: 1.45;
+}
+
+.preview-error {
+  border: 1px solid rgb(194, 88, 80);
+  background: rgb(255, 246, 244);
+  color: rgb(133, 44, 38);
+}
+
+.preview-loading {
+  border: 1px solid var(--writer-rule);
+  background: color-mix(in srgb, var(--writer-control-bg) 52%, transparent);
+  color: var(--writer-muted);
+}
+
+.preview-loading svg {
+  animation: writer-spin 880ms linear infinite;
 }
 
 .writer-preview {
@@ -2332,6 +2401,7 @@ textarea {
 
 @media (prefers-reduced-motion: reduce) {
   .writer-toolbar-button,
+  .preview-loading svg,
   .tree-row,
   .writer-sidebar-icon-button,
   .inspector-tab,

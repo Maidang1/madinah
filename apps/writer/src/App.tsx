@@ -19,6 +19,7 @@ import {
   FileCheck2,
   FileClock,
   FileCode2,
+  FolderOpen,
   Folder,
   LoaderCircle,
   Moon,
@@ -1069,6 +1070,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
                 treeRef={fileTreeRef}
                 onAction={(action, node) => void runFileTreeAction(action, node)}
                 onDraftAction={(action, draft) => void runDraftAction(action, draft)}
+                onNewDocument={() => void createNewDocument()}
                 onNewFile={handleNewFile}
                 onNewFolder={handleNewFolder}
                 onOpenDraft={(id) => void openStoredDocument(id)}
@@ -1190,7 +1192,12 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
                 </>
               )
             ) : (
-              <div className="writer-empty-state">{status}</div>
+              <WriterEmptyState
+                status={status}
+                canOpenFolder={platform.fileTreeStore.isAvailable}
+                onNewDocument={() => void createNewDocument()}
+                onOpenFolder={() => void openWorkspaceFolder()}
+              />
             )}
           </section>
 
@@ -1394,10 +1401,24 @@ function QuickOpenDialog({
               </button>
             ))
           ) : (
-            <div className="quick-open-empty">No results</div>
+            <QuickOpenEmpty query={query} />
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function QuickOpenEmpty({ query }: { query: string }) {
+  const normalized = query.trim();
+
+  if (!normalized) {
+    return <div className="quick-open-empty">No results</div>;
+  }
+
+  return (
+    <div className="quick-open-empty">
+      No results for <strong>{normalized}</strong>
     </div>
   );
 }
@@ -1531,6 +1552,38 @@ function DocumentStartState({ onStart }: { onStart: () => void }) {
         <PencilLine size={15} aria-hidden="true" />
         开始书写
       </button>
+    </div>
+  );
+}
+
+function WriterEmptyState({
+  canOpenFolder,
+  status,
+  onNewDocument,
+  onOpenFolder,
+}: {
+  canOpenFolder: boolean;
+  status: string;
+  onNewDocument: () => void;
+  onOpenFolder: () => void;
+}) {
+  return (
+    <div className="writer-empty-state">
+      <div className="writer-empty-panel">
+        <p>{status || "No document open"}</p>
+        <div className="writer-empty-actions">
+          {canOpenFolder ? (
+            <button type="button" onClick={onOpenFolder}>
+              <FolderOpen size={15} aria-hidden="true" />
+              Open Folder
+            </button>
+          ) : null}
+          <button type="button" onClick={onNewDocument}>
+            <PencilLine size={15} aria-hidden="true" />
+            New Document
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
