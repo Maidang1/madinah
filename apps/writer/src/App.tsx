@@ -33,6 +33,10 @@ import {
 } from "lucide-react";
 import type { TreeApi } from "react-arborist";
 import type { AcpAgentRuntimeConfig } from "./domain/ai-polish";
+import {
+  createDefaultAssetUploadSettings,
+  type AssetUploadSettings,
+} from "./domain/assets";
 import type { WriterEditor } from "./domain/engine";
 import {
   type MarkdownDocument,
@@ -45,10 +49,6 @@ import {
 import { CommandPalette } from "./features/commands/command-palette";
 import { PLUGIN_DIAGNOSTICS_PANEL_ID } from "./features/engine/PluginDiagnostics";
 import {
-  AcpSettingsDialog,
-  type AcpCheckState,
-} from "./features/ai-polish/AcpSettingsDialog";
-import {
   AI_POLISH_COMMAND_ID,
   createAiPolishCommand,
 } from "./features/ai-polish/command";
@@ -57,6 +57,7 @@ import {
   saveAcpSettings as persistAcpSettings,
   type AcpSettings,
 } from "./features/ai-polish/settings";
+import { createR2ImageUploadHandler } from "./features/assets/image-upload";
 import {
   composeDocumentEditorMarkdown,
   DOCUMENT_TITLE_PLACEHOLDER,
@@ -73,6 +74,7 @@ import { EngineProvider, useEngine } from "./features/engine/EngineProvider";
 import { FileTreeSidebar } from "./features/file-tree/FileTreeSidebar";
 import {
   addFileTreeRoot,
+  buildPublishFilePath,
   buildFileTreeRootNodes,
   findFileTreeRootForPath,
   type FileTreeDraftAction,
@@ -83,6 +85,7 @@ import {
   getFileTreeStatus,
   pathContains,
   parseFileTreeRoots,
+  resolvePublishTarget,
   serializeFileTreeRoots,
   toRelativePath,
 } from "./features/file-tree/file-tree";
@@ -108,7 +111,12 @@ import {
 import { DocumentInspector } from "./features/inspector/DocumentInspector";
 import { PreviewPane } from "./features/preview/PreviewPane";
 import { createDocumentCommands } from "./features/session/document-commands";
+import { confirmPublishOverwrite } from "./features/session/publish-document";
 import { useDocumentSession } from "./features/session/useDocumentSession";
+import {
+  WriterSettingsDialog,
+  type SettingsCheckState,
+} from "./features/settings/WriterSettingsDialog";
 import { ViewModeControl } from "./features/workbench/ViewModeControl";
 import { createWorkbenchCommands } from "./features/workbench/workbench-commands";
 import {
@@ -146,6 +154,7 @@ const COMMANDS_THAT_OPEN_OVERLAYS = new Set([
 ]);
 const FILE_TREE_ROOTS_STORAGE_KEY = "madinah-writer-file-tree-roots";
 const LEGACY_FILE_TREE_ROOT_STORAGE_KEY = "madinah-writer-file-tree-root";
+const PUBLISH_TARGET_STORAGE_KEY = "madinah-writer-publish-target";
 const WINDOW_DRAG_IGNORE_SELECTOR =
   "button, a, input, textarea, select, [role='button'], [data-tauri-no-drag]";
 
@@ -174,6 +183,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
     openStoredDocument,
     openMarkdownPath,
     createNewDocument,
+    publishStoredDocument,
     updateStoredDocumentStatus,
     deleteStoredDocument,
     saveNow,
@@ -220,6 +230,18 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
   const activeFileTreeRoot = useMemo(
     () => getActiveFileTreeRoot(fileTreeRoots, session.filePath),
     [fileTreeRoots, session.filePath],
+  );
+  const [publishTargetPath, setPublishTargetPath] = useState<string | null>(
+    () => window.localStorage.getItem(PUBLISH_TARGET_STORAGE_KEY),
+  );
+  const publishTarget = useMemo(
+    () =>
+      resolvePublishTarget({
+        explicitTargetPath: publishTargetPath,
+        activePath: session.filePath,
+        activeRoot: activeFileTreeRoot,
+      }),
+    [activeFileTreeRoot, publishTargetPath, session.filePath],
   );
   const fileTreeNodes = useMemo(
     () =>
@@ -270,10 +292,17 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
   >(null);
   const [theme, setTheme] = useState<WriterTheme>(getInitialTheme);
   const [acpSettings, setAcpSettings] = useState<AcpSettings>(loadAcpSettings);
-  const [isAcpSettingsOpen, setIsAcpSettingsOpen] = useState(false);
+  const [assetSettings, setAssetSettings] = useState<AssetUploadSettings>(
+    createDefaultAssetUploadSettings,
+  );
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [versions, setVersions] = useState<DocumentVersion[]>([]);
   const historyStore = useMemo(() => createLocalDocumentHistoryStore(), []);
-  const [acpCheckState, setAcpCheckState] = useState<AcpCheckState>({
+  const [acpCheckState, setAcpCheckState] = useState<SettingsCheckState>({
+    status: "idle",
+    message: "Ready",
+  });
+  const [assetCheckState, setAssetCheckState] = useState<SettingsCheckState>({
     status: "idle",
     message: "Ready",
   });
@@ -282,6 +311,29 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
       activeEditorRef.current?.focus?.();
     });
   }, []);
+  useEffect(() => {
+    let cancelled = false;
+
+    platform.assetUpload
+      .loadSettings()
+      .then((settings) => {
+        if (!cancelled) {
+          setAssetSettings(settings);
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setAssetCheckState({
+            status: "error",
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [platform.assetUpload]);
   const documentTitle = session.document
     ? getDocumentDisplayTitle(session.document)
     : "Madinah Writer";
@@ -375,6 +427,15 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
       }),
     [acpSettings, platform.aiPolish, setStatus],
   );
+  const imageUploadHandler = useMemo(
+    () =>
+      createR2ImageUploadHandler({
+        assetUpload: platform.assetUpload,
+        settings: assetSettings,
+        setStatus,
+      }),
+    [assetSettings, platform.assetUpload, setStatus],
+  );
   const formattingCommands = useMemo(() => createFormattingCommands(), []);
   const showWorkspaceDiagnostics = useCallback(() => {
     dispatchWorkbenchState({ type: "showInspectorTab", tab: "properties" });
@@ -426,8 +487,8 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
       workbenchCommands,
     ],
   );
-  const closeAcpSettings = useCallback(() => {
-    setIsAcpSettingsOpen(false);
+  const closeSettings = useCallback(() => {
+    setIsSettingsOpen(false);
     restoreEditorFocus();
   }, [restoreEditorFocus]);
   const saveAcpSettings = useCallback(
@@ -435,10 +496,26 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
       persistAcpSettings(nextSettings);
       setAcpSettings(nextSettings);
       setAcpCheckState({ status: "idle", message: "Saved" });
-      closeAcpSettings();
+      closeSettings();
       setStatus("AI settings saved");
     },
-    [closeAcpSettings, setStatus],
+    [closeSettings, setStatus],
+  );
+  const saveAssetSettings = useCallback(
+    async (nextSettings: AssetUploadSettings) => {
+      try {
+        const saved = await platform.assetUpload.saveSettings(nextSettings);
+        setAssetSettings(saved);
+        setAssetCheckState({ status: "idle", message: "Saved" });
+        closeSettings();
+        setStatus("Asset settings saved");
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        setAssetCheckState({ status: "error", message });
+        setStatus(message);
+      }
+    },
+    [closeSettings, platform.assetUpload, setStatus],
   );
   const checkAcpAgent = useCallback(
     async (config: AcpAgentRuntimeConfig) => {
@@ -458,6 +535,25 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
       }
     },
     [platform.aiPolish],
+  );
+  const checkAssetSettings = useCallback(
+    async (settings: AssetUploadSettings) => {
+      setAssetCheckState({ status: "checking", message: "Checking" });
+
+      try {
+        const result = await platform.assetUpload.checkSettings(settings);
+        setAssetCheckState({
+          status: result.ok ? "success" : "error",
+          message: result.message,
+        });
+      } catch (error: unknown) {
+        setAssetCheckState({
+          status: "error",
+          message: error instanceof Error ? error.message : String(error),
+        });
+      }
+    },
+    [platform.assetUpload],
   );
   const runCommand = useCallback(
     (commandId: string) => {
@@ -671,6 +767,13 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
           return;
         }
 
+        if (action === "set-publish-target" && node.kind === "directory") {
+          persistPublishTarget(node.path);
+          setPublishTargetPath(node.path);
+          setStatus(`Publish target set to ${node.name}`);
+          return;
+        }
+
         if (action === "new-file" && node.kind === "directory") {
           await createInTree(node.path, "file");
           return;
@@ -766,6 +869,67 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
       toggleFileTreeDirectory,
     ],
   );
+  const publishDraft = useCallback(
+    async (draft: FileTreeDraftItem) => {
+      try {
+        const document =
+          session.document?.id === draft.id && !session.filePath
+            ? session.document
+            : await platform.documentStore.get(draft.id);
+        const targetPath = publishTarget
+          ? buildPublishFilePath({
+              targetPath: publishTarget.path,
+              slug: document.slug,
+            })
+          : await platform.windowAdapter.saveMarkdownFile({
+              title: "Publish Markdown file",
+              defaultPath: `${document.slug || "untitled"}.md`,
+            });
+
+        if (!targetPath) return;
+
+        const canOverwrite = await confirmPublishOverwrite({
+          targetPath,
+          fileStore: platform.fileStore,
+          windowAdapter: platform.windowAdapter,
+        });
+        if (!canOverwrite) return;
+
+        const published = await publishStoredDocument(draft.id, targetPath);
+        if (!published) return;
+
+        const root = findFileTreeRootForPath(fileTreeRoots, published.filePath);
+        if (root) {
+          const parentPath = getParentPath(published.filePath);
+          if (parentPath) {
+            setExpandedFileTreePaths((current) =>
+              new Set(current).add(parentPath),
+            );
+          }
+          await loadFileTree(root);
+          if (parentPath) {
+            requestAnimationFrame(() => {
+              fileTreeRef.current?.open(parentPath);
+            });
+          }
+        }
+      } catch (error: unknown) {
+        setStatus(String(error));
+      }
+    },
+    [
+      fileTreeRoots,
+      loadFileTree,
+      platform.documentStore,
+      platform.fileStore,
+      platform.windowAdapter,
+      publishStoredDocument,
+      publishTarget,
+      session.document,
+      session.filePath,
+      setStatus,
+    ],
+  );
   const runDraftAction = useCallback(
     async (action: FileTreeDraftAction, draft: FileTreeDraftItem) => {
       if (action === "open") {
@@ -774,7 +938,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
       }
 
       if (action === "publish") {
-        await updateStoredDocumentStatus(draft.id, "published");
+        await publishDraft(draft);
         return;
       }
 
@@ -798,6 +962,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
     [
       deleteStoredDocument,
       openStoredDocument,
+      publishDraft,
       platform.windowAdapter,
       updateStoredDocumentStatus,
     ],
@@ -1048,9 +1213,9 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
               type="button"
               className="writer-toolbar-button"
               data-tauri-no-drag
-              aria-label="AI settings"
-              title="AI settings"
-              onClick={() => setIsAcpSettingsOpen(true)}
+              aria-label="Settings"
+              title="Settings"
+              onClick={() => setIsSettingsOpen(true)}
             >
               <Settings size={14} aria-hidden="true" />
             </button>
@@ -1098,6 +1263,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
                 expandedPaths={expandedFileTreePaths}
                 isAvailable={platform.fileTreeStore.isAvailable}
                 nodes={fileTreeNodes}
+                publishTargetLabel={publishTarget?.label ?? null}
                 roots={fileTreeRoots}
                 status={fileTreeStatus}
                 treeRef={fileTreeRef}
@@ -1173,6 +1339,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
                         editorPlugins={engine.profile.editorPlugins ?? []}
                         editorMode={editorMode}
                         commandRegistry={commandRegistry}
+                        imageUploadHandler={imageUploadHandler}
                         autoFocus={
                           !shouldAutoFocusDocumentTitle(documentEditor.title)
                         }
@@ -1276,14 +1443,19 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
           }}
         />
       ) : null}
-      <AcpSettingsDialog
-        isOpen={isAcpSettingsOpen}
-        isAvailable={platform.aiPolish.isAvailable}
-        settings={acpSettings}
-        checkState={acpCheckState}
-        onClose={closeAcpSettings}
-        onSave={saveAcpSettings}
-        onCheck={(config) => void checkAcpAgent(config)}
+      <WriterSettingsDialog
+        isOpen={isSettingsOpen}
+        aiAvailable={platform.aiPolish.isAvailable}
+        assetUploadAvailable={platform.assetUpload.isAvailable}
+        acpSettings={acpSettings}
+        assetSettings={assetSettings}
+        acpCheckState={acpCheckState}
+        assetCheckState={assetCheckState}
+        onClose={closeSettings}
+        onSaveAcp={saveAcpSettings}
+        onCheckAcp={(config) => void checkAcpAgent(config)}
+        onSaveAssets={(settings) => void saveAssetSettings(settings)}
+        onCheckAssets={(settings) => void checkAssetSettings(settings)}
       />
     </main>
   );
@@ -1701,6 +1873,16 @@ function persistFileTreeRoots(roots: string[]) {
     serializeFileTreeRoots(roots),
   );
   window.localStorage.removeItem(LEGACY_FILE_TREE_ROOT_STORAGE_KEY);
+}
+
+function persistPublishTarget(path: string) {
+  window.localStorage.setItem(PUBLISH_TARGET_STORAGE_KEY, path);
+}
+
+function getParentPath(path: string): string | null {
+  const index = Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\"));
+  if (index <= 0) return null;
+  return path.slice(0, index);
 }
 
 function scrollSearchMatchIntoView(query: string, occurrenceIndex: number) {

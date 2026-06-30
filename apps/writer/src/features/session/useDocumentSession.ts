@@ -14,6 +14,7 @@ import {
   createDocumentSession,
   documentSessionReducer,
 } from "./document-session";
+import { publishStoredDocumentToFile } from "./publish-document";
 
 const LOCAL_WORKSPACE: WorkspaceInfo = {
   root: "browser://local-documents",
@@ -297,6 +298,51 @@ export function useDocumentSession(
     }
   }, [platform, session.document, session.filePath]);
 
+  const publishStoredDocument = useCallback(
+    async (id: string, filePath: string) => {
+      try {
+        setStatus("Publishing");
+        if (
+          session.isDirty &&
+          (session.document?.id !== id || session.filePath)
+        ) {
+          await saveNow();
+        }
+
+        saveTokenRef.current += 1;
+        const result = await publishStoredDocumentToFile({
+          id,
+          targetPath: filePath,
+          activeDocument: session.document,
+          activeFilePath: session.filePath,
+          documentStore: platform.documentStore,
+          fileStore: platform.fileStore,
+          recentStore: platform.recentStore,
+        });
+
+        setDocuments((current) =>
+          sortDocuments(current.filter((document) => document.id !== id)),
+        );
+        await openMarkdownPath(result.filePath);
+        setStatus("Published");
+        return result;
+      } catch (error: unknown) {
+        setStatus(String(error));
+        return null;
+      }
+    },
+    [
+      openMarkdownPath,
+      platform.documentStore,
+      platform.fileStore,
+      platform.recentStore,
+      saveNow,
+      session.document,
+      session.filePath,
+      session.isDirty,
+    ],
+  );
+
   const updateStoredDocumentStatus = useCallback(
     async (id: string, documentStatus: DocumentStatus) => {
       try {
@@ -390,6 +436,7 @@ export function useDocumentSession(
     openStoredDocument,
     createNewDocument,
     openMarkdownPath,
+    publishStoredDocument,
     updateStoredDocumentStatus,
     deleteStoredDocument,
     saveNow,

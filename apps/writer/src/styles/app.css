@@ -1341,13 +1341,27 @@ textarea {
   height: 0;
 }
 
-.file-tree-section-title {
+.file-tree-section-heading {
+  display: grid;
+  gap: 3px;
   padding: 8px 14px 5px;
+}
+
+.file-tree-section-title {
   color: color-mix(in srgb, var(--writer-text) 52%, transparent);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0;
   line-height: 1.2;
+}
+
+.file-tree-section-heading small {
+  overflow: hidden;
+  color: color-mix(in srgb, var(--writer-text) 44%, transparent);
+  font-size: 11px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .file-tree-draft-list {

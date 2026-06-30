@@ -42,6 +42,7 @@ interface FileTreeSidebarProps {
   expandedPaths: Set<string>;
   isAvailable: boolean;
   nodes: FileTreeNode[];
+  publishTargetLabel: string | null;
   roots: string[];
   status: string;
   treeRef: RefObject<TreeApi<FileTreeNode> | null>;
@@ -84,6 +85,7 @@ export function FileTreeSidebar({
   expandedPaths,
   isAvailable,
   nodes,
+  publishTargetLabel,
   roots,
   status,
   treeRef,
@@ -134,7 +136,7 @@ export function FileTreeSidebar({
       node,
       position: getContextMenuPosition(
         event,
-        { width: 220, height: node.kind === "directory" ? 296 : 296 },
+        { width: 220, height: node.kind === "directory" ? 326 : 296 },
         { width: window.innerWidth, height: window.innerHeight },
       ),
     });
@@ -147,7 +149,7 @@ export function FileTreeSidebar({
       draft,
       position: getContextMenuPosition(
         event,
-        { width: 180, height: 146 },
+        { width: 220, height: 146 },
         { width: window.innerWidth, height: window.innerHeight },
       ),
     });
@@ -225,7 +227,14 @@ export function FileTreeSidebar({
           </div>
           {visibleDrafts.length > 0 ? (
             <section className="file-tree-drafts" aria-label="Drafts">
-              <div className="file-tree-section-title">DRAFTS</div>
+              <div className="file-tree-section-heading">
+                <div className="file-tree-section-title">LOCAL DRAFTS</div>
+                <small>
+                  {publishTargetLabel
+                    ? `Publish to: ${publishTargetLabel}`
+                    : "Publish opens save dialog"}
+                </small>
+              </div>
               <div className="file-tree-draft-list">
                 {visibleDrafts.map((draft) => (
                   <button
@@ -315,6 +324,7 @@ export function FileTreeSidebar({
       {contextMenu?.kind === "draft" ? (
         <FileTreeDraftContextMenu
           draft={contextMenu.draft}
+          publishTargetLabel={publishTargetLabel}
           position={contextMenu.position}
           onAction={(action, draft) => {
             setContextMenu(null);
@@ -488,6 +498,7 @@ function FileTreeContextMenu({
 function FileTreeDraftContextMenu({
   draft,
   position,
+  publishTargetLabel,
   onAction,
 }: {
   draft: FileTreeDraftItem;
@@ -495,9 +506,10 @@ function FileTreeDraftContextMenu({
     x: number;
     y: number;
   };
+  publishTargetLabel: string | null;
   onAction: (action: FileTreeDraftAction, draft: FileTreeDraftItem) => void;
 }) {
-  const items = getFileTreeDraftMenuItems(draft);
+  const items = getFileTreeDraftMenuItems(draft, publishTargetLabel);
 
   return (
     <div

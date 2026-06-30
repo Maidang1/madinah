@@ -180,3 +180,40 @@ pub struct AcpAgentCheckResult {
     pub agent_name: Option<String>,
     pub message: String,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct AssetUploadSettings {
+    pub account_id: String,
+    pub bucket: String,
+    pub access_key_id: String,
+    pub secret_access_key: String,
+    pub public_base_url: String,
+    pub prefix: String,
+    pub max_bytes: u64,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AssetImageUploadInput {
+    pub name: String,
+    pub content_type: String,
+    pub size: u64,
+    pub data_base64: String,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct AssetImageUploadResult {
+    pub key: String,
+    pub url: String,
+    pub size: u64,
+    pub content_type: String,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct AssetUploadCheckResult {
+    pub ok: bool,
+    pub message: String,
+}

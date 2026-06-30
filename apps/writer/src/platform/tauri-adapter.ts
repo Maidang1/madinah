@@ -2,6 +2,10 @@ import { invoke } from "@tauri-apps/api/core";
 import { confirm, open, save } from "@tauri-apps/plugin-dialog";
 import type { MarkdownDocument } from "../domain/document";
 import type {
+  AssetImageUploadInput,
+  AssetUploadSettings,
+} from "../domain/assets";
+import type {
   AcpAgentRuntimeConfig,
   AcpPolishInput,
 } from "../domain/ai-polish";
@@ -15,6 +19,7 @@ import type {
 } from "../domain/engine";
 import type {
   AiPolishAdapter,
+  AssetUploadAdapter,
   DocumentStore,
   FileTreeNode,
   FileTreeStore,
@@ -45,6 +50,7 @@ export function createTauriAdapters(): PlatformAdapters {
     pluginResolver: createTauriPluginResolver(),
     windowAdapter: createTauriWindowAdapter(),
     aiPolish: createTauriAiPolishAdapter(),
+    assetUpload: createTauriAssetUploadAdapter(),
   };
 }
 
@@ -151,5 +157,18 @@ function createTauriAiPolishAdapter(): AiPolishAdapter {
     isAvailable: true,
     polish: (input: AcpPolishInput) => invoke("polish_text_with_acp", { input }),
     check: (input: AcpAgentRuntimeConfig) => invoke("check_acp_agent", { input }),
+  };
+}
+
+function createTauriAssetUploadAdapter(): AssetUploadAdapter {
+  return {
+    isAvailable: true,
+    loadSettings: () => invoke("load_asset_upload_settings"),
+    saveSettings: (settings: AssetUploadSettings) =>
+      invoke("save_asset_upload_settings", { settings }),
+    checkSettings: (settings: AssetUploadSettings) =>
+      invoke("check_asset_upload_settings", { settings }),
+    uploadImage: (input: AssetImageUploadInput) =>
+      invoke("upload_asset_image", { input }),
   };
 }

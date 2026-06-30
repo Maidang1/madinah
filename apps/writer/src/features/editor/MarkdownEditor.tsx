@@ -1,4 +1,9 @@
-import { MDXEditor, type MDXEditorMethods } from "@mdxeditor/editor";
+import {
+  MDXEditor,
+  imagePlugin,
+  type ImageUploadHandler,
+  type MDXEditorMethods,
+} from "@mdxeditor/editor";
 import "@mdxeditor/editor/style.css";
 import {
   type MouseEvent as ReactMouseEvent,
@@ -42,6 +47,7 @@ interface MarkdownEditorProps {
   editorMode?: MarkdownEditorMode;
   commandRegistry: CommandRegistry;
   autoFocus?: boolean;
+  imageUploadHandler?: ImageUploadHandler | null;
   contextMenuItems?: EditorContextMenuItem[];
   onEditorReady?: (editor: WriterEditor | null) => void;
   onChange: (value: string) => void;
@@ -58,6 +64,7 @@ export function MarkdownEditor({
   editorMode = "rich-text",
   commandRegistry,
   autoFocus = true,
+  imageUploadHandler = null,
   contextMenuItems = [],
   onEditorReady,
   onChange,
@@ -75,8 +82,12 @@ export function MarkdownEditor({
   const [selectionToolbar, setSelectionToolbar] =
     useState<EditorSelectionToolbarState | null>(null);
   const resolvedEditorPlugins = useMemo(
-    () => [...editorPlugins, createSourceModeEditorPlugin(editorMode)],
-    [editorMode, editorPlugins],
+    () => [
+      ...editorPlugins,
+      imagePlugin({ imageUploadHandler }),
+      createSourceModeEditorPlugin(editorMode),
+    ],
+    [editorMode, editorPlugins, imageUploadHandler],
   );
   const restoreEditorFocus = useCallback(() => {
     requestAnimationFrame(() =>

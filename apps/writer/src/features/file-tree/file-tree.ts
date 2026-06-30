@@ -16,6 +16,12 @@ export interface FileTreeDraftItem {
   status: string;
 }
 
+export interface PublishTarget {
+  path: string;
+  label: string;
+  extension: "md" | "mdx";
+}
+
 export type FileTreeFileMarker = "edited" | "draft-saved";
 
 export interface FileTreeActiveFileState {
@@ -35,6 +41,7 @@ export type FileTreeMenuAction =
   | "new-file"
   | "new-folder"
   | "toggle"
+  | "set-publish-target"
   | "rename"
   | "duplicate"
   | "save-as"
@@ -63,6 +70,17 @@ export interface FileTreeDraftMenuItem {
 export interface FileTreeRoot {
   path: string;
   nodes: FileTreeNode[];
+}
+
+export interface ResolvePublishTargetInput {
+  explicitTargetPath?: string | null;
+  activePath?: string | null;
+  activeRoot?: string | null;
+}
+
+export interface BuildPublishFilePathInput {
+  targetPath: string;
+  slug: string;
 }
 
 interface FlattenInput {
@@ -163,6 +181,39 @@ export function getActiveFileTreeRoot(
   return findFileTreeRootForPath(roots, activePath) ?? roots.at(-1) ?? null;
 }
 
+export function resolvePublishTarget({
+  activePath,
+  activeRoot,
+  explicitTargetPath,
+}: ResolvePublishTargetInput): PublishTarget | null {
+  const path =
+    cleanPath(explicitTargetPath) ??
+    parentDirectoryPath(activePath) ??
+    cleanPath(activeRoot);
+
+  if (!path) return null;
+
+  return {
+    path,
+    label: getPublishTargetLabel(path),
+    extension: getPublishExtension(path),
+  };
+}
+
+export function buildPublishFilePath({
+  slug,
+  targetPath,
+}: BuildPublishFilePathInput): string {
+  return joinPath(
+    targetPath,
+    `${createPublishSlug(slug)}.${getPublishExtension(targetPath)}`,
+  );
+}
+
+export function getPublishTargetLabel(path: string): string {
+  return getFileTreeRootName(path);
+}
+
 export function getFileTreeStatus(
   roots: string[],
   statuses: Record<string, string>,
@@ -219,6 +270,7 @@ export function getFileTreeMenuItems(node: FileTreeNode): FileTreeMenuItem[] {
       { id: "new-file", label: "New Markdown File" },
       { id: "new-folder", label: "New Folder" },
       { id: "toggle", label: "Expand / Collapse" },
+      { id: "set-publish-target", label: "Set as Publish Target" },
       { id: "reveal-in-finder", label: "Reveal in Finder" },
       { id: "copy-path", label: "Copy Path" },
     ];
@@ -226,9 +278,9 @@ export function getFileTreeMenuItems(node: FileTreeNode): FileTreeMenuItem[] {
     if (node.isRoot) return items;
 
     return [
-      ...items.slice(0, 3),
+      ...items.slice(0, 4),
       { id: "rename", label: "Rename" },
-      ...items.slice(3),
+      ...items.slice(4),
       { id: "copy-relative-path", label: "Copy Relative Path" },
       { id: "move-to-trash", label: "Move to Trash" },
     ];
@@ -248,11 +300,17 @@ export function getFileTreeMenuItems(node: FileTreeNode): FileTreeMenuItem[] {
 
 export function getFileTreeDraftMenuItems(
   draft: FileTreeDraftItem,
+  publishTargetLabel?: string | null,
 ): FileTreeDraftMenuItem[] {
   const statusAction =
     draft.status === "published"
       ? { id: "mark-wip" as const, label: "Mark as WIP" }
-      : { id: "publish" as const, label: "Publish" };
+      : {
+          id: "publish" as const,
+          label: publishTargetLabel
+            ? `Publish to ${publishTargetLabel}`
+            : "Publish...",
+        };
 
   return [
     { id: "open", label: "Open" },
@@ -292,6 +350,54 @@ export function toRelativePath(
     if (path.startsWith(prefix)) return path.slice(prefix.length);
   }
   return path;
+}
+
+function getPublishExtension(path: string): PublishTarget["extension"] {
+  return isBlogPublishTarget(path) ? "mdx" : "md";
+}
+
+function isBlogPublishTarget(path: string): boolean {
+  const segments = path
+    .replace(/\\/g, "/")
+    .split("/")
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+
+  return segments.at(-1) === "blogs";
+}
+
+function parentDirectoryPath(path: string | null | undefined): string | null {
+  const cleaned = cleanPath(path);
+  if (!cleaned) return null;
+
+  const slashIndex = Math.max(
+    cleaned.lastIndexOf("/"),
+    cleaned.lastIndexOf("\\"),
+  );
+  if (slashIndex <= 0) return null;
+  return cleaned.slice(0, slashIndex);
+}
+
+function cleanPath(path: string | null | undefined): string | null {
+  const trimmed = path?.trim();
+  return trimmed ? trimmed : null;
+}
+
+function createPublishSlug(value: string): string {
+  const slug = value
+    .normalize("NFKD")
+    .trim()
+    .toLowerCase()
+    .replace(/['"]/g, "")
+    .replace(/[^\p{Letter}\p{Number}]+/gu, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return slug || "untitled";
+}
+
+function joinPath(parent: string, name: string): string {
+  const separator = parent.includes("\\") && !parent.includes("/") ? "\\" : "/";
+  return `${parent.replace(/[\\/]+$/u, "")}${separator}${name}`;
 }
 
 function appendVisibleNode(

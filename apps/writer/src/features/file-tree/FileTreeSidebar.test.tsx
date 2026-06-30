@@ -20,6 +20,7 @@ describe("FileTreeSidebar", () => {
         expandedPaths={new Set()}
         isAvailable
         nodes={[]}
+        publishTargetLabel={null}
         roots={[]}
         status="Open a folder"
         treeRef={createRef<TreeApi<FileTreeNode> | null>()}

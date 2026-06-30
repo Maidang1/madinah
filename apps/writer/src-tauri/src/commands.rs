@@ -1,12 +1,15 @@
 use crate::{
-    acp, blog, drafts, file_tree, files, plugins, recent, workspace,
+    acp, assets, blog, drafts,
     errors::AppResult,
+    file_tree, files,
     models::{
         AcpAgentCheckResult, AcpAgentRuntimeConfig, AcpPolishInput, AcpPolishResult,
+        AssetImageUploadInput, AssetImageUploadResult, AssetUploadCheckResult, AssetUploadSettings,
         ExportDocumentInput, ExportResult, FileTreeEntry, ImportedBlogFile, MarkdownFile,
         ResolvedPlugin, TrustInput, TrustRecord, TrustedPluginBundle, TrustedPluginBundleInput,
         WorkspaceInfo, WriteMarkdownFileInput, WriterDocument,
     },
+    plugins, recent, workspace,
 };
 use std::path::Path;
 use tauri::AppHandle;
@@ -133,10 +136,7 @@ pub fn read_trusted_plugin_bundle(
 }
 
 #[tauri::command]
-pub fn set_workspace_plugin_trust(
-    app: AppHandle,
-    input: TrustInput,
-) -> AppResult<TrustRecord> {
+pub fn set_workspace_plugin_trust(app: AppHandle, input: TrustInput) -> AppResult<TrustRecord> {
     let trust_path = plugins::trust_path(&app)?;
     plugins::set_plugin_trust_in_file(&trust_path, input)
 }
@@ -149,4 +149,33 @@ pub async fn polish_text_with_acp(input: AcpPolishInput) -> AppResult<AcpPolishR
 #[tauri::command]
 pub async fn check_acp_agent(input: AcpAgentRuntimeConfig) -> AppResult<AcpAgentCheckResult> {
     acp::check_agent(input).await
+}
+
+#[tauri::command]
+pub fn load_asset_upload_settings(app: AppHandle) -> AppResult<AssetUploadSettings> {
+    assets::load_settings(&app)
+}
+
+#[tauri::command]
+pub fn save_asset_upload_settings(
+    app: AppHandle,
+    settings: AssetUploadSettings,
+) -> AppResult<AssetUploadSettings> {
+    assets::save_settings(&app, &settings)
+}
+
+#[tauri::command]
+pub async fn check_asset_upload_settings(
+    app: AppHandle,
+    settings: AssetUploadSettings,
+) -> AppResult<AssetUploadCheckResult> {
+    assets::check_settings(&app, settings).await
+}
+
+#[tauri::command]
+pub async fn upload_asset_image(
+    app: AppHandle,
+    input: AssetImageUploadInput,
+) -> AppResult<AssetImageUploadResult> {
+    assets::upload_image(&app, input).await
 }

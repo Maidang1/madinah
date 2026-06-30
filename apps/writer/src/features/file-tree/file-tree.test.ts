@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   addFileTreeRoot,
+  buildPublishFilePath,
   buildFileTreeRootNodes,
   filterFileTreeDrafts,
   findFileTreeRootForPath,
@@ -12,8 +13,10 @@ import {
   getFileTreeStatus,
   getFileTreeDraftMenuItems,
   getFileTreeMenuItems,
+  getPublishTargetLabel,
   pathContains,
   parseFileTreeRoots,
+  resolvePublishTarget,
   serializeFileTreeRoots,
   toRelativePath,
   type FileTreeNode,
@@ -91,6 +94,7 @@ describe("file tree view helpers", () => {
       "new-file",
       "new-folder",
       "toggle",
+      "set-publish-target",
       "rename",
       "reveal-in-finder",
       "copy-path",
@@ -215,6 +219,49 @@ describe("file tree view helpers", () => {
     );
   });
 
+  it("resolves publish targets from explicit choice, active file, then active root", () => {
+    expect(
+      resolvePublishTarget({
+        explicitTargetPath: "/workspace/src/blogs",
+        activePath: "/workspace/notes/current.md",
+        activeRoot: "/workspace",
+      }),
+    ).toMatchObject({
+      path: "/workspace/src/blogs",
+      label: "blogs",
+      extension: "mdx",
+    });
+    expect(
+      resolvePublishTarget({
+        activePath: "/workspace/notes/current.md",
+        activeRoot: "/workspace",
+      })?.path,
+    ).toBe("/workspace/notes");
+    expect(
+      resolvePublishTarget({
+        activePath: null,
+        activeRoot: "/workspace",
+      })?.path,
+    ).toBe("/workspace");
+    expect(resolvePublishTarget({})).toBeNull();
+  });
+
+  it("builds publish file paths with blog-aware extensions", () => {
+    expect(
+      buildPublishFilePath({
+        targetPath: "/workspace/src/blogs",
+        slug: "hello-world",
+      }),
+    ).toBe("/workspace/src/blogs/hello-world.mdx");
+    expect(
+      buildPublishFilePath({
+        targetPath: "/workspace/notes",
+        slug: "Hello World",
+      }),
+    ).toBe("/workspace/notes/hello-world.md");
+    expect(getPublishTargetLabel("/workspace/src/blogs")).toBe("blogs");
+  });
+
   it("filters draft entries by title and detail", () => {
     const drafts = [
       { id: "prompt", title: "Prompt 学习笔记", detail: "draft / 今天", status: "draft" },
@@ -240,8 +287,13 @@ describe("file tree view helpers", () => {
         title: "Prompt",
         detail: "draft / 今天",
         status: "draft",
-      }).map((item) => item.id),
-    ).toEqual(["open", "publish", "archive", "delete"]);
+      }, "blogs").map((item) => [item.id, item.label]),
+    ).toEqual([
+      ["open", "Open"],
+      ["publish", "Publish to blogs"],
+      ["archive", "Archive"],
+      ["delete", "Delete"],
+    ]);
 
     expect(
       getFileTreeDraftMenuItems({

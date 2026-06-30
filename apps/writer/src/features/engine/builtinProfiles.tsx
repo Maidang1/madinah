@@ -4,7 +4,6 @@ import {
   codeMirrorPlugin,
   diffSourcePlugin,
   headingsPlugin,
-  imagePlugin,
   jsxPlugin,
   linkDialogPlugin,
   linkPlugin,
@@ -73,7 +72,6 @@ const commonmarkEditorPlugins = [
   thematicBreakPlugin(),
   linkPlugin(),
   linkDialogPlugin(),
-  imagePlugin(),
   codeBlockPlugin({ defaultCodeBlockLanguage: "typescript" }),
   codeMirrorPlugin({
     codeBlockLanguages,

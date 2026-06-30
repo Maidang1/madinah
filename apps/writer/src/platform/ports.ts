@@ -1,5 +1,11 @@
 import type { MarkdownDocument } from "../domain/document";
 import type {
+  AssetImageUploadInput,
+  AssetImageUploadResult,
+  AssetUploadCheckResult,
+  AssetUploadSettings,
+} from "../domain/assets";
+import type {
   AcpAgentCheckResult,
   AcpAgentRuntimeConfig,
   AcpPolishInput,
@@ -92,6 +98,14 @@ export interface AiPolishAdapter {
   check(input: AcpAgentRuntimeConfig): Promise<AcpAgentCheckResult>;
 }
 
+export interface AssetUploadAdapter {
+  isAvailable: boolean;
+  loadSettings(): Promise<AssetUploadSettings>;
+  saveSettings(settings: AssetUploadSettings): Promise<AssetUploadSettings>;
+  checkSettings(settings: AssetUploadSettings): Promise<AssetUploadCheckResult>;
+  uploadImage(input: AssetImageUploadInput): Promise<AssetImageUploadResult>;
+}
+
 export interface PlatformAdapters {
   documentStore: DocumentStore;
   fileTreeStore: FileTreeStore;
@@ -101,4 +115,5 @@ export interface PlatformAdapters {
   pluginResolver: PluginResolver;
   windowAdapter: WindowAdapter;
   aiPolish: AiPolishAdapter;
+  assetUpload: AssetUploadAdapter;
 }

@@ -1,11 +1,17 @@
 import type { MarkdownDocument } from "../domain/document";
 import type {
+  AssetImageUploadInput,
+  AssetUploadSettings,
+} from "../domain/assets";
+import { createDefaultAssetUploadSettings } from "../domain/assets";
+import type {
   AcpAgentRuntimeConfig,
   AcpPolishInput,
 } from "../domain/ai-polish";
 import type { WorkspacePluginTrustInput } from "../domain/engine";
 import type {
   AiPolishAdapter,
+  AssetUploadAdapter,
   DocumentStore,
   DraftStore,
   FileTreeStore,
@@ -31,6 +37,7 @@ export function createBrowserAdapters(): PlatformAdapters {
     pluginResolver: createBrowserPluginResolver(),
     windowAdapter: createBrowserWindowAdapter(),
     aiPolish: createBrowserAiPolishAdapter(),
+    assetUpload: createBrowserAssetUploadAdapter(),
   };
 }
 
@@ -190,6 +197,30 @@ function createBrowserAiPolishAdapter(): AiPolishAdapter {
         ok: false,
         message: "ACP polishing requires the desktop app",
       };
+    },
+  };
+}
+
+function createBrowserAssetUploadAdapter(): AssetUploadAdapter {
+  const unavailable = () =>
+    Promise.reject(new Error("Asset uploads require the desktop app"));
+
+  return {
+    isAvailable: false,
+    async loadSettings() {
+      return createDefaultAssetUploadSettings();
+    },
+    async saveSettings(settings: AssetUploadSettings) {
+      return settings;
+    },
+    async checkSettings(_settings: AssetUploadSettings) {
+      return {
+        ok: false,
+        message: "Asset uploads require the desktop app",
+      };
+    },
+    uploadImage(_input: AssetImageUploadInput) {
+      return unavailable();
     },
   };
 }
