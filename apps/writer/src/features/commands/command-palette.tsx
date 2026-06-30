@@ -105,6 +105,9 @@ export function CommandPalette({
     () => groupedResults.flatMap((group) => group.items),
     [groupedResults],
   );
+  const activeOptionId =
+    displayResults[selectedIndex] &&
+    getCommandPaletteOptionId(displayResults[selectedIndex].id);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -170,7 +173,11 @@ export function CommandPalette({
             aria-label="Search commands"
           />
         </div>
-        <div className="command-palette-results" role="listbox">
+        <div
+          className="command-palette-results"
+          role="listbox"
+          aria-activedescendant={activeOptionId || undefined}
+        >
           {results.length > 0 ? (
             groupedResults.map((group, groupIndex) => (
               <div
@@ -187,6 +194,7 @@ export function CommandPalette({
                     <button
                       key={item.id}
                       type="button"
+                      id={getCommandPaletteOptionId(item.id)}
                       className={index === selectedIndex ? "is-selected" : undefined}
                       onMouseEnter={() => setSelectedIndex(index)}
                       onClick={() => onRun(item.command)}
@@ -228,6 +236,10 @@ function CommandPaletteEmpty({ query }: { query: string }) {
       No commands for <strong>{normalized}</strong>
     </div>
   );
+}
+
+function getCommandPaletteOptionId(id: string): string {
+  return `command-palette-option-${id.replace(/[^a-zA-Z0-9_-]+/g, "-")}`;
 }
 
 function compareCommandPaletteItems(

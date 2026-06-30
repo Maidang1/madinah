@@ -139,6 +139,11 @@ import {
 const THEME_STORAGE_KEY = "madinah-writer-theme";
 const THEME_STORAGE_VERSION_KEY = "madinah-writer-theme-version";
 const THEME_STORAGE_VERSION = "2";
+const COMMANDS_THAT_OPEN_OVERLAYS = new Set([
+  "document.search",
+  "view.commandPalette",
+  "view.quickOpen",
+]);
 const FILE_TREE_ROOTS_STORAGE_KEY = "madinah-writer-file-tree-roots";
 const LEGACY_FILE_TREE_ROOT_STORAGE_KEY = "madinah-writer-file-tree-root";
 const WINDOW_DRAG_IGNORE_SELECTOR =
@@ -272,6 +277,11 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
     status: "idle",
     message: "Ready",
   });
+  const restoreEditorFocus = useCallback(() => {
+    requestAnimationFrame(() => {
+      activeEditorRef.current?.focus?.();
+    });
+  }, []);
   const documentTitle = session.document
     ? getDocumentDisplayTitle(session.document)
     : "Madinah Writer";
@@ -416,15 +426,19 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
       workbenchCommands,
     ],
   );
+  const closeAcpSettings = useCallback(() => {
+    setIsAcpSettingsOpen(false);
+    restoreEditorFocus();
+  }, [restoreEditorFocus]);
   const saveAcpSettings = useCallback(
     (nextSettings: AcpSettings) => {
       persistAcpSettings(nextSettings);
       setAcpSettings(nextSettings);
       setAcpCheckState({ status: "idle", message: "Saved" });
-      setIsAcpSettingsOpen(false);
+      closeAcpSettings();
       setStatus("AI settings saved");
     },
-    [setStatus],
+    [closeAcpSettings, setStatus],
   );
   const checkAcpAgent = useCallback(
     async (config: AcpAgentRuntimeConfig) => {
@@ -447,7 +461,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
   );
   const runCommand = useCallback(
     (commandId: string) => {
-      void commandRegistry
+      return commandRegistry
         .execute(commandId, {
           document: session.document,
           editor: activeEditorRef.current,
@@ -457,6 +471,23 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
     },
     [commandRegistry, session.document, session.workspace, setStatus],
   );
+  const closeCommandPalette = useCallback(() => {
+    setIsCommandPaletteOpen(false);
+    setCommandPaletteQuery("");
+    restoreEditorFocus();
+  }, [restoreEditorFocus]);
+  const closeDocumentSearch = useCallback(() => {
+    setIsDocumentSearchOpen(false);
+    setDocumentSearchQuery("");
+    setActiveSearchIndex(-1);
+    clearDocumentSearchHighlight();
+    restoreEditorFocus();
+  }, [restoreEditorFocus]);
+  const closeQuickOpen = useCallback(() => {
+    setIsQuickOpenOpen(false);
+    setQuickOpenQuery("");
+    restoreEditorFocus();
+  }, [restoreEditorFocus]);
   const toggleFolder = useCallback((folderId: string) => {
     setExpandedFolders((current) => {
       const next = new Set(current);
@@ -550,14 +581,18 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
       setIsQuickOpenOpen(false);
       setQuickOpenQuery("");
 
-      if (item.kind === "document") {
-        await openStoredDocument(item.documentId);
-        return;
-      }
+      try {
+        if (item.kind === "document") {
+          await openStoredDocument(item.documentId);
+          return;
+        }
 
-      await openFileTreePath(item.path);
+        await openFileTreePath(item.path);
+      } finally {
+        restoreEditorFocus();
+      }
     },
-    [openFileTreePath, openStoredDocument],
+    [openFileTreePath, openStoredDocument, restoreEditorFocus],
   );
   const createInTree = useCallback(
     async (parentPath: string, kind: "file" | "directory") => {
@@ -833,10 +868,8 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
 
     if (!shouldRestoreEditorFocus(previousViewMode, viewMode)) return;
 
-    window.requestAnimationFrame(() => {
-      activeEditorRef.current?.focus?.();
-    });
-  }, [viewMode]);
+    restoreEditorFocus();
+  }, [restoreEditorFocus, viewMode]);
 
   useEffect(() => {
     setVersions(historyTargetId ? historyStore.list(historyTargetId) : []);
@@ -1112,10 +1145,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
                         clearDocumentSearchHighlight();
                       }}
                       onClose={() => {
-                        setIsDocumentSearchOpen(false);
-                        setDocumentSearchQuery("");
-                        setActiveSearchIndex(-1);
-                        clearDocumentSearchHighlight();
+                        closeDocumentSearch();
                       }}
                       onNavigate={(direction) => {
                         const nextIndex = getAdjacentMatchIndex(
@@ -1225,10 +1255,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
           query={quickOpenQuery}
           results={quickOpenResults}
           onQueryChange={setQuickOpenQuery}
-          onClose={() => {
-            setIsQuickOpenOpen(false);
-            setQuickOpenQuery("");
-          }}
+          onClose={closeQuickOpen}
           onRun={(item) => void runQuickOpenItem(item)}
         />
       ) : null}
@@ -1237,14 +1264,15 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
           commands={commandRegistry.list()}
           query={commandPaletteQuery}
           onQueryChange={setCommandPaletteQuery}
-          onClose={() => {
-            setIsCommandPaletteOpen(false);
-            setCommandPaletteQuery("");
-          }}
+          onClose={closeCommandPalette}
           onRun={(command) => {
             setIsCommandPaletteOpen(false);
             setCommandPaletteQuery("");
-            runCommand(command.id);
+            void runCommand(command.id).finally(() => {
+              if (!COMMANDS_THAT_OPEN_OVERLAYS.has(command.id)) {
+                restoreEditorFocus();
+              }
+            });
           }}
         />
       ) : null}
@@ -1253,7 +1281,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
         isAvailable={platform.aiPolish.isAvailable}
         settings={acpSettings}
         checkState={acpCheckState}
-        onClose={() => setIsAcpSettingsOpen(false)}
+        onClose={closeAcpSettings}
         onSave={saveAcpSettings}
         onCheck={(config) => void checkAcpAgent(config)}
       />
@@ -1327,6 +1355,8 @@ function QuickOpenDialog({
       results.length === 0 ? 0 : Math.min(current, results.length - 1),
     );
   }, [results.length]);
+  const activeOptionId =
+    results[selectedIndex] && getQuickOpenOptionId(results[selectedIndex].id);
 
   return (
     <div className="quick-open-backdrop" role="presentation" onMouseDown={onClose}>
@@ -1381,12 +1411,17 @@ function QuickOpenDialog({
             aria-label="Search notes and files"
           />
         </div>
-        <div className="quick-open-results" role="listbox">
+        <div
+          className="quick-open-results"
+          role="listbox"
+          aria-activedescendant={activeOptionId || undefined}
+        >
           {results.length > 0 ? (
             results.map((item, index) => (
               <button
                 key={item.id}
                 type="button"
+                id={getQuickOpenOptionId(item.id)}
                 className={index === selectedIndex ? "is-selected" : undefined}
                 onMouseEnter={() => setSelectedIndex(index)}
                 onClick={() => onRun(item)}
@@ -1407,6 +1442,10 @@ function QuickOpenDialog({
       </div>
     </div>
   );
+}
+
+function getQuickOpenOptionId(id: string): string {
+  return `quick-open-option-${id.replace(/[^a-zA-Z0-9_-]+/g, "-")}`;
 }
 
 function QuickOpenEmpty({ query }: { query: string }) {
@@ -1493,7 +1532,7 @@ function DocumentSearchBar({
         placeholder="Find in document"
         aria-label="Find in document"
       />
-      <span className="document-search-count">
+      <span className="document-search-count" aria-live="polite">
         {query && matches.length > 0 ? `${activeIndex + 1}/${matches.length}` : "0/0"}
       </span>
       <button

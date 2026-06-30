@@ -134,6 +134,8 @@ describe("command palette", () => {
     expect(html).toContain("File");
     expect(html).toContain("View");
     expect(html).toContain("command-palette-shortcut");
+    expect(html).toContain('aria-activedescendant="command-palette-option-document-save"');
+    expect(html).toContain('id="command-palette-option-document-save"');
     expect(html).toContain("⌘S");
     expect(html).toContain("⇧⌘P");
   });

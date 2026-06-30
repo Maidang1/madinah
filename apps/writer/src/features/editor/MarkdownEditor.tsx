@@ -78,6 +78,14 @@ export function MarkdownEditor({
     () => [...editorPlugins, createSourceModeEditorPlugin(editorMode)],
     [editorMode, editorPlugins],
   );
+  const restoreEditorFocus = useCallback(() => {
+    requestAnimationFrame(() =>
+      editorRef.current?.focus(undefined, {
+        defaultSelection: "rootEnd",
+        preventScroll: true,
+      }),
+    );
+  }, []);
 
   useEffect(() => {
     if (!onEditorReady) return;
@@ -105,11 +113,20 @@ export function MarkdownEditor({
           editor: createWriterEditor(editorRef, shellRef, value),
           workspace,
         });
+        restoreEditorFocus();
       } catch (error: unknown) {
         onError(error instanceof Error ? error.message : String(error));
       }
     },
-    [closeContextMenu, commandRegistry, document, onError, value, workspace],
+    [
+      closeContextMenu,
+      commandRegistry,
+      document,
+      onError,
+      restoreEditorFocus,
+      value,
+      workspace,
+    ],
   );
 
   const runSelectionToolbarAction = useCallback(
@@ -201,12 +218,13 @@ export function MarkdownEditor({
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         closeSelectionToolbar();
+        restoreEditorFocus();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [closeSelectionToolbar, selectionToolbar]);
+  }, [closeSelectionToolbar, restoreEditorFocus, selectionToolbar]);
 
   useEffect(() => {
     if (!contextMenu) return;
@@ -214,6 +232,7 @@ export function MarkdownEditor({
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         closeContextMenu();
+        restoreEditorFocus();
       }
     };
 
@@ -227,7 +246,7 @@ export function MarkdownEditor({
       window.removeEventListener("resize", closeContextMenu);
       window.removeEventListener("scroll", closeContextMenu, true);
     };
-  }, [closeContextMenu, contextMenu]);
+  }, [closeContextMenu, contextMenu, restoreEditorFocus]);
 
   const handleContextMenu = useCallback(
     (event: ReactMouseEvent<HTMLDivElement>) => {
