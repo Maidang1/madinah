@@ -24,11 +24,11 @@
   --writer-shadow: rgb(0 0 0 / 0.34);
   --writer-code-text: rgb(235, 235, 240);
   --writer-radius: 6px;
-  --writer-titlebar-height: 44px;
+  --writer-titlebar-height: 48px;
   --writer-titlebar-leading-inset: 78px;
-  --writer-sidebar-width: 320px;
-  --writer-inspector-width: 308px;
-  --writer-content-width: 860px;
+  --writer-sidebar-width: 280px;
+  --writer-inspector-width: 260px;
+  --writer-content-width: 740px;
   --writer-ui-font: -apple-system, BlinkMacSystemFont, "SF Pro Text",
     "Segoe UI", sans-serif;
 }
@@ -36,12 +36,12 @@
 .light {
   color-scheme: light;
   --writer-desktop-bg: rgb(245, 244, 237);
-  --writer-window-bg: rgb(245, 244, 237);
-  --writer-titlebar-bg: rgb(245, 244, 237);
-  --writer-sidebar-bg: rgb(242, 240, 231);
-  --writer-sidebar-active: rgb(232, 229, 217);
-  --writer-editor-bg: rgb(245, 244, 237);
-  --writer-control-bg: rgb(255 255 255 / 0.56);
+  --writer-window-bg: rgb(250, 249, 245);
+  --writer-titlebar-bg: rgb(250, 249, 245);
+  --writer-sidebar-bg: rgb(245, 244, 239);
+  --writer-sidebar-active: rgb(232, 230, 222);
+  --writer-editor-bg: rgb(250, 249, 245);
+  --writer-control-bg: rgb(255 255 255 / 0.62);
   --writer-control-hover: rgb(76 66 47 / 0.08);
   --writer-code-bg: rgb(247, 244, 255);
   --writer-text: rgba(36, 41, 47, 0.9);
@@ -141,7 +141,7 @@ textarea {
   --reader-code: rgb(55, 56, 62);
   --reader-code-border: rgb(78, 75, 92);
   --reader-code-text: rgb(196, 184, 255);
-  --reader-width: 900px;
+  --reader-width: 760px;
   --reader-font: "TsangerJinKai02", "STKaiti", "KaiTi", "Kaiti SC",
     "Songti SC", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
@@ -155,8 +155,8 @@ textarea {
 }
 
 .light .writer-simple-app {
-  --reader-page: rgb(245, 244, 237);
-  --reader-paper: rgb(255, 255, 255);
+  --reader-page: rgb(250, 249, 245);
+  --reader-paper: rgb(250, 249, 245);
   --reader-ink: rgba(36, 41, 47, 0.9);
   --reader-muted: rgb(80, 88, 98);
   --reader-soft: rgb(201, 206, 212);
@@ -189,8 +189,8 @@ textarea {
   grid-template-columns: var(--writer-sidebar-width) minmax(0, 1fr) auto;
   grid-template-rows: minmax(0, 1fr);
   align-items: center;
-  gap: 12px;
-  padding: 0 10px 0 0;
+  gap: 8px;
+  padding: 0 12px 0 0;
   border-bottom: 1px solid var(--writer-rule);
   background: var(--writer-titlebar-bg);
   backdrop-filter: saturate(180%) blur(24px);
@@ -226,13 +226,13 @@ textarea {
 
 .writer-titlebar-title {
   display: flex;
-  grid-column: 1 / -1;
+  grid-column: 2;
   grid-row: 1;
-  justify-self: center;
+  justify-self: start;
   min-width: 0;
   align-items: center;
-  justify-content: center;
-  gap: 7px;
+  justify-content: flex-start;
+  gap: 8px;
   color: var(--writer-faint);
   font-size: 13px;
   font-weight: 590;
@@ -242,7 +242,12 @@ textarea {
 
 .writer-titlebar-title strong {
   overflow: hidden;
-  max-width: min(34vw, 420px);
+  max-width: min(30vw, 320px);
+  min-height: 30px;
+  padding: 7px 14px;
+  border: 1px solid color-mix(in srgb, var(--writer-rule) 78%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--writer-control-bg) 82%, transparent);
   color: color-mix(in srgb, var(--writer-text) 78%, transparent);
   text-overflow: ellipsis;
 }
@@ -303,17 +308,17 @@ textarea {
   min-width: 0;
   align-items: center;
   justify-content: flex-end;
-  gap: 6px;
+  gap: 4px;
   color: var(--writer-muted);
   font-size: 13px;
-  font-weight: 590;
+  font-weight: 560;
   white-space: nowrap;
 }
 
 .writer-toolbar-button {
   display: inline-flex;
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   align-items: center;
   justify-content: center;
   border: 1px solid transparent;
@@ -354,16 +359,16 @@ textarea {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: center;
   gap: 2px;
-  padding: 2px;
-  border: 1px solid var(--writer-rule);
-  border-radius: 7px;
-  background: color-mix(in srgb, var(--writer-control-bg) 72%, transparent);
+  padding: 3px;
+  border: 1px solid color-mix(in srgb, var(--writer-rule) 84%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--writer-control-bg) 70%, transparent);
   font-family: var(--writer-ui-font);
 }
 
 .writer-view-mode-option {
   display: inline-flex;
-  min-width: 64px;
+  min-width: 62px;
   height: 24px;
   align-items: center;
   justify-content: center;
@@ -391,8 +396,8 @@ textarea {
 
 .writer-profile-picker {
   height: 28px;
-  max-width: 210px;
-  min-width: 190px;
+  max-width: 152px;
+  min-width: 136px;
   padding: 0 28px 0 8px;
   border: 1px solid var(--writer-rule-strong);
   border-radius: 5px;
@@ -684,13 +689,13 @@ textarea {
 .writer-sidebar-header {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  min-height: 44px;
+  min-height: 34px;
   align-items: center;
   gap: 8px;
-  padding: 6px 10px 6px 14px;
-  color: color-mix(in srgb, var(--writer-text) 64%, transparent);
+  padding: 4px 18px 2px 20px;
+  color: color-mix(in srgb, var(--writer-text) 50%, transparent);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 680;
   letter-spacing: 0;
   text-transform: uppercase;
 }
@@ -704,13 +709,20 @@ textarea {
 .writer-sidebar-actions {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: 6px;
+  opacity: 0.58;
+  transition: opacity 140ms ease;
+}
+
+.writer-sidebar:hover .writer-sidebar-actions,
+.writer-sidebar:focus-within .writer-sidebar-actions {
+  opacity: 1;
 }
 
 .writer-sidebar-icon-button {
   display: inline-flex;
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   align-items: center;
   justify-content: center;
   border: 0;
@@ -738,11 +750,11 @@ textarea {
 .writer-inspector {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   overflow: auto;
-  padding: 12px 12px 28px;
+  padding: 12px 10px 28px;
   border-left: 1px solid var(--writer-rule);
-  background: var(--writer-window-bg);
+  background: color-mix(in srgb, var(--writer-window-bg) 92%, var(--writer-sidebar-bg));
   font-family: var(--writer-ui-font);
   scrollbar-width: none;
 }
@@ -755,10 +767,10 @@ textarea {
 .inspector-tabs {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 4px;
+  gap: 2px;
   min-width: 0;
-  padding: 3px;
-  border: 1px solid var(--writer-rule);
+  padding: 2px;
+  border: 1px solid color-mix(in srgb, var(--writer-rule) 80%, transparent);
   border-radius: 8px;
   background: color-mix(in srgb, var(--writer-control-bg) 60%, transparent);
 }
@@ -766,7 +778,7 @@ textarea {
 .inspector-tab {
   display: inline-flex;
   min-width: 0;
-  height: 30px;
+  height: 28px;
   align-items: center;
   justify-content: center;
   overflow: hidden;
@@ -1160,10 +1172,10 @@ textarea {
 }
 
 .file-tree {
-  flex: 1;
-  overflow: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
   padding: 0 0 18px;
-  scrollbar-width: none;
 }
 
 .file-tree-message {
@@ -1196,9 +1208,35 @@ textarea {
   background: var(--writer-control-hover);
 }
 
-.file-tree::-webkit-scrollbar {
-  width: 0;
-  height: 0;
+.file-tree-list {
+  width: 100% !important;
+  max-width: 100%;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  scrollbar-width: auto;
+}
+
+.file-tree-list::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.file-tree-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.file-tree-list::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--writer-text) 18%, transparent);
+}
+
+.file-tree-list::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--writer-text) 28%, transparent);
+}
+
+.file-tree-list-row {
+  width: 100% !important;
+  min-width: 0 !important;
 }
 
 .tree-group,
@@ -1213,12 +1251,12 @@ textarea {
   min-height: 30px;
   grid-template-columns: 18px 22px minmax(0, 1fr);
   align-items: center;
-  column-gap: 4px;
-  padding: 0 12px 0 calc(14px + var(--tree-depth) * 16px);
+  column-gap: 5px;
+  padding: 0 14px 0 calc(20px + var(--tree-depth) * 16px);
   border: 0;
   border-radius: 0;
   background: transparent;
-  color: color-mix(in srgb, var(--writer-text) 70%, transparent);
+  color: color-mix(in srgb, var(--writer-text) 60%, transparent);
   cursor: pointer;
   text-align: left;
   transition:
@@ -1229,7 +1267,7 @@ textarea {
 .tree-row:hover,
 .tree-row.is-active {
   background: var(--writer-sidebar-active);
-  color: color-mix(in srgb, var(--writer-text) 88%, transparent);
+  color: color-mix(in srgb, var(--writer-text) 82%, transparent);
 }
 
 .tree-row.is-root {
@@ -1237,13 +1275,13 @@ textarea {
 }
 
 .tree-row.is-root .tree-label {
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 700;
 }
 
 .tree-row.is-file {
   grid-template-columns: 22px minmax(0, 1fr) 14px;
-  padding-left: calc(14px + var(--tree-depth) * 16px);
+  padding-left: calc(22px + var(--tree-depth) * 16px);
 }
 
 .tree-row.is-file.is-editing,
@@ -1264,9 +1302,20 @@ textarea {
   gap: 2px;
 }
 
+.tree-row.is-folder .tree-copy {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.tree-row.is-folder .tree-label {
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
 .tree-label {
   overflow: hidden;
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 500;
   letter-spacing: 0;
   line-height: 1.2;
@@ -1281,6 +1330,12 @@ textarea {
   line-height: 1.1;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.tree-row.is-folder .tree-copy small {
+  flex: none;
+  font-size: 11.5px;
+  line-height: 1;
 }
 
 .file-tree-file-marker {
@@ -1304,16 +1359,28 @@ textarea {
 }
 
 .file-tree-search-row {
-  padding: 0 10px 8px 14px;
+  position: relative;
+  padding: 8px 24px 18px 20px;
+}
+
+.file-tree-search-row::after {
+  position: absolute;
+  top: 16px;
+  right: 38px;
+  color: color-mix(in srgb, var(--writer-text) 48%, transparent);
+  content: "⌘P";
+  font-size: 11px;
+  font-weight: 680;
+  pointer-events: none;
 }
 
 .file-tree-search {
   width: 100%;
-  height: 30px;
-  padding: 0 10px;
-  border: 1px solid var(--writer-rule-strong);
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--writer-sidebar-bg) 92%, black);
+  height: 36px;
+  padding: 0 48px 0 14px;
+  border: 0;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--writer-control-bg) 88%, var(--writer-sidebar-bg));
   color: var(--writer-text);
   font-size: 13px;
   outline: none;
@@ -1329,10 +1396,10 @@ textarea {
 
 .file-tree-drafts {
   flex: none;
-  max-height: min(34%, 260px);
+  max-height: min(30%, 220px);
   overflow: auto;
-  padding: 2px 0 8px;
-  border-bottom: 1px solid var(--writer-rule);
+  padding: 0 0 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--writer-rule) 68%, transparent);
   scrollbar-width: none;
 }
 
@@ -1344,11 +1411,11 @@ textarea {
 .file-tree-section-heading {
   display: grid;
   gap: 3px;
-  padding: 8px 14px 5px;
+  padding: 8px 20px 8px;
 }
 
 .file-tree-section-title {
-  color: color-mix(in srgb, var(--writer-text) 52%, transparent);
+  color: color-mix(in srgb, var(--writer-text) 46%, transparent);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0;
@@ -1369,14 +1436,14 @@ textarea {
 }
 
 .file-tree-draft-row {
-  min-height: 30px;
+  min-height: 31px;
 }
 
 .file-tree-draft-row .tree-copy {
   display: flex;
   min-width: 0;
   align-items: baseline;
-  gap: 8px;
+  gap: 10px;
 }
 
 .file-tree-draft-row .tree-label {
@@ -1410,36 +1477,76 @@ textarea {
 
 .file-tree-context-menu {
   position: fixed;
-  z-index: 40;
+  z-index: 2147483647;
   display: grid;
-  width: 220px;
-  padding: 5px;
-  border: 1px solid var(--writer-rule-strong);
-  border-radius: 7px;
-  background: color-mix(in srgb, var(--writer-sidebar-bg) 96%, black);
-  box-shadow: 0 18px 48px var(--writer-shadow);
+  box-sizing: border-box;
+  width: 260px;
+  max-width: calc(100vw - 16px);
+  overflow: hidden;
+  padding: 5px 0;
+  border: 1px solid rgb(255 255 255 / 0.12);
+  border-radius: 11px;
+  background: rgb(48 48 50 / 0.96);
+  box-shadow:
+    0 18px 42px rgb(0 0 0 / 0.34),
+    0 2px 5px rgb(0 0 0 / 0.2);
+  backdrop-filter: saturate(160%) blur(22px);
+  color: rgb(235 236 240 / 0.92);
+  font-family: var(--writer-ui-font);
+}
+
+.light .file-tree-context-menu {
+  border-color: rgb(0 0 0 / 0.18);
+  background: rgb(247 247 246 / 0.96);
+  box-shadow:
+    0 18px 42px rgb(0 0 0 / 0.18),
+    0 2px 5px rgb(0 0 0 / 0.1);
+  color: rgb(32 34 37);
+}
+
+.file-tree-context-menu-group {
+  display: grid;
+  min-width: 0;
+}
+
+.file-tree-context-menu-separator {
+  height: 1px;
+  margin: 5px 22px;
+  background: rgb(255 255 255 / 0.12);
+}
+
+.light .file-tree-context-menu-separator {
+  background: rgb(0 0 0 / 0.11);
 }
 
 .file-tree-context-menu button {
   min-height: 30px;
-  padding: 0 10px;
+  overflow: hidden;
+  padding: 0 22px;
   border: 0;
-  border-radius: 5px;
+  border-radius: 0;
   background: transparent;
-  color: var(--writer-text);
+  color: currentColor;
   cursor: pointer;
+  font-family: inherit;
   font-size: 13px;
+  font-weight: 520;
+  letter-spacing: 0;
+  line-height: 30px;
   text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .file-tree-context-menu button:hover,
 .file-tree-context-menu button:focus-visible {
-  background: var(--writer-sidebar-active);
+  background: rgb(250 249 245);
+  color: rgb(32 34 37);
   outline: none;
 }
 
 .file-tree-draft-context-menu {
-  width: 180px;
+  width: 220px;
 }
 
 .editor-context-menu {
@@ -1786,6 +1893,7 @@ textarea {
   height: 100%;
   flex-direction: column;
   margin: 0;
+  overflow: auto;
   padding: 0;
   border: 0;
   border-radius: 0;
@@ -1797,10 +1905,10 @@ textarea {
   min-height: 100%;
   place-items: center;
   align-content: center;
-  gap: 22px;
+  gap: 10px;
   padding: 48px;
   color: var(--reader-ink);
-  font-family: var(--reader-font);
+  font-family: var(--writer-ui-font);
   text-align: center;
 }
 
@@ -1813,29 +1921,29 @@ textarea {
 .document-start-copy p {
   margin: 0;
   color: color-mix(in srgb, var(--reader-ink) 88%, transparent);
-  font-size: 24px;
-  font-weight: 650;
+  font-size: 14px;
+  font-weight: 640;
   letter-spacing: 0;
   line-height: 1.4;
 }
 
 .document-start-copy span {
   color: var(--reader-muted);
-  font-size: 15px;
+  font-size: 13px;
   letter-spacing: 0;
   line-height: 1.7;
 }
 
 .document-start-button {
   display: inline-flex;
-  min-height: 34px;
+  min-height: 30px;
   align-items: center;
   justify-content: center;
   gap: 8px;
   padding: 0 14px;
-  border: 1px solid var(--writer-rule-strong);
+  border: 0;
   border-radius: 6px;
-  background: var(--writer-control-bg);
+  background: transparent;
   color: color-mix(in srgb, var(--writer-text) 82%, transparent);
   cursor: pointer;
   font-family: var(--writer-ui-font);
@@ -1858,22 +1966,16 @@ textarea {
 
 .document-editor-shell {
   display: flex;
-  width: min(var(--reader-width), calc(100% - 144px));
+  width: min(var(--reader-width), calc(100% - 120px));
   min-height: calc(100dvh - var(--writer-titlebar-height) - 30px);
   flex: 1 1 auto;
   flex-direction: column;
-  margin: 30px auto 0;
-  overflow: auto;
-  padding: 34px 68px 120px;
-  border-radius: var(--radius);
-  background: var(--reader-paper);
+  margin: 86px auto 0;
+  overflow: visible;
+  padding: 0 10px 120px;
+  border-radius: 0;
+  background: transparent;
   color: var(--reader-ink);
-  scrollbar-width: none;
-}
-
-.document-editor-shell::-webkit-scrollbar {
-  width: 0;
-  height: 0;
 }
 
 .document-title-input {
@@ -1885,7 +1987,7 @@ textarea {
   background: transparent;
   color: var(--reader-ink);
   font-family: var(--reader-font);
-  font-size: 32px;
+  font-size: 31px;
   font-weight: 760;
   letter-spacing: 0;
   line-height: 1.34;
@@ -2018,14 +2120,8 @@ textarea {
 .live-mdx-shell {
   min-height: 0;
   flex: 1;
-  overflow: auto;
+  overflow: visible;
   background: var(--reader-page);
-  scrollbar-width: none;
-}
-
-.live-mdx-shell::-webkit-scrollbar {
-  width: 0;
-  height: 0;
 }
 
 .live-mdx-editor {
@@ -2081,12 +2177,12 @@ textarea {
 
 .writer-simple-canvas .live-mdx-content {
   counter-reset: figure-counter;
-  width: min(var(--reader-width), calc(100% - 144px));
+  width: min(var(--reader-width), calc(100% - 120px));
   min-height: calc(100dvh - var(--writer-titlebar-height));
-  margin: 30px auto 0;
-  padding: 28px 68px 120px;
-  border-radius: var(--radius);
-  background: var(--reader-paper);
+  margin: 86px auto 0;
+  padding: 0 10px 120px;
+  border-radius: 0;
+  background: transparent;
   color: var(--reader-ink);
   font-family: var(--reader-font);
   font-size: 16.15px;
@@ -2181,19 +2277,19 @@ textarea {
 .writer-preview {
   min-height: 0;
   flex: 1;
-  overflow: auto;
+  overflow: visible;
   background: var(--reader-page);
   color: var(--reader-ink);
   font-family: var(--reader-font);
 }
 
 .writer-preview .post-shell {
-  width: min(var(--reader-width), calc(100% - 144px));
+  width: min(var(--reader-width), calc(100% - 120px));
   min-height: calc(100dvh - var(--writer-titlebar-height) - 34px);
-  margin: 34px auto 0;
-  padding: 42px 68px 120px;
-  border-radius: var(--radius);
-  background: var(--reader-paper);
+  margin: 86px auto 0;
+  padding: 0 10px 120px;
+  border-radius: 0;
+  background: transparent;
   color: var(--reader-ink);
 }
 

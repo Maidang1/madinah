@@ -95,21 +95,31 @@ describe("file tree view helpers", () => {
       "new-folder",
       "toggle",
       "set-publish-target",
-      "rename",
-      "reveal-in-finder",
-      "copy-path",
       "copy-relative-path",
+      "copy-path",
+      "reveal-in-finder",
+      "rename",
       "move-to-trash",
     ]);
     expect(getFileTreeMenuItems(tree[0].children[0]).map((item) => item.id)).toEqual([
       "open",
-      "rename",
       "duplicate",
       "save-as",
-      "reveal-in-finder",
-      "copy-path",
       "copy-relative-path",
+      "copy-path",
+      "reveal-in-finder",
+      "rename",
       "move-to-trash",
+    ]);
+    expect(getFileTreeMenuItems(tree[0].children[0]).map((item) => item.label)).toEqual([
+      "Open",
+      "Duplicate",
+      "Save As...",
+      "Copy relative path",
+      "Copy absolute path",
+      "Reveal in Finder",
+      "Rename...",
+      "Delete",
     ]);
   });
 

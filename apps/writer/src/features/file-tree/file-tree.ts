@@ -266,35 +266,39 @@ export function getContextMenuPosition(
 
 export function getFileTreeMenuItems(node: FileTreeNode): FileTreeMenuItem[] {
   if (node.kind === "directory") {
-    const items: FileTreeMenuItem[] = [
+    const rootItems: FileTreeMenuItem[] = [
       { id: "new-file", label: "New Markdown File" },
       { id: "new-folder", label: "New Folder" },
       { id: "toggle", label: "Expand / Collapse" },
       { id: "set-publish-target", label: "Set as Publish Target" },
+      { id: "copy-path", label: "Copy absolute path" },
       { id: "reveal-in-finder", label: "Reveal in Finder" },
-      { id: "copy-path", label: "Copy Path" },
     ];
 
-    if (node.isRoot) return items;
+    if (node.isRoot) return rootItems;
 
     return [
-      ...items.slice(0, 4),
-      { id: "rename", label: "Rename" },
-      ...items.slice(4),
-      { id: "copy-relative-path", label: "Copy Relative Path" },
-      { id: "move-to-trash", label: "Move to Trash" },
+      { id: "new-file", label: "New Markdown File" },
+      { id: "new-folder", label: "New Folder" },
+      { id: "toggle", label: "Expand / Collapse" },
+      { id: "set-publish-target", label: "Set as Publish Target" },
+      { id: "copy-relative-path", label: "Copy relative path" },
+      { id: "copy-path", label: "Copy absolute path" },
+      { id: "reveal-in-finder", label: "Reveal in Finder" },
+      { id: "rename", label: "Rename..." },
+      { id: "move-to-trash", label: "Delete" },
     ];
   }
 
   return [
     { id: "open", label: "Open" },
-    { id: "rename", label: "Rename" },
     { id: "duplicate", label: "Duplicate" },
     { id: "save-as", label: "Save As..." },
+    { id: "copy-relative-path", label: "Copy relative path" },
+    { id: "copy-path", label: "Copy absolute path" },
     { id: "reveal-in-finder", label: "Reveal in Finder" },
-    { id: "copy-path", label: "Copy Path" },
-    { id: "copy-relative-path", label: "Copy Relative Path" },
-    { id: "move-to-trash", label: "Move to Trash" },
+    { id: "rename", label: "Rename..." },
+    { id: "move-to-trash", label: "Delete" },
   ];
 }
 

@@ -44,7 +44,7 @@ export const DEFAULT_WORKBENCH_STATE: WorkbenchState = {
   editorMode: "rich-text",
   inspectorTab: "outline",
   isSidebarVisible: true,
-  isInspectorVisible: true,
+  isInspectorVisible: false,
   isFocusMode: false,
   isTypewriterMode: false,
 };

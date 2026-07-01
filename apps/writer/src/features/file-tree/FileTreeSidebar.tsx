@@ -8,6 +8,7 @@ import {
   FolderPlus,
   RefreshCw,
 } from "lucide-react";
+import { LogicalPosition } from "@tauri-apps/api/dpi";
 import {
   memo,
   type CSSProperties,
@@ -16,8 +17,10 @@ import {
   type RefObject,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 import { Tree, type NodeRendererProps, type TreeApi } from "react-arborist";
 import {
   filterFileTreeDrafts,
@@ -77,6 +80,25 @@ type ContextMenuState =
       };
     };
 
+const FILE_TREE_CONTEXT_MENU_WIDTH = 260;
+const FILE_TREE_CONTEXT_MENU_PADDING_Y = 10;
+const FILE_TREE_CONTEXT_MENU_ITEM_HEIGHT = 30;
+const FILE_TREE_CONTEXT_MENU_SEPARATOR_HEIGHT = 11;
+
+const FILE_TREE_MENU_GROUPS: FileTreeMenuAction[][] = [
+  ["open", "new-file", "new-folder", "toggle"],
+  ["set-publish-target", "duplicate", "save-as"],
+  ["copy-relative-path", "copy-path"],
+  ["reveal-in-finder"],
+  ["rename", "move-to-trash"],
+];
+
+const FILE_TREE_DRAFT_MENU_GROUPS: FileTreeDraftAction[][] = [
+  ["open"],
+  ["publish", "mark-wip", "archive"],
+  ["delete"],
+];
+
 export function FileTreeSidebar({
   activeFileState,
   activePath,
@@ -103,6 +125,8 @@ export function FileTreeSidebar({
 }: FileTreeSidebarProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const fileTreeViewportRef = useRef<HTMLDivElement>(null);
+  const [fileTreeHeight, setFileTreeHeight] = useState(240);
   const initialOpenState = useMemo(
     () => getArboristOpenState(nodes, expandedPaths),
     [expandedPaths, nodes],
@@ -128,37 +152,89 @@ export function FileTreeSidebar({
     };
   }, [contextMenu]);
 
+  useEffect(() => {
+    const element = fileTreeViewportRef.current;
+    if (!element) return;
+
+    const updateFileTreeHeight = () => {
+      const nextHeight = Math.max(
+        240,
+        Math.floor(element.getBoundingClientRect().height),
+      );
+      setFileTreeHeight((currentHeight) =>
+        currentHeight === nextHeight ? currentHeight : nextHeight,
+      );
+    };
+
+    updateFileTreeHeight();
+
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", updateFileTreeHeight);
+      return () => window.removeEventListener("resize", updateFileTreeHeight);
+    }
+
+    const resizeObserver = new ResizeObserver(updateFileTreeHeight);
+    resizeObserver.observe(element);
+    return () => resizeObserver.disconnect();
+  }, [nodes.length, roots.length, visibleDrafts.length]);
+
   const openContextMenu = (event: MouseEvent, node: FileTreeNode) => {
     event.preventDefault();
     event.stopPropagation();
-    setContextMenu({
-      kind: "file",
-      node,
-      position: getContextMenuPosition(
-        event,
-        { width: 220, height: node.kind === "directory" ? 326 : 296 },
-        { width: window.innerWidth, height: window.innerHeight },
-      ),
+    const items = getFileTreeMenuItems(node);
+    const groups = groupFileTreeMenuItems(items, FILE_TREE_MENU_GROUPS);
+    const pointer = { clientX: event.clientX, clientY: event.clientY };
+    setContextMenu(null);
+
+    void showNativeFileTreeContextMenu({
+      groups,
+      position: { x: pointer.clientX, y: pointer.clientY },
+      onSelect: (action) => onAction(action, node),
+    }).then((didOpenNativeMenu) => {
+      if (didOpenNativeMenu) return;
+
+      setContextMenu({
+        kind: "file",
+        node,
+        position: getContextMenuPosition(
+          pointer,
+          getContextMenuSize(groups),
+          getContextMenuViewport(),
+        ),
+      });
     });
   };
   const openDraftContextMenu = (event: MouseEvent, draft: FileTreeDraftItem) => {
     event.preventDefault();
     event.stopPropagation();
-    setContextMenu({
-      kind: "draft",
-      draft,
-      position: getContextMenuPosition(
-        event,
-        { width: 220, height: 146 },
-        { width: window.innerWidth, height: window.innerHeight },
-      ),
+    const items = getFileTreeDraftMenuItems(draft, publishTargetLabel);
+    const groups = groupFileTreeMenuItems(items, FILE_TREE_DRAFT_MENU_GROUPS);
+    const pointer = { clientX: event.clientX, clientY: event.clientY };
+    setContextMenu(null);
+
+    void showNativeFileTreeContextMenu({
+      groups,
+      position: { x: pointer.clientX, y: pointer.clientY },
+      onSelect: (action) => onDraftAction(action, draft),
+    }).then((didOpenNativeMenu) => {
+      if (didOpenNativeMenu) return;
+
+      setContextMenu({
+        kind: "draft",
+        draft,
+        position: getContextMenuPosition(
+          pointer,
+          getContextMenuSize(groups),
+          getContextMenuViewport(),
+        ),
+      });
     });
   };
 
   return (
     <aside className="writer-sidebar" aria-label="文稿列表">
       <div className="writer-sidebar-header" data-tauri-drag-region>
-        <span>{roots.length > 0 ? `${roots.length} FOLDERS` : "FILES"}</span>
+        <span>{roots.length > 0 ? "Everything" : "Files"}</span>
         <div className="writer-sidebar-actions">
           <button
             type="button"
@@ -219,7 +295,7 @@ export function FileTreeSidebar({
             <input
               type="search"
               className="file-tree-search"
-              placeholder="筛选文件或草稿…"
+              placeholder="Search"
               aria-label="筛选文件或草稿"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
@@ -261,7 +337,7 @@ export function FileTreeSidebar({
           {roots.length === 0 ? null : nodes.length === 0 ? (
             <div className="file-tree-message">{status}</div>
           ) : (
-            <div className="file-tree" aria-label="Files">
+            <div className="file-tree" aria-label="Files" ref={fileTreeViewportRef}>
               <Tree<FileTreeNode>
                 ref={treeRef}
                 data={nodes}
@@ -270,8 +346,10 @@ export function FileTreeSidebar({
                 selection={activePath ?? undefined}
                 initialOpenState={initialOpenState}
                 openByDefault={false}
+                className="file-tree-list"
+                rowClassName="file-tree-list-row"
                 width="100%"
-                height={Math.max(240, window.innerHeight - 92)}
+                height={fileTreeHeight}
                 indent={16}
                 rowHeight={30}
                 overscanCount={8}
@@ -472,8 +550,9 @@ function FileTreeContextMenu({
   onAction: (action: FileTreeMenuAction, node: FileTreeNode) => void;
 }) {
   const items = getFileTreeMenuItems(node);
+  const groups = groupFileTreeMenuItems(items, FILE_TREE_MENU_GROUPS);
 
-  return (
+  const menu = (
     <div
       className="file-tree-context-menu"
       style={{ left: position.x, top: position.y }}
@@ -481,18 +560,31 @@ function FileTreeContextMenu({
       aria-label={`${node.name} actions`}
       onClick={(event) => event.stopPropagation()}
     >
-      {items.map((item) => (
-        <button
-          key={item.id}
-          type="button"
-          role="menuitem"
-          onClick={() => onAction(item.id, node)}
+      {groups.map((group, groupIndex) => (
+        <div
+          key={group.map((item) => item.id).join("-")}
+          className="file-tree-context-menu-group"
+          role="group"
         >
-          {item.label}
-        </button>
+          {groupIndex > 0 ? (
+            <div className="file-tree-context-menu-separator" role="separator" />
+          ) : null}
+          {group.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              role="menuitem"
+              onClick={() => onAction(item.id, node)}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
       ))}
     </div>
   );
+
+  return typeof document === "undefined" ? menu : createPortal(menu, document.body);
 }
 
 function FileTreeDraftContextMenu({
@@ -510,8 +602,9 @@ function FileTreeDraftContextMenu({
   onAction: (action: FileTreeDraftAction, draft: FileTreeDraftItem) => void;
 }) {
   const items = getFileTreeDraftMenuItems(draft, publishTargetLabel);
+  const groups = groupFileTreeMenuItems(items, FILE_TREE_DRAFT_MENU_GROUPS);
 
-  return (
+  const menu = (
     <div
       className="file-tree-context-menu file-tree-draft-context-menu"
       style={{ left: position.x, top: position.y }}
@@ -519,18 +612,112 @@ function FileTreeDraftContextMenu({
       aria-label={`${draft.title} actions`}
       onClick={(event) => event.stopPropagation()}
     >
-      {items.map((item) => (
-        <button
-          key={item.id}
-          type="button"
-          role="menuitem"
-          onClick={() => onAction(item.id, draft)}
+      {groups.map((group, groupIndex) => (
+        <div
+          key={group.map((item) => item.id).join("-")}
+          className="file-tree-context-menu-group"
+          role="group"
         >
-          {item.label}
-        </button>
+          {groupIndex > 0 ? (
+            <div className="file-tree-context-menu-separator" role="separator" />
+          ) : null}
+          {group.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              role="menuitem"
+              onClick={() => onAction(item.id, draft)}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
       ))}
     </div>
   );
+
+  return typeof document === "undefined" ? menu : createPortal(menu, document.body);
+}
+
+function groupFileTreeMenuItems<
+  TItem extends { id: TAction },
+  TAction extends string,
+>(items: TItem[], groupOrder: TAction[][]): TItem[][] {
+  const itemMap = new Map(items.map((item) => [item.id, item]));
+
+  return groupOrder
+    .map((group) =>
+      group.flatMap((id) => {
+        const item = itemMap.get(id);
+        return item ? [item] : [];
+      }),
+    )
+    .filter((group) => group.length > 0);
+}
+
+function getContextMenuSize(groups: { length: number }[]): {
+  width: number;
+  height: number;
+} {
+  const itemCount = groups.reduce((total, group) => total + group.length, 0);
+  const separatorCount = Math.max(0, groups.length - 1);
+
+  return {
+    width: FILE_TREE_CONTEXT_MENU_WIDTH,
+    height:
+      FILE_TREE_CONTEXT_MENU_PADDING_Y +
+      itemCount * FILE_TREE_CONTEXT_MENU_ITEM_HEIGHT +
+      separatorCount * FILE_TREE_CONTEXT_MENU_SEPARATOR_HEIGHT,
+  };
+}
+
+function getContextMenuViewport(): { width: number; height: number } {
+  if (typeof document === "undefined") {
+    return { width: window.innerWidth, height: window.innerHeight };
+  }
+
+  return {
+    width: document.documentElement.clientWidth || window.innerWidth,
+    height: document.documentElement.clientHeight || window.innerHeight,
+  };
+}
+
+async function showNativeFileTreeContextMenu<TAction extends string>({
+  groups,
+  position,
+  onSelect,
+}: {
+  groups: { id: TAction; label: string }[][];
+  position: {
+    x: number;
+    y: number;
+  };
+  onSelect: (action: TAction) => void;
+}): Promise<boolean> {
+  if (
+    typeof window === "undefined" ||
+    !("__TAURI_INTERNALS__" in window) ||
+    groups.length === 0
+  ) {
+    return false;
+  }
+
+  try {
+    const { Menu } = await import("@tauri-apps/api/menu");
+    const items = groups.flatMap((group, groupIndex) => [
+      ...(groupIndex > 0 ? [{ item: "Separator" as const }] : []),
+      ...group.map((item) => ({
+        id: `file-tree-context-menu-${item.id}`,
+        text: item.label,
+        action: () => onSelect(item.id),
+      })),
+    ]);
+    const menu = await Menu.new({ items });
+    await menu.popup(new LogicalPosition(position.x, position.y));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function getFileTreeRowStyle(style: CSSProperties, level: number): CSSProperties {

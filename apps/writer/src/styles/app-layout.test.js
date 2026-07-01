@@ -9,13 +9,14 @@ describe("macOS document window layout", () => {
     expect(css).toMatch(/\.writer-simple-app\s*\{[^}]*padding: 0;/);
     expect(css).toMatch(/\.writer-simple-app\s*\{[^}]*--reader-page: rgb\(29, 30, 32\);/);
     expect(css).toMatch(/\.writer-simple-app\s*\{[^}]*--reader-paper: rgb\(46, 46, 51\);/);
-    expect(css).toMatch(/\.writer-simple-app\s*\{[^}]*--reader-width: 900px;/);
+    expect(css).toMatch(/\.writer-simple-app\s*\{[^}]*--reader-width: 760px;/);
     expect(css).toMatch(/\.writer-simple-app\s*\{[^}]*--reader-font: "TsangerJinKai02"/);
-    expect(css).toMatch(/\.light \.writer-simple-app\s*\{[^}]*--reader-page: rgb\(245, 244, 237\);/);
-    expect(css).toMatch(/\.light \.writer-simple-app\s*\{[^}]*--reader-paper: rgb\(255, 255, 255\);/);
+    expect(css).toMatch(/\.light \.writer-simple-app\s*\{[^}]*--reader-page: rgb\(250, 249, 245\);/);
+    expect(css).toMatch(/\.light \.writer-simple-app\s*\{[^}]*--reader-paper: rgb\(250, 249, 245\);/);
     expect(css).toMatch(/\.light \.writer-simple-app\s*\{[^}]*--reader-ink: rgba\(36, 41, 47, 0\.9\);/);
     expect(css).toMatch(/\.writer-simple-canvas\s*\{[^}]*width: 100%;/);
     expect(css).toMatch(/\.writer-simple-canvas\s*\{[^}]*height: 100%;/);
+    expect(css).toMatch(/\.writer-simple-canvas\s*\{[^}]*overflow: auto;/);
     expect(css).toMatch(/\.writer-simple-canvas\s*\{[^}]*border: 0;/);
     expect(css).toMatch(/\.writer-simple-canvas\s*\{[^}]*border-radius: 0;/);
     expect(css).toMatch(
@@ -23,16 +24,16 @@ describe("macOS document window layout", () => {
     );
     expect(css).toMatch(/\.writer-window\s*\{[^}]*margin: 0;/);
     expect(css).toMatch(/\.writer-window\s*\{[^}]*box-shadow: none;/);
-    expect(css).toMatch(/--writer-titlebar-height: 44px;/);
-    expect(css).toMatch(/--writer-sidebar-width: 320px;/);
+    expect(css).toMatch(/--writer-titlebar-height: 48px;/);
+    expect(css).toMatch(/--writer-sidebar-width: 280px;/);
     expect(css).toMatch(/--writer-desktop-bg: rgb\(28, 28, 30\);/);
     expect(css).toMatch(/--writer-window-bg: rgb\(30, 30, 32\);/);
     expect(css).toMatch(/\.light\s*\{[^}]*--writer-desktop-bg: rgb\(245, 244, 237\);/);
-    expect(css).toMatch(/\.light\s*\{[^}]*--writer-window-bg: rgb\(245, 244, 237\);/);
-    expect(css).toMatch(/\.light\s*\{[^}]*--writer-titlebar-bg: rgb\(245, 244, 237\);/);
-    expect(css).toMatch(/\.light\s*\{[^}]*--writer-sidebar-bg: rgb\(242, 240, 231\);/);
-    expect(css).toMatch(/\.light\s*\{[^}]*--writer-sidebar-active: rgb\(232, 229, 217\);/);
-    expect(css).toMatch(/\.light\s*\{[^}]*--writer-editor-bg: rgb\(245, 244, 237\);/);
+    expect(css).toMatch(/\.light\s*\{[^}]*--writer-window-bg: rgb\(250, 249, 245\);/);
+    expect(css).toMatch(/\.light\s*\{[^}]*--writer-titlebar-bg: rgb\(250, 249, 245\);/);
+    expect(css).toMatch(/\.light\s*\{[^}]*--writer-sidebar-bg: rgb\(245, 244, 239\);/);
+    expect(css).toMatch(/\.light\s*\{[^}]*--writer-sidebar-active: rgb\(232, 230, 222\);/);
+    expect(css).toMatch(/\.light\s*\{[^}]*--writer-editor-bg: rgb\(250, 249, 245\);/);
     expect(css).toMatch(/\.writer-titlebar\s*\{[^}]*grid-template-rows: minmax\(0, 1fr\);/);
     expect(css).toMatch(/\.writer-titlebar-leading\s*\{/);
     expect(css).toMatch(/\.writer-titlebar-title\s*\{[^}]*grid-row: 1;/);
@@ -40,12 +41,24 @@ describe("macOS document window layout", () => {
     expect(css).toMatch(/\.writer-titlebar-meta\s*\{[^}]*grid-row: 1;/);
     expect(css).toMatch(/\.writer-titlebar-meta\s*\{[^}]*font-size: 13px;/);
     expect(css).toMatch(/\.file-tree\s*\{/);
-    expect(css).toMatch(/margin: 30px auto 0;/);
-    expect(css).toMatch(/\.writer-toolbar-button\s*\{[^}]*width: 28px;/);
-    expect(css).toMatch(/\.writer-toolbar-button\s*\{[^}]*height: 28px;/);
+    expect(css).toMatch(/\.file-tree\s*\{[^}]*overflow: hidden;/);
+    expect(css).toMatch(/\.file-tree-list\s*\{[^}]*width: 100% !important;/);
+    expect(css).toMatch(/\.file-tree-list\s*\{[^}]*overflow-y: auto !important;/);
+    expect(css).toMatch(/\.file-tree-list-row\s*\{[^}]*width: 100% !important;/);
+    expect(css).toMatch(/\.file-tree-context-menu\s*\{[^}]*z-index: 2147483647;/);
+    expect(css).toMatch(/\.file-tree-context-menu\s*\{[^}]*width: 260px;/);
+    expect(css).toMatch(/\.file-tree-context-menu\s*\{[^}]*border-radius: 11px;/);
+    expect(css).toMatch(/\.file-tree-context-menu\s*\{[^}]*backdrop-filter: saturate\(160%\) blur\(22px\);/);
+    expect(css).toMatch(/\.file-tree-context-menu-separator\s*\{[^}]*margin: 5px 22px;/);
+    expect(css).toMatch(/\.file-tree-context-menu button\s*\{[^}]*font-size: 13px;/);
+    expect(css).toMatch(/\.file-tree-context-menu button\s*\{[^}]*text-overflow: ellipsis;/);
+    expect(css).toMatch(/\.file-tree-context-menu button:hover,\n\.file-tree-context-menu button:focus-visible\s*\{[^}]*background: rgb\(250 249 245\);/);
+    expect(css).toMatch(/margin: 86px auto 0;/);
+    expect(css).toMatch(/\.writer-toolbar-button\s*\{[^}]*width: 30px;/);
+    expect(css).toMatch(/\.writer-toolbar-button\s*\{[^}]*height: 30px;/);
     expect(css).toMatch(/\.writer-toolbar-button:focus-visible\s*,/);
     expect(css).toMatch(/\.writer-view-mode-control\s*\{/);
-    expect(css).toMatch(/\.writer-view-mode-option\s*\{[^}]*min-width: 64px;/);
+    expect(css).toMatch(/\.writer-view-mode-option\s*\{[^}]*min-width: 62px;/);
     expect(css).toMatch(/\.writer-view-mode-option\.is-active\s*\{/);
     expect(css).toMatch(
       /\.writer-simple-canvas \.live-mdx-content\s*\{[^}]*font-family: var\(--reader-font\);/,
@@ -69,12 +82,14 @@ describe("macOS document window layout", () => {
     );
     expect(css).toMatch(/\.document-start-state\s*\{[^}]*place-items: center;/);
     expect(css).toMatch(/\.document-start-state\s*\{[^}]*text-align: center;/);
-    expect(css).toMatch(/\.document-start-copy p\s*\{[^}]*font-size: 24px;/);
+    expect(css).toMatch(/\.document-start-copy p\s*\{[^}]*font-size: 14px;/);
     expect(css).toMatch(/\.document-start-button\s*\{[^}]*display: inline-flex;/);
     expect(css).toMatch(/\.document-start-button\s*\{[^}]*gap: 8px;/);
-    expect(css).toMatch(/\.document-editor-shell\s*\{[^}]*background: var\(--reader-paper\);/);
-    expect(css).toMatch(/\.document-editor-shell\s*\{[^}]*overflow: auto;/);
-    expect(css).toMatch(/\.document-title-input\s*\{[^}]*font-size: 32px;/);
+    expect(css).toMatch(/\.document-editor-shell\s*\{[^}]*background: transparent;/);
+    expect(css).toMatch(/\.document-editor-shell\s*\{[^}]*overflow: visible;/);
+    expect(css).toMatch(/\.live-mdx-shell\s*\{[^}]*overflow: visible;/);
+    expect(css).toMatch(/\.writer-preview\s*\{[^}]*overflow: visible;/);
+    expect(css).toMatch(/\.document-title-input\s*\{[^}]*font-size: 31px;/);
     expect(css).toMatch(/\.document-title-input\s*\{[^}]*border: 0;/);
     expect(css).toMatch(/\.document-title-input::placeholder\s*\{/);
     expect(css).toMatch(
@@ -90,6 +105,8 @@ describe("macOS document window layout", () => {
     expect(css).not.toMatch(/\.live-mdx-content p:empty::before\s*\{[^}]*content:/);
     expect(css).toMatch(/\.file-tree-draft-row \.tree-copy\s*\{[^}]*display: flex;/);
     expect(css).toMatch(/\.file-tree-draft-row \.tree-copy\s*\{[^}]*align-items: baseline;/);
+    expect(css).toMatch(/\.tree-row\.is-folder \.tree-copy\s*\{[^}]*display: flex;/);
+    expect(css).toMatch(/\.tree-row\.is-folder \.tree-copy\s*\{[^}]*align-items: baseline;/);
     expect(css).toMatch(/\.file-tree-draft-row small\s*\{[^}]*white-space: nowrap;/);
     expect(css).toMatch(/\.inspector-tabs\s*\{[^}]*grid-template-columns: repeat\(4, minmax\(0, 1fr\)\);/);
     expect(css).toMatch(/\.inspector-tab\s*\{[^}]*white-space: nowrap;/);

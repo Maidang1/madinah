@@ -123,7 +123,7 @@ describe("workbench state", () => {
       editorMode: "rich-text",
       inspectorTab: "history",
       isSidebarVisible: true,
-      isInspectorVisible: true,
+      isInspectorVisible: false,
       isFocusMode: false,
       isTypewriterMode: false,
     });
