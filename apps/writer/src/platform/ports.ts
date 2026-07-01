@@ -61,11 +61,6 @@ export interface DocumentStore {
   delete(id: string): Promise<void>;
 }
 
-export interface DraftStore {
-  read(path: string): Promise<MarkdownFile | null>;
-  write(path: string, source: string): Promise<MarkdownFile>;
-}
-
 export interface RecentStore {
   list(): Promise<MarkdownFile[]>;
   add(path: string): Promise<void>;
@@ -117,7 +112,6 @@ export interface PlatformAdapters {
   documentStore: DocumentStore;
   fileTreeStore: FileTreeStore;
   fileStore: FileStore;
-  draftStore: DraftStore;
   recentStore: RecentStore;
   pluginResolver: PluginResolver;
   windowAdapter: WindowAdapter;

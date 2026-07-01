@@ -84,28 +84,22 @@ export function useDocumentSession(
     saveTokenRef.current = token;
 
     const timeout = window.setTimeout(() => {
-      dispatch({ type: "saveStarted" });
       setStatus("Saving");
 
       const saveTask = session.filePath
-        ? platform.draftStore
-            .write(session.filePath, snapshot.body)
-            .then((draft) => {
-              dispatch({ type: "draftSaved", draftPath: draft.path });
-              return snapshot;
-            })
+        ? platform.fileStore
+            .writeMarkdownFile(session.filePath, serializeMdxDocument(snapshot))
+            .then(() => snapshot)
         : platform.documentStore.save(snapshot);
 
       void saveTask
         .then((saved) => {
           if (saveTokenRef.current === token) {
+            dispatch({ type: "saveSucceeded", document: saved });
             if (!session.filePath) {
-              dispatch({ type: "saveSucceeded", document: saved });
               upsertDocument(saved);
-              setStatus("Saved");
-            } else {
-              setStatus("Draft saved");
             }
+            setStatus("Saved");
           }
         })
         .catch((error: unknown) => {
@@ -269,35 +263,6 @@ export function useDocumentSession(
     }
   }, [platform, saveNow, session.isDirty, upsertDocument]);
 
-  const saveAs = useCallback(async () => {
-    if (!session.document) return;
-
-    const path = await platform.windowAdapter.saveMarkdownFile({
-      title: "Save Markdown file",
-      defaultPath: session.filePath ?? `${session.document.slug}.md`,
-    });
-    if (!path) return;
-
-    try {
-      setStatus("Saving");
-      await platform.fileStore.writeMarkdownFile(
-        path,
-        serializeMdxDocument(session.document),
-      );
-      await platform.recentStore.add(path);
-      dispatch({
-        type: "saveAsSucceeded",
-        document: session.document,
-        filePath: path,
-      });
-      setStatus("Saved");
-    } catch (error: unknown) {
-      const message = String(error);
-      dispatch({ type: "saveFailed", error: message });
-      setStatus(message);
-    }
-  }, [platform, session.document, session.filePath]);
-
   const publishStoredDocument = useCallback(
     async (id: string, filePath: string) => {
       try {
@@ -413,17 +378,12 @@ export function useDocumentSession(
     if (!session.document) return;
 
     if (session.isDirty) {
-      dispatch({ type: "closeRequested" });
-      const shouldClose = await platform.windowAdapter.confirm(
-        "Close this document and discard unsaved changes?",
-        { title: "Close document" },
-      );
-      if (!shouldClose) return;
+      await saveNow();
     }
 
     dispatch({ type: "closeConfirmed" });
     setStatus("Closed");
-  }, [platform, session.document, session.isDirty]);
+  }, [saveNow, session.document, session.isDirty]);
 
   return {
     session,
@@ -440,7 +400,6 @@ export function useDocumentSession(
     updateStoredDocumentStatus,
     deleteStoredDocument,
     saveNow,
-    saveAs,
     revert,
     close,
     setStatus,

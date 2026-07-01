@@ -21,17 +21,25 @@ export type SettingsCheckState =
   | { status: "success"; message: string }
   | { status: "error"; message: string };
 
-type SettingsTab = "ai" | "assets";
+type SettingsTab = "editor" | "ai" | "assets";
+
+interface WriterProfileOption {
+  id: string;
+  name: string;
+}
 
 interface WriterSettingsDialogProps {
   isOpen: boolean;
   aiAvailable: boolean;
   assetUploadAvailable: boolean;
+  profiles: WriterProfileOption[];
+  profileId: string;
   acpSettings: AcpSettings;
   assetSettings: AssetUploadSettings;
   acpCheckState: SettingsCheckState;
   assetCheckState: SettingsCheckState;
   onClose: () => void;
+  onSaveProfile: (profileId: string) => void;
   onSaveAcp: (settings: AcpSettings) => void;
   onCheckAcp: (config: AcpAgentRuntimeConfig) => void;
   onSaveAssets: (settings: AssetUploadSettings) => void;
@@ -42,17 +50,21 @@ export function WriterSettingsDialog({
   isOpen,
   aiAvailable,
   assetUploadAvailable,
+  profiles,
+  profileId,
   acpSettings,
   assetSettings,
   acpCheckState,
   assetCheckState,
   onClose,
+  onSaveProfile,
   onSaveAcp,
   onCheckAcp,
   onSaveAssets,
   onCheckAssets,
 }: WriterSettingsDialogProps) {
-  const [activeTab, setActiveTab] = useState<SettingsTab>("ai");
+  const [activeTab, setActiveTab] = useState<SettingsTab>("editor");
+  const [profileDraft, setProfileDraft] = useState(profileId);
   const [acpDraft, setAcpDraft] = useState<AcpSettings>(() =>
     createDefaultAcpSettings(),
   );
@@ -69,11 +81,12 @@ export function WriterSettingsDialog({
   useEffect(() => {
     if (!isOpen) return;
     const nextAcpDraft = normalizeAcpSettings(acpSettings);
+    setProfileDraft(profileId);
     setAcpDraft(nextAcpDraft);
     setAssetDraft(normalizeAssetUploadSettings(assetSettings));
     setEnvText(formatEnvText(nextAcpDraft.agents[nextAcpDraft.provider].env));
     setEnvErrors([]);
-  }, [acpSettings, assetSettings, isOpen]);
+  }, [acpSettings, assetSettings, isOpen, profileId]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -144,6 +157,11 @@ export function WriterSettingsDialog({
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
+    if (activeTab === "editor") {
+      onSaveProfile(profileDraft);
+      return;
+    }
+
     if (activeTab === "assets") {
       onSaveAssets(normalizeAssetUploadSettings(assetDraft));
       return;
@@ -156,6 +174,8 @@ export function WriterSettingsDialog({
   };
 
   const runCheck = () => {
+    if (activeTab === "editor") return;
+
     if (activeTab === "assets") {
       onCheckAssets(normalizeAssetUploadSettings(assetDraft));
       return;
@@ -167,8 +187,23 @@ export function WriterSettingsDialog({
     }
   };
 
-  const checkState = activeTab === "assets" ? assetCheckState : acpCheckState;
+  const checkState =
+    activeTab === "assets"
+      ? assetCheckState
+      : activeTab === "ai"
+        ? acpCheckState
+        : { status: "idle" as const, message: "Editor preferences" };
   const canCheck = activeTab === "assets" ? assetUploadAvailable : aiAvailable;
+  const showCheckButton = activeTab !== "editor";
+  const hasBlockingErrors = activeTab === "ai" && hasEnvErrors;
+  const settingsSubtitle =
+    activeTab === "assets"
+      ? "Cloudflare R2 assets"
+      : activeTab === "ai"
+        ? "ACP local agent"
+        : "Markdown editing";
+  const settingsTitle =
+    activeTab === "assets" ? "Assets" : activeTab === "ai" ? "AI" : "Editor";
 
   return (
     <div className="writer-settings-backdrop" role="presentation">
@@ -179,192 +214,233 @@ export function WriterSettingsDialog({
         aria-labelledby="writer-settings-title"
         onSubmit={submit}
       >
-        <header className="writer-settings-header">
-          <div>
-            <h2 id="writer-settings-title">Settings</h2>
-            <p>{activeTab === "assets" ? "Cloudflare R2 assets" : "ACP local agent"}</p>
+        <aside className="writer-settings-sidebar" aria-label="Settings sections">
+          <div className="writer-settings-sidebar-title">
+            <strong>Settings</strong>
+            <span>Writer</span>
           </div>
-          <button type="button" className="writer-settings-close" onClick={onClose}>
-            Close
-          </button>
-        </header>
-
-        <div className="writer-settings-segments" role="tablist" aria-label="Settings">
-          <button
-            type="button"
-            className={activeTab === "ai" ? "is-selected" : undefined}
-            aria-selected={activeTab === "ai"}
-            onClick={() => setActiveTab("ai")}
-          >
-            AI
-          </button>
-          <button
-            type="button"
-            className={activeTab === "assets" ? "is-selected" : undefined}
-            aria-selected={activeTab === "assets"}
-            onClick={() => setActiveTab("assets")}
-          >
-            Assets
-          </button>
-        </div>
-
-        {activeTab === "ai" ? (
-          <>
-            <div className="writer-settings-segments" role="tablist" aria-label="Agent">
-              {providerOptions.map(([provider, label]) => (
-                <button
-                  type="button"
-                  key={provider}
-                  className={provider === acpDraft.provider ? "is-selected" : undefined}
-                  aria-selected={provider === acpDraft.provider}
-                  onClick={() => changeProvider(provider)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            <label className="writer-settings-field">
-              <span>Command</span>
-              <input
-                value={activeAgent.command}
-                onChange={(event) => updateAgent({ command: event.target.value })}
-                spellCheck={false}
-              />
-            </label>
-
-            <label className="writer-settings-field">
-              <span>Environment</span>
-              <textarea
-                value={envText}
-                onChange={(event) => {
-                  const next = event.target.value;
-                  const parsed = parseEnvText(next);
-                  setEnvText(next);
-                  setEnvErrors(parsed.errors);
-                  if (parsed.errors.length === 0) {
-                    updateAgent({ env: parsed.env });
-                  }
-                }}
-                spellCheck={false}
-                rows={4}
-              />
-            </label>
-            {hasEnvErrors ? (
-              <div className="writer-settings-error">{envErrors.join(". ")}</div>
-            ) : null}
-
-            <label className="writer-settings-field">
-              <span>Instruction</span>
-              <textarea
-                value={activeAgent.instruction}
-                onChange={(event) => updateAgent({ instruction: event.target.value })}
-                rows={5}
-              />
-            </label>
-
-            <label className="writer-settings-field is-inline">
-              <span>Timeout</span>
-              <input
-                type="number"
-                min={10}
-                max={600}
-                value={activeAgent.timeoutSeconds}
-                onChange={(event) =>
-                  updateAgent({ timeoutSeconds: Number(event.target.value) })
-                }
-              />
-            </label>
-          </>
-        ) : (
-          <>
-            <label className="writer-settings-field">
-              <span>Account ID</span>
-              <input
-                value={assetDraft.accountId}
-                onChange={(event) => updateAssetDraft({ accountId: event.target.value })}
-                spellCheck={false}
-              />
-            </label>
-            <label className="writer-settings-field">
-              <span>Bucket</span>
-              <input
-                value={assetDraft.bucket}
-                onChange={(event) => updateAssetDraft({ bucket: event.target.value })}
-                spellCheck={false}
-              />
-            </label>
-            <label className="writer-settings-field">
-              <span>Access Key ID</span>
-              <input
-                value={assetDraft.accessKeyId}
-                onChange={(event) =>
-                  updateAssetDraft({ accessKeyId: event.target.value })
-                }
-                spellCheck={false}
-              />
-            </label>
-            <label className="writer-settings-field">
-              <span>Secret Access Key</span>
-              <input
-                type="password"
-                value={assetDraft.secretAccessKey}
-                onChange={(event) =>
-                  updateAssetDraft({ secretAccessKey: event.target.value })
-                }
-                spellCheck={false}
-              />
-            </label>
-            <label className="writer-settings-field">
-              <span>Public Base URL</span>
-              <input
-                value={assetDraft.publicBaseUrl}
-                onChange={(event) =>
-                  updateAssetDraft({ publicBaseUrl: event.target.value })
-                }
-                spellCheck={false}
-              />
-            </label>
-            <label className="writer-settings-field">
-              <span>Prefix</span>
-              <input
-                value={assetDraft.prefix}
-                onChange={(event) => updateAssetDraft({ prefix: event.target.value })}
-                spellCheck={false}
-              />
-            </label>
-            <label className="writer-settings-field is-inline">
-              <span>Max bytes</span>
-              <input
-                type="number"
-                min={1024}
-                value={assetDraft.maxBytes}
-                onChange={(event) =>
-                  updateAssetDraft({ maxBytes: Number(event.target.value) })
-                }
-              />
-            </label>
-          </>
-        )}
-
-        <footer className="writer-settings-footer">
-          <div className={`writer-settings-status is-${checkState.status}`}>
-            {checkState.message}
-          </div>
-          <div className="writer-settings-actions">
+          <nav className="writer-settings-nav" aria-label="Settings sections">
             <button
               type="button"
-              className="writer-settings-secondary"
-              onClick={runCheck}
-              disabled={!canCheck || isChecking || hasEnvErrors}
+              className={activeTab === "editor" ? "is-selected" : undefined}
+              aria-current={activeTab === "editor" ? "page" : undefined}
+              onClick={() => setActiveTab("editor")}
             >
-              {checkState.status === "checking" ? "Checking" : "Test"}
+              Editor
             </button>
-            <button type="submit" className="writer-settings-primary" disabled={hasEnvErrors}>
-              Save
+            <button
+              type="button"
+              className={activeTab === "ai" ? "is-selected" : undefined}
+              aria-current={activeTab === "ai" ? "page" : undefined}
+              onClick={() => setActiveTab("ai")}
+            >
+              AI
             </button>
+            <button
+              type="button"
+              className={activeTab === "assets" ? "is-selected" : undefined}
+              aria-current={activeTab === "assets" ? "page" : undefined}
+              onClick={() => setActiveTab("assets")}
+            >
+              Assets
+            </button>
+          </nav>
+        </aside>
+
+        <section className="writer-settings-main">
+          <header className="writer-settings-header">
+            <div>
+              <h2 id="writer-settings-title">{settingsTitle}</h2>
+              <p>{settingsSubtitle}</p>
+            </div>
+            <button type="button" className="writer-settings-close" onClick={onClose}>
+              Close
+            </button>
+          </header>
+
+          <div className="writer-settings-content">
+            {activeTab === "editor" ? (
+              <label className="writer-settings-field">
+                <span>Markdown Profile</span>
+                <select
+                  className="writer-settings-select"
+                  value={profileDraft}
+                  onChange={(event) => setProfileDraft(event.currentTarget.value)}
+                >
+                  {profiles.map((profile) => (
+                    <option key={profile.id} value={profile.id}>
+                      {profile.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : activeTab === "ai" ? (
+              <>
+                <div className="writer-settings-segments" role="tablist" aria-label="Agent">
+                  {providerOptions.map(([provider, label]) => (
+                    <button
+                      type="button"
+                      key={provider}
+                      className={provider === acpDraft.provider ? "is-selected" : undefined}
+                      aria-selected={provider === acpDraft.provider}
+                      onClick={() => changeProvider(provider)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                <label className="writer-settings-field">
+                  <span>Command</span>
+                  <input
+                    value={activeAgent.command}
+                    onChange={(event) => updateAgent({ command: event.target.value })}
+                    spellCheck={false}
+                  />
+                </label>
+
+                <label className="writer-settings-field">
+                  <span>Environment</span>
+                  <textarea
+                    value={envText}
+                    onChange={(event) => {
+                      const next = event.target.value;
+                      const parsed = parseEnvText(next);
+                      setEnvText(next);
+                      setEnvErrors(parsed.errors);
+                      if (parsed.errors.length === 0) {
+                        updateAgent({ env: parsed.env });
+                      }
+                    }}
+                    spellCheck={false}
+                    rows={4}
+                  />
+                </label>
+                {hasEnvErrors ? (
+                  <div className="writer-settings-error">{envErrors.join(". ")}</div>
+                ) : null}
+
+                <label className="writer-settings-field">
+                  <span>Instruction</span>
+                  <textarea
+                    value={activeAgent.instruction}
+                    onChange={(event) => updateAgent({ instruction: event.target.value })}
+                    rows={5}
+                  />
+                </label>
+
+                <label className="writer-settings-field is-inline">
+                  <span>Timeout</span>
+                  <input
+                    type="number"
+                    min={10}
+                    max={600}
+                    value={activeAgent.timeoutSeconds}
+                    onChange={(event) =>
+                      updateAgent({ timeoutSeconds: Number(event.target.value) })
+                    }
+                  />
+                </label>
+              </>
+            ) : (
+              <>
+                <label className="writer-settings-field">
+                  <span>Account ID</span>
+                  <input
+                    value={assetDraft.accountId}
+                    onChange={(event) =>
+                      updateAssetDraft({ accountId: event.target.value })
+                    }
+                    spellCheck={false}
+                  />
+                </label>
+                <label className="writer-settings-field">
+                  <span>Bucket</span>
+                  <input
+                    value={assetDraft.bucket}
+                    onChange={(event) => updateAssetDraft({ bucket: event.target.value })}
+                    spellCheck={false}
+                  />
+                </label>
+                <label className="writer-settings-field">
+                  <span>Access Key ID</span>
+                  <input
+                    value={assetDraft.accessKeyId}
+                    onChange={(event) =>
+                      updateAssetDraft({ accessKeyId: event.target.value })
+                    }
+                    spellCheck={false}
+                  />
+                </label>
+                <label className="writer-settings-field">
+                  <span>Secret Access Key</span>
+                  <input
+                    type="password"
+                    value={assetDraft.secretAccessKey}
+                    onChange={(event) =>
+                      updateAssetDraft({ secretAccessKey: event.target.value })
+                    }
+                    spellCheck={false}
+                  />
+                </label>
+                <label className="writer-settings-field">
+                  <span>Public Base URL</span>
+                  <input
+                    value={assetDraft.publicBaseUrl}
+                    onChange={(event) =>
+                      updateAssetDraft({ publicBaseUrl: event.target.value })
+                    }
+                    spellCheck={false}
+                  />
+                </label>
+                <label className="writer-settings-field">
+                  <span>Prefix</span>
+                  <input
+                    value={assetDraft.prefix}
+                    onChange={(event) => updateAssetDraft({ prefix: event.target.value })}
+                    spellCheck={false}
+                  />
+                </label>
+                <label className="writer-settings-field is-inline">
+                  <span>Max bytes</span>
+                  <input
+                    type="number"
+                    min={1024}
+                    value={assetDraft.maxBytes}
+                    onChange={(event) =>
+                      updateAssetDraft({ maxBytes: Number(event.target.value) })
+                    }
+                  />
+                </label>
+              </>
+            )}
           </div>
-        </footer>
+
+          <footer className="writer-settings-footer">
+            <div className={`writer-settings-status is-${checkState.status}`}>
+              {checkState.message}
+            </div>
+            <div className="writer-settings-actions">
+              {showCheckButton ? (
+                <button
+                  type="button"
+                  className="writer-settings-secondary"
+                  onClick={runCheck}
+                  disabled={!canCheck || isChecking || hasBlockingErrors}
+                >
+                  {checkState.status === "checking" ? "Checking" : "Test"}
+                </button>
+              ) : null}
+              <button
+                type="submit"
+                className="writer-settings-primary"
+                disabled={hasBlockingErrors}
+              >
+                Save
+              </button>
+            </div>
+          </footer>
+        </section>
       </form>
     </div>
   );

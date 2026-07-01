@@ -10,17 +10,12 @@ import {
   useState,
 } from "react";
 import {
-  CheckCircle2,
   ChevronDown,
   ChevronRight,
   ChevronUp,
-  CircleAlert,
-  FileCheck2,
-  FileClock,
   FileCode2,
   FolderOpen,
   Folder,
-  LoaderCircle,
   Moon,
   PanelLeft,
   PanelRight,
@@ -121,11 +116,8 @@ import { ViewModeControl } from "./features/workbench/ViewModeControl";
 import { createWorkbenchCommands } from "./features/workbench/workbench-commands";
 import {
   getInitialWorkbenchState,
-  getSavePresentation,
   persistWorkbenchState,
   shouldRestoreEditorFocus,
-  type SavePresentation,
-  type SavePresentationIcon,
   workbenchStateReducer,
 } from "./features/workbench/workbench-state";
 import {
@@ -133,7 +125,6 @@ import {
   buildSidebarTree,
   collectFolderIds,
   formatWordCount,
-  getDocumentDisplayTitle,
   getDocumentMetrics,
   mergeActiveDocument,
   type SidebarTreeNode,
@@ -185,7 +176,6 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
     updateStoredDocumentStatus,
     deleteStoredDocument,
     saveNow,
-    saveAs,
     revert,
     close,
     setStatus,
@@ -332,9 +322,6 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
       cancelled = true;
     };
   }, [platform.assetUpload]);
-  const documentTitle = session.document
-    ? getDocumentDisplayTitle(session.document)
-    : "Madinah Writer";
   const metrics = useMemo(
     () => getDocumentMetrics(session.document?.body ?? ""),
     [session.document?.body],
@@ -371,10 +358,6 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
   const historyTargetId = session.document
     ? getVersionTargetId(session.document, session.filePath)
     : null;
-  const savePresentation = useMemo(
-    () => getSavePresentation(session, status),
-    [session, status],
-  );
   const isDocumentStartStateVisible = session.document
     ? shouldShowDocumentStartState(
         session.document.body,
@@ -476,8 +459,6 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
           ...createDocumentCommands({
             newDocument: createNewDocument,
             open: openFromDialog,
-            save: saveNow,
-            saveAs,
             revert,
             close,
           }),
@@ -491,8 +472,6 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
       formattingCommands,
       openFromDialog,
       revert,
-      saveAs,
-      saveNow,
       workbenchCommands,
     ],
   );
@@ -525,6 +504,14 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
       }
     },
     [closeSettings, platform.assetUpload, setStatus],
+  );
+  const saveProfileSettings = useCallback(
+    (profileId: string) => {
+      engine.setProfileId(profileId);
+      closeSettings();
+      setStatus("Editor settings saved");
+    },
+    [closeSettings, engine, setStatus],
   );
   const checkAcpAgent = useCallback(
     async (config: AcpAgentRuntimeConfig) => {
@@ -825,24 +812,6 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
           return;
         }
 
-        if (action === "save-as" && node.kind === "file") {
-          if (session.filePath === node.path) {
-            await saveAs();
-            return;
-          }
-
-          const target = await platform.windowAdapter.saveMarkdownFile({
-            title: "Save Markdown file",
-            defaultPath: node.name,
-          });
-          if (!target) return;
-          const file = await platform.fileTreeStore.readFile(node.path);
-          await platform.fileTreeStore.writeFile(target, file.source);
-          await platform.recentStore.add(target);
-          setStatus("Saved");
-          return;
-        }
-
         if (action === "move-to-trash") {
           const shouldDelete = await platform.windowAdapter.confirm(
             `Move ${node.name} to the app trash?`,
@@ -870,7 +839,6 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
       loadFileTree,
       openFileTreePath,
       platform,
-      saveAs,
       saveNow,
       session.filePath,
       session.isDirty,
@@ -1152,6 +1120,17 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
     });
   }, [runCommand]);
 
+  const sidebarTools = (
+    <WriterSidebarTools
+      wordCount={formatWordCount(metrics.words)}
+      theme={theme}
+      onOpenSettings={() => setIsSettingsOpen(true)}
+      onToggleTheme={() =>
+        setTheme((current) => (current === "dark" ? "light" : "dark"))
+      }
+    />
+  );
+
   return (
     <main className="writer-simple-app">
       <section
@@ -1185,29 +1164,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
             </button>
           </div>
 
-          <div className="writer-titlebar-title" data-window-drag-region>
-            <strong data-window-drag-region>{documentTitle}</strong>
-            <SaveStatusIndicator presentation={savePresentation} />
-            <ViewModeControl
-              viewMode={viewMode}
-              onViewModeChange={(nextViewMode) =>
-                dispatchWorkbenchState({
-                  type: "setViewMode",
-                  viewMode: nextViewMode,
-                })
-              }
-            />
-          </div>
-
           <div className="writer-titlebar-meta">
-            <span className="writer-word-count" data-window-drag-region>
-              {formatWordCount(metrics.words)}
-            </span>
-            <ProfilePicker
-              profiles={engine.profiles}
-              value={engine.profile.id}
-              onChange={engine.setProfileId}
-            />
             <button
               type="button"
               className="writer-toolbar-button"
@@ -1217,32 +1174,6 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
               onClick={() => setIsQuickOpenOpen(true)}
             >
               <Search size={14} aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              className="writer-toolbar-button"
-              data-window-no-drag
-              aria-label="Settings"
-              title="Settings"
-              onClick={() => setIsSettingsOpen(true)}
-            >
-              <Settings size={14} aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              className="writer-toolbar-button"
-              data-window-no-drag
-              aria-label={theme === "dark" ? "切换到浅色模式" : "切换到深色模式"}
-              title={theme === "dark" ? "切换到浅色模式" : "切换到深色模式"}
-              onClick={() =>
-                setTheme((current) => (current === "dark" ? "light" : "dark"))
-              }
-            >
-              {theme === "dark" ? (
-                <Sun size={15} aria-hidden="true" />
-              ) : (
-                <Moon size={15} aria-hidden="true" />
-              )}
             </button>
             <button
               type="button"
@@ -1261,11 +1192,6 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
           {isSidebarVisible ? (
             platform.fileTreeStore.isAvailable ? (
               <FileTreeSidebar
-                activeFileState={{
-                  filePath: session.filePath,
-                  isDirty: session.isDirty,
-                  draftStatus: session.draftStatus,
-                }}
                 activePath={session.filePath}
                 activeDocumentId={session.filePath ? null : session.document?.id ?? null}
                 drafts={sidebarDrafts}
@@ -1287,6 +1213,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
                 onRefresh={refreshFileTree}
                 onRename={(path, name) => void handleRename(path, name)}
                 onToggleDirectory={toggleFileTreeDirectory}
+                footer={sidebarTools}
               />
             ) : (
               <WriterSidebar
@@ -1296,6 +1223,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
                 showsFileDetails={showsFileDetails}
                 onToggleFolder={toggleFolder}
                 onOpen={(id) => void openStoredDocument(id)}
+                footer={sidebarTools}
               />
             )
           ) : null}
@@ -1304,6 +1232,17 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
             className="writer-simple-canvas"
             aria-label={viewMode === "preview" ? "Preview" : "Editor"}
           >
+            <div className="writer-canvas-actions">
+              <ViewModeControl
+                viewMode={viewMode}
+                onViewModeChange={(nextViewMode) =>
+                  dispatchWorkbenchState({
+                    type: "setViewMode",
+                    viewMode: nextViewMode,
+                  })
+                }
+              />
+            </div>
             {session.document ? (
               viewMode === "write" && isDocumentStartStateVisible ? (
                 <DocumentStartState onStart={startEditingEmptyDocument} />
@@ -1456,11 +1395,14 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
         isOpen={isSettingsOpen}
         aiAvailable={platform.aiPolish.isAvailable}
         assetUploadAvailable={platform.assetUpload.isAvailable}
+        profiles={engine.profiles}
+        profileId={engine.profile.id}
         acpSettings={acpSettings}
         assetSettings={assetSettings}
         acpCheckState={acpCheckState}
         assetCheckState={assetCheckState}
         onClose={closeSettings}
+        onSaveProfile={saveProfileSettings}
         onSaveAcp={saveAcpSettings}
         onCheckAcp={(config) => void checkAcpAgent(config)}
         onSaveAssets={(settings) => void saveAssetSettings(settings)}
@@ -1475,6 +1417,7 @@ function WriterSidebar({
   activeDocumentId,
   expandedFolders,
   showsFileDetails,
+  footer,
   onToggleFolder,
   onOpen,
 }: {
@@ -1482,6 +1425,7 @@ function WriterSidebar({
   activeDocumentId: string | null;
   expandedFolders: Set<string>;
   showsFileDetails: boolean;
+  footer?: ReactNode;
   onToggleFolder: (folderId: string) => void;
   onOpen: (id: string) => void;
 }) {
@@ -1507,6 +1451,7 @@ function WriterSidebar({
           }),
         )}
       </nav>
+      {footer}
     </aside>
   );
 }
@@ -1643,30 +1588,49 @@ function QuickOpenEmpty({ query }: { query: string }) {
   );
 }
 
-function ProfilePicker({
-  profiles,
-  value,
-  onChange,
+function WriterSidebarTools({
+  wordCount,
+  theme,
+  onOpenSettings,
+  onToggleTheme,
 }: {
-  profiles: Array<{ id: string; name: string }>;
-  value: string;
-  onChange: (profileId: string) => void;
+  wordCount: string;
+  theme: WriterTheme;
+  onOpenSettings: () => void;
+  onToggleTheme: () => void;
 }) {
+  const themeLabel = theme === "dark" ? "切换到浅色模式" : "切换到深色模式";
+
   return (
-    <select
-      className="writer-profile-picker"
-      value={value}
-      onChange={(event) => onChange(event.currentTarget.value)}
-      data-window-no-drag
-      aria-label="Markdown profile"
-      title="Markdown profile"
-    >
-      {profiles.map((profile) => (
-        <option key={profile.id} value={profile.id}>
-          {profile.name}
-        </option>
-      ))}
-    </select>
+    <footer className="writer-sidebar-tools" data-window-no-drag>
+      <div className="writer-sidebar-tools-header">
+        <span className="writer-sidebar-word-count">{wordCount}</span>
+        <div className="writer-sidebar-tool-actions">
+          <button
+            type="button"
+            className="writer-sidebar-tool-button"
+            aria-label="Settings"
+            title="Settings"
+            onClick={onOpenSettings}
+          >
+            <Settings size={14} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="writer-sidebar-tool-button"
+            aria-label={themeLabel}
+            title={themeLabel}
+            onClick={onToggleTheme}
+          >
+            {theme === "dark" ? (
+              <Sun size={15} aria-hidden="true" />
+            ) : (
+              <Moon size={15} aria-hidden="true" />
+            )}
+          </button>
+        </div>
+      </div>
+    </footer>
   );
 }
 
@@ -1856,50 +1820,6 @@ function DocumentEditorShell({
       {children}
     </div>
   );
-}
-
-function SaveStatusIndicator({
-  presentation,
-}: {
-  presentation: SavePresentation;
-}) {
-  const Icon = getSaveStatusIcon(presentation.icon);
-
-  return (
-    <span
-      className={[
-        "writer-save-indicator",
-        `is-${presentation.tone}`,
-        presentation.isBusy ? "is-busy" : "",
-      ]
-        .filter(Boolean)
-        .join(" ")}
-      data-save-state={presentation.state}
-      data-window-drag-region
-      role="img"
-      aria-label={presentation.label}
-      title={presentation.tooltip}
-    >
-      <Icon size={15} aria-hidden="true" />
-    </span>
-  );
-}
-
-function getSaveStatusIcon(icon: SavePresentationIcon) {
-  switch (icon) {
-    case "pencil":
-      return PencilLine;
-    case "file-clock":
-      return FileClock;
-    case "file-check":
-      return FileCheck2;
-    case "loader":
-      return LoaderCircle;
-    case "alert":
-      return CircleAlert;
-    case "check":
-      return CheckCircle2;
-  }
 }
 
 function persistFileTreeRoots(roots: string[]) {

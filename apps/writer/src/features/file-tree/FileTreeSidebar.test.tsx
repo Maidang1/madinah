@@ -7,11 +7,6 @@ import type { FileTreeNode } from "./file-tree";
 
 describe("FileTreeSidebar", () => {
   const baseProps = {
-    activeFileState: {
-      filePath: null,
-      isDirty: false,
-      draftStatus: "idle" as const,
-    },
     activePath: null,
     activeDocumentId: null,
     drafts: [],

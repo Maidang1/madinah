@@ -34,10 +34,6 @@ const api: MadinahWriterElectronApi = {
     watch: (root) => invoke(IPC.fileTree.watch, { root }),
     unwatch: () => invoke(IPC.fileTree.unwatch),
   },
-  drafts: {
-    read: (path) => invoke(IPC.drafts.read, { path }),
-    write: (path, source) => invoke(IPC.drafts.write, { input: { path, source } }),
-  },
   recent: {
     list: () => invoke(IPC.recent.list),
     add: (path) => invoke(IPC.recent.add, { path }),

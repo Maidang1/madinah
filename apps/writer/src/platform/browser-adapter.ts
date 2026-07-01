@@ -13,7 +13,6 @@ import type {
   AiPolishAdapter,
   AssetUploadAdapter,
   DocumentStore,
-  DraftStore,
   FileTreeStore,
   FileStore,
   MarkdownFile,
@@ -24,7 +23,6 @@ import type {
 } from "./ports";
 
 const DOCUMENTS_KEY = "madinah-writer-documents";
-const DRAFTS_KEY = "madinah-writer-drafts";
 const RECENT_KEY = "madinah-writer-recent";
 
 export function createBrowserAdapters(): PlatformAdapters {
@@ -32,7 +30,6 @@ export function createBrowserAdapters(): PlatformAdapters {
     documentStore: createBrowserDocumentStore(),
     fileTreeStore: createUnavailableFileTreeStore(),
     fileStore: createBrowserFileStore(),
-    draftStore: createBrowserDraftStore(),
     recentStore: createBrowserRecentStore(),
     pluginResolver: createBrowserPluginResolver(),
     windowAdapter: createBrowserWindowAdapter(),
@@ -108,21 +105,6 @@ function createBrowserFileStore(): FileStore {
     },
     async writeMarkdownFile(path, source) {
       window.localStorage.setItem(`madinah-writer-file:${path}`, source);
-      return { path, source };
-    },
-  };
-}
-
-function createBrowserDraftStore(): DraftStore {
-  return {
-    async read(path) {
-      const drafts = readJson<Record<string, string>>(DRAFTS_KEY, {});
-      const source = drafts[path];
-      return source === undefined ? null : { path, source };
-    },
-    async write(path, source) {
-      const drafts = readJson<Record<string, string>>(DRAFTS_KEY, {});
-      writeJson(DRAFTS_KEY, { ...drafts, [path]: source });
       return { path, source };
     },
   };

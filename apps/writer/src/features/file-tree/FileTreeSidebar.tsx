@@ -13,6 +13,7 @@ import {
   type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent,
+  type ReactNode,
   type RefObject,
   useEffect,
   useMemo,
@@ -25,19 +26,15 @@ import {
   filterFileTreeDrafts,
   getArboristOpenState,
   getContextMenuPosition,
-  getFileTreeFileMarker,
   getFileTreeDraftMenuItems,
   getFileTreeMenuItems,
-  type FileTreeActiveFileState,
   type FileTreeDraftAction,
   type FileTreeDraftItem,
-  type FileTreeFileMarker,
   type FileTreeMenuAction,
   type FileTreeNode,
 } from "./file-tree";
 
 interface FileTreeSidebarProps {
-  activeFileState: FileTreeActiveFileState;
   activePath: string | null;
   activeDocumentId: string | null;
   drafts: FileTreeDraftItem[];
@@ -48,6 +45,7 @@ interface FileTreeSidebarProps {
   roots: string[];
   status: string;
   treeRef: RefObject<TreeApi<FileTreeNode> | null>;
+  footer?: ReactNode;
   onAction: (action: FileTreeMenuAction, node: FileTreeNode) => void;
   onDraftAction: (action: FileTreeDraftAction, draft: FileTreeDraftItem) => void;
   onNewDocument: () => void;
@@ -86,7 +84,7 @@ const FILE_TREE_CONTEXT_MENU_SEPARATOR_HEIGHT = 11;
 
 const FILE_TREE_MENU_GROUPS: FileTreeMenuAction[][] = [
   ["open", "new-file", "new-folder", "toggle"],
-  ["set-publish-target", "duplicate", "save-as"],
+  ["set-publish-target", "duplicate"],
   ["copy-relative-path", "copy-path"],
   ["reveal-in-finder"],
   ["rename", "move-to-trash"],
@@ -99,7 +97,6 @@ const FILE_TREE_DRAFT_MENU_GROUPS: FileTreeDraftAction[][] = [
 ];
 
 export function FileTreeSidebar({
-  activeFileState,
   activePath,
   activeDocumentId,
   drafts,
@@ -110,6 +107,7 @@ export function FileTreeSidebar({
   roots,
   status,
   treeRef,
+  footer,
   onAction,
   onDraftAction,
   onNewDocument,
@@ -377,7 +375,6 @@ export function FileTreeSidebar({
                 {(props) => (
                   <FileTreeNodeRow
                     {...props}
-                    activeFileState={activeFileState}
                     onContextMenu={openContextMenu}
                     onOpenFile={onOpenFile}
                   />
@@ -409,25 +406,21 @@ export function FileTreeSidebar({
           }}
         />
       ) : null}
+      {footer}
     </aside>
   );
 }
 
 const FileTreeNodeRow = memo(function FileTreeNodeRow({
-  activeFileState,
   node,
   style,
   onContextMenu,
   onOpenFile,
 }: NodeRendererProps<FileTreeNode> & {
-  activeFileState: FileTreeActiveFileState;
   onContextMenu: (event: MouseEvent, node: FileTreeNode) => void;
   onOpenFile: (path: string) => void;
 }) {
   const isDirectory = node.data.kind === "directory";
-  const marker = isDirectory
-    ? null
-    : getFileTreeFileMarker(node.data.path, activeFileState);
   const rowStyle = getFileTreeRowStyle(style as CSSProperties, node.level);
 
   if (node.isEditing) {
@@ -482,7 +475,7 @@ const FileTreeNodeRow = memo(function FileTreeNodeRow({
       type="button"
       className={`tree-row ${isDirectory ? "is-folder" : "is-file"}${
         node.isSelected ? " is-active" : ""
-      }${node.data.isRoot ? " is-root" : ""}${marker ? " has-file-marker" : ""}`}
+      }${node.data.isRoot ? " is-root" : ""}`}
       style={rowStyle}
       aria-current={node.isSelected ? "page" : undefined}
       aria-expanded={isDirectory ? node.isOpen : undefined}
@@ -518,23 +511,9 @@ const FileTreeNodeRow = memo(function FileTreeNodeRow({
           <small>{node.data.childrenCount} items</small>
         ) : null}
       </span>
-      {marker ? <FileTreeFileMarkerView marker={marker} /> : null}
     </button>
   );
 });
-
-function FileTreeFileMarkerView({ marker }: { marker: FileTreeFileMarker }) {
-  const label = marker === "draft-saved" ? "恢复草稿已保存" : "已编辑";
-
-  return (
-    <span
-      className={`file-tree-file-marker is-${marker}`}
-      role="img"
-      aria-label={label}
-      title={label}
-    />
-  );
-}
 
 function FileTreeContextMenu({
   node,

@@ -70,10 +70,6 @@ export interface MadinahWriterElectronApi {
     watch(root: string): Promise<void>;
     unwatch(): Promise<void>;
   };
-  drafts: {
-    read(path: string): Promise<MarkdownFile | null>;
-    write(path: string, source: string): Promise<MarkdownFile>;
-  };
   recent: {
     list(): Promise<MarkdownFile[]>;
     add(path: string): Promise<void>;

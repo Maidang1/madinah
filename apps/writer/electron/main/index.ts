@@ -31,7 +31,6 @@ import {
   loadAssetUploadSettings,
   moveFileTreePathToTrash,
   polishTextWithAcp,
-  readDraft,
   readMarkdownFile,
   readTrustedPluginBundle,
   renameFileTreePath,
@@ -41,7 +40,6 @@ import {
   saveDocument,
   setWorkspacePluginTrust,
   uploadAssetImage,
-  writeDraft,
   writeMarkdownFile,
   type BackendContext,
 } from "./backend";
@@ -102,7 +100,7 @@ async function createMainWindow(): Promise<BrowserWindow> {
     titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "hidden",
     trafficLightPosition: {
       x: 14,
-      y: 22,
+      y: 18,
     },
     webPreferences: {
       preload: preloadPath(),
@@ -177,11 +175,6 @@ function registerIpcHandlers(backend: BackendContext) {
     startFileTreeWatcher(root, event.sender),
   );
   ipcMain.handle(IPC.fileTree.unwatch, () => stopFileTreeWatcher());
-
-  ipcMain.handle(IPC.drafts.read, (_event, { path }) => readDraft(backend, path));
-  ipcMain.handle(IPC.drafts.write, (_event, { input }) =>
-    writeDraft(backend, input),
-  );
 
   ipcMain.handle(IPC.recent.list, () => listRecentFiles(backend));
   ipcMain.handle(IPC.recent.add, (_event, { path }) =>
@@ -437,9 +430,6 @@ function buildApplicationMenu(): Menu {
       submenu: [
         commandItem("New Document", "CmdOrCtrl+N", "document.new"),
         commandItem("Open...", "CmdOrCtrl+O", "document.open"),
-        { type: "separator" },
-        commandItem("Save", "CmdOrCtrl+S", "document.save"),
-        commandItem("Save As...", "CmdOrCtrl+Shift+S", "document.saveAs"),
         { type: "separator" },
         commandItem("Revert", undefined, "document.revert"),
         commandItem("Close", "CmdOrCtrl+W", "document.close"),

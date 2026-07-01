@@ -254,31 +254,6 @@ export async function moveFileTreePathToTrash(
   return target;
 }
 
-export async function readDraft(
-  context: BackendContext,
-  filePath: string,
-): Promise<MarkdownFile | null> {
-  const draft = draftPath(context, filePath);
-  if (!existsSync(draft)) return null;
-  return {
-    path: filePath,
-    source: await readFile(draft, "utf8"),
-  };
-}
-
-export async function writeDraft(
-  context: BackendContext,
-  input: WriteMarkdownFileInput,
-): Promise<MarkdownFile> {
-  const draft = draftPath(context, input.path);
-  await ensureDir(path.dirname(draft));
-  await writeFile(draft, input.source, "utf8");
-  return {
-    path: input.path,
-    source: input.source,
-  };
-}
-
 export async function listRecentFiles(
   context: BackendContext,
 ): Promise<MarkdownFile[]> {
@@ -729,10 +704,6 @@ function documentPath(context: BackendContext, id: string): string {
     throw new Error("Invalid document id");
   }
   return path.join(documentsDir(context), `${id}.json`);
-}
-
-function draftPath(context: BackendContext, filePath: string): string {
-  return path.join(context.userDataDir, "drafts", `${hashString(filePath)}.md`);
 }
 
 function recentPath(context: BackendContext): string {

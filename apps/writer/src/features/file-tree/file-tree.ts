@@ -22,14 +22,6 @@ export interface PublishTarget {
   extension: "md" | "mdx";
 }
 
-export type FileTreeFileMarker = "edited" | "draft-saved";
-
-export interface FileTreeActiveFileState {
-  filePath: string | null;
-  isDirty: boolean;
-  draftStatus: "idle" | "saving" | "saved" | "error";
-}
-
 export interface VisibleFileTreeNode extends FileTreeNode {
   depth: number;
   isActive: boolean;
@@ -44,7 +36,6 @@ export type FileTreeMenuAction =
   | "set-publish-target"
   | "rename"
   | "duplicate"
-  | "save-as"
   | "reveal-in-finder"
   | "copy-path"
   | "copy-relative-path"
@@ -239,16 +230,6 @@ export function getFileTreeStatus(
   return "Ready";
 }
 
-export function getFileTreeFileMarker(
-  nodePath: string,
-  activeFile: FileTreeActiveFileState,
-): FileTreeFileMarker | null {
-  if (!activeFile.filePath || activeFile.filePath !== nodePath) return null;
-  if (!activeFile.isDirty) return null;
-  if (activeFile.draftStatus === "saved") return "draft-saved";
-  return "edited";
-}
-
 export function getContextMenuPosition(
   pointer: PointerPosition,
   menu: Size,
@@ -293,7 +274,6 @@ export function getFileTreeMenuItems(node: FileTreeNode): FileTreeMenuItem[] {
   return [
     { id: "open", label: "Open" },
     { id: "duplicate", label: "Duplicate" },
-    { id: "save-as", label: "Save As..." },
     { id: "copy-relative-path", label: "Copy relative path" },
     { id: "copy-path", label: "Copy absolute path" },
     { id: "reveal-in-finder", label: "Reveal in Finder" },

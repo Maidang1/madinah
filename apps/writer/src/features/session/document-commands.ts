@@ -3,8 +3,6 @@ import type { WriterCommand } from "../../domain/engine";
 export interface DocumentCommandHandlers {
   newDocument: () => void | Promise<void>;
   open: () => void | Promise<void>;
-  save: () => void | Promise<void>;
-  saveAs: () => void | Promise<void>;
   revert: () => void | Promise<void>;
   close: () => void | Promise<void>;
 }
@@ -30,24 +28,6 @@ export function createDocumentCommands(
       scope: "file",
       priority: 95,
       run: handlers.open,
-    },
-    {
-      id: "document.save",
-      label: "Save",
-      group: "File",
-      shortcut: "⌘S",
-      scope: "file",
-      priority: 120,
-      run: handlers.save,
-    },
-    {
-      id: "document.saveAs",
-      label: "Save As",
-      group: "File",
-      shortcut: "⇧⌘S",
-      scope: "file",
-      priority: 80,
-      run: handlers.saveAs,
     },
     {
       id: "document.revert",

@@ -267,76 +267,6 @@ textarea {
   padding-left: var(--writer-titlebar-leading-inset);
 }
 
-.writer-titlebar-title {
-  display: flex;
-  grid-column: 2;
-  grid-row: 1;
-  justify-self: start;
-  min-width: 0;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 8px;
-  color: var(--writer-faint);
-  font-size: 13px;
-  font-weight: 590;
-  line-height: 1;
-  white-space: nowrap;
-}
-
-.writer-titlebar-title strong {
-  overflow: hidden;
-  max-width: min(30vw, 320px);
-  min-height: 30px;
-  padding: 7px 14px;
-  border: 1px solid color-mix(in srgb, var(--writer-rule) 78%, transparent);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--writer-control-bg) 82%, transparent);
-  color: color-mix(in srgb, var(--writer-text) 78%, transparent);
-  text-overflow: ellipsis;
-}
-
-.writer-save-indicator {
-  display: inline-grid;
-  width: 20px;
-  height: 20px;
-  flex: 0 0 20px;
-  place-items: center;
-  color: var(--writer-faint);
-  border-radius: 999px;
-}
-
-.writer-save-indicator svg {
-  width: 15px;
-  height: 15px;
-  stroke-width: 2.25;
-}
-
-.writer-save-indicator.is-edited {
-  color: var(--writer-save-edited);
-}
-
-.writer-save-indicator.is-draft {
-  color: var(--writer-save-draft);
-}
-
-.writer-save-indicator.is-saved {
-  color: var(--writer-save-saved);
-}
-
-.writer-save-indicator.is-busy {
-  color: var(--writer-save-busy);
-}
-
-.writer-save-indicator.is-error {
-  color: var(--writer-save-error);
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .writer-save-indicator.is-busy svg {
-    animation: writer-spin 880ms linear infinite;
-  }
-}
-
 @keyframes writer-spin {
   to {
     transform: rotate(360deg);
@@ -351,7 +281,7 @@ textarea {
   min-width: 0;
   align-items: center;
   justify-content: flex-end;
-  gap: 4px;
+  gap: 2px;
   color: var(--writer-muted);
   font-size: 13px;
   font-weight: 560;
@@ -377,9 +307,13 @@ textarea {
     opacity 140ms ease;
 }
 
-.writer-toolbar-button:hover,
-.writer-toolbar-button.is-active {
+.writer-toolbar-button:hover {
   background: var(--writer-control-hover);
+  color: var(--writer-text);
+}
+
+.writer-toolbar-button.is-active {
+  background: transparent;
   color: var(--writer-text);
 }
 
@@ -397,74 +331,37 @@ textarea {
   color: color-mix(in srgb, var(--writer-text) 66%, transparent);
 }
 
-.writer-view-mode-control {
-  display: inline-grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-items: center;
-  gap: 2px;
-  padding: 3px;
-  border: 1px solid color-mix(in srgb, var(--writer-rule) 84%, transparent);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--writer-control-bg) 70%, transparent);
-  font-family: var(--writer-ui-font);
-}
-
-.writer-view-mode-option {
+.writer-view-mode-toggle {
   display: inline-flex;
-  min-width: 62px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   align-items: center;
   justify-content: center;
-  padding: 0 9px;
+  padding: 0;
   border: 0;
-  border-radius: 5px;
+  border-radius: 4px;
   background: transparent;
   color: var(--writer-muted);
   cursor: pointer;
-  font-size: 11px;
-  font-weight: 700;
   line-height: 1;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
 }
 
-.writer-view-mode-option:hover {
-  background: var(--writer-control-hover);
+.writer-view-mode-toggle svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.2;
+}
+
+.writer-view-mode-toggle:hover {
   color: var(--writer-text);
-}
-
-.writer-view-mode-option.is-active {
-  background: var(--writer-sidebar-active);
-  color: var(--writer-text);
-  box-shadow: inset 0 0 0 1px var(--writer-rule);
-}
-
-.writer-profile-picker {
-  height: 28px;
-  max-width: 152px;
-  min-width: 136px;
-  padding: 0 28px 0 8px;
-  border: 1px solid var(--writer-rule-strong);
-  border-radius: 5px;
-  appearance: none;
-  background:
-    linear-gradient(45deg, transparent 50%, var(--writer-muted) 50%) right 9px
-      center / 5px 5px no-repeat,
-    linear-gradient(135deg, var(--writer-muted) 50%, transparent 50%) right 5px
-      center / 5px 5px no-repeat,
-    var(--writer-control-bg);
-  color: color-mix(in srgb, var(--writer-text) 72%, transparent);
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 590;
-  line-height: 1;
-}
-
-.writer-profile-picker:hover {
-  background-color: var(--writer-control-hover);
-  color: color-mix(in srgb, var(--writer-text) 88%, transparent);
 }
 
 .writer-toolbar-button:focus-visible,
-.writer-view-mode-option:focus-visible,
+.writer-view-mode-toggle:focus-visible,
+.writer-sidebar-tool-button:focus-visible,
 .tree-row:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--writer-focus) 48%, transparent);
   outline-offset: 2px;
@@ -517,17 +414,87 @@ textarea {
 
 .writer-settings-dialog {
   display: grid;
-  width: min(560px, 100%);
-  max-height: min(720px, calc(100dvh - 48px));
-  overflow: auto;
-  gap: 14px;
-  padding: 18px;
+  width: min(780px, calc(100vw - 48px));
+  height: min(620px, calc(100dvh - 48px));
+  grid-template-columns: 188px minmax(0, 1fr);
+  overflow: hidden;
   border: 1px solid var(--writer-rule-strong);
   border-radius: 10px;
   background: var(--writer-window-bg);
   box-shadow: 0 24px 70px var(--writer-shadow);
   color: var(--writer-text);
   font-family: var(--writer-ui-font);
+}
+
+.writer-settings-sidebar {
+  display: grid;
+  min-width: 0;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 18px;
+  padding: 18px 12px;
+  border-right: 1px solid var(--writer-rule);
+  background: color-mix(in srgb, var(--writer-sidebar-bg) 92%, var(--writer-window-bg));
+}
+
+.writer-settings-sidebar-title {
+  display: grid;
+  gap: 4px;
+  padding: 0 8px;
+}
+
+.writer-settings-sidebar-title strong {
+  color: color-mix(in srgb, var(--writer-text) 84%, transparent);
+  font-size: 13px;
+  font-weight: 760;
+  line-height: 1.2;
+}
+
+.writer-settings-sidebar-title span {
+  color: var(--writer-muted);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.writer-settings-nav {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  min-width: 0;
+}
+
+.writer-settings-nav button {
+  display: flex;
+  min-width: 0;
+  min-height: 30px;
+  align-items: center;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: color-mix(in srgb, var(--writer-text) 64%, transparent);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 720;
+  line-height: 1;
+  text-align: left;
+}
+
+.writer-settings-nav button:hover {
+  background: var(--writer-control-hover);
+  color: var(--writer-text);
+}
+
+.writer-settings-nav button.is-selected {
+  background: var(--writer-sidebar-active);
+  color: var(--writer-text);
+}
+
+.writer-settings-main {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr) auto;
 }
 
 .writer-settings-header,
@@ -537,6 +504,25 @@ textarea {
   align-items: center;
   justify-content: space-between;
   gap: 14px;
+}
+
+.writer-settings-header {
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--writer-rule);
+}
+
+.writer-settings-content {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: 14px;
+  overflow: auto;
+  padding: 18px 20px 22px;
+}
+
+.writer-settings-footer {
+  padding: 14px 20px;
+  border-top: 1px solid var(--writer-rule);
 }
 
 .writer-settings-header h2 {
@@ -613,7 +599,7 @@ textarea {
 
 .writer-settings-segments {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
   gap: 4px;
   padding: 4px;
   border: 1px solid var(--writer-rule);
@@ -656,6 +642,7 @@ textarea {
 }
 
 .writer-settings-field input,
+.writer-settings-field select,
 .writer-settings-field textarea {
   width: 100%;
   min-width: 0;
@@ -668,9 +655,26 @@ textarea {
   line-height: 1.45;
 }
 
-.writer-settings-field input {
+.writer-settings-field input,
+.writer-settings-field select {
   height: 32px;
   padding: 0 10px;
+}
+
+.writer-settings-field select {
+  appearance: none;
+  padding-right: 30px;
+  background:
+    linear-gradient(45deg, transparent 50%, var(--writer-muted) 50%) right 13px
+      center / 5px 5px no-repeat,
+    linear-gradient(135deg, var(--writer-muted) 50%, transparent 50%) right 9px
+      center / 5px 5px no-repeat,
+    var(--writer-editor-bg);
+  cursor: pointer;
+}
+
+.writer-settings-field select:hover {
+  background-color: var(--writer-control-hover);
 }
 
 .writer-settings-field textarea {
@@ -679,10 +683,12 @@ textarea {
 }
 
 .writer-settings-field input:focus,
+.writer-settings-field select:focus,
 .writer-settings-field textarea:focus,
 .writer-settings-close:focus-visible,
 .writer-settings-secondary:focus-visible,
 .writer-settings-primary:focus-visible,
+.writer-settings-nav button:focus-visible,
 .writer-settings-segments button:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--writer-focus) 48%, transparent);
   outline-offset: 2px;
@@ -732,12 +738,12 @@ textarea {
 }
 
 .writer-sidebar-header {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: flex;
   min-height: 34px;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
-  padding: 4px 18px 2px 20px;
+  padding: 0 18px 0 20px;
   color: color-mix(in srgb, var(--writer-text) 50%, transparent);
   font-size: 11px;
   font-weight: 680;
@@ -753,7 +759,9 @@ textarea {
 
 .writer-sidebar-actions {
   display: inline-flex;
+  min-height: 34px;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   opacity: 0.58;
   transition: opacity 140ms ease;
@@ -790,6 +798,65 @@ textarea {
 .writer-sidebar-icon-button:disabled {
   opacity: 0.35;
   cursor: default;
+}
+
+.writer-sidebar-tools {
+  display: grid;
+  gap: 10px;
+  margin-top: auto;
+  padding: 12px 16px 14px 20px;
+  border-top: 1px solid color-mix(in srgb, var(--writer-rule) 74%, transparent);
+  background: color-mix(in srgb, var(--writer-sidebar-bg) 86%, var(--writer-window-bg));
+}
+
+.writer-sidebar-tools-header {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.writer-sidebar-word-count {
+  overflow: hidden;
+  color: color-mix(in srgb, var(--writer-text) 56%, transparent);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.writer-sidebar-tool-actions {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 5px;
+}
+
+.writer-sidebar-tool-button {
+  display: inline-flex;
+  width: 26px;
+  height: 26px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: color-mix(in srgb, var(--writer-text) 62%, transparent);
+  cursor: pointer;
+  line-height: 1;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease;
+}
+
+.writer-sidebar-tool-button:hover {
+  background: var(--writer-control-hover);
+  color: var(--writer-text);
 }
 
 .writer-inspector {
@@ -1300,13 +1367,8 @@ textarea {
 }
 
 .tree-row.is-file {
-  grid-template-columns: 22px minmax(0, 1fr) 14px;
-  padding-left: calc(22px + var(--tree-depth) * 16px);
-}
-
-.tree-row.is-file.is-editing,
-.tree-row.is-file.file-tree-draft-row {
   grid-template-columns: 22px minmax(0, 1fr);
+  padding-left: calc(22px + var(--tree-depth) * 16px);
 }
 
 .tree-chevron,
@@ -1356,22 +1418,6 @@ textarea {
   flex: none;
   font-size: 11.5px;
   line-height: 1;
-}
-
-.file-tree-file-marker {
-  width: 8px;
-  height: 8px;
-  justify-self: end;
-  border-radius: 999px;
-  box-shadow: 0 0 0 2px var(--writer-sidebar-bg);
-}
-
-.file-tree-file-marker.is-edited {
-  background: var(--writer-save-edited);
-}
-
-.file-tree-file-marker.is-draft-saved {
-  background: var(--writer-save-draft);
 }
 
 .file-tree.is-compact .tree-row.is-file {
@@ -1914,6 +1960,15 @@ textarea {
   background: var(--reader-page);
 }
 
+.writer-canvas-actions {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  z-index: 18;
+  display: inline-flex;
+  align-items: center;
+}
+
 .document-start-state {
   display: grid;
   min-height: 100%;
@@ -1982,10 +2037,10 @@ textarea {
   display: flex;
   box-sizing: border-box;
   width: min(var(--reader-width), calc(100% - 120px));
-  min-height: calc(100dvh - var(--writer-titlebar-height) - 86px);
+  min-height: calc(100dvh - var(--writer-titlebar-height) - 72px);
   flex: 1 1 auto;
   flex-direction: column;
-  margin: 86px auto 0;
+  margin: 72px auto 0;
   overflow: visible;
   padding: 0 10px 120px;
   border-radius: 0;
@@ -1996,13 +2051,13 @@ textarea {
 .document-title-input {
   width: 100%;
   min-width: 0;
-  margin: 0 0 18px;
+  margin: 0 0 14px;
   padding: 0;
   border: 0;
   background: transparent;
   color: var(--reader-ink);
   font-family: var(--reader-font);
-  font-size: 31px;
+  font-size: 27px;
   font-weight: 760;
   letter-spacing: 0;
   line-height: 1.34;
@@ -2031,7 +2086,7 @@ textarea {
 
 .document-search-bar {
   position: absolute;
-  top: 10px;
+  top: 56px;
   right: 18px;
   z-index: 20;
   display: grid;
@@ -2194,16 +2249,16 @@ textarea {
   counter-reset: figure-counter;
   box-sizing: border-box;
   width: min(var(--reader-width), calc(100% - 120px));
-  min-height: calc(100dvh - var(--writer-titlebar-height) - 86px);
-  margin: 86px auto 0;
+  min-height: calc(100dvh - var(--writer-titlebar-height) - 72px);
+  margin: 72px auto 0;
   padding: 0 10px 120px;
   border-radius: 0;
   background: transparent;
   color: var(--reader-ink);
   font-family: var(--reader-font);
-  font-size: 16.15px;
-  letter-spacing: 0.42px;
-  line-height: 1.76;
+  font-size: 15.2px;
+  letter-spacing: 0;
+  line-height: 1.72;
   text-autospace: ideograph-alpha ideograph-numeric;
 }
 
@@ -2216,7 +2271,7 @@ textarea {
 }
 
 .writer-window.is-typewriter-mode .writer-simple-canvas .live-mdx-content {
-  margin-top: max(18vh, 86px);
+  margin-top: max(18vh, 72px);
   padding-bottom: 42vh;
 }
 
@@ -2302,8 +2357,8 @@ textarea {
 .writer-preview .post-shell {
   box-sizing: border-box;
   width: min(var(--reader-width), calc(100% - 120px));
-  min-height: calc(100dvh - var(--writer-titlebar-height) - 86px);
-  margin: 86px auto 0;
+  min-height: calc(100dvh - var(--writer-titlebar-height) - 72px);
+  margin: 72px auto 0;
   padding: 0 10px 120px;
   border-radius: 0;
   background: transparent;
@@ -2326,7 +2381,7 @@ textarea {
   margin: 0;
   color: var(--reader-ink);
   font-family: var(--reader-font);
-  font-size: 34px;
+  font-size: 29px;
   font-weight: 760;
   letter-spacing: 0;
   line-height: 1.28;
@@ -2373,9 +2428,9 @@ textarea {
 .writer-preview .post-content {
   color: var(--reader-ink);
   font-family: var(--reader-font);
-  font-size: 16.15px;
-  letter-spacing: 0.42px;
-  line-height: 1.76;
+  font-size: 15.2px;
+  letter-spacing: 0;
+  line-height: 1.72;
   text-autospace: ideograph-alpha ideograph-numeric;
 }
 
@@ -2436,12 +2491,6 @@ textarea {
     display: none;
   }
 
-  .writer-titlebar-title {
-    grid-column: 2;
-    justify-self: start;
-    justify-content: flex-start;
-  }
-
   .writer-titlebar-meta {
     grid-column: 3;
   }
@@ -2478,19 +2527,43 @@ textarea {
     padding: 0 12px;
   }
 
+  .writer-settings-backdrop {
+    padding: 0;
+  }
+
+  .writer-settings-dialog {
+    width: 100%;
+    height: 100%;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+    border-width: 0;
+    border-radius: 0;
+  }
+
+  .writer-settings-sidebar {
+    gap: 12px;
+    padding: 14px 14px 12px;
+    border-right: 0;
+    border-bottom: 1px solid var(--writer-rule);
+  }
+
+  .writer-settings-nav {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .writer-settings-nav button {
+    justify-content: center;
+    text-align: center;
+  }
+
+  .writer-settings-header,
+  .writer-settings-content,
+  .writer-settings-footer {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
   .writer-titlebar-meta span {
-    display: none;
-  }
-
-  .writer-profile-picker {
-    display: none;
-  }
-
-  .writer-titlebar-title strong {
-    max-width: 42vw;
-  }
-
-  .writer-titlebar-title .writer-titlebar-file {
     display: none;
   }
 
@@ -2503,7 +2576,7 @@ textarea {
   }
 
   .document-title-input {
-    font-size: 28px;
+    font-size: 24px;
   }
 
   .writer-simple-canvas .live-mdx-content {
@@ -2522,12 +2595,13 @@ textarea {
   }
 
   .writer-preview .post-title {
-    font-size: 28px;
+    font-size: 24px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .writer-toolbar-button,
+  .writer-view-mode-toggle,
   .preview-loading svg,
   .tree-row,
   .writer-sidebar-icon-button,

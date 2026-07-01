@@ -3,8 +3,6 @@ export const WRITER_COMMAND_EVENT = "writer-command";
 export const NATIVE_MENU_COMMAND_IDS = [
   "document.new",
   "document.open",
-  "document.save",
-  "document.saveAs",
   "document.revert",
   "document.close",
   "editor.format.bold",

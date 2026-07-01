@@ -166,8 +166,6 @@ describe("command palette", () => {
       ...createDocumentCommands({
         newDocument: () => {},
         open: () => {},
-        save: () => {},
-        saveAs: () => {},
         revert: () => {},
         close: () => {},
       }),
@@ -184,7 +182,6 @@ describe("command palette", () => {
     );
 
     expect(shortcutsById).toMatchObject({
-      "document.save": "⌘S",
       "view.quickOpen": "⌘P",
       "view.commandPalette": "⇧⌘P",
       "document.search": "⌘F",

@@ -30,14 +30,14 @@ describe("writer keyboard shortcuts", () => {
     ).toEqual({ kind: "command", commandId: "document.new" });
     expect(
       getWriterKeyboardShortcutAction({ key: "s", metaKey: true }),
-    ).toEqual({ kind: "command", commandId: "document.save" });
+    ).toEqual({ kind: "none" });
     expect(
       getWriterKeyboardShortcutAction({
         key: "s",
         metaKey: true,
         shiftKey: true,
       }),
-    ).toEqual({ kind: "command", commandId: "document.saveAs" });
+    ).toEqual({ kind: "none" });
     expect(
       getWriterKeyboardShortcutAction({ key: "b", ctrlKey: true }),
     ).toEqual({ kind: "command", commandId: "editor.format.bold" });

@@ -59,13 +59,6 @@ export function getWriterKeyboardShortcutAction(
   if (key === "p" && event.shiftKey) return { kind: "command-palette" };
   if (key === "p") return { kind: "quick-open" };
   if (key === "f") return { kind: "document-search" };
-  if (key === "s") {
-    return {
-      kind: "command",
-      commandId: event.shiftKey ? "document.saveAs" : "document.save",
-    };
-  }
-
   const commandId = COMMANDS[key];
   return commandId ? { kind: "command", commandId } : { kind: "none" };
 }

@@ -1,3 +1,4 @@
+import { Eye, PencilLine } from "lucide-react";
 import type { WriterViewMode } from "./workbench-state";
 
 interface ViewModeControlProps {
@@ -5,36 +6,25 @@ interface ViewModeControlProps {
   onViewModeChange: (viewMode: WriterViewMode) => void;
 }
 
-const VIEW_MODE_OPTIONS: Array<{ id: WriterViewMode; label: string }> = [
-  { id: "write", label: "Write" },
-  { id: "preview", label: "Preview" },
-];
-
 export function ViewModeControl({
   viewMode,
   onViewModeChange,
 }: ViewModeControlProps) {
+  const nextViewMode = viewMode === "write" ? "preview" : "write";
+  const label = viewMode === "write" ? "Preview" : "Write";
+  const Icon = nextViewMode === "write" ? PencilLine : Eye;
+
   return (
-    <div
-      className="writer-view-mode-control"
-      aria-label="View mode"
+    <button
+      type="button"
+      className="writer-view-mode-toggle"
       data-window-no-drag
+      data-view-mode-toggle={viewMode}
+      aria-label={label}
+      title={label}
+      onClick={() => onViewModeChange(nextViewMode)}
     >
-      {VIEW_MODE_OPTIONS.map((option) => (
-        <button
-          key={option.id}
-          type="button"
-          className={`writer-view-mode-option${
-            viewMode === option.id ? " is-active" : ""
-          }`}
-          data-window-no-drag
-          data-view-mode-option={option.id}
-          aria-pressed={viewMode === option.id}
-          onClick={() => onViewModeChange(option.id)}
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
+      <Icon size={14} aria-hidden="true" />
+    </button>
   );
 }

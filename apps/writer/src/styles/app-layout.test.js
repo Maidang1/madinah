@@ -25,7 +25,7 @@ describe("macOS document window layout", () => {
       /\.writer-simple-canvas \.live-mdx-content\s*\{[^}]*box-sizing: border-box;/,
     );
     expect(css).toMatch(
-      /\.writer-simple-canvas \.live-mdx-content\s*\{[^}]*min-height: calc\(100dvh - var\(--writer-titlebar-height\) - 86px\);/,
+      /\.writer-simple-canvas \.live-mdx-content\s*\{[^}]*min-height: calc\(100dvh - var\(--writer-titlebar-height\) - 72px\);/,
     );
     expect(css).toMatch(/\.writer-window\s*\{[^}]*margin: 0;/);
     expect(css).toMatch(/\.writer-window\s*\{[^}]*box-shadow: none;/);
@@ -41,8 +41,7 @@ describe("macOS document window layout", () => {
     expect(css).toMatch(/\.light\s*\{[^}]*--writer-editor-bg: rgb\(250, 249, 245\);/);
     expect(css).toMatch(/\.writer-titlebar\s*\{[^}]*grid-template-rows: minmax\(0, 1fr\);/);
     expect(css).toMatch(/\.writer-titlebar-leading\s*\{/);
-    expect(css).toMatch(/\.writer-titlebar-title\s*\{[^}]*grid-row: 1;/);
-    expect(css).toMatch(/\.writer-titlebar-title\s*\{[^}]*font-size: 13px;/);
+    expect(css).not.toMatch(/\.writer-titlebar-title\s*\{/);
     expect(css).toMatch(/\.writer-titlebar-meta\s*\{[^}]*grid-row: 1;/);
     expect(css).toMatch(/\.writer-titlebar-meta\s*\{[^}]*font-size: 13px;/);
     expect(css).toMatch(/\.writer-workbench\s*\{[^}]*overflow: hidden;/);
@@ -51,9 +50,9 @@ describe("macOS document window layout", () => {
     expect(css).toMatch(/\.file-tree\s*\{[^}]*overflow: hidden;/);
     expect(css).toMatch(/\.file-tree-list\s*\{[^}]*width: 100% !important;/);
     expect(css).toMatch(/\.file-tree-list\s*\{[^}]*overflow-y: auto !important;/);
-    expect(css).not.toContain("::-webkit-scrollbar");
-    expect(css).not.toMatch(/scrollbar-width:/);
-    expect(css).not.toMatch(/scrollbar-color:/);
+    expect(css).not.toMatch(/\.file-tree-list::-webkit-scrollbar/);
+    expect(css).not.toMatch(/\.file-tree-list\s*\{[^}]*scrollbar-width:/);
+    expect(css).not.toMatch(/\.file-tree-list\s*\{[^}]*scrollbar-color:/);
     expect(css).toMatch(/\.file-tree-list-row\s*\{[^}]*width: 100% !important;/);
     expect(css).toMatch(/\.file-tree-context-menu\s*\{[^}]*z-index: 2147483647;/);
     expect(css).toMatch(/\.file-tree-context-menu\s*\{[^}]*width: 260px;/);
@@ -63,21 +62,27 @@ describe("macOS document window layout", () => {
     expect(css).toMatch(/\.file-tree-context-menu button\s*\{[^}]*font-size: 13px;/);
     expect(css).toMatch(/\.file-tree-context-menu button\s*\{[^}]*text-overflow: ellipsis;/);
     expect(css).toMatch(/\.file-tree-context-menu button:hover,\n\.file-tree-context-menu button:focus-visible\s*\{[^}]*background: rgb\(250 249 245\);/);
-    expect(css).toMatch(/margin: 86px auto 0;/);
+    expect(css).toMatch(/margin: 72px auto 0;/);
     expect(css).toMatch(/\.writer-toolbar-button\s*\{[^}]*width: 30px;/);
     expect(css).toMatch(/\.writer-toolbar-button\s*\{[^}]*height: 30px;/);
+    expect(css).toMatch(/\.writer-toolbar-button\.is-active\s*\{[^}]*background: transparent;/);
     expect(css).toMatch(/\.writer-toolbar-button:focus-visible\s*,/);
-    expect(css).toMatch(/\.writer-view-mode-control\s*\{/);
-    expect(css).toMatch(/\.writer-view-mode-option\s*\{[^}]*min-width: 62px;/);
-    expect(css).toMatch(/\.writer-view-mode-option\.is-active\s*\{/);
+    expect(css).toMatch(/\.writer-canvas-actions\s*\{[^}]*top: 14px;/);
+    expect(css).toMatch(/\.writer-canvas-actions\s*\{[^}]*right: 18px;/);
+    expect(css).toMatch(/\.writer-view-mode-toggle\s*\{/);
+    expect(css).toMatch(/\.writer-view-mode-toggle\s*\{[^}]*width: 22px;/);
+    expect(css).toMatch(/\.writer-view-mode-toggle\s*\{[^}]*height: 22px;/);
+    expect(css).toMatch(/\.writer-view-mode-toggle svg\s*\{[^}]*width: 14px;/);
+    expect(css).toMatch(/\.writer-view-mode-toggle svg\s*\{[^}]*height: 14px;/);
+    expect(css).not.toMatch(/\.writer-view-mode-option\.is-active\s*\{/);
     expect(css).toMatch(
       /\.writer-simple-canvas \.live-mdx-content\s*\{[^}]*font-family: var\(--reader-font\);/,
     );
     expect(css).toMatch(
-      /\.writer-simple-canvas \.live-mdx-content\s*\{[^}]*font-size: 16\.15px;/,
+      /\.writer-simple-canvas \.live-mdx-content\s*\{[^}]*font-size: 15\.2px;/,
     );
-    expect(css).toMatch(/\.writer-simple-canvas \.live-mdx-content\s*\{[^}]*letter-spacing: 0\.42px;/);
-    expect(css).toMatch(/\.writer-simple-canvas \.live-mdx-content\s*\{[^}]*line-height: 1\.76;/);
+    expect(css).toMatch(/\.writer-simple-canvas \.live-mdx-content\s*\{[^}]*letter-spacing: 0;/);
+    expect(css).toMatch(/\.writer-simple-canvas \.live-mdx-content\s*\{[^}]*line-height: 1\.72;/);
     expect(css).toMatch(
       /\.live-mdx-shell\.is-empty-document \.live-mdx-content\s*\{[^}]*margin: 0 auto;/,
     );
@@ -98,16 +103,16 @@ describe("macOS document window layout", () => {
     expect(css).toMatch(/\.document-editor-shell\s*\{[^}]*background: transparent;/);
     expect(css).toMatch(/\.document-editor-shell\s*\{[^}]*box-sizing: border-box;/);
     expect(css).toMatch(
-      /\.document-editor-shell\s*\{[^}]*min-height: calc\(100dvh - var\(--writer-titlebar-height\) - 86px\);/,
+      /\.document-editor-shell\s*\{[^}]*min-height: calc\(100dvh - var\(--writer-titlebar-height\) - 72px\);/,
     );
     expect(css).toMatch(/\.document-editor-shell\s*\{[^}]*overflow: visible;/);
     expect(css).toMatch(/\.live-mdx-shell\s*\{[^}]*overflow: visible;/);
     expect(css).toMatch(/\.writer-preview\s*\{[^}]*overflow: visible;/);
     expect(css).toMatch(/\.writer-preview \.post-shell\s*\{[^}]*box-sizing: border-box;/);
     expect(css).toMatch(
-      /\.writer-preview \.post-shell\s*\{[^}]*min-height: calc\(100dvh - var\(--writer-titlebar-height\) - 86px\);/,
+      /\.writer-preview \.post-shell\s*\{[^}]*min-height: calc\(100dvh - var\(--writer-titlebar-height\) - 72px\);/,
     );
-    expect(css).toMatch(/\.document-title-input\s*\{[^}]*font-size: 31px;/);
+    expect(css).toMatch(/\.document-title-input\s*\{[^}]*font-size: 27px;/);
     expect(css).toMatch(/\.document-title-input\s*\{[^}]*border: 0;/);
     expect(css).toMatch(/\.document-title-input::placeholder\s*\{/);
     expect(css).toMatch(
@@ -117,7 +122,7 @@ describe("macOS document window layout", () => {
       /@media \(max-width: 680px\)\s*\{[\s\S]*?\.writer-preview \.post-shell\s*\{[^}]*width: 100%;/,
     );
     expect(css).toMatch(
-      /@media \(max-width: 680px\)\s*\{[\s\S]*?\.document-title-input\s*\{[^}]*font-size: 28px;/,
+      /@media \(max-width: 680px\)\s*\{[\s\S]*?\.document-title-input\s*\{[^}]*font-size: 24px;/,
     );
     expect(css).not.toContain("Start writing...");
     expect(css).not.toMatch(/\.live-mdx-content p:empty::before\s*\{[^}]*content:/);

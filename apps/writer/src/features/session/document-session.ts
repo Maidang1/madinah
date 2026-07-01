@@ -10,10 +10,7 @@ export interface DocumentSession {
   lastSavedDocument: MarkdownDocument | null;
   workspace: WorkspaceInfo | null;
   filePath: string | null;
-  draftPath: string | null;
   isDirty: boolean;
-  draftStatus: "idle" | "saving" | "saved" | "error";
-  closeState: "idle" | "confirming";
   error: string | null;
 }
 
@@ -40,20 +37,8 @@ export type DocumentSessionAction =
       timestamp: string;
     }
   | {
-      type: "saveStarted";
-    }
-  | {
       type: "saveSucceeded";
       document: MarkdownDocument;
-    }
-  | {
-      type: "saveAsSucceeded";
-      document: MarkdownDocument;
-      filePath: string;
-    }
-  | {
-      type: "draftSaved";
-      draftPath: string;
     }
   | {
       type: "saveFailed";
@@ -61,9 +46,6 @@ export type DocumentSessionAction =
     }
   | {
       type: "revert";
-    }
-  | {
-      type: "closeRequested";
     }
   | {
       type: "closeConfirmed";
@@ -75,10 +57,7 @@ export function createDocumentSession(): DocumentSession {
     lastSavedDocument: null,
     workspace: null,
     filePath: null,
-    draftPath: null,
     isDirty: false,
-    draftStatus: "idle",
-    closeState: "idle",
     error: null,
   };
 }
@@ -94,10 +73,7 @@ export function documentSessionReducer(
         lastSavedDocument: action.document,
         workspace: action.workspace,
         filePath: action.filePath ?? null,
-        draftPath: null,
         isDirty: false,
-        draftStatus: "saved",
-        closeState: "idle",
         error: null,
       };
     case "changeSource":
@@ -110,7 +86,6 @@ export function documentSessionReducer(
           updatedAt: action.timestamp,
         },
         isDirty: true,
-        draftStatus: "idle",
         error: null,
       };
     case "changeMetadata":
@@ -123,7 +98,6 @@ export function documentSessionReducer(
           action.timestamp,
         ),
         isDirty: true,
-        draftStatus: "idle",
         error: null,
       };
     case "restoreDocument":
@@ -135,13 +109,6 @@ export function documentSessionReducer(
           updatedAt: action.timestamp,
         },
         isDirty: true,
-        draftStatus: "idle",
-        error: null,
-      };
-    case "saveStarted":
-      return {
-        ...state,
-        draftStatus: "saving",
         error: null,
       };
     case "saveSucceeded":
@@ -150,32 +117,11 @@ export function documentSessionReducer(
         document: action.document,
         lastSavedDocument: action.document,
         isDirty: false,
-        draftStatus: "saved",
-        closeState: "idle",
-        error: null,
-      };
-    case "saveAsSucceeded":
-      return {
-        ...state,
-        document: action.document,
-        lastSavedDocument: action.document,
-        filePath: action.filePath,
-        isDirty: false,
-        draftStatus: "saved",
-        closeState: "idle",
-        error: null,
-      };
-    case "draftSaved":
-      return {
-        ...state,
-        draftPath: action.draftPath,
-        draftStatus: "saved",
         error: null,
       };
     case "saveFailed":
       return {
         ...state,
-        draftStatus: "error",
         error: action.error,
       };
     case "revert":
@@ -183,18 +129,7 @@ export function documentSessionReducer(
         ...state,
         document: state.lastSavedDocument,
         isDirty: false,
-        draftStatus: "saved",
-        closeState: "idle",
         error: null,
-      };
-    case "closeRequested":
-      if (!state.isDirty) {
-        return createDocumentSession();
-      }
-
-      return {
-        ...state,
-        closeState: "confirming",
       };
     case "closeConfirmed":
       return createDocumentSession();

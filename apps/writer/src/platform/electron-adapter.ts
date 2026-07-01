@@ -33,10 +33,6 @@ export function createElectronAdapters(): PlatformAdapters {
       readMarkdownFile: (path) => api.files.readMarkdown(path),
       writeMarkdownFile: (path, source) => api.files.writeMarkdown(path, source),
     },
-    draftStore: {
-      read: (path) => api.drafts.read(path),
-      write: (path, source) => api.drafts.write(path, source),
-    },
     recentStore: {
       list: () => api.recent.list(),
       add: (path) => api.recent.add(path),

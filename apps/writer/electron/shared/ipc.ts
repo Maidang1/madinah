@@ -23,10 +23,6 @@ export const IPC = {
     watch: "madinah:file-tree:watch",
     unwatch: "madinah:file-tree:unwatch",
   },
-  drafts: {
-    read: "madinah:drafts:read",
-    write: "madinah:drafts:write",
-  },
   recent: {
     list: "madinah:recent:list",
     add: "madinah:recent:add",

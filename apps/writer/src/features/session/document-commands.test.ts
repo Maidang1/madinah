@@ -11,12 +11,6 @@ describe("document commands", () => {
       open: async () => {
         calls.push("open");
       },
-      save: async () => {
-        calls.push("save");
-      },
-      saveAs: async () => {
-        calls.push("saveAs");
-      },
       revert: () => {
         calls.push("revert");
       },
@@ -32,11 +26,9 @@ describe("document commands", () => {
     expect(commands.map((command) => command.id)).toEqual([
       "document.new",
       "document.open",
-      "document.save",
-      "document.saveAs",
       "document.revert",
       "document.close",
     ]);
-    expect(calls).toEqual(["new", "open", "save", "saveAs", "revert", "close"]);
+    expect(calls).toEqual(["new", "open", "revert", "close"]);
   });
 });

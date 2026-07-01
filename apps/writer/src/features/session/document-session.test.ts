@@ -117,7 +117,7 @@ describe("document session reducer", () => {
     expect(reverted.isDirty).toBe(false);
   });
 
-  it("tracks draft saves and save-as path transitions", () => {
+  it("keeps file sessions on the same path after direct saves", () => {
     const opened = documentSessionReducer(createDocumentSession(), {
       type: "openSucceeded",
       document: documentFixture,
@@ -125,39 +125,29 @@ describe("document session reducer", () => {
       filePath: "/tmp/project/original.md",
     });
 
-    const draftSaved = documentSessionReducer(opened, {
-      type: "draftSaved",
-      draftPath: "/tmp/project/original.md",
+    const changed = documentSessionReducer(opened, {
+      type: "changeSource",
+      source: "# File update",
+      timestamp: "2026-06-27T12:00:00.000Z",
     });
-    const savedAs = documentSessionReducer(draftSaved, {
-      type: "saveAsSucceeded",
-      document: { ...documentFixture, slug: "copy" },
-      filePath: "/tmp/project/copy.md",
+    const saved = documentSessionReducer(changed, {
+      type: "saveSucceeded",
+      document: changed.document!,
     });
 
-    expect(draftSaved.draftStatus).toBe("saved");
-    expect(draftSaved.draftPath).toBe("/tmp/project/original.md");
-    expect(savedAs.filePath).toBe("/tmp/project/copy.md");
-    expect(savedAs.isDirty).toBe(false);
-    expect(savedAs.lastSavedDocument?.slug).toBe("copy");
+    expect(saved.filePath).toBe("/tmp/project/original.md");
+    expect(saved.isDirty).toBe(false);
+    expect(saved.lastSavedDocument?.body).toBe("# File update");
   });
 
-  it("marks close as pending when dirty changes require confirmation", () => {
+  it("clears the session when close is confirmed", () => {
     const opened = documentSessionReducer(createDocumentSession(), {
       type: "openSucceeded",
       document: documentFixture,
       workspace: { root: "/tmp/project", profile: "gfm", plugins: [] },
     });
-    const changed = documentSessionReducer(opened, {
-      type: "changeSource",
-      source: "# Draft",
-      timestamp: "2026-06-27T12:00:00.000Z",
-    });
+    const closed = documentSessionReducer(opened, { type: "closeConfirmed" });
 
-    const closing = documentSessionReducer(changed, { type: "closeRequested" });
-    const closed = documentSessionReducer(closing, { type: "closeConfirmed" });
-
-    expect(closing.closeState).toBe("confirming");
     expect(closed.document).toBeNull();
   });
 });

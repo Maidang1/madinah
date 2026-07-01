@@ -9,7 +9,7 @@ import {
 describe("native menu command events", () => {
   it("extracts command ids from native menu event payloads", () => {
     expect(WRITER_COMMAND_EVENT).toBe("writer-command");
-    expect(getWriterCommandIdFromPayload("document.save")).toBe("document.save");
+    expect(getWriterCommandIdFromPayload("document.open")).toBe("document.open");
     expect(getWriterCommandIdFromPayload("")).toBeNull();
     expect(getWriterCommandIdFromPayload({ commandId: "document.save" })).toBeNull();
   });
@@ -18,8 +18,6 @@ describe("native menu command events", () => {
     expect(NATIVE_MENU_COMMAND_IDS).toEqual([
       "document.new",
       "document.open",
-      "document.save",
-      "document.saveAs",
       "document.revert",
       "document.close",
       "editor.format.bold",
