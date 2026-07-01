@@ -1,7 +1,6 @@
 import {
   type CSSProperties,
   // type ClipboardEvent as ReactClipboardEvent,
-  type PointerEvent as ReactPointerEvent,
   type ReactNode,
   useCallback,
   useEffect,
@@ -10,7 +9,6 @@ import {
   useRef,
   useState,
 } from "react";
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
   CheckCircle2,
   ChevronDown,
@@ -157,8 +155,6 @@ const COMMANDS_THAT_OPEN_OVERLAYS = new Set([
 const FILE_TREE_ROOTS_STORAGE_KEY = "madinah-writer-file-tree-roots";
 const LEGACY_FILE_TREE_ROOT_STORAGE_KEY = "madinah-writer-file-tree-root";
 const PUBLISH_TARGET_STORAGE_KEY = "madinah-writer-publish-target";
-const WINDOW_DRAG_IGNORE_SELECTOR =
-  "button, a, input, textarea, select, [role='button'], [data-tauri-no-drag]";
 
 type WriterTheme = "dark" | "light";
 
@@ -1148,32 +1144,12 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
   */
 
   useEffect(() => {
-    let active = true;
-    let unlisten: (() => void) | null = null;
-
-    void import("@tauri-apps/api/event")
-      .then(({ listen }) =>
-        listen<unknown>(WRITER_COMMAND_EVENT, (event) => {
-          const commandId = getWriterCommandIdFromPayload(event.payload);
-          if (commandId) {
-            runCommand(commandId);
-          }
-        }),
-      )
-      .then((nextUnlisten) => {
-        if (active) {
-          unlisten = nextUnlisten;
-          return;
-        }
-
-        nextUnlisten();
-      })
-      .catch(() => {});
-
-    return () => {
-      active = false;
-      unlisten?.();
-    };
+    return window.madinahWriter?.onWriterCommand((payload) => {
+      const commandId = getWriterCommandIdFromPayload(payload);
+      if (commandId) {
+        runCommand(commandId);
+      }
+    });
   }, [runCommand]);
 
   return (
@@ -1194,14 +1170,13 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
       >
         <header
           className="writer-titlebar"
-          data-tauri-drag-region
-          onPointerDown={startWindowDrag}
+          data-window-drag-region
         >
           <div className="writer-titlebar-leading">
             <button
               type="button"
               className={`writer-toolbar-button${isSidebarVisible ? " is-active" : ""}`}
-              data-tauri-no-drag
+              data-window-no-drag
               aria-label={isSidebarVisible ? "隐藏侧边栏" : "显示侧边栏"}
               title={isSidebarVisible ? "隐藏侧边栏" : "显示侧边栏"}
               onClick={() => dispatchWorkbenchState({ type: "toggleSidebar" })}
@@ -1210,8 +1185,8 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
             </button>
           </div>
 
-          <div className="writer-titlebar-title" data-tauri-drag-region>
-            <strong data-tauri-drag-region>{documentTitle}</strong>
+          <div className="writer-titlebar-title" data-window-drag-region>
+            <strong data-window-drag-region>{documentTitle}</strong>
             <SaveStatusIndicator presentation={savePresentation} />
             <ViewModeControl
               viewMode={viewMode}
@@ -1225,7 +1200,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
           </div>
 
           <div className="writer-titlebar-meta">
-            <span className="writer-word-count" data-tauri-drag-region>
+            <span className="writer-word-count" data-window-drag-region>
               {formatWordCount(metrics.words)}
             </span>
             <ProfilePicker
@@ -1236,7 +1211,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
             <button
               type="button"
               className="writer-toolbar-button"
-              data-tauri-no-drag
+              data-window-no-drag
               aria-label="Quick open"
               title="Quick open"
               onClick={() => setIsQuickOpenOpen(true)}
@@ -1246,7 +1221,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
             <button
               type="button"
               className="writer-toolbar-button"
-              data-tauri-no-drag
+              data-window-no-drag
               aria-label="Settings"
               title="Settings"
               onClick={() => setIsSettingsOpen(true)}
@@ -1256,7 +1231,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
             <button
               type="button"
               className="writer-toolbar-button"
-              data-tauri-no-drag
+              data-window-no-drag
               aria-label={theme === "dark" ? "切换到浅色模式" : "切换到深色模式"}
               title={theme === "dark" ? "切换到浅色模式" : "切换到深色模式"}
               onClick={() =>
@@ -1272,7 +1247,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
             <button
               type="button"
               className={`writer-toolbar-button${isInspectorVisible ? " is-active" : ""}`}
-              data-tauri-no-drag
+              data-window-no-drag
               aria-label={isInspectorVisible ? "隐藏属性面板" : "显示属性面板"}
               title={isInspectorVisible ? "隐藏属性面板" : "显示属性面板"}
               onClick={() => dispatchWorkbenchState({ type: "toggleInspector" })}
@@ -1512,7 +1487,7 @@ function WriterSidebar({
 }) {
   return (
     <aside className="writer-sidebar" aria-label="文稿列表">
-      <div className="writer-sidebar-header" data-tauri-drag-region>
+      <div className="writer-sidebar-header" data-window-drag-region>
         <span>FILES</span>
       </div>
 
@@ -1682,7 +1657,7 @@ function ProfilePicker({
       className="writer-profile-picker"
       value={value}
       onChange={(event) => onChange(event.currentTarget.value)}
-      data-tauri-no-drag
+      data-window-no-drag
       aria-label="Markdown profile"
       title="Markdown profile"
     >
@@ -1900,7 +1875,7 @@ function SaveStatusIndicator({
         .filter(Boolean)
         .join(" ")}
       data-save-state={presentation.state}
-      data-tauri-drag-region
+      data-window-drag-region
       role="img"
       aria-label={presentation.label}
       title={presentation.tooltip}
@@ -1955,20 +1930,6 @@ function scrollSearchMatchIntoView(query: string, occurrenceIndex: number) {
 
 function clearDocumentSearchHighlight() {
   clearActiveDocumentSearchMatch(document);
-}
-
-function startWindowDrag(event: ReactPointerEvent<HTMLElement>) {
-  if (event.button !== 0) return;
-
-  const target = event.target;
-  if (
-    target instanceof HTMLElement &&
-    target.closest(WINDOW_DRAG_IGNORE_SELECTOR)
-  ) {
-    return;
-  }
-
-  void getCurrentWindow().startDragging().catch(() => {});
 }
 
 function renderTreeNode({

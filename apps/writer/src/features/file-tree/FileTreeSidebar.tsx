@@ -8,7 +8,6 @@ import {
   FolderPlus,
   RefreshCw,
 } from "lucide-react";
-import { LogicalPosition } from "@tauri-apps/api/dpi";
 import {
   memo,
   type CSSProperties,
@@ -233,7 +232,7 @@ export function FileTreeSidebar({
 
   return (
     <aside className="writer-sidebar" aria-label="文稿列表">
-      <div className="writer-sidebar-header" data-tauri-drag-region>
+      <div className="writer-sidebar-header" data-window-drag-region>
         <span>{roots.length > 0 ? "Everything" : "Files"}</span>
         <div className="writer-sidebar-actions">
           <button
@@ -696,24 +695,19 @@ async function showNativeFileTreeContextMenu<TAction extends string>({
 }): Promise<boolean> {
   if (
     typeof window === "undefined" ||
-    !("__TAURI_INTERNALS__" in window) ||
+    !window.madinahWriter ||
     groups.length === 0
   ) {
     return false;
   }
 
   try {
-    const { Menu } = await import("@tauri-apps/api/menu");
-    const items = groups.flatMap((group, groupIndex) => [
-      ...(groupIndex > 0 ? [{ item: "Separator" as const }] : []),
-      ...group.map((item) => ({
-        id: `file-tree-context-menu-${item.id}`,
-        text: item.label,
-        action: () => onSelect(item.id),
-      })),
-    ]);
-    const menu = await Menu.new({ items });
-    await menu.popup(new LogicalPosition(position.x, position.y));
+    const action = await window.madinahWriter.dialog.showContextMenu({
+      groups,
+      position,
+    });
+    if (!action) return true;
+    onSelect(action);
     return true;
   } catch {
     return false;

@@ -7,10 +7,10 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "writer:dev": "pnpm --filter writer tauri:dev",
+    "writer:dev": "pnpm --filter writer dev",
     "writer:build": "pnpm --filter writer build",
     "writer:test": "pnpm --filter writer test",
-    "writer:tauri:build": "pnpm --filter writer tauri:build"
+    "writer:electron:build": "pnpm --filter writer electron:build"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^12.6.12",

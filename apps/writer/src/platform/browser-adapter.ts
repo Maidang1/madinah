@@ -157,7 +157,7 @@ function createBrowserPluginResolver(): PluginResolver {
       return [];
     },
     async readTrustedPluginBundle() {
-      throw new Error("Workspace plugins require the Tauri runtime");
+      throw new Error("Workspace plugins require the desktop app");
     },
     async setWorkspacePluginTrust(input: WorkspacePluginTrustInput) {
       return {
@@ -181,6 +181,9 @@ function createBrowserWindowAdapter(): WindowAdapter {
     },
     async saveMarkdownFile(options) {
       return window.prompt("Save Markdown file path", options?.defaultPath ?? "");
+    },
+    async showContextMenu() {
+      return null;
     },
   };
 }

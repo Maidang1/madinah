@@ -18,7 +18,7 @@ export function ViewModeControl({
     <div
       className="writer-view-mode-control"
       aria-label="View mode"
-      data-tauri-no-drag
+      data-window-no-drag
     >
       {VIEW_MODE_OPTIONS.map((option) => (
         <button
@@ -27,7 +27,7 @@ export function ViewModeControl({
           className={`writer-view-mode-option${
             viewMode === option.id ? " is-active" : ""
           }`}
-          data-tauri-no-drag
+          data-window-no-drag
           data-view-mode-option={option.id}
           aria-pressed={viewMode === option.id}
           onClick={() => onViewModeChange(option.id)}

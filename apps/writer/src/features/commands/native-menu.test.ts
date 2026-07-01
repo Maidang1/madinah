@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { NATIVE_MENU_EDIT_ROLES } from "../../../electron/shared/native-menu";
 import {
   NATIVE_MENU_COMMAND_IDS,
   WRITER_COMMAND_EVENT,
@@ -6,7 +7,7 @@ import {
 } from "./native-menu";
 
 describe("native menu command events", () => {
-  it("extracts command ids from Tauri menu event payloads", () => {
+  it("extracts command ids from native menu event payloads", () => {
     expect(WRITER_COMMAND_EVENT).toBe("writer-command");
     expect(getWriterCommandIdFromPayload("document.save")).toBe("document.save");
     expect(getWriterCommandIdFromPayload("")).toBeNull();
@@ -39,6 +40,19 @@ describe("native menu command events", () => {
       "inspector.showProperties",
       "inspector.showStats",
       "inspector.showHistory",
+    ]);
+  });
+
+  it("keeps native editing roles in the Electron menu for clipboard shortcuts", () => {
+    expect(NATIVE_MENU_EDIT_ROLES).toEqual([
+      "undo",
+      "redo",
+      "cut",
+      "copy",
+      "paste",
+      "pasteAndMatchStyle",
+      "delete",
+      "selectAll",
     ]);
   });
 });

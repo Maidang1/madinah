@@ -184,6 +184,7 @@ function createWindowAdapter(patch: Partial<WindowAdapter> = {}): WindowAdapter 
     openDirectory: vi.fn(async () => null),
     openMarkdownFile: vi.fn(async () => null),
     saveMarkdownFile: vi.fn(async () => null),
+    showContextMenu: vi.fn(async () => null),
     ...patch,
   };
 }

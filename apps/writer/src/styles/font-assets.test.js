@@ -6,21 +6,16 @@ const fontCss = readFileSync(
   new URL("../../public/fonts/jinkai/jinkai.css", import.meta.url),
   "utf8",
 );
-const tauriConfig = JSON.parse(
-  readFileSync(new URL("../../src-tauri/tauri.conf.json", import.meta.url), "utf8"),
-);
 
 describe("bundled reader font assets", () => {
   it("loads the Jinkai stylesheet from the packaged app", () => {
-    expect(indexHtml).toContain('href="/fonts/jinkai/jinkai.css"');
+    expect(indexHtml).toContain('href="./fonts/jinkai/jinkai.css"');
     expect(indexHtml).not.toContain("https://assets.felixwliu.cn/fonts/jinkai");
   });
 
-  it("allows bundled fonts in the Tauri content security policy", () => {
-    expect(tauriConfig.app.security.csp).toContain("font-src 'self' data:");
-    expect(tauriConfig.app.security.csp).toContain(
-      "style-src 'self' 'unsafe-inline'",
-    );
+  it("allows bundled fonts in the Electron content security policy", () => {
+    expect(indexHtml).toContain("font-src 'self' data:");
+    expect(indexHtml).toContain("style-src 'self' 'unsafe-inline'");
   });
 
   it("keeps font-face URLs local and present", () => {

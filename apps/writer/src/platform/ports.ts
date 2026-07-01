@@ -90,6 +90,13 @@ export interface WindowAdapter {
     title?: string;
     defaultPath?: string;
   }): Promise<string | null>;
+  showContextMenu<TAction extends string>(request: {
+    groups: { id: TAction; label: string }[][];
+    position: {
+      x: number;
+      y: number;
+    };
+  }): Promise<TAction | null>;
 }
 
 export interface AiPolishAdapter {

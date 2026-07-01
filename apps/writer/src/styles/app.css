@@ -72,6 +72,49 @@ body {
   background: var(--writer-desktop-bg);
 }
 
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--writer-rule-strong) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background-clip: padding-box;
+  background-color: var(--writer-rule-strong);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--writer-faint);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+[data-window-drag-region] {
+  -webkit-app-region: drag;
+}
+
+[data-window-no-drag],
+button,
+input,
+select,
+textarea,
+a,
+[role="button"] {
+  -webkit-app-region: no-drag;
+}
+
 button,
 input,
 select,
@@ -434,6 +477,8 @@ textarea {
   grid-template-columns:
     var(--writer-sidebar-width) minmax(0, 1fr)
     var(--writer-inspector-width);
+  overflow: hidden;
+  background: var(--reader-page);
 }
 
 .writer-window.is-sidebar-hidden .writer-workbench {
@@ -756,12 +801,6 @@ textarea {
   border-left: 1px solid var(--writer-rule);
   background: color-mix(in srgb, var(--writer-window-bg) 92%, var(--writer-sidebar-bg));
   font-family: var(--writer-ui-font);
-  scrollbar-width: none;
-}
-
-.writer-inspector::-webkit-scrollbar {
-  width: 0;
-  height: 0;
 }
 
 .inspector-tabs {
@@ -1213,25 +1252,6 @@ textarea {
   max-width: 100%;
   overflow-x: hidden !important;
   overflow-y: auto !important;
-  scrollbar-width: auto;
-}
-
-.file-tree-list::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-.file-tree-list::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.file-tree-list::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--writer-text) 18%, transparent);
-}
-
-.file-tree-list::-webkit-scrollbar-thumb:hover {
-  background: color-mix(in srgb, var(--writer-text) 28%, transparent);
 }
 
 .file-tree-list-row {
@@ -1400,12 +1420,6 @@ textarea {
   overflow: auto;
   padding: 0 0 10px;
   border-bottom: 1px solid color-mix(in srgb, var(--writer-rule) 68%, transparent);
-  scrollbar-width: none;
-}
-
-.file-tree-drafts::-webkit-scrollbar {
-  width: 0;
-  height: 0;
 }
 
 .file-tree-section-heading {
@@ -1966,8 +1980,9 @@ textarea {
 
 .document-editor-shell {
   display: flex;
+  box-sizing: border-box;
   width: min(var(--reader-width), calc(100% - 120px));
-  min-height: calc(100dvh - var(--writer-titlebar-height) - 30px);
+  min-height: calc(100dvh - var(--writer-titlebar-height) - 86px);
   flex: 1 1 auto;
   flex-direction: column;
   margin: 86px auto 0;
@@ -2177,8 +2192,9 @@ textarea {
 
 .writer-simple-canvas .live-mdx-content {
   counter-reset: figure-counter;
+  box-sizing: border-box;
   width: min(var(--reader-width), calc(100% - 120px));
-  min-height: calc(100dvh - var(--writer-titlebar-height));
+  min-height: calc(100dvh - var(--writer-titlebar-height) - 86px);
   margin: 86px auto 0;
   padding: 0 10px 120px;
   border-radius: 0;
@@ -2284,8 +2300,9 @@ textarea {
 }
 
 .writer-preview .post-shell {
+  box-sizing: border-box;
   width: min(var(--reader-width), calc(100% - 120px));
-  min-height: calc(100dvh - var(--writer-titlebar-height) - 34px);
+  min-height: calc(100dvh - var(--writer-titlebar-height) - 86px);
   margin: 86px auto 0;
   padding: 0 10px 120px;
   border-radius: 0;

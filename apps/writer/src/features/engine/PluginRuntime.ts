@@ -30,7 +30,7 @@ export async function importResolvedPlugin(
   );
 
   try {
-    const mod = await import(/* @vite-ignore */ url);
+    const mod = await importPluginModule(url);
     const loaded = mod.default ?? mod.plugin;
     if (!loaded) {
       throw new Error(`Plugin ${plugin.packageId} has no default export`);
@@ -39,4 +39,8 @@ export async function importResolvedPlugin(
   } finally {
     URL.revokeObjectURL(url);
   }
+}
+
+function importPluginModule(url: string): Promise<Record<string, unknown>> {
+  return import(/* webpackIgnore: true */ url) as Promise<Record<string, unknown>>;
 }

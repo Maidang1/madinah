@@ -1,5 +1,3 @@
-import { invoke } from "@tauri-apps/api/core";
-import { confirm, open } from "@tauri-apps/plugin-dialog";
 import {
   parseMdxDocument,
   serializeMdxDocument,
@@ -17,64 +15,60 @@ export interface ExportResult {
 }
 
 export async function listDocuments(): Promise<WriterDocument[]> {
-  if (!isTauriRuntime()) {
-    return listBrowserDocuments();
+  if (window.madinahWriter) {
+    return window.madinahWriter.documents.list();
   }
 
-  return invoke<WriterDocument[]>("list_documents");
+  return listBrowserDocuments();
 }
 
 export async function getDocument(id: string): Promise<WriterDocument> {
-  if (!isTauriRuntime()) {
-    const document = (await listBrowserDocuments()).find(
-      (item) => item.id === id,
-    );
-    if (!document) throw new Error(`Document ${id} not found`);
-    return document;
+  if (window.madinahWriter) {
+    return window.madinahWriter.documents.get(id);
   }
 
-  return invoke<WriterDocument>("get_document", { id });
+  const document = (await listBrowserDocuments()).find(
+    (item) => item.id === id,
+  );
+  if (!document) throw new Error(`Document ${id} not found`);
+  return document;
 }
 
 export async function saveDocument(document: WriterDocument): Promise<WriterDocument> {
-  if (!isTauriRuntime()) {
-    return saveBrowserDocument(document);
+  if (window.madinahWriter) {
+    return window.madinahWriter.documents.save(document);
   }
 
-  return invoke<WriterDocument>("save_document", { document });
+  return saveBrowserDocument(document);
 }
 
 export async function deleteDocument(id: string): Promise<void> {
-  if (!isTauriRuntime()) {
-    saveBrowserDocuments(
-      (await listBrowserDocuments()).filter((document) => document.id !== id),
-    );
+  if (window.madinahWriter) {
+    await window.madinahWriter.documents.delete(id);
     return;
   }
 
-  await invoke("delete_document", { id });
+  saveBrowserDocuments(
+    (await listBrowserDocuments()).filter((document) => document.id !== id),
+  );
 }
 
 export async function chooseBlogDirectory(): Promise<string | null> {
-  if (!isTauriRuntime()) {
-    return null;
+  if (window.madinahWriter) {
+    return window.madinahWriter.dialog.openDirectory({
+      title: "Select blog repository or src/blogs directory",
+    });
   }
 
-  const selected = await open({
-    directory: true,
-    multiple: false,
-    title: "Select blog repository or src/blogs directory",
-  });
-
-  return typeof selected === "string" ? selected : null;
+  return null;
 }
 
 export async function importBlogDirectory(path: string): Promise<WriterDocument[]> {
-  if (!isTauriRuntime()) {
+  if (!window.madinahWriter) {
     return [];
   }
 
-  const files = await invoke<ImportedBlogFile[]>("import_blog_dir", { path });
+  const files = await window.madinahWriter.blog.importDirectory(path);
   const timestamp = new Date().toISOString();
 
   return files.map((file) =>
@@ -90,7 +84,7 @@ export async function exportDocumentToBlog(
   blogDir: string,
   document: WriterDocument,
 ): Promise<ExportResult> {
-  if (!isTauriRuntime()) {
+  if (!window.madinahWriter) {
     return { path: `${blogDir}/${document.slug}.mdx` };
   }
 
@@ -98,8 +92,11 @@ export async function exportDocumentToBlog(
   const source = serializeMdxDocument(document);
 
   try {
-    return await invoke<ExportResult>("export_document_to_blog", {
-      input: { blogDir, slug, source, overwrite: false },
+    return await window.madinahWriter.blog.exportDocument({
+      blogDir,
+      slug,
+      source,
+      overwrite: false,
     });
   } catch (error) {
     const message = String(error);
@@ -108,26 +105,25 @@ export async function exportDocumentToBlog(
       throw error;
     }
 
-    const shouldOverwrite = await confirm(
+    const shouldOverwrite = await window.madinahWriter.dialog.confirm(
       `${slug}.mdx already exists. Overwrite it?`,
-      { title: "Export article", kind: "warning" },
+      { title: "Export article" },
     );
 
     if (!shouldOverwrite) {
       throw error;
     }
 
-    return invoke<ExportResult>("export_document_to_blog", {
-      input: { blogDir, slug, source, overwrite: true },
+    return window.madinahWriter.blog.exportDocument({
+      blogDir,
+      slug,
+      source,
+      overwrite: true,
     });
   }
 }
 
 const BROWSER_DOCUMENTS_KEY = "madinah-writer-documents";
-
-function isTauriRuntime(): boolean {
-  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
-}
 
 async function listBrowserDocuments(): Promise<WriterDocument[]> {
   const raw = window.localStorage.getItem(BROWSER_DOCUMENTS_KEY);

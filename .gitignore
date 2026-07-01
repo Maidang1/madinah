@@ -1,5 +1,7 @@
 # build output
 dist/
+out/
+release/
 # generated types
 .astro/
 
@@ -24,4 +26,3 @@ pnpm-debug.log*
 .idea/
 build/
 target/
-**/src-tauri/gen/

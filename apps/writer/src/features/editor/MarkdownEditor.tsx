@@ -16,6 +16,7 @@ import {
 } from "react";
 import type { MarkdownDocument } from "../../domain/document";
 import type { WorkspaceInfo, WriterEditor } from "../../domain/engine";
+import type { ElectronContextMenuItem } from "../../platform/electron-api";
 /*
 import {
   getImageFilesFromClipboardData,
@@ -322,10 +323,34 @@ export function MarkdownEditor({
       event.preventDefault();
       event.stopPropagation();
       closeSelectionToolbar();
+      const hasSelection = Boolean(
+        getSelectionRangeInside(shellRef.current, window.getSelection()),
+      );
       const items = resolveEditorContextMenuItems(
         contextMenuItems,
-        Boolean(getSelectionRangeInside(shellRef.current, window.getSelection())),
+        hasSelection,
       );
+
+      if (window.madinahWriter) {
+        if (!hasSelection) {
+          editorRef.current?.focus(undefined, {
+            defaultSelection: "rootEnd",
+            preventScroll: true,
+          });
+        }
+
+        void showNativeEditorContextMenu({
+          items,
+          hasSelection,
+          position: {
+            x: event.clientX,
+            y: event.clientY,
+          },
+          onRun: runContextMenuItem,
+        });
+        return;
+      }
+
       setContextMenu({
         position: getEditorContextMenuPosition(
           event,
@@ -335,7 +360,7 @@ export function MarkdownEditor({
         items,
       });
     },
-    [closeSelectionToolbar, contextMenuItems],
+    [closeSelectionToolbar, contextMenuItems, runContextMenuItem],
   );
 
   return (
@@ -522,6 +547,58 @@ function EditorContextMenu({
       )}
     </div>
   );
+}
+
+async function showNativeEditorContextMenu({
+  items,
+  hasSelection,
+  position,
+  onRun,
+}: {
+  items: EditorContextMenuItem[];
+  hasSelection: boolean;
+  position: {
+    x: number;
+    y: number;
+  };
+  onRun: (item: EditorContextMenuCommandItem) => void;
+}): Promise<void> {
+  if (!window.madinahWriter) return;
+
+  const commandItems = items.filter(
+    (item): item is EditorContextMenuCommandItem =>
+      !isEditorContextMenuSeparator(item),
+  );
+  const commandItemsById = new Map(commandItems.map((item) => [item.id, item]));
+  const nativeEditItems: ElectronContextMenuItem<string>[] = [
+    { role: "cut", disabled: !hasSelection },
+    { role: "copy", disabled: !hasSelection },
+    { role: "paste" },
+    { role: "pasteAndMatchStyle" },
+  ];
+  const nativeSelectionItems: ElectronContextMenuItem<string>[] = [
+    { role: "selectAll" },
+  ];
+  const groups: ElectronContextMenuItem<string>[][] = [
+    nativeEditItems,
+    nativeSelectionItems,
+    commandItems.map((item) => ({
+      id: item.id,
+      label: item.label,
+      disabled: item.disabled,
+    })),
+  ].filter((group) => group.length > 0);
+
+  const actionId = await window.madinahWriter.dialog.showContextMenu({
+    groups,
+    position,
+  });
+  if (!actionId) return;
+
+  const item = commandItemsById.get(actionId);
+  if (item && !item.disabled) {
+    onRun(item);
+  }
 }
 
 /*
