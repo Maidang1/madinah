@@ -1,5 +1,6 @@
 import {
   type CSSProperties,
+  // type ClipboardEvent as ReactClipboardEvent,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
   useCallback,
@@ -68,6 +69,7 @@ import {
   splitDocumentEditorMarkdown,
   shouldShowDocumentStartState,
 } from "./features/editor/MarkdownEditor";
+// import { getMarkdownTextFromClipboardData } from "./features/editor/clipboard";
 import { createFormattingCommands } from "./features/editor/formatting-commands";
 import { CommandRegistry } from "./features/engine/CommandRegistry";
 import { EngineProvider, useEngine } from "./features/engine/EngineProvider";
@@ -394,6 +396,17 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
       changeSource(editableMarkdown);
     }
   }, [changeSource, session.document]);
+  /*
+  const pasteMarkdownIntoEmptyDocument = useCallback(
+    (markdown: string) => {
+      if (!session.document) return;
+
+      setStartedEmptyDocumentId(session.document.id);
+      changeSource(markdown);
+    },
+    [changeSource, session.document],
+  );
+  */
   const changeDocumentTitle = useCallback(
     (title: string) => {
       if (!session.document || !documentEditor) return;
@@ -1113,6 +1126,27 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [runCommand]);
 
+  /*
+  useEffect(() => {
+    if (!isDocumentStartStateVisible) return;
+
+    const handlePaste = (event: ClipboardEvent) => {
+      if (event.defaultPrevented || isEditablePasteTarget(document.activeElement)) {
+        return;
+      }
+
+      const markdown = getMarkdownTextFromClipboardData(event.clipboardData);
+      if (!markdown) return;
+
+      event.preventDefault();
+      pasteMarkdownIntoEmptyDocument(markdown);
+    };
+
+    window.addEventListener("paste", handlePaste);
+    return () => window.removeEventListener("paste", handlePaste);
+  }, [isDocumentStartStateVisible, pasteMarkdownIntoEmptyDocument]);
+  */
+
   useEffect(() => {
     let active = true;
     let unlisten: (() => void) | null = null;
@@ -1749,6 +1783,19 @@ function getInitialTheme(): WriterTheme {
 }
 
 function DocumentStartState({ onStart }: { onStart: () => void }) {
+  /*
+  const handlePaste = useCallback(
+    (event: ReactClipboardEvent<HTMLDivElement>) => {
+      const markdown = getMarkdownTextFromClipboardData(event.clipboardData);
+      if (!markdown) return;
+
+      event.preventDefault();
+      onPasteMarkdown(markdown);
+    },
+    [onPasteMarkdown],
+  );
+  */
+
   return (
     <div className="document-start-state">
       <div className="document-start-copy">
@@ -1766,6 +1813,19 @@ function DocumentStartState({ onStart }: { onStart: () => void }) {
     </div>
   );
 }
+
+/*
+function isEditablePasteTarget(element: Element | null): boolean {
+  if (!(element instanceof HTMLElement)) return false;
+  if (element.isContentEditable) return true;
+
+  return (
+    element instanceof HTMLInputElement ||
+    element instanceof HTMLTextAreaElement ||
+    element.closest('[contenteditable="true"]') !== null
+  );
+}
+*/
 
 function WriterEmptyState({
   canOpenFolder,

@@ -16,6 +16,12 @@ import {
 } from "react";
 import type { MarkdownDocument } from "../../domain/document";
 import type { WorkspaceInfo, WriterEditor } from "../../domain/engine";
+/*
+import {
+  getImageFilesFromClipboardData,
+  getMarkdownTextFromClipboardData,
+} from "./clipboard";
+*/
 import {
   createSourceModeEditorPlugin,
   EMPTY_BLOCK_MARKER,
@@ -176,6 +182,48 @@ export function MarkdownEditor({
       }),
     );
   }, []);
+
+  /*
+  // Custom clipboard handling is parked while the editor returns to the
+  // MDXEditor-managed paste flow.
+  useEffect(() => {
+    const shell = shellRef.current;
+    if (!shell) return;
+
+    const handlePaste = (event: ClipboardEvent) => {
+      const target = event.target;
+      if (
+        !(target instanceof Node) ||
+        !shell.querySelector(".live-mdx-content")?.contains(target)
+      ) {
+        return;
+      }
+
+      const imageFiles = imageUploadHandler
+        ? getImageFilesFromClipboardData(event.clipboardData)
+        : [];
+      const text = getMarkdownTextFromClipboardData(event.clipboardData);
+
+      // Let the editor handle anything we don't explicitly take over.
+      if (imageFiles.length === 0 && text === null) return;
+
+      event.preventDefault();
+      event.stopImmediatePropagation();
+
+      if (text !== null) {
+        editorRef.current?.insertMarkdown(text);
+        return;
+      }
+
+      if (imageFiles.length > 0 && imageUploadHandler) {
+        void uploadPastedImages(imageFiles, imageUploadHandler, editorRef, onError);
+      }
+    };
+
+    shell.addEventListener("paste", handlePaste, true);
+    return () => shell.removeEventListener("paste", handlePaste, true);
+  }, [imageUploadHandler, onError]);
+  */
 
   const updateSelectionToolbar = useCallback(() => {
     if (contextMenu) return;
@@ -475,6 +523,27 @@ function EditorContextMenu({
     </div>
   );
 }
+
+/*
+async function uploadPastedImages(
+  imageFiles: File[],
+  imageUploadHandler: ImageUploadHandler,
+  editorRef: RefObject<MDXEditorMethods | null>,
+  onError: (error: string) => void,
+): Promise<void> {
+  if (!imageUploadHandler) return;
+
+  for (const file of imageFiles) {
+    try {
+      const url = await imageUploadHandler(file);
+      const altText = file.name.replace(/\.[^.]+$/, "");
+      editorRef.current?.insertMarkdown(`![${altText}](${url})\n\n`);
+    } catch (error: unknown) {
+      onError(error instanceof Error ? error.message : String(error));
+    }
+  }
+}
+*/
 
 function createWriterEditor(
   editorRef: RefObject<MDXEditorMethods | null>,
