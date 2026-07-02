@@ -28,3 +28,7 @@ Recent history uses short Conventional Commit-style subjects, commonly `feat: ..
 ## Agent-Specific Rendering Rules
 
 Light mode chrome and rendered Markdown/MDX must keep the Madinah blog warm reader palette. Use the blog `reader-*` tokens from `/Users/bytedance/codes/myself/madinah/src/styles/global.css`, preserve the Jinkai font loaded by `index.html`, and keep `src/styles/app.css` as the writer-side alignment point. Before changing preview rendering, compare against the real blog surface under `/Users/bytedance/codes/myself/madinah/src`.
+
+## Editor Command & Slash Rules
+
+Editor insertion flows should reuse the ordinary `WriterCommand` surface, especially `editor.insert.*`, so command palette, menus, slash actions, and plugin contributions stay aligned. Slash-triggered insertion in rich text should replace the active `/query` line in Markdown state with `setMarkdown` plus `onChange`, using helpers in `src/features/editor/slash-commands.ts`; DOM `Range`, `execCommand`, and raw rich-text insertion are brittle for Markdown block syntax. Keyboard handling for the slash menu should run on the editor shell capture phase, with ArrowUp, ArrowDown, Enter, and Escape handled before MDXEditor shortcuts. Keep document-level AI polish on the editor context menu, while slash remains focused on fast writing inserts and lightweight inline formatting.

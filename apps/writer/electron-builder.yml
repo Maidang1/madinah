@@ -9,10 +9,17 @@ files:
   - package.json
 extraMetadata:
   main: out/main/index.cjs
+publish:
+  provider: github
+  owner: Maidang1
+  repo: madinah
+  tagNamePrefix: writer-v
+  releaseType: release
 mac:
   category: public.app-category.productivity
   icon: buildResources/icon.icns
-  identity: null
+  artifactName: Madinah-Writer-${version}-${arch}.${ext}
+  electronUpdaterCompatibility: ">=2.16"
   target:
     - dmg
     - zip

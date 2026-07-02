@@ -8,7 +8,8 @@
     "dev": "electron-rsbuild dev",
     "build": "tsc --noEmit && electron-rsbuild build",
     "preview": "electron-rsbuild preview",
-    "electron:build": "pnpm build && electron-builder --mac",
+    "electron:build": "pnpm build && CSC_IDENTITY_AUTO_DISCOVERY=false npm_config_user_agent=npm npm_execpath=npm electron-builder --mac --universal --publish never",
+    "electron:publish": "pnpm build && npm_config_user_agent=npm npm_execpath=npm electron-builder --mac --universal --publish always",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -21,6 +22,7 @@
     "@shikijs/rehype": "^4.3.0",
     "@shikijs/themes": "^4.3.0",
     "chokidar": "^5.0.0",
+    "electron-updater": "^6.8.9",
     "lucide-react": "^1.21.0",
     "motion": "^12.42.0",
     "react": "^19.2.7",

@@ -48,6 +48,7 @@ import {
   NATIVE_MENU_EDIT_ROLES,
   type NativeMenuEditRole,
 } from "../shared/native-menu";
+import { createUpdateController } from "./updater";
 
 const APP_ID = "cn.felixwliu.madinah.writer";
 const PRODUCT_NAME = "Madinah Writer";
@@ -64,6 +65,12 @@ app.setPath("userData", path.join(app.getPath("appData"), APP_ID));
 const context: BackendContext = {
   userDataDir: app.getPath("userData"),
 };
+const updateController = createUpdateController({
+  productName: PRODUCT_NAME,
+  getVersion: () => app.getVersion(),
+  isPackaged: () => app.isPackaged,
+  showMessage: showUpdateMessage,
+});
 
 registerIpcHandlers(context);
 
@@ -251,6 +258,14 @@ async function showConfirmDialog(
   return result.response === 0;
 }
 
+async function showUpdateMessage(options: MessageBoxOptions): Promise<number> {
+  const owner = getMainWindow();
+  const result = owner
+    ? await dialog.showMessageBox(owner, options)
+    : await dialog.showMessageBox(options);
+  return result.response;
+}
+
 async function openDirectoryDialog(options?: {
   title?: string;
 }): Promise<string | null> {
@@ -414,6 +429,13 @@ function buildApplicationMenu(): Menu {
       label: PRODUCT_NAME,
       submenu: [
         { role: "about" },
+        { type: "separator" },
+        {
+          label: "Check for Updates...",
+          click: () => {
+            void updateController.checkForUpdates();
+          },
+        },
         { type: "separator" },
         { role: "hide" },
         { role: "hideOthers" },
