@@ -1,0 +1,18 @@
+appId: cn.felixwliu.madinah.writer
+productName: Madinah Writer
+asar: false
+directories:
+  output: release
+  buildResources: buildResources
+files:
+  - out/**/*
+  - package.json
+extraMetadata:
+  main: out/main/index.cjs
+mac:
+  category: public.app-category.productivity
+  icon: buildResources/icon.icns
+  identity: null
+  target:
+    - dmg
+    - zip

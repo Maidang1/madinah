@@ -1,5 +1,7 @@
 # build output
 dist/
+out/
+release/
 # generated types
 .astro/
 
@@ -23,3 +25,4 @@ pnpm-debug.log*
 # jetbrains setting folder
 .idea/
 build/
+target/
