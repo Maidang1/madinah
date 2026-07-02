@@ -42,6 +42,12 @@ describe("editor empty document state", () => {
   it("removes the legacy English editor prompt text", () => {
     expect(`${editorSource}\n${legacyEditorSource}`).not.toContain("Start writing...");
   });
+
+  it("keeps slash insertion in the editor surface", () => {
+    expect(editorSource).toContain("SlashCommandMenu");
+    expect(editorSource).toContain("matchSlashCommandTriggerText");
+    expect(editorSource).toContain("createSlashWriterEditor");
+  });
 });
 
 describe("document editor title", () => {

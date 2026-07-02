@@ -6,6 +6,7 @@ import {
 } from "@mdxeditor/editor";
 import "@mdxeditor/editor/style.css";
 import {
+  type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
   type RefObject,
   useCallback,
@@ -45,6 +46,19 @@ import {
   type EditorSelectionToolbarAction,
   type EditorSelectionToolbarPosition,
 } from "./EditorSelectionToolbar";
+import {
+  SLASH_COMMAND_MENU_SIZE,
+  SlashCommandMenu,
+} from "./SlashCommandMenu";
+import {
+  createSlashCommandItems,
+  getSlashCommandPosition,
+  matchSlashCommandTriggerText,
+  replaceSlashTriggerInMarkdown,
+  searchSlashCommandItems,
+  type SlashCommandItem,
+  type SlashCommandPosition,
+} from "./slash-commands";
 
 interface MarkdownEditorProps {
   value: string;
@@ -86,8 +100,20 @@ export function MarkdownEditor({
   const [contextMenu, setContextMenu] = useState<EditorContextMenuState | null>(
     null,
   );
+  const [slashMenu, setSlashMenu] = useState<SlashCommandMenuState | null>(null);
   const [selectionToolbar, setSelectionToolbar] =
     useState<EditorSelectionToolbarState | null>(null);
+  const slashCommandItems = useMemo(
+    () => createSlashCommandItems(commandRegistry.list()),
+    [commandRegistry],
+  );
+  const slashCommandResults = useMemo(
+    () =>
+      slashMenu
+        ? searchSlashCommandItems(slashCommandItems, slashMenu.query).slice(0, 10)
+        : [],
+    [slashCommandItems, slashMenu],
+  );
   const resolvedEditorPlugins = useMemo(
     () => [
       ...editorPlugins,
@@ -114,6 +140,10 @@ export function MarkdownEditor({
 
   const closeContextMenu = useCallback(() => {
     setContextMenu(null);
+  }, []);
+
+  const closeSlashMenu = useCallback(() => {
+    setSlashMenu(null);
   }, []);
 
   const closeSelectionToolbar = useCallback(() => {
@@ -172,6 +202,144 @@ export function MarkdownEditor({
       workspace,
     ],
   );
+
+  const updateSlashMenu = useCallback(() => {
+    if (contextMenu || slashCommandItems.length === 0) {
+      setSlashMenu(null);
+      return;
+    }
+
+    const trigger = getSlashCommandTrigger(
+      shellRef.current,
+      window.getSelection(),
+    );
+    if (!trigger) {
+      setSlashMenu(null);
+      return;
+    }
+
+    closeSelectionToolbar();
+    setSlashMenu((current) => ({
+      query: trigger.query,
+      position: trigger.position,
+      triggerText: trigger.triggerText,
+      selectedIndex:
+        current?.query === trigger.query ? current.selectedIndex : 0,
+    }));
+  }, [closeSelectionToolbar, contextMenu, slashCommandItems.length]);
+
+  const scheduleSlashMenuUpdate = useCallback(() => {
+    requestAnimationFrame(updateSlashMenu);
+  }, [updateSlashMenu]);
+
+  const runSlashCommand = useCallback(
+    async (item: SlashCommandItem) => {
+      const activeSlashMenu = slashMenu;
+      if (!activeSlashMenu) return;
+
+      closeSlashMenu();
+      closeSelectionToolbar();
+
+      const editor = createSlashWriterEditor(
+        editorRef,
+        value,
+        activeSlashMenu.triggerText,
+        onChange,
+      );
+
+      try {
+        await commandRegistry.execute(item.command.id, {
+          document,
+          editor,
+          workspace,
+        });
+        editor.focus?.();
+      } catch (error: unknown) {
+        onError(error instanceof Error ? error.message : String(error));
+      }
+    },
+    [
+      closeSelectionToolbar,
+      closeSlashMenu,
+      commandRegistry,
+      document,
+      onChange,
+      onError,
+      slashMenu,
+      value,
+      workspace,
+    ],
+  );
+
+  const handleEditorKeyDown = useCallback(
+    (event: ReactKeyboardEvent<HTMLDivElement>) => {
+      if (!slashMenu) return;
+
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        closeSlashMenu();
+        return;
+      }
+
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        event.stopPropagation();
+        setSlashMenu((current) =>
+          current
+            ? {
+                ...current,
+                selectedIndex:
+                  slashCommandResults.length === 0
+                    ? 0
+                    : (current.selectedIndex + 1) % slashCommandResults.length,
+              }
+            : current,
+        );
+        return;
+      }
+
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        event.stopPropagation();
+        setSlashMenu((current) =>
+          current
+            ? {
+                ...current,
+                selectedIndex:
+                  slashCommandResults.length === 0
+                    ? 0
+                    : (current.selectedIndex - 1 + slashCommandResults.length) %
+                      slashCommandResults.length,
+              }
+            : current,
+        );
+        return;
+      }
+
+      if (event.key === "Enter") {
+        event.preventDefault();
+        event.stopPropagation();
+        const item = slashCommandResults[slashMenu.selectedIndex];
+        if (!item) return;
+
+        void runSlashCommand(item);
+      }
+    },
+    [closeSlashMenu, runSlashCommand, slashCommandResults, slashMenu],
+  );
+
+  useEffect(() => {
+    if (!slashMenu) return;
+
+    setSlashMenu((current) => {
+      if (!current) return current;
+      const maxIndex = Math.max(0, slashCommandResults.length - 1);
+      return current.selectedIndex <= maxIndex
+        ? current
+        : { ...current, selectedIndex: maxIndex };
+    });
+  }, [slashCommandResults.length, slashMenu]);
 
   useEffect(() => {
     if (!shouldAutoFocusRef.current) return;
@@ -255,22 +423,36 @@ export function MarkdownEditor({
       "selectionchange",
       scheduleSelectionToolbarUpdate,
     );
+    globalThis.document.addEventListener("selectionchange", scheduleSlashMenuUpdate);
     window.addEventListener("mouseup", scheduleSelectionToolbarUpdate);
     window.addEventListener("keyup", scheduleSelectionToolbarUpdate);
     window.addEventListener("resize", closeSelectionToolbar);
+    window.addEventListener("resize", closeSlashMenu);
     window.addEventListener("scroll", closeSelectionToolbar, true);
+    window.addEventListener("scroll", closeSlashMenu, true);
 
     return () => {
       globalThis.document.removeEventListener(
         "selectionchange",
         scheduleSelectionToolbarUpdate,
       );
+      globalThis.document.removeEventListener(
+        "selectionchange",
+        scheduleSlashMenuUpdate,
+      );
       window.removeEventListener("mouseup", scheduleSelectionToolbarUpdate);
       window.removeEventListener("keyup", scheduleSelectionToolbarUpdate);
       window.removeEventListener("resize", closeSelectionToolbar);
+      window.removeEventListener("resize", closeSlashMenu);
       window.removeEventListener("scroll", closeSelectionToolbar, true);
+      window.removeEventListener("scroll", closeSlashMenu, true);
     };
-  }, [closeSelectionToolbar, scheduleSelectionToolbarUpdate]);
+  }, [
+    closeSelectionToolbar,
+    closeSlashMenu,
+    scheduleSelectionToolbarUpdate,
+    scheduleSlashMenuUpdate,
+  ]);
 
   useEffect(() => {
     if (!selectionToolbar) return;
@@ -308,6 +490,35 @@ export function MarkdownEditor({
     };
   }, [closeContextMenu, contextMenu, restoreEditorFocus]);
 
+  useEffect(() => {
+    if (!slashMenu) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target;
+      if (
+        target instanceof HTMLElement &&
+        target.closest(".slash-command-menu")
+      ) {
+        return;
+      }
+
+      closeSlashMenu();
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        closeSlashMenu();
+      }
+    };
+
+    window.addEventListener("mousedown", handlePointerDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("mousedown", handlePointerDown);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [closeSlashMenu, slashMenu]);
+
   const handleContextMenu = useCallback(
     (event: ReactMouseEvent<HTMLDivElement>) => {
       if (contextMenuItems.length === 0) return;
@@ -322,6 +533,7 @@ export function MarkdownEditor({
 
       event.preventDefault();
       event.stopPropagation();
+      closeSlashMenu();
       closeSelectionToolbar();
       const hasSelection = Boolean(
         getSelectionRangeInside(shellRef.current, window.getSelection()),
@@ -360,7 +572,7 @@ export function MarkdownEditor({
         items,
       });
     },
-    [closeSelectionToolbar, contextMenuItems, runContextMenuItem],
+    [closeSelectionToolbar, closeSlashMenu, contextMenuItems, runContextMenuItem],
   );
 
   return (
@@ -373,6 +585,8 @@ export function MarkdownEditor({
         .join(" ")}
       ref={shellRef}
       onContextMenu={handleContextMenu}
+      onInput={scheduleSlashMenuUpdate}
+      onKeyDownCapture={handleEditorKeyDown}
     >
       <MDXEditor
         ref={editorRef}
@@ -408,6 +622,20 @@ export function MarkdownEditor({
           actions={EDITOR_SELECTION_TOOLBAR_ACTIONS}
           position={selectionToolbar.position}
           onRun={(action) => void runSelectionToolbarAction(action)}
+        />
+      ) : null}
+      {slashMenu ? (
+        <SlashCommandMenu
+          items={slashCommandResults}
+          position={slashMenu.position}
+          query={slashMenu.query}
+          selectedIndex={slashMenu.selectedIndex}
+          onHover={(selectedIndex) =>
+            setSlashMenu((current) =>
+              current ? { ...current, selectedIndex } : current,
+            )
+          }
+          onRun={(item) => void runSlashCommand(item)}
         />
       ) : null}
     </div>
@@ -503,6 +731,13 @@ interface EditorContextMenuState {
 
 interface EditorSelectionToolbarState {
   position: EditorSelectionToolbarPosition;
+}
+
+interface SlashCommandMenuState {
+  query: string;
+  position: SlashCommandPosition;
+  triggerText: string;
+  selectedIndex: number;
 }
 
 function EditorContextMenu({
@@ -622,6 +857,36 @@ async function uploadPastedImages(
 }
 */
 
+function createSlashWriterEditor(
+  editorRef: RefObject<MDXEditorMethods | null>,
+  fallbackMarkdown: string,
+  triggerText: string,
+  onChange: (value: string) => void,
+): WriterEditor {
+  const insertAtSlashRange = (markdown: string) => {
+    const currentMarkdown = editorRef.current?.getMarkdown() ?? fallbackMarkdown;
+    const nextMarkdown = replaceSlashTriggerInMarkdown(
+      currentMarkdown,
+      triggerText,
+      markdown,
+    );
+    editorRef.current?.setMarkdown(nextMarkdown);
+    onChange(cleanEmptyBlockMarkers(nextMarkdown));
+  };
+
+  return {
+    getMarkdown: () => editorRef.current?.getMarkdown() ?? fallbackMarkdown,
+    setMarkdown: (markdown) => editorRef.current?.setMarkdown(markdown),
+    insertMarkdown: insertAtSlashRange,
+    getSelectionMarkdown: () => "",
+    replaceSelection: insertAtSlashRange,
+    focus: () =>
+      editorRef.current?.focus(undefined, {
+        preventScroll: true,
+      }),
+  };
+}
+
 function createWriterEditor(
   editorRef: RefObject<MDXEditorMethods | null>,
   shellRef: RefObject<HTMLDivElement | null>,
@@ -643,6 +908,82 @@ function createWriterEditor(
         preventScroll: true,
       }),
   };
+}
+
+function getSlashCommandTrigger(
+  shell: HTMLElement | null,
+  selection: Selection | null,
+): SlashCommandMenuState | null {
+  if (!shell || !selection || selection.rangeCount === 0 || !selection.isCollapsed) {
+    return null;
+  }
+
+  const contentRoot = shell.querySelector<HTMLElement>(".live-mdx-content");
+  if (!contentRoot) return null;
+
+  const anchorNode = selection.anchorNode;
+  if (!anchorNode || !contentRoot.contains(anchorNode)) return null;
+
+  const block = getSlashCommandBlockElement(contentRoot, anchorNode);
+  if (!block) return null;
+
+  const caretRange = selection.getRangeAt(0).cloneRange();
+  const textBeforeCaret = getTextBeforeCaret(block, caretRange);
+  if (textBeforeCaret === null) return null;
+
+  const trigger = matchSlashCommandTriggerText(textBeforeCaret);
+  if (!trigger) return null;
+
+  return {
+    query: trigger.query,
+    position: getSlashCommandPosition(
+      getSlashCommandCaretRect(caretRange, block),
+      SLASH_COMMAND_MENU_SIZE,
+      { width: window.innerWidth, height: window.innerHeight },
+    ),
+    triggerText: textBeforeCaret.slice(trigger.slashOffset),
+    selectedIndex: 0,
+  };
+}
+
+function getSlashCommandBlockElement(
+  contentRoot: HTMLElement,
+  node: Node,
+): HTMLElement | null {
+  const element =
+    node instanceof HTMLElement ? node : node.parentElement;
+  if (!element) return null;
+
+  const block = element.closest<HTMLElement>(
+    "p,h1,h2,h3,h4,h5,h6,li,blockquote,pre,td,th",
+  );
+
+  if (block && contentRoot.contains(block)) return block;
+  return contentRoot;
+}
+
+function getTextBeforeCaret(block: HTMLElement, caretRange: Range): string | null {
+  try {
+    const range = document.createRange();
+    range.selectNodeContents(block);
+    range.setEnd(caretRange.endContainer, caretRange.endOffset);
+    return range.toString();
+  } catch {
+    return null;
+  }
+}
+
+function getSlashCommandCaretRect(range: Range, block: HTMLElement): DOMRect {
+  const rect = range.getBoundingClientRect();
+  if (rect.width > 0 || rect.height > 0) return rect;
+
+  const fallback = block.getBoundingClientRect();
+  return new DOMRect(
+    fallback.left,
+    fallback.top,
+    Math.max(fallback.width, 1),
+    Math.max(fallback.height, 1),
+  );
 }
 
 function getSelectedTextInside(element: HTMLElement | null): string {

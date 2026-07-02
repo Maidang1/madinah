@@ -67,6 +67,10 @@ describe("macOS document window layout", () => {
     expect(css).toMatch(/\.file-tree-context-menu button\s*\{[^}]*font-size: 13px;/);
     expect(css).toMatch(/\.file-tree-context-menu button\s*\{[^}]*text-overflow: ellipsis;/);
     expect(css).toMatch(/\.file-tree-context-menu button:hover,\n\.file-tree-context-menu button:focus-visible\s*\{[^}]*background: rgb\(250 249 245\);/);
+    expect(css).toMatch(/\.slash-command-menu\s*\{[^}]*position: fixed;/);
+    expect(css).toMatch(/\.slash-command-menu\s*\{[^}]*width: 280px;/);
+    expect(css).toMatch(/\.slash-command-menu\s*\{[^}]*max-height: min\(340px, calc\(100dvh - 24px\)\);/);
+    expect(css).toMatch(/\.slash-command-menu button\.is-selected\s*\{[^}]*box-shadow: inset 0 0 0 1px/);
     expect(css).toMatch(/margin: 72px auto 0;/);
     expect(css).toMatch(/\.writer-toolbar-button\s*\{[^}]*width: 30px;/);
     expect(css).toMatch(/\.writer-toolbar-button\s*\{[^}]*height: 30px;/);
