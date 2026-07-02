@@ -46,6 +46,11 @@ describe("macOS document window layout", () => {
     expect(css).toMatch(/\.writer-titlebar-meta\s*\{[^}]*font-size: 13px;/);
     expect(css).toMatch(/\.writer-workbench\s*\{[^}]*overflow: hidden;/);
     expect(css).toMatch(/\.writer-workbench\s*\{[^}]*background: var\(--reader-page\);/);
+    expect(css).toMatch(/\.writer-pane-resize-handle\s*\{[^}]*cursor: col-resize;/);
+    expect(css).toMatch(/\.writer-pane-resize-handle\s*\{[^}]*touch-action: none;/);
+    expect(css).toMatch(/\.writer-pane-resize-handle\.is-sidebar\s*\{[^}]*left: calc\(var\(--writer-sidebar-width\) - 5px\);/);
+    expect(css).toMatch(/\.writer-pane-resize-handle\.is-inspector\s*\{[^}]*right: calc\(var\(--writer-inspector-width\) - 6px\);/);
+    expect(css).toMatch(/body\.is-resizing-writer-pane\s*\{[^}]*cursor: col-resize;/);
     expect(css).toMatch(/\.file-tree\s*\{/);
     expect(css).toMatch(/\.file-tree\s*\{[^}]*overflow: hidden;/);
     expect(css).toMatch(/\.file-tree-list\s*\{[^}]*width: 100% !important;/);

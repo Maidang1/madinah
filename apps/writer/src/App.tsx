@@ -1,5 +1,7 @@
 import {
   type CSSProperties,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
   // type ClipboardEvent as ReactClipboardEvent,
   type ReactNode,
   useCallback,
@@ -78,8 +80,10 @@ import {
   type FileTreeNode,
   getActiveFileTreeRoot,
   getFileTreeStatus,
+  isPathOnlyCoveredByFileTreeRoot,
   pathContains,
   parseFileTreeRoots,
+  removeFileTreeRoot,
   resolvePublishTarget,
   serializeFileTreeRoots,
   toRelativePath,
@@ -120,6 +124,15 @@ import {
   shouldRestoreEditorFocus,
   workbenchStateReducer,
 } from "./features/workbench/workbench-state";
+import {
+  clampWorkbenchPaneWidth,
+  getInitialWorkbenchPaneWidths,
+  getKeyboardWorkbenchPaneWidth,
+  getResizedWorkbenchPaneWidth,
+  persistWorkbenchPaneWidth,
+  WORKBENCH_PANE_WIDTH_BOUNDS,
+  type WorkbenchPane,
+} from "./features/workbench/workbench-layout";
 import {
   buildFileTreeDraftItems,
   buildSidebarTree,
@@ -267,6 +280,10 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
     isFocusMode,
     isTypewriterMode,
   } = workbenchState;
+  const [paneWidths, setPaneWidths] = useState(() =>
+    getInitialWorkbenchPaneWidths(window.localStorage),
+  );
+  const paneResizeCleanupRef = useRef<(() => void) | null>(null);
   const previousViewModeRef = useRef(viewMode);
   const [isQuickOpenOpen, setIsQuickOpenOpen] = useState(false);
   const [quickOpenQuery, setQuickOpenQuery] = useState("");
@@ -298,6 +315,99 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
     requestAnimationFrame(() => {
       activeEditorRef.current?.focus?.();
     });
+  }, []);
+  const workbenchLayoutStyle = useMemo(
+    () =>
+      ({
+        "--writer-sidebar-width": `${paneWidths.sidebar}px`,
+        "--writer-inspector-width": `${paneWidths.inspector}px`,
+      }) as CSSProperties,
+    [paneWidths],
+  );
+  const setWorkbenchPaneWidth = useCallback(
+    (pane: WorkbenchPane, width: number) => {
+      setPaneWidths((current) => {
+        const nextWidth = clampWorkbenchPaneWidth(pane, width);
+        if (current[pane] === nextWidth) return current;
+        return {
+          ...current,
+          [pane]: nextWidth,
+        };
+      });
+      persistWorkbenchPaneWidth(pane, width, window.localStorage);
+    },
+    [],
+  );
+  const beginPaneResize = useCallback(
+    (pane: WorkbenchPane, event: ReactPointerEvent<HTMLElement>) => {
+      if (event.button !== 0) return;
+
+      event.preventDefault();
+      paneResizeCleanupRef.current?.();
+
+      const startClientX = event.clientX;
+      const startWidth = paneWidths[pane];
+      const resizeTarget = event.currentTarget;
+      try {
+        resizeTarget.setPointerCapture(event.pointerId);
+      } catch {
+        // Pointer capture can fail if the pointer is already released.
+      }
+      document.body.classList.add("is-resizing-writer-pane");
+
+      const handlePointerMove = (moveEvent: PointerEvent) => {
+        moveEvent.preventDefault();
+        setWorkbenchPaneWidth(
+          pane,
+          getResizedWorkbenchPaneWidth({
+            currentClientX: moveEvent.clientX,
+            pane,
+            startClientX,
+            startWidth,
+          }),
+        );
+      };
+
+      const cleanup = () => {
+        window.removeEventListener("pointermove", handlePointerMove);
+        window.removeEventListener("pointerup", cleanup);
+        window.removeEventListener("pointercancel", cleanup);
+        try {
+          if (resizeTarget.hasPointerCapture(event.pointerId)) {
+            resizeTarget.releasePointerCapture(event.pointerId);
+          }
+        } catch {
+          // The element can be gone after a layout visibility change.
+        }
+        document.body.classList.remove("is-resizing-writer-pane");
+        paneResizeCleanupRef.current = null;
+      };
+
+      paneResizeCleanupRef.current = cleanup;
+      window.addEventListener("pointermove", handlePointerMove);
+      window.addEventListener("pointerup", cleanup);
+      window.addEventListener("pointercancel", cleanup);
+    },
+    [paneWidths, setWorkbenchPaneWidth],
+  );
+  const handlePaneResizeKeyDown = useCallback(
+    (pane: WorkbenchPane, event: ReactKeyboardEvent<HTMLElement>) => {
+      const nextWidth = getKeyboardWorkbenchPaneWidth({
+        currentWidth: paneWidths[pane],
+        key: event.key,
+        pane,
+      });
+      if (nextWidth === null) return;
+
+      event.preventDefault();
+      setWorkbenchPaneWidth(pane, nextWidth);
+    },
+    [paneWidths, setWorkbenchPaneWidth],
+  );
+  useEffect(() => {
+    return () => {
+      paneResizeCleanupRef.current?.();
+    };
   }, []);
   useEffect(() => {
     let cancelled = false;
@@ -770,6 +880,33 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
           return;
         }
 
+        if (action === "remove-root") {
+          if (!node.isRoot) return;
+          const nextRoots = removeFileTreeRoot(fileTreeRoots, root);
+          persistFileTreeRoots(nextRoots);
+          setFileTreeRoots(nextRoots);
+          setFileTreeNodesByRoot((current) => omitRecordKey(current, root));
+          setFileTreeStatusByRoot((current) => omitRecordKey(current, root));
+          setExpandedFileTreePaths(
+            (current) =>
+              new Set(
+                [...current].filter(
+                  (path) =>
+                    !isPathOnlyCoveredByFileTreeRoot(root, nextRoots, path),
+                ),
+              ),
+          );
+          if (
+            publishTargetPath &&
+            isPathOnlyCoveredByFileTreeRoot(root, nextRoots, publishTargetPath)
+          ) {
+            clearPublishTarget();
+            setPublishTargetPath(null);
+          }
+          setStatus(`${node.name} removed from sidebar`);
+          return;
+        }
+
         if (action === "new-file" && node.kind === "directory") {
           await createInTree(node.path, "file");
           return;
@@ -839,6 +976,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
       loadFileTree,
       openFileTreePath,
       platform,
+      publishTargetPath,
       saveNow,
       session.filePath,
       session.isDirty,
@@ -1143,6 +1281,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
         ]
           .filter(Boolean)
           .join(" ")}
+        style={workbenchLayoutStyle}
         data-view-mode={viewMode}
         data-inspector-tab={inspectorTab}
         aria-label="Madinah Writer"
@@ -1226,6 +1365,15 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
                 footer={sidebarTools}
               />
             )
+          ) : null}
+
+          {isSidebarVisible && !isFocusMode ? (
+            <WorkbenchResizeHandle
+              pane="sidebar"
+              width={paneWidths.sidebar}
+              onPointerDown={beginPaneResize}
+              onKeyDown={handlePaneResizeKeyDown}
+            />
           ) : null}
 
           <section
@@ -1361,6 +1509,15 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
               onOutlineJump={jumpToOutlineItem}
               onSaveVersion={() => saveCurrentVersion()}
               onRestoreVersion={restoreDocumentVersion}
+            />
+          ) : null}
+
+          {isInspectorVisible && session.document && !isFocusMode ? (
+            <WorkbenchResizeHandle
+              pane="inspector"
+              width={paneWidths.inspector}
+              onPointerDown={beginPaneResize}
+              onKeyDown={handlePaneResizeKeyDown}
             />
           ) : null}
         </div>
@@ -1822,6 +1979,45 @@ function DocumentEditorShell({
   );
 }
 
+function WorkbenchResizeHandle({
+  pane,
+  width,
+  onPointerDown,
+  onKeyDown,
+}: {
+  pane: WorkbenchPane;
+  width: number;
+  onPointerDown: (
+    pane: WorkbenchPane,
+    event: ReactPointerEvent<HTMLElement>,
+  ) => void;
+  onKeyDown: (
+    pane: WorkbenchPane,
+    event: ReactKeyboardEvent<HTMLElement>,
+  ) => void;
+}) {
+  const label = pane === "sidebar" ? "调整侧边栏宽度" : "调整属性面板宽度";
+  const bounds = WORKBENCH_PANE_WIDTH_BOUNDS[pane];
+
+  return (
+    <div
+      role="separator"
+      tabIndex={0}
+      className={`writer-pane-resize-handle is-${pane}`}
+      data-window-no-drag
+      aria-label={label}
+      aria-orientation="vertical"
+      aria-valuemin={bounds.min}
+      aria-valuemax={bounds.max}
+      aria-valuenow={width}
+      aria-valuetext={`${width}px`}
+      title={label}
+      onPointerDown={(event) => onPointerDown(pane, event)}
+      onKeyDown={(event) => onKeyDown(pane, event)}
+    />
+  );
+}
+
 function persistFileTreeRoots(roots: string[]) {
   window.localStorage.setItem(
     FILE_TREE_ROOTS_STORAGE_KEY,
@@ -1832,6 +2028,16 @@ function persistFileTreeRoots(roots: string[]) {
 
 function persistPublishTarget(path: string) {
   window.localStorage.setItem(PUBLISH_TARGET_STORAGE_KEY, path);
+}
+
+function clearPublishTarget() {
+  window.localStorage.removeItem(PUBLISH_TARGET_STORAGE_KEY);
+}
+
+function omitRecordKey<T>(record: Record<string, T>, key: string): Record<string, T> {
+  const next = { ...record };
+  delete next[key];
+  return next;
 }
 
 function getParentPath(path: string): string | null {

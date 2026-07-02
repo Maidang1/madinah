@@ -13,8 +13,10 @@ import {
   getFileTreeDraftMenuItems,
   getFileTreeMenuItems,
   getPublishTargetLabel,
+  isPathOnlyCoveredByFileTreeRoot,
   pathContains,
   parseFileTreeRoots,
+  removeFileTreeRoot,
   resolvePublishTarget,
   serializeFileTreeRoots,
   toRelativePath,
@@ -100,6 +102,20 @@ describe("file tree view helpers", () => {
       "rename",
       "move-to-trash",
     ]);
+    expect(
+      getFileTreeMenuItems({ ...tree[0], isRoot: true }).map((item) => item.id),
+    ).toEqual([
+      "new-file",
+      "new-folder",
+      "toggle",
+      "set-publish-target",
+      "copy-path",
+      "reveal-in-finder",
+      "remove-root",
+    ]);
+    expect(
+      getFileTreeMenuItems({ ...tree[0], isRoot: true }).map((item) => item.label),
+    ).toContain("Remove from Sidebar");
     expect(getFileTreeMenuItems(tree[0].children[0]).map((item) => item.id)).toEqual([
       "open",
       "duplicate",
@@ -165,6 +181,12 @@ describe("file tree view helpers", () => {
     expect(addFileTreeRoot(["/workspace/blog"], "/workspace/blog")).toEqual([
       "/workspace/blog",
     ]);
+    expect(
+      removeFileTreeRoot(["/workspace/blog", "/workspace/notes"], "/workspace/blog"),
+    ).toEqual(["/workspace/notes"]);
+    expect(
+      removeFileTreeRoot(["/workspace/blog", "/workspace/notes"], " /workspace/blog "),
+    ).toEqual(["/workspace/notes"]);
     expect(parseFileTreeRoots(JSON.stringify(["/workspace/blog", "", "/workspace/blog"]))).toEqual([
       "/workspace/blog",
     ]);
@@ -181,6 +203,27 @@ describe("file tree view helpers", () => {
     expect(getActiveFileTreeRoot(["/workspace/blog", "/workspace/notes"], null)).toBe(
       "/workspace/notes",
     );
+    expect(
+      isPathOnlyCoveredByFileTreeRoot(
+        "/workspace",
+        ["/workspace/blog"],
+        "/workspace/blog/post.md",
+      ),
+    ).toBe(false);
+    expect(
+      isPathOnlyCoveredByFileTreeRoot(
+        "/workspace/blog",
+        ["/workspace"],
+        "/workspace/blog/post.md",
+      ),
+    ).toBe(false);
+    expect(
+      isPathOnlyCoveredByFileTreeRoot(
+        "/workspace/blog",
+        ["/workspace/notes"],
+        "/workspace/blog/post.md",
+      ),
+    ).toBe(true);
   });
 
   it("summarizes multi-root loading, empty, ready, and failure states", () => {

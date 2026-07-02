@@ -368,6 +368,7 @@ textarea {
 }
 
 .writer-workbench {
+  position: relative;
   display: grid;
   min-width: 0;
   min-height: 0;
@@ -376,6 +377,55 @@ textarea {
     var(--writer-inspector-width);
   overflow: hidden;
   background: var(--reader-page);
+}
+
+.writer-pane-resize-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 30;
+  width: 11px;
+  border: 0;
+  background: transparent;
+  cursor: col-resize;
+  outline: none;
+  touch-action: none;
+}
+
+.writer-pane-resize-handle::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 5px;
+  width: 1px;
+  background: transparent;
+  content: "";
+  transition:
+    background-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.writer-pane-resize-handle.is-sidebar {
+  left: calc(var(--writer-sidebar-width) - 5px);
+}
+
+.writer-pane-resize-handle.is-inspector {
+  right: calc(var(--writer-inspector-width) - 6px);
+}
+
+.writer-pane-resize-handle:hover::before,
+.writer-pane-resize-handle:focus-visible::before {
+  background: color-mix(in srgb, var(--writer-focus) 72%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--writer-focus) 14%, transparent);
+}
+
+body.is-resizing-writer-pane {
+  cursor: col-resize;
+  user-select: none;
+}
+
+body.is-resizing-writer-pane * {
+  cursor: col-resize !important;
 }
 
 .writer-window.is-sidebar-hidden .writer-workbench {
@@ -398,7 +448,8 @@ textarea {
 }
 
 .writer-window.is-focus-mode .writer-sidebar,
-.writer-window.is-focus-mode .writer-inspector {
+.writer-window.is-focus-mode .writer-inspector,
+.writer-window.is-focus-mode .writer-pane-resize-handle {
   display: none;
 }
 
@@ -2470,6 +2521,10 @@ textarea {
   }
 
   .writer-inspector {
+    display: none;
+  }
+
+  .writer-pane-resize-handle {
     display: none;
   }
 

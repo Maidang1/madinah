@@ -33,6 +33,7 @@ export type FileTreeMenuAction =
   | "new-file"
   | "new-folder"
   | "toggle"
+  | "remove-root"
   | "set-publish-target"
   | "rename"
   | "duplicate"
@@ -139,6 +140,11 @@ export function addFileTreeRoot(roots: string[], root: string): string[] {
   return uniqueFileTreeRoots([...roots, root]);
 }
 
+export function removeFileTreeRoot(roots: string[], root: string): string[] {
+  const target = root.trim();
+  return uniqueFileTreeRoots(roots).filter((currentRoot) => currentRoot !== target);
+}
+
 export function parseFileTreeRoots(
   value: string | null,
   legacyRoot?: string | null,
@@ -170,6 +176,17 @@ export function getActiveFileTreeRoot(
   activePath: string | null,
 ): string | null {
   return findFileTreeRootForPath(roots, activePath) ?? roots.at(-1) ?? null;
+}
+
+export function isPathOnlyCoveredByFileTreeRoot(
+  removedRoot: string,
+  remainingRoots: string[],
+  path: string | null | undefined,
+): boolean {
+  return (
+    pathContains(removedRoot, path) &&
+    !remainingRoots.some((root) => pathContains(root, path))
+  );
 }
 
 export function resolvePublishTarget({
@@ -254,6 +271,7 @@ export function getFileTreeMenuItems(node: FileTreeNode): FileTreeMenuItem[] {
       { id: "set-publish-target", label: "Set as Publish Target" },
       { id: "copy-path", label: "Copy absolute path" },
       { id: "reveal-in-finder", label: "Reveal in Finder" },
+      { id: "remove-root", label: "Remove from Sidebar" },
     ];
 
     if (node.isRoot) return rootItems;

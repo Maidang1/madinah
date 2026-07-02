@@ -87,7 +87,7 @@ const FILE_TREE_MENU_GROUPS: FileTreeMenuAction[][] = [
   ["set-publish-target", "duplicate"],
   ["copy-relative-path", "copy-path"],
   ["reveal-in-finder"],
-  ["rename", "move-to-trash"],
+  ["remove-root", "rename", "move-to-trash"],
 ];
 
 const FILE_TREE_DRAFT_MENU_GROUPS: FileTreeDraftAction[][] = [
