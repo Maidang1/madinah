@@ -4,6 +4,8 @@ import {
   getAdjacentMatchIndex,
   getCenteredSearchScrollTop,
   getNthTextMatch,
+  replaceAllInSource,
+  replaceNthInSource,
 } from "./in-document-search";
 
 describe("in-document search", () => {
@@ -66,5 +68,28 @@ describe("in-document search", () => {
         targetHeight: 20,
       }),
     ).toBe(450);
+  });
+
+  it("replaces the nth occurrence in place", () => {
+    expect(replaceNthInSource("alpha beta alpha", "alpha", "GAMMA", 1)).toBe(
+      "alpha beta GAMMA",
+    );
+    // Non-matching index leaves the source untouched.
+    expect(replaceNthInSource("alpha", "beta", "x", 0)).toBe("alpha");
+  });
+
+  it("replaces every occurrence and reports the count", () => {
+    expect(replaceAllInSource("a A a", "a", "b")).toEqual({
+      source: "b b b",
+      count: 3,
+    });
+    expect(
+      replaceAllInSource("a A a", "a", "b", { caseSensitive: true }),
+    ).toEqual({ source: "b A b", count: 2 });
+    // Empty query is a no-op rather than inserting between every character.
+    expect(replaceAllInSource("abc", "", "x")).toEqual({
+      source: "abc",
+      count: 0,
+    });
   });
 });

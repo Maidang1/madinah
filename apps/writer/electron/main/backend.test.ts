@@ -2,11 +2,12 @@ import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   buildAcpAgentArgs,
   buildAcpPolishPrompt,
   buildAssetObjectKey,
+  checkAssetUploadSettings,
   createFileTreeDirectory,
   createFileTreeFile,
   defaultAssetUploadSettings,
@@ -21,7 +22,12 @@ import {
   resolveWorkspacePluginsFromRootWithTrust,
   saveAssetUploadSettingsToFile,
   setPluginTrustInFile,
+  uploadAssetImage,
 } from "./backend";
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe("Electron backend file tree", () => {
   it("lists only markdown files and visible directories", async () => {
@@ -188,20 +194,18 @@ describe("Electron backend assets and blog paths", () => {
     const temp = await tempDir();
     const settingsPath = path.join(temp.path, "asset-upload.json");
     const normalized = normalizeAssetUploadSettings({
-      accountId: " abc ",
-      bucket: " ",
-      accessKeyId: " key ",
-      secretAccessKey: " secret ",
+      endpoint: " https://upload.example.com/ ",
+      apiKey: " key ",
       publicBaseUrl: "https://assets.example.com/",
       prefix: "/images/writer/",
       maxBytes: 10,
     });
 
     expect(normalized).toMatchObject({
-      accountId: "abc",
-      bucket: defaultAssetUploadSettings().bucket,
-      accessKeyId: "key",
-      secretAccessKey: "secret",
+      schemaVersion: 2,
+      provider: "cloudflare-r2-worker",
+      endpoint: "https://upload.example.com",
+      apiKey: "key",
       publicBaseUrl: "https://assets.example.com",
       prefix: "images/writer",
       maxBytes: 1024,
@@ -211,13 +215,97 @@ describe("Electron backend assets and blog paths", () => {
       ...normalized,
       maxBytes: 2048,
     });
-    expect(saved.secretAccessKey).toBe("********");
-    expect(JSON.parse(await readFile(settingsPath, "utf8")).secretAccessKey).toBe(
-      "secret",
-    );
+    expect(saved.apiKey).toBe("********");
+    expect(JSON.parse(await readFile(settingsPath, "utf8")).apiKey).toBe("key");
   });
 
-  it("builds stable R2 object keys and rejects slug traversal", () => {
+  it("migrates legacy R2 settings without preserving provider secrets", () => {
+    const normalized = normalizeAssetUploadSettings({
+      accountId: "abc",
+      bucket: "madinah-assets",
+      accessKeyId: "access",
+      secretAccessKey: "secret",
+      publicBaseUrl: "https://assets.example.com/",
+      prefix: "/images/legacy/",
+    });
+
+    expect(normalized).toMatchObject({
+      endpoint: "",
+      apiKey: "",
+      publicBaseUrl: "https://assets.example.com",
+      prefix: "images/legacy",
+    });
+  });
+
+  it("checks the configured worker endpoint with the API key", async () => {
+    const fetchMock = vi.fn<typeof fetch>(async () => new Response("ok"));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      checkAssetUploadSettings(
+        { userDataDir: (await tempDir()).path },
+        {
+          ...defaultAssetUploadSettings(),
+          endpoint: "https://upload.example.com/",
+          apiKey: "key",
+        },
+      ),
+    ).resolves.toEqual({ ok: true, message: "Connected" });
+
+    expect(fetchMock).toHaveBeenCalledWith("https://upload.example.com/health", {
+      headers: {
+        "x-api-key": "key",
+      },
+    });
+  });
+
+  it("uploads images through the configured worker endpoint", async () => {
+    const temp = await tempDir();
+    const settingsPath = path.join(temp.path, "asset-upload.json");
+    await saveAssetUploadSettingsToFile(settingsPath, {
+      ...defaultAssetUploadSettings(),
+      endpoint: "https://upload.example.com",
+      apiKey: "key",
+      publicBaseUrl: "https://assets.example.com",
+      prefix: "images/writer",
+    });
+    const fetchMock = vi.fn<typeof fetch>(async () => new Response("done"));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await uploadAssetImage(
+      { userDataDir: temp.path },
+      {
+        name: "Hello World!.png",
+        contentType: "image/png",
+        size: 4,
+        dataBase64: "AQIDBA==",
+      },
+    );
+
+    expect(result.key).toMatch(
+      /^images\/writer\/\d{4}\/\d{2}\/[a-f0-9]{12}-hello-world\.png$/u,
+    );
+    expect(result.url).toBe(`https://assets.example.com/${result.key}`);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(
+      `https://upload.example.com/${result.key
+        .split("/")
+        .map((part) => encodeURIComponent(part))
+        .join("/")}`,
+    );
+    expect(init).toMatchObject({
+      method: "PUT",
+      headers: {
+        "cache-control": "public, max-age=31536000, immutable",
+        "content-type": "image/png",
+        "x-api-key": "key",
+      },
+    });
+    expect(init?.body).toBeInstanceOf(Uint8Array);
+  });
+
+  it("builds stable asset object keys and rejects slug traversal", () => {
     const key = buildAssetObjectKey(
       "images/writer",
       "Hello World!.png",

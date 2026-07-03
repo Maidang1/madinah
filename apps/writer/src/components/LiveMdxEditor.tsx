@@ -25,6 +25,7 @@ import {
   CODE_BLOCK_EDITOR_EXTENSIONS,
   CODE_BLOCK_LANGUAGES,
 } from "../features/engine/codeBlockLanguages";
+import { WriterLinkDialog } from "../features/editor/WriterLinkDialog";
 
 interface LiveMdxEditorProps {
   value: string;
@@ -54,7 +55,7 @@ const editorPlugins = [
   thematicBreakPlugin(),
   tablePlugin(),
   linkPlugin(),
-  linkDialogPlugin(),
+  linkDialogPlugin({ LinkDialog: WriterLinkDialog }),
   imagePlugin(),
   jsxPlugin({ jsxComponentDescriptors }),
   codeBlockPlugin({ defaultCodeBlockLanguage: "typescript" }),

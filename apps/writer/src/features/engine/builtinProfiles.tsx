@@ -19,6 +19,7 @@ import remarkFrontmatter from "remark-frontmatter";
 import remarkGfm from "remark-gfm";
 import type { EngineProfile, WriterCommand } from "../../domain/engine";
 import { mdxComponents } from "../../components/mdx-components";
+import { WriterLinkDialog } from "../editor/WriterLinkDialog";
 import {
   CODE_BLOCK_EDITOR_EXTENSIONS,
   CODE_BLOCK_LANGUAGES,
@@ -60,7 +61,7 @@ const commonmarkEditorPlugins = [
   quotePlugin(),
   thematicBreakPlugin(),
   linkPlugin(),
-  linkDialogPlugin(),
+  linkDialogPlugin({ LinkDialog: WriterLinkDialog }),
   codeBlockPlugin({ defaultCodeBlockLanguage: "typescript" }),
   codeMirrorPlugin({
     codeBlockLanguages: CODE_BLOCK_LANGUAGES,

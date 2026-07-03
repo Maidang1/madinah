@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import type { AssetUploadAdapter } from "../../platform/ports";
 import { createDefaultAssetUploadSettings } from "../../domain/assets";
-import { createR2ImageUploadHandler, fileToBase64 } from "./image-upload";
+import { createImageUploadHandler, fileToBase64 } from "./image-upload";
 
-describe("R2 image upload handler", () => {
+describe("image upload handler", () => {
   it("converts a pasted image file and returns the uploaded URL", async () => {
     const uploadImage = vi.fn(async () => ({
       key: "images/writer/2026/06/hash-image.png",
@@ -12,7 +12,7 @@ describe("R2 image upload handler", () => {
       contentType: "image/png",
     }));
     const status: string[] = [];
-    const handler = createR2ImageUploadHandler({
+    const handler = createImageUploadHandler({
       assetUpload: createAssetUploadAdapter({ uploadImage }),
       settings: completeSettings(),
       setStatus: (message) => status.push(message),
@@ -36,7 +36,7 @@ describe("R2 image upload handler", () => {
   });
 
   it("rejects missing desktop adapter and incomplete settings", async () => {
-    const disabledHandler = createR2ImageUploadHandler({
+    const disabledHandler = createImageUploadHandler({
       assetUpload: createAssetUploadAdapter({ isAvailable: false }),
       settings: completeSettings(),
     });
@@ -44,17 +44,17 @@ describe("R2 image upload handler", () => {
       disabledHandler(new File([new Uint8Array([1])], "image.png", { type: "image/png" })),
     ).rejects.toThrow("desktop app");
 
-    const incompleteHandler = createR2ImageUploadHandler({
+    const incompleteHandler = createImageUploadHandler({
       assetUpload: createAssetUploadAdapter(),
       settings: createDefaultAssetUploadSettings(),
     });
     await expect(
       incompleteHandler(new File([new Uint8Array([1])], "image.png", { type: "image/png" })),
-    ).rejects.toThrow("R2 asset settings are incomplete");
+    ).rejects.toThrow("Asset upload settings are incomplete");
   });
 
   it("rejects unsupported and oversized images", async () => {
-    const handler = createR2ImageUploadHandler({
+    const handler = createImageUploadHandler({
       assetUpload: createAssetUploadAdapter(),
       settings: {
         ...completeSettings(),
@@ -84,9 +84,8 @@ describe("R2 image upload handler", () => {
 function completeSettings() {
   return {
     ...createDefaultAssetUploadSettings(),
-    accountId: "account",
-    accessKeyId: "key",
-    secretAccessKey: "secret",
+    endpoint: "https://upload.example.com",
+    apiKey: "key",
   };
 }
 
