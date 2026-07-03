@@ -781,6 +781,31 @@
     padding-inline-start: 25px;
   }
 
+  .post-content ul,
+  .mdx-content ul {
+    list-style-type: disc;
+  }
+
+  .post-content ol,
+  .mdx-content ol {
+    list-style-type: decimal;
+  }
+
+  .post-content ul ul,
+  .mdx-content ul ul {
+    list-style-type: circle;
+  }
+
+  .post-content ul ul ul,
+  .mdx-content ul ul ul {
+    list-style-type: square;
+  }
+
+  .post-content ol ol,
+  .mdx-content ol ol {
+    list-style-type: lower-alpha;
+  }
+
   .post-content li,
   .mdx-content li {
     margin-top: 5px;
@@ -862,7 +887,8 @@
   .mdx-content pre {
     position: relative;
     margin: 12px auto 20px;
-    overflow-x: auto;
+    max-height: 480px;
+    overflow: auto;
     border-radius: var(--radius);
     background: rgb(21, 20, 27) !important;
     color: rgb(237, 236, 238);

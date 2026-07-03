@@ -1,0 +1,107 @@
+name: Writer Electron Release
+
+on:
+  push:
+    tags:
+      - "writer-v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: writer-electron-release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  macos:
+    name: Build macOS
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Setup pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.9 --activate
+          pnpm --version
+
+      - name: Get pnpm store path
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: macos-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            macos-pnpm-
+
+      - name: Cache Electron
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/electron
+            ~/Library/Caches/electron-builder
+          key: macos-electron-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            macos-electron-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Test writer
+        run: pnpm --filter writer test
+
+      - name: Build writer
+        run: pnpm --filter writer build
+
+      - name: Verify release tag
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          node <<'NODE'
+          const fs = require("node:fs");
+          const pkg = JSON.parse(
+            fs.readFileSync("apps/writer/package.json", "utf8"),
+          );
+          const expected = `writer-v${pkg.version}`;
+          const actual = process.env.RELEASE_TAG;
+          if (actual !== expected) {
+            console.error(`Release tag ${actual} must match ${expected}.`);
+            process.exit(1);
+          }
+          NODE
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/')
+        run: pnpm --filter writer electron:publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+      - name: Package workflow build
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        run: pnpm --filter writer electron:build
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Upload workflow artifact
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: madinah-writer-macos
+          path: apps/writer/release/**
