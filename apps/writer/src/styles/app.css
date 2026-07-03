@@ -2119,6 +2119,7 @@ body.is-resizing-writer-pane * {
   z-index: 18;
   display: inline-flex;
   align-items: center;
+  gap: 8px;
 }
 
 .document-start-state {
@@ -2241,11 +2242,9 @@ body.is-resizing-writer-pane * {
   top: 56px;
   right: 18px;
   z-index: 20;
-  display: grid;
-  grid-template-columns: 16px minmax(150px, 220px) auto auto auto auto;
-  align-items: center;
-  gap: 6px;
-  min-height: 34px;
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
   padding: 5px;
   border: 1px solid var(--writer-rule-strong);
   border-radius: 7px;
@@ -2255,9 +2254,28 @@ body.is-resizing-writer-pane * {
   font-family: var(--writer-ui-font);
 }
 
+.document-search-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.document-search-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 26px;
+}
+
+.document-search-row > svg {
+  flex: 0 0 auto;
+  color: var(--writer-muted);
+}
+
 .document-search-bar input {
-  width: 100%;
-  min-width: 0;
+  width: 200px;
+  max-width: 220px;
+  min-width: 168px;
   height: 24px;
   padding: 0 7px;
   border: 0;
@@ -2299,10 +2317,125 @@ body.is-resizing-writer-pane * {
   outline: none;
 }
 
+.document-search-toggle {
+  align-self: stretch;
+  height: auto !important;
+}
+
+.document-search-toggle-icon {
+  transition: transform 0.15s ease;
+}
+
+.document-search-bar[data-replace="true"] .document-search-toggle-icon {
+  transform: rotate(90deg);
+}
+
+.document-search-option[data-active="true"] {
+  background: color-mix(in srgb, var(--writer-accent) 20%, transparent);
+  color: var(--writer-text);
+}
+
+.document-search-replace-action {
+  width: auto !important;
+  padding: 0 8px !important;
+  color: var(--writer-text) !important;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.document-search-replace-action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .document-search-active-match {
   border-radius: 4px;
   background: color-mix(in srgb, var(--writer-accent) 16%, transparent);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--writer-accent) 20%, transparent);
+}
+
+.save-status-indicator {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--writer-ui-font);
+}
+
+.save-status-indicator-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--writer-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: default;
+  transition: opacity 0.4s ease, color 0.2s ease;
+}
+
+.save-status-indicator[data-kind="saved"] .save-status-indicator-chip {
+  color: color-mix(in srgb, var(--writer-text) 55%, transparent);
+}
+
+.save-status-indicator[data-kind="saved"]:not([data-recent="true"])
+  .save-status-indicator-chip {
+  opacity: 0.55;
+}
+
+.save-status-indicator[data-kind="dirty"] .save-status-indicator-chip {
+  color: var(--writer-muted);
+}
+
+.save-status-indicator[data-kind="saving"] .save-status-indicator-chip {
+  color: var(--writer-text);
+}
+
+.save-status-indicator[data-kind="error"] .save-status-indicator-chip {
+  color: var(--writer-danger, #d05252);
+  cursor: pointer;
+}
+
+.save-status-indicator[data-kind="error"] .save-status-indicator-chip:hover {
+  background: color-mix(in srgb, var(--writer-danger, #d05252) 12%, transparent);
+}
+
+.save-status-spinner {
+  animation: save-status-spin 0.9s linear infinite;
+}
+
+@keyframes save-status-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .save-status-spinner {
+    animation: none;
+  }
+}
+
+.save-status-indicator-detail {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  max-width: 320px;
+  padding: 8px 10px;
+  border: 1px solid var(--writer-rule-strong);
+  border-radius: 6px;
+  background: var(--writer-editor-bg);
+  box-shadow: 0 12px 36px var(--writer-shadow);
+  color: var(--writer-text);
+  font-size: 11px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .writer-command-bar {
@@ -2369,6 +2502,124 @@ body.is-resizing-writer-pane * {
 
 .live-mdx-editor .mdxeditor-popup-container {
   font-family: var(--writer-ui-font);
+}
+
+/* Custom link edit dialog (WriterLinkDialog, injected via linkDialogPlugin).
+   Our own component + classes — not an override of MDXEditor internals. Matches
+   the app's other floating surfaces and adapts to the theme. */
+.writer-link-dialog {
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  width: 280px;
+  padding: 10px;
+  border: 1px solid var(--writer-rule-strong);
+  border-radius: 9px;
+  background: var(--writer-editor-bg);
+  box-shadow: 0 16px 44px var(--writer-shadow);
+  color: var(--writer-text);
+  font-family: var(--writer-ui-font);
+}
+
+.writer-link-dialog-arrow {
+  fill: var(--writer-editor-bg);
+}
+
+.writer-link-dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.writer-link-dialog-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.writer-link-dialog-field > span {
+  color: var(--writer-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.writer-link-dialog-field input {
+  height: 30px;
+  padding: 0 9px;
+  border: 1px solid var(--writer-rule-strong);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--writer-text);
+  font-family: var(--writer-ui-font);
+  font-size: 12px;
+  outline: none;
+}
+
+.writer-link-dialog-field input:focus-visible {
+  border-color: color-mix(in srgb, var(--writer-text) 45%, transparent);
+}
+
+.writer-link-dialog-field input::placeholder {
+  color: color-mix(in srgb, var(--writer-muted) 70%, transparent);
+}
+
+.writer-link-dialog-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.writer-link-dialog-actions-primary {
+  display: inline-flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.writer-link-dialog-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--writer-muted);
+  font-family: var(--writer-ui-font);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.writer-link-dialog-button:hover,
+.writer-link-dialog-button:focus-visible {
+  background: var(--writer-control-hover);
+  color: var(--writer-text);
+  outline: none;
+}
+
+.writer-link-dialog-button.is-primary {
+  background: color-mix(in srgb, var(--writer-text) 88%, transparent);
+  color: var(--writer-editor-bg);
+}
+
+.writer-link-dialog-button.is-primary:hover,
+.writer-link-dialog-button.is-primary:focus-visible {
+  background: var(--writer-text);
+  color: var(--writer-editor-bg);
+}
+
+.writer-link-dialog-button.is-danger {
+  color: var(--writer-danger, #d05252);
+}
+
+.writer-link-dialog-button.is-danger:hover,
+.writer-link-dialog-button.is-danger:focus-visible {
+  background: color-mix(in srgb, var(--writer-danger, #d05252) 12%, transparent);
+  color: var(--writer-danger, #d05252);
 }
 
 .live-mdx-content {

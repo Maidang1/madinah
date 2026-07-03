@@ -1,11 +1,13 @@
 export const ASSET_UPLOAD_SECRET_PLACEHOLDER = "********";
 export const DEFAULT_ASSET_UPLOAD_MAX_BYTES = 25 * 1024 * 1024;
 
+export type AssetUploadProvider = "cloudflare-r2-worker";
+
 export interface AssetUploadSettings {
-  accountId: string;
-  bucket: string;
-  accessKeyId: string;
-  secretAccessKey: string;
+  schemaVersion: 2;
+  provider: AssetUploadProvider;
+  endpoint: string;
+  apiKey: string;
   publicBaseUrl: string;
   prefix: string;
   maxBytes: number;
@@ -32,10 +34,10 @@ export interface AssetImageUploadResult {
 
 export function createDefaultAssetUploadSettings(): AssetUploadSettings {
   return {
-    accountId: "",
-    bucket: "madinah-assets",
-    accessKeyId: "",
-    secretAccessKey: "",
+    schemaVersion: 2,
+    provider: "cloudflare-r2-worker",
+    endpoint: "",
+    apiKey: "",
     publicBaseUrl: "https://assets.felixwliu.cn",
     prefix: "images/writer",
     maxBytes: DEFAULT_ASSET_UPLOAD_MAX_BYTES,
@@ -49,12 +51,13 @@ export function normalizeAssetUploadSettings(
   if (!isRecord(value)) return fallback;
 
   return {
-    accountId: normalizeString(value.accountId),
-    bucket: normalizeString(value.bucket) || fallback.bucket,
-    accessKeyId: normalizeString(value.accessKeyId),
-    secretAccessKey: normalizeString(value.secretAccessKey),
+    schemaVersion: 2,
+    provider: normalizeProvider(value.provider),
+    endpoint: normalizeBaseUrl(value.endpoint),
+    apiKey: normalizeString(value.apiKey),
     publicBaseUrl:
-      normalizePublicBaseUrl(value.publicBaseUrl) || fallback.publicBaseUrl,
+      normalizeBaseUrl(value.publicBaseUrl ?? value.customDomain) ||
+      fallback.publicBaseUrl,
     prefix: normalizePrefix(value.prefix) || fallback.prefix,
     maxBytes: normalizeMaxBytes(value.maxBytes, fallback.maxBytes),
   };
@@ -64,11 +67,10 @@ export function hasRequiredAssetUploadSettings(
   settings: AssetUploadSettings,
 ): boolean {
   return Boolean(
-    settings.accountId.trim() &&
-      settings.bucket.trim() &&
-      settings.accessKeyId.trim() &&
-      settings.secretAccessKey.trim() &&
-      settings.secretAccessKey !== ASSET_UPLOAD_SECRET_PLACEHOLDER &&
+    settings.provider &&
+      settings.endpoint.trim() &&
+      settings.apiKey.trim() &&
+      settings.apiKey !== ASSET_UPLOAD_SECRET_PLACEHOLDER &&
       settings.publicBaseUrl.trim(),
   );
 }
@@ -80,10 +82,10 @@ export function mergeAssetUploadSettingsForSave(
   const normalizedDraft = normalizeAssetUploadSettings(draft);
   const normalizedCurrent = normalizeAssetUploadSettings(current);
 
-  if (normalizedDraft.secretAccessKey === ASSET_UPLOAD_SECRET_PLACEHOLDER) {
+  if (normalizedDraft.apiKey === ASSET_UPLOAD_SECRET_PLACEHOLDER) {
     return {
       ...normalizedDraft,
-      secretAccessKey: normalizedCurrent.secretAccessKey,
+      apiKey: normalizedCurrent.apiKey,
     };
   }
 
@@ -95,17 +97,19 @@ export function maskAssetUploadSecret(
 ): AssetUploadSettings {
   return {
     ...settings,
-    secretAccessKey: settings.secretAccessKey
-      ? ASSET_UPLOAD_SECRET_PLACEHOLDER
-      : "",
+    apiKey: settings.apiKey ? ASSET_UPLOAD_SECRET_PLACEHOLDER : "",
   };
+}
+
+function normalizeProvider(_value: unknown): AssetUploadProvider {
+  return "cloudflare-r2-worker";
 }
 
 function normalizeString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function normalizePublicBaseUrl(value: unknown): string {
+function normalizeBaseUrl(value: unknown): string {
   return normalizeString(value).replace(/\/+$/u, "");
 }
 

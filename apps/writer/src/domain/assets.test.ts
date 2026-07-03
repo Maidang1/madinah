@@ -9,9 +9,11 @@ import {
 } from "./assets";
 
 describe("asset upload settings", () => {
-  it("uses the Madinah R2 asset defaults", () => {
+  it("uses the Madinah worker asset defaults", () => {
     expect(createDefaultAssetUploadSettings()).toMatchObject({
-      bucket: "madinah-assets",
+      schemaVersion: 2,
+      provider: "cloudflare-r2-worker",
+      endpoint: "",
       publicBaseUrl: "https://assets.felixwliu.cn",
       prefix: "images/writer",
       maxBytes: 25 * 1024 * 1024,
@@ -21,63 +23,81 @@ describe("asset upload settings", () => {
   it("normalizes stored values and clamps max bytes", () => {
     expect(
       normalizeAssetUploadSettings({
-        accountId: " account ",
-        bucket: "",
-        accessKeyId: " key ",
-        secretAccessKey: " secret ",
+        provider: "cloudflare-r2-worker",
+        endpoint: " https://upload.example.com/ ",
+        apiKey: " key ",
         publicBaseUrl: "https://assets.example.com/",
         prefix: "/images/paste/",
         maxBytes: 1,
       }),
     ).toMatchObject({
-      accountId: "account",
-      bucket: "madinah-assets",
-      accessKeyId: "key",
-      secretAccessKey: "secret",
+      schemaVersion: 2,
+      provider: "cloudflare-r2-worker",
+      endpoint: "https://upload.example.com",
+      apiKey: "key",
       publicBaseUrl: "https://assets.example.com",
       prefix: "images/paste",
       maxBytes: 1024,
     });
   });
 
-  it("masks and preserves existing secrets", () => {
+  it("migrates legacy R2 settings to the worker shape", () => {
+    expect(
+      normalizeAssetUploadSettings({
+        accountId: "legacy-account",
+        bucket: "legacy-bucket",
+        accessKeyId: "legacy-access-key",
+        secretAccessKey: "legacy-secret",
+        publicBaseUrl: "https://assets.example.com/",
+        prefix: "/images/legacy/",
+        maxBytes: 2048,
+      }),
+    ).toMatchObject({
+      endpoint: "",
+      apiKey: "",
+      publicBaseUrl: "https://assets.example.com",
+      prefix: "images/legacy",
+      maxBytes: 2048,
+    });
+  });
+
+  it("masks and preserves existing API keys", () => {
     const current = {
       ...createDefaultAssetUploadSettings(),
-      secretAccessKey: "stored-secret",
+      endpoint: "https://upload.example.com",
+      apiKey: "stored-key",
     };
     const draft = {
       ...current,
-      secretAccessKey: ASSET_UPLOAD_SECRET_PLACEHOLDER,
+      apiKey: ASSET_UPLOAD_SECRET_PLACEHOLDER,
       prefix: "images/new",
     };
 
-    expect(maskAssetUploadSecret(current).secretAccessKey).toBe(
+    expect(maskAssetUploadSecret(current).apiKey).toBe(
       ASSET_UPLOAD_SECRET_PLACEHOLDER,
     );
     expect(mergeAssetUploadSettingsForSave(draft, current)).toMatchObject({
-      secretAccessKey: "stored-secret",
+      apiKey: "stored-key",
       prefix: "images/new",
     });
   });
 
-  it("requires complete unmasked credentials before upload", () => {
+  it("requires a complete unmasked endpoint and API key before upload", () => {
     const settings = createDefaultAssetUploadSettings();
 
     expect(hasRequiredAssetUploadSettings(settings)).toBe(false);
     expect(
       hasRequiredAssetUploadSettings({
         ...settings,
-        accountId: "account",
-        accessKeyId: "key",
-        secretAccessKey: "secret",
+        endpoint: "https://upload.example.com",
+        apiKey: "key",
       }),
     ).toBe(true);
     expect(
       hasRequiredAssetUploadSettings({
         ...settings,
-        accountId: "account",
-        accessKeyId: "key",
-        secretAccessKey: ASSET_UPLOAD_SECRET_PLACEHOLDER,
+        endpoint: "https://upload.example.com",
+        apiKey: ASSET_UPLOAD_SECRET_PLACEHOLDER,
       }),
     ).toBe(false);
   });

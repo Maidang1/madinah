@@ -198,7 +198,7 @@ export function WriterSettingsDialog({
   const hasBlockingErrors = activeTab === "ai" && hasEnvErrors;
   const settingsSubtitle =
     activeTab === "assets"
-      ? "Cloudflare R2 assets"
+      ? "Upload service assets"
       : activeTab === "ai"
         ? "ACP local agent"
         : "Markdown editing";
@@ -345,40 +345,39 @@ export function WriterSettingsDialog({
             ) : (
               <>
                 <label className="writer-settings-field">
-                  <span>Account ID</span>
-                  <input
-                    value={assetDraft.accountId}
+                  <span>Provider</span>
+                  <select
+                    className="writer-settings-select"
+                    value={assetDraft.provider}
                     onChange={(event) =>
-                      updateAssetDraft({ accountId: event.target.value })
+                      updateAssetDraft({
+                        provider: event.currentTarget.value as typeof assetDraft.provider,
+                      })
                     }
-                    spellCheck={false}
-                  />
+                  >
+                    <option value="cloudflare-r2-worker">
+                      Cloudflare R2 Worker
+                    </option>
+                  </select>
                 </label>
                 <label className="writer-settings-field">
-                  <span>Bucket</span>
+                  <span>Endpoint</span>
                   <input
-                    value={assetDraft.bucket}
-                    onChange={(event) => updateAssetDraft({ bucket: event.target.value })}
-                    spellCheck={false}
-                  />
-                </label>
-                <label className="writer-settings-field">
-                  <span>Access Key ID</span>
-                  <input
-                    value={assetDraft.accessKeyId}
+                    value={assetDraft.endpoint}
                     onChange={(event) =>
-                      updateAssetDraft({ accessKeyId: event.target.value })
+                      updateAssetDraft({ endpoint: event.target.value })
                     }
+                    placeholder="https://writer-assets.example.workers.dev"
                     spellCheck={false}
                   />
                 </label>
                 <label className="writer-settings-field">
-                  <span>Secret Access Key</span>
+                  <span>API Key</span>
                   <input
                     type="password"
-                    value={assetDraft.secretAccessKey}
+                    value={assetDraft.apiKey}
                     onChange={(event) =>
-                      updateAssetDraft({ secretAccessKey: event.target.value })
+                      updateAssetDraft({ apiKey: event.target.value })
                     }
                     spellCheck={false}
                   />

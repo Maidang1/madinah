@@ -1,4 +1,3 @@
-import type { S3Client } from "@aws-sdk/client-s3";
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
@@ -27,6 +26,7 @@ import type {
   AssetImageUploadInput,
   AssetImageUploadResult,
   AssetUploadCheckResult,
+  AssetUploadProvider,
   AssetUploadSettings,
 } from "../../src/domain/assets";
 import type { MarkdownDocument } from "../../src/domain/document";
@@ -68,7 +68,8 @@ interface PackageManifest {
 const CONFIG_DIR = ".madinah-writer";
 const CONFIG_FILE = "config.json";
 const SECRET_PLACEHOLDER = "********";
-const DEFAULT_BUCKET = "madinah-assets";
+const DEFAULT_ASSET_PROVIDER: AssetUploadProvider = "cloudflare-r2-worker";
+const DEFAULT_ASSET_ENDPOINT = "";
 const DEFAULT_PUBLIC_BASE_URL = "https://assets.felixwliu.cn";
 const DEFAULT_PREFIX = "images/writer";
 const DEFAULT_MAX_BYTES = 25 * 1024 * 1024;
@@ -471,8 +472,7 @@ export async function checkAssetUploadSettings(
 
   try {
     validateCompleteAssetUploadSettings(next);
-    const { client, sdk } = await r2Client(next);
-    await client.send(new sdk.HeadBucketCommand({ Bucket: next.bucket }));
+    await assetUploadProvider(next.provider).check(next);
     return { ok: true, message: "Connected" };
   } catch (error) {
     return { ok: false, message: errorMessage(error) };
@@ -499,16 +499,11 @@ export async function uploadAssetImage(
     now.getUTCMonth() + 1,
   );
 
-  const { client, sdk } = await r2Client(settings);
-  await client.send(
-    new sdk.PutObjectCommand({
-      Bucket: settings.bucket,
-      Key: key,
-      Body: bytes,
-      ContentType: input.contentType,
-      CacheControl: CACHE_CONTROL_IMMUTABLE,
-    }),
-  );
+  await assetUploadProvider(settings.provider).uploadImage(settings, {
+    key,
+    bytes,
+    contentType: input.contentType,
+  });
 
   return {
     key,
@@ -520,10 +515,10 @@ export async function uploadAssetImage(
 
 export function defaultAssetUploadSettings(): AssetUploadSettings {
   return {
-    accountId: "",
-    bucket: DEFAULT_BUCKET,
-    accessKeyId: "",
-    secretAccessKey: "",
+    schemaVersion: 2,
+    provider: DEFAULT_ASSET_PROVIDER,
+    endpoint: DEFAULT_ASSET_ENDPOINT,
+    apiKey: "",
     publicBaseUrl: DEFAULT_PUBLIC_BASE_URL,
     prefix: DEFAULT_PREFIX,
     maxBytes: DEFAULT_MAX_BYTES,
@@ -555,26 +550,30 @@ export async function saveAssetUploadSettingsToFile(
 }
 
 export function normalizeAssetUploadSettings(
-  settings: AssetUploadSettings,
+  settings: unknown,
 ): AssetUploadSettings {
   const fallback = defaultAssetUploadSettings();
+  if (!isRecord(settings)) return fallback;
+
   return {
-    accountId: settings.accountId.trim(),
-    bucket: fallbackIfEmpty(settings.bucket.trim(), fallback.bucket),
-    accessKeyId: settings.accessKeyId.trim(),
-    secretAccessKey: settings.secretAccessKey.trim(),
+    schemaVersion: 2,
+    provider: normalizeAssetUploadProvider(settings.provider),
+    endpoint: fallbackIfEmpty(
+      normalizeBaseUrl(settings.endpoint),
+      fallback.endpoint,
+    ),
+    apiKey: normalizeString(settings.apiKey),
     publicBaseUrl: fallbackIfEmpty(
-      settings.publicBaseUrl.trim().replace(/\/+$/u, ""),
+      normalizeBaseUrl(settings.publicBaseUrl ?? settings.customDomain),
       fallback.publicBaseUrl,
     ),
     prefix: fallbackIfEmpty(
-      settings.prefix.trim().replace(/\\/gu, "/").replace(/^\/+|\/+$/gu, ""),
+      normalizeString(settings.prefix)
+        .replace(/\\/gu, "/")
+        .replace(/^\/+|\/+$/gu, ""),
       fallback.prefix,
     ),
-    maxBytes: Math.max(
-      1024,
-      Math.min(MAX_ALLOWED_BYTES, Math.round(settings.maxBytes)),
-    ),
+    maxBytes: normalizeAssetMaxBytes(settings.maxBytes, fallback.maxBytes),
   };
 }
 
@@ -582,10 +581,10 @@ export function preservePlaceholderSecret(
   settings: AssetUploadSettings,
   current: AssetUploadSettings,
 ): AssetUploadSettings {
-  if (settings.secretAccessKey.trim() === SECRET_PLACEHOLDER) {
+  if (settings.apiKey.trim() === SECRET_PLACEHOLDER) {
     return {
       ...settings,
-      secretAccessKey: current.secretAccessKey,
+      apiKey: current.apiKey,
     };
   }
 
@@ -597,7 +596,7 @@ export function maskAssetUploadSecret(
 ): AssetUploadSettings {
   return {
     ...settings,
-    secretAccessKey: settings.secretAccessKey ? SECRET_PLACEHOLDER : "",
+    apiKey: settings.apiKey ? SECRET_PLACEHOLDER : "",
   };
 }
 
@@ -851,10 +850,6 @@ function isPathInside(child: string, parent: string): boolean {
   return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
 }
 
-function hashString(value: string): string {
-  return createHash("sha256").update(value).digest("hex");
-}
-
 function hashBytes(value: Buffer): string {
   return createHash("sha256").update(value).digest("hex");
 }
@@ -1047,48 +1042,21 @@ async function readStoredAssetUploadSettingsFromPath(
   settingsPath: string,
 ): Promise<AssetUploadSettings> {
   if (!(await pathExists(settingsPath))) return defaultAssetUploadSettings();
-  const settings = await readJsonFile<AssetUploadSettings>(settingsPath);
+  const settings = await readJsonFile<unknown>(settingsPath);
   const normalized = normalizeAssetUploadSettings(settings);
   validateSafeAssetUploadSettingsShape(normalized);
   return normalized;
 }
 
-// The AWS SDK is heavy; load it on first use instead of at app startup, and
-// reuse the client (connection pool) across calls until settings change.
-let r2ClientCache: { key: string; client: S3Client } | null = null;
-
-async function r2Client(settings: AssetUploadSettings) {
-  const sdk = await import("@aws-sdk/client-s3");
-  const key = hashString(
-    [
-      settings.accountId,
-      settings.accessKeyId,
-      settings.secretAccessKey,
-    ].join(" "),
-  );
-
-  if (r2ClientCache?.key !== key) {
-    r2ClientCache?.client.destroy();
-    r2ClientCache = {
-      key,
-      client: new sdk.S3Client({
-        endpoint: `https://${settings.accountId}.r2.cloudflarestorage.com`,
-        region: "auto",
-        credentials: {
-          accessKeyId: settings.accessKeyId,
-          secretAccessKey: settings.secretAccessKey,
-        },
-        forcePathStyle: true,
-      }),
-    };
-  }
-
-  return { client: r2ClientCache.client, sdk };
-}
-
 function validateSafeAssetUploadSettingsShape(
   settings: AssetUploadSettings,
 ): void {
+  if (settings.provider !== "cloudflare-r2-worker") {
+    throw new Error(`Unsupported asset upload provider: ${settings.provider}`);
+  }
+  if (settings.endpoint && !isHttpUrl(settings.endpoint)) {
+    throw new Error("Asset upload endpoint must start with http:// or https://");
+  }
   sanitizeAssetPrefix(settings.prefix);
   if (
     !settings.publicBaseUrl.startsWith("https://") &&
@@ -1096,21 +1064,77 @@ function validateSafeAssetUploadSettingsShape(
   ) {
     throw new Error("Public asset URL must start with http:// or https://");
   }
-  if (settings.accountId.includes("/") || settings.accountId.includes("\\")) {
-    throw new Error("Cloudflare account id is invalid");
-  }
 }
 
 function validateCompleteAssetUploadSettings(
   settings: AssetUploadSettings,
 ): void {
   validateSafeAssetUploadSettingsShape(settings);
-  if (!settings.accountId) throw new Error("Cloudflare account id is required");
-  if (!settings.bucket) throw new Error("R2 bucket is required");
-  if (!settings.accessKeyId) throw new Error("R2 access key id is required");
-  if (!settings.secretAccessKey || settings.secretAccessKey === SECRET_PLACEHOLDER) {
-    throw new Error("R2 secret access key is required");
+  if (!settings.endpoint) throw new Error("Asset upload endpoint is required");
+  if (!settings.apiKey || settings.apiKey === SECRET_PLACEHOLDER) {
+    throw new Error("Asset upload API key is required");
   }
+}
+
+interface AssetProviderUploadInput {
+  key: string;
+  bytes: Buffer;
+  contentType: string;
+}
+
+interface AssetUploadProviderAdapter {
+  check(settings: AssetUploadSettings): Promise<void>;
+  uploadImage(
+    settings: AssetUploadSettings,
+    input: AssetProviderUploadInput,
+  ): Promise<void>;
+}
+
+const cloudflareR2WorkerAssetUploadProvider: AssetUploadProviderAdapter = {
+  async check(settings) {
+    const response = await fetch(assetEndpointUrl(settings.endpoint, "health"), {
+      headers: {
+        "x-api-key": settings.apiKey,
+      },
+    });
+    await assertAssetUploadResponse(response, "Asset upload service check failed");
+  },
+  async uploadImage(settings, input) {
+    const response = await fetch(assetEndpointUrl(settings.endpoint, input.key), {
+      method: "PUT",
+      headers: {
+        "cache-control": CACHE_CONTROL_IMMUTABLE,
+        "content-type": input.contentType,
+        "x-api-key": settings.apiKey,
+      },
+      body: new Uint8Array(input.bytes),
+    });
+    await assertAssetUploadResponse(response, "Image upload failed");
+  },
+};
+
+const ASSET_UPLOAD_PROVIDERS: Record<
+  AssetUploadProvider,
+  AssetUploadProviderAdapter
+> = {
+  "cloudflare-r2-worker": cloudflareR2WorkerAssetUploadProvider,
+};
+
+function assetUploadProvider(
+  provider: AssetUploadProvider,
+): AssetUploadProviderAdapter {
+  return ASSET_UPLOAD_PROVIDERS[provider];
+}
+
+async function assertAssetUploadResponse(
+  response: Response,
+  fallback: string,
+): Promise<void> {
+  if (response.ok) return;
+
+  const body = await response.text().catch(() => "");
+  const message = body.trim() || response.statusText || fallback;
+  throw new Error(`${fallback}: ${response.status} ${message}`);
 }
 
 function validateImagePayload(
@@ -1179,6 +1203,44 @@ function safeFileStem(name: string): string {
 
 function fallbackIfEmpty(value: string, fallback: string): string {
   return value.trim() || fallback;
+}
+
+function normalizeAssetUploadProvider(value: unknown): AssetUploadProvider {
+  return value === "cloudflare-r2-worker"
+    ? "cloudflare-r2-worker"
+    : DEFAULT_ASSET_PROVIDER;
+}
+
+function normalizeString(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function normalizeBaseUrl(value: unknown): string {
+  return normalizeString(value).replace(/\/+$/u, "");
+}
+
+function normalizeAssetMaxBytes(value: unknown, fallback: number): number {
+  const numeric = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(numeric)) return fallback;
+  return Math.max(1024, Math.min(MAX_ALLOWED_BYTES, Math.round(numeric)));
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function isHttpUrl(value: string): boolean {
+  return value.startsWith("https://") || value.startsWith("http://");
+}
+
+function assetEndpointUrl(endpoint: string, key: string): string {
+  const baseUrl = endpoint.trim().replace(/\/+$/u, "");
+  const pathName = key
+    .replace(/^\/+/u, "")
+    .split("/")
+    .map((part) => encodeURIComponent(part))
+    .join("/");
+  return `${baseUrl}/${pathName}`;
 }
 
 function publicAssetUrl(baseUrl: string, key: string): string {

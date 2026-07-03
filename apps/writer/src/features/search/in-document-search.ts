@@ -99,6 +99,57 @@ export function getNthTextMatch(
   return null;
 }
 
+/**
+ * Replaces the `occurrenceIndex`-th match of `query` in `source` with
+ * `replacement`, returning the rewritten source. Returns the original source
+ * unchanged when the match cannot be located.
+ */
+export function replaceNthInSource(
+  source: string,
+  query: string,
+  replacement: string,
+  occurrenceIndex: number,
+  options: DocumentSearchOptions = {},
+): string {
+  const match = getNthTextMatch(source, query, occurrenceIndex, options);
+  if (!match) return source;
+  return source.slice(0, match.start) + replacement + source.slice(match.end);
+}
+
+/**
+ * Replaces every match of `query` in `source` with `replacement`. Scans left to
+ * right on the original string and rebuilds the result, so overlapping is
+ * avoided and positions never shift mid-pass. A non-matching or empty query
+ * returns the source unchanged.
+ */
+export function replaceAllInSource(
+  source: string,
+  query: string,
+  replacement: string,
+  options: DocumentSearchOptions = {},
+): { source: string; count: number } {
+  if (!query) return { source, count: 0 };
+
+  const haystack = options.caseSensitive ? source : source.toLowerCase();
+  const needle = options.caseSensitive ? query : query.toLowerCase();
+  const step = Math.max(needle.length, 1);
+
+  let result = "";
+  let cursor = 0;
+  let count = 0;
+  let found = haystack.indexOf(needle);
+
+  while (found >= 0) {
+    result += source.slice(cursor, found) + replacement;
+    cursor = found + query.length;
+    count += 1;
+    found = haystack.indexOf(needle, found + step);
+  }
+
+  result += source.slice(cursor);
+  return { source: result, count };
+}
+
 export function getCenteredSearchScrollTop(input: SearchScrollInput): number {
   return Math.max(
     0,

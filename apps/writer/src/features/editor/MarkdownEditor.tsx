@@ -22,6 +22,7 @@ import {
   getImageFilesFromClipboardData,
   getMarkdownTextFromClipboardData,
 } from "./clipboard";
+import { getWrappedSelection, isWrappingKey } from "./wrap-selection";
 import {
   createSourceModeEditorPlugin,
   EMPTY_BLOCK_MARKER,
@@ -280,6 +281,33 @@ export function MarkdownEditor({
 
   const handleEditorKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLDivElement>) => {
+      // Wrap the current selection when a paired symbol is typed over it.
+      // Only in rich-text mode (CodeMirror handles its own bracket matching in
+      // source mode) and only for a bare keypress with no modifiers.
+      if (
+        editorMode === "rich-text" &&
+        !event.metaKey &&
+        !event.ctrlKey &&
+        !event.altKey &&
+        isWrappingKey(event.key)
+      ) {
+        const selection = window.getSelection();
+        const range = getSelectionRangeInside(shellRef.current, selection);
+        if (range && selection) {
+          const wrapped = getWrappedSelection(event.key, selection.toString());
+          if (wrapped) {
+            event.preventDefault();
+            event.stopPropagation();
+            // execCommand("insertText") routes through Lexical's beforeinput
+            // handling, so the wrap lands as plain text and stays on the
+            // native undo stack. (`document` here is the component prop, so use
+            // the global explicitly.)
+            window.document.execCommand("insertText", false, wrapped.text);
+            return;
+          }
+        }
+      }
+
       if (!slashMenu) return;
 
       if (event.key === "Escape") {
@@ -333,7 +361,7 @@ export function MarkdownEditor({
         void runSlashCommand(item);
       }
     },
-    [closeSlashMenu, runSlashCommand, slashCommandResults, slashMenu],
+    [closeSlashMenu, editorMode, runSlashCommand, slashCommandResults, slashMenu],
   );
 
   useEffect(() => {

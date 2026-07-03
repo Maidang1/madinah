@@ -22,6 +22,16 @@ describe("writer keyboard shortcuts", () => {
     expect(
       getWriterKeyboardShortcutAction({ key: "f", metaKey: true }),
     ).toEqual({ kind: "document-search" });
+    expect(
+      getWriterKeyboardShortcutAction({
+        key: "f",
+        metaKey: true,
+        shiftKey: true,
+      }),
+    ).toEqual({ kind: "document-replace" });
+    expect(
+      getWriterKeyboardShortcutAction({ key: "s", metaKey: true }),
+    ).toEqual({ kind: "save" });
   });
 
   it("routes document and formatting shortcuts through command ids", () => {
@@ -30,7 +40,7 @@ describe("writer keyboard shortcuts", () => {
     ).toEqual({ kind: "command", commandId: "document.new" });
     expect(
       getWriterKeyboardShortcutAction({ key: "s", metaKey: true }),
-    ).toEqual({ kind: "none" });
+    ).toEqual({ kind: "save" });
     expect(
       getWriterKeyboardShortcutAction({
         key: "s",
