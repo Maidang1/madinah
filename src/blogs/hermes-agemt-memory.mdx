@@ -1,0 +1,1649 @@
+---
+title: Hermes Agent 的 AI 内置学习闭环：工程机制、理论依据与验证方法
+author: Madinah
+description: 系统梳理 Hermes Agent 的记忆与自进化闭环，形式化其学习对象，将机制映射到源码组件，回顾理论依据（Reflexion / Generative Agents / Voyager / ExpeL 等），并给出参考实现与验证方法。
+tags:
+  - Agent
+pubDate: 2026-07-01 17:04:32
+status: published
+---
+
+## 摘要
+
+Hermes Agent 中的「自进化」不应被理解为模型权重在运行时自动更新，也不属于严格意义上的 recursive self-improvement。更准确的定义是：
+
+> Hermes 通过持久化记忆、用户画像、过程性技能、历史会话检索与外部 memory provider，将每次交互经验转化为后续任务可召回、可注入、可复用的外部状态，从而改变 Agent 的有效行为策略。
+
+因此，它的学习闭环并非传统的参数更新范式：
+
+```text
+数据 D → 更新模型参数 θ → 新模型 πθ
+```
+
+而是外部状态驱动的行为适应：
+
+```text
+交互经验 E_t
+  → 写入 Memory / USER / Skill / SessionDB
+  → 下次任务时检索并注入
+  → 改变 prompt、工具选择、执行流程
+  → 得到新的行为
+```
+
+形式化地表述为「固定模型参数 + 可变外部状态」：
+
+```text
+固定模型参数 θ + 可变外部状态 S_t → Agent 策略 π(· | x, θ, S_t)
+```
+
+只要 `S_t` 随经验更新，且该更新会影响下一次模型行为，那么从系统视角看，Agent 便在学习。这是一种 **Agent-level online adaptation**，亦可称为**非参数化学习 / 外部记忆驱动学习 / 过程性技能驱动学习**。
+
+本报告围绕这一命题展开：先厘清自进化的概念脉络与近期兴起的原因，再交代 Hermes 的学习对象与三层记忆结构，随后将各机制逐一映射到源码组件，接着系统回顾其理论依据（Reflexion、Generative Agents、Voyager、ExpeL、MemoryBank、MemGPT、Mem0、Self-Refine），最后给出可复现的参考实现、验证方法与设计边界。
+
+---
+
+## 一、什么是自进化
+
+自进化并非 2025 年才出现的新概念，其思想来源大致可归纳为三条脉络。
+
+**理论上的自我改写。** 早期已有 Gödel Machine 一类构想：系统在证明某项自我改写有益后，重写自身代码。这类工作奠定了「系统可以有原则地修改自身」的理论基础。
+
+**AutoML / NAS / 自博弈。** 深度学习时代，研究者开始让机器自动搜索模型结构、超参数或策略。例如 Neural Architecture Search 使用 RNN 生成神经网络结构，并以验证集准确率为信号通过强化学习优化架构；AlphaZero 则通过 self-play 从零学习棋类策略，不依赖任何人类棋谱。
+
+**LLM + Agent 之后，自进化成为工程系统。** LLM 出现后，AI 不再局限于调整参数，而是可以直接生成代码、修改 prompt、编写测试、调用工具、总结失败原因。Reflexion 一类工作使 Agent 在不更新权重的前提下，通过语言反馈和记忆改进后续决策。
+
+### 1.1 为什么最近突然兴起
+
+核心原因在于：**过去「进化」的每一步都依赖人工，如今许多步骤可以由 Agent 自动完成。**
+
+**其一，LLM 终于能够「产生可执行变体」。** 过去 AI 难以自主改造系统，如今 LLM 可以修改代码、配置、prompt，并编写测试和实验脚本。AlphaEvolve 的关键正是让模型提出程序，再由评估器自动验证、打分、保存，并持续迭代。
+
+**其二，软件工程天然适合自进化。** 代码具备单元测试、benchmark、lint、类型检查、CI、SWE-bench 等验证手段，因此 AI 完成修改后能够较为客观地判断「是否变好」。Darwin Gödel Machine 即为代表：它让 coding agent 读写自身的 Python 代码，并以 SWE-bench、Polyglot 等任务评估改动效果——报告中 SWE-bench 得分从 20.0% 提升至 50.0%。
+
+**其三，Agent 工程化逐步成熟。** 关注点已从单一模型转向完整系统：任务分解、工具调用、记忆、评测、trace、人工反馈、LLM-as-judge、回滚机制等。OpenAI 的 self-evolving agents cookbook 将该过程描述为一个闭环：基线 Agent → 人类反馈或 LLM-as-judge → eval 聚合评分 → 生成新 prompt / 新策略 → 重复优化。
+
+---
+
+## 二、Hermes 的学习对象：不是模型参数，而是 Agent 外部状态
+
+传统机器学习中，「学习」通常意味着更新模型参数 `θ_t → θ_{t+1}`。Hermes 这类系统并不如此，其学习更接近外部状态的迭代 `S_t → S_{t+1}`——其中 `θ` 是固定的 LLM 参数，`S_t` 是外部可变状态。
+
+每一轮 Agent 的行为可抽象为：
+
+```text
+y_t = πθ(x_t, R(S_t, x_t))
+```
+
+各符号含义如下：
+
+```text
+x_t          = 当前用户输入
+S_t          = 外部状态：长期记忆、用户画像、技能库、历史会话、外部 memory provider
+R(S_t, x_t)  = 根据当前任务从外部状态中召回相关上下文
+πθ           = 固定 LLM 参数下的生成策略
+```
+
+任务结束后，系统通过复盘与保存机制更新状态：
+
+```text
+S_{t+1} = U(S_t, x_t, y_t, feedback_t, trace_t)
+```
+
+若在某类任务分布 `D` 上满足 `E[Reward(A_{t+1}, D)] > E[Reward(A_t, D)]`，即可判定该 Agent 发生了有效学习。此处关键并非 `θ` 改变，而是 `S_t` 改变，且该改变影响了后续策略。
+
+> **结论先行：** Hermes 的学习闭环有明确的论文范式支撑，理论上站得住；但这些论文提供的是**架构范式与实证证据**，并非「只要写 memory / skill，Agent 就一定单调变强」的数学保证。它究竟是否越用越好，仍需通过 before/after eval、memory/skill ablation、重复错误率、用户偏好命中率等实验来证明。
+
+---
+
+## 三、Hermes 的三层记忆协作
+
+Hermes 的学习闭环可理解为三类记忆的协作：
+
+```text
+MEMORY.md / USER.md  → 长期事实与用户偏好
+skills/              → 可复用做法与过程性知识
+state.db             → 完整历史证据与会话轨迹
+```
+
+在此之上，再叠加外部 memory provider：
+
+```text
+Honcho / Mem0 / RetainDB → 更强的跨会话画像、语义召回与长期用户建模
+```
+
+这四类机制共同构成 Hermes 的外部学习状态。其与认知模型的对应关系如下：
+
+| Hermes 组件 | 认知类比 | 作用 |
+| --- | --- | --- |
+| `MEMORY.md` | 语义记忆 / semantic memory | 存环境事实、项目经验、工具约定 |
+| `USER.md` | 用户模型 / preference model | 存用户偏好、表达习惯、长期约束 |
+| `skills/` | 过程性记忆 / procedural memory | 存「怎么做」的可复用流程 |
+| `state.db + session_search` | 情景记忆 / episodic memory | 存完整历史，保留证据链 |
+| Honcho / Mem0 / RetainDB | 外部长期记忆系统 | 做跨会话语义召回与画像维护 |
+
+因此 Hermes 的学习不是单点能力，而是「事实学习 + 偏好学习 + 流程学习 + 历史证据召回」的组合，比单纯「把聊天记录塞进 prompt」更接近一个完整的 Agent 记忆系统。
+
+---
+
+## 四、代码机制映射：Hermes 如何形成闭环
+
+上述文件可组织成一条完整闭环。
+
+### 4.1 持久化知识：MemoryStore
+
+`MemoryStore`（`tools/memory_tool.py`）将事实写入以下文件：
+
+```text
+~/.hermes/memories/MEMORY.md
+~/.hermes/memories/USER.md
+```
+
+- `MEMORY.md` 存环境经验、项目经验、工具怪癖与长期事实；
+- `USER.md` 存用户偏好画像、沟通风格与稳定约束。
+
+启动时（`agent/system_prompt.py`），这些内容会被读取并冻结为 system prompt 快照。这一步对应「长期状态 → prompt 条件 → 行为策略改变」：模型参数没变，但下一次决策所依据的条件变了。
+
+### 4.2 主动保存记忆：memory nudge + background review
+
+Hermes 的 system prompt 会要求模型将稳定偏好、工具怪癖、环境约定写入 memory；并且每隔 `memory.nudge_interval` 个用户回合触发一次后台 review——在响应发送给用户之后再行复盘保存（相关代码：`agent/prompt_builder.py`、`agent/turn_context.py`、`agent/turn_finalizer.py`）。
+
+这解决了一个核心问题：若仅依赖用户手动保存，Agent 的学习将非常稀疏；而一旦 Agent 能够自动复盘，学习便可持续发生。对应闭环为：
+
+```text
+用户交互
+  → Agent 完成任务
+  → 后台 review 判断哪些经验值得保存
+  → 写入 Memory / USER / Skill
+  → 下次启动或下次 turn 注入
+  → 行为改变
+```
+
+### 4.3 从经验创建技能：skill_manage
+
+`skill_manage`（`tools/skill_manager_tool.py`）支持以下操作，并将成功流程沉淀为完整的技能目录：
+
+```text
+create / patch / edit / delete / write_file
+  → SKILL.md + references/ + scripts/ + templates/ + assets/
+```
+
+若说 `MEMORY.md` 是「我知道了什么」，那么 `skills/` 便是「我以后应该怎么做」，更接近过程性记忆。
+
+例如在一次复杂任务中，Agent 发现某个流程行之有效：
+
+```text
+1. 先扫描仓库
+2. 生成 repo-map
+3. 梳理 request-flow
+4. 精读核心模块
+5. 最后写工程报告
+```
+
+若将该流程固化为 `SKILL.md`，下次遇到类似任务时，Agent 便无需重新摸索。这正是「经验 → 抽象流程 → 技能化 → 后续复用」，也是 Hermes 最接近「自进化」的地方。
+
+### 4.4 在使用中改进技能：skill review
+
+提示词要求模型在复杂任务、踩坑或用户纠正后保存或修补 skill；当工具调用迭代数达到 `skills.creation_nudge_interval` 时，也会触发后台 skill review（相关代码：`agent/prompt_builder.py`、`agent/conversation_loop.py`、`agent/background_review.py`）。
+
+这相当于让技能库不再是静态模板，而是随任务经验持续 patch 的动态资产。但此处也引入风险：若缺乏 eval、版本管理与回滚，skill 可能越改越乱。因此 skill review 既是学习闭环的核心，也是最需要质量控制的环节。
+
+### 4.5 手动学习入口：`/learn`
+
+`/learn`（`agent/learn_prompt.py`、`hermes_cli/cli_commands_mixin.py`）会把当前对话、目录、URL 或粘贴材料转成一次普通的 agent turn，然后让 agent 调用：
+
+```text
+skill_manage(action="create")
+```
+
+这一机制类似 supervised distillation。用户显式地告诉 Agent「这段经验值得学」，随后系统将其转化为 `SKILL.md + references / scripts / templates / assets`。如果说自动 background review 是弱监督，那么 `/learn` 便是强监督。
+
+### 4.6 搜索过往对话：SessionDB + session_search
+
+每轮消息都会落入 `SessionDB` 的 SQLite messages 表，并以 FTS5 / trigram 建立索引；`session_search` 支持按 query 发现、按 message id 滚动、按 session id 读取，以及浏览最近会话（相关代码：`hermes_state.py`、`run_agent.py`、`tools/session_search_tool.py`）。
+
+这使 Agent 不仅能保留摘要，还能回查证据——这一点至关重要，因为记忆摘要可能失真。若仅有 `MEMORY.md`，Agent 可能将错误总结写成长期事实；而一旦保留完整历史：
+
+```text
+记忆结论 → 回查原始会话 → 验证上下文 → 再决定是否采用
+```
+
+系统便从「盲目记忆」提升到了「可追溯记忆」。
+
+### 4.7 跨会话用户理解：MemoryProvider
+
+外部 memory provider 通过 `MemoryProvider` 接口（`agent/memory_provider.py`、`agent/memory_manager.py`、`plugins/memory/honcho/__init__.py`）接入 Honcho / Mem0 / RetainDB 等系统，支持：
+
+```text
+turn start prefetch
+turn end sync
+semantic search
+peer card
+dialectic reasoning
+```
+
+其意义在于把本地 Markdown 记忆升级为更强的长期用户建模系统。本地 `USER.md` 适合存储稳定偏好，例如「用户喜欢中文」「用户偏好工程视角」「用户不喜欢教科书式堆砌」；但更复杂的用户画像——「用户最近在研究什么主题」「用户对哪些技术路线更关心」「哪些历史任务与当前任务语义相关」——则需要更强的表示。
+
+外部 memory provider 的价值可概括为：
+
+```text
+turn start:
+  根据当前任务语义召回相关长期记忆
+
+turn end:
+  把新经验同步回长期记忆系统
+```
+
+亦即「上下文相关记忆检索 + 持续用户建模」。它让 Agent 不只是「记下来」，而是「在合适的时候想起来」。
+
+### 4.8 关键 Prompt 与触发点
+
+上述机制最终都落到 Hermes 交给模型的 prompt 上。可以把学习路径串成一组 prompt 合约：
+
+```text
+System prompt:       告诉模型什么该写 memory、什么该写 skill、何时查 session_search
+Tool schema:         把 memory / skill 写入变成明确可执行的函数协议
+Turn context/finalizer: 用 nudge_interval 与 iteration counter 触发后台 review
+Background review:    从整段对话提取用户偏好、工作风格、可复用技术、踩坑经验
+/learn prompt:       用户显式指定学习来源，模型读取材料并创建 SKILL.md
+Context compression: 长会话中保留目标、约束、偏好、关键决策与证据
+External memory:     把跨会话语义记忆作为当前 turn 的 authoritative reference 注入
+```
+
+其中三类 external memory provider 对应三种召回策略：
+
+| Provider | Prompt 策略 | 学习闭环角色 |
+| --- | --- | --- |
+| Honcho | 自动注入 + 工具检索 + dialectic synthesis | 跨会话用户理解与当前任务相关性判断 |
+| Mem0 | 强制按需搜索相关历史 | 防止模型忽略长期记忆 |
+| RetainDB | 搜索、记忆、画像、当前任务上下文分工具暴露 | 把长期记忆拆成显式查询入口 |
+
+一个值得强调的工程点是 memory 的**注入时机**：mid-session 的写入会即时持久化到磁盘，但当前 session 仍沿用启动时冻结的 snapshot；直到下次 session start 或 context compression 后重新 load，新记忆才进入 prompt。这正是 Hermes 同时兼顾「持续学习」与「prompt cache 稳定」的关键——写入即时，注入 snapshot 化。
+
+---
+
+## 五、最小学习闭环
+
+一个最小学习闭环需要五个环节：**观察经验 → 提取信号 → 更新记忆/策略 → 后续召回 → 行为改变**。映射到 Hermes：
+
+| 学习闭环环节 | Hermes 对应机制 |
+| --- | --- |
+| 观察经验 | conversation loop、messages、SessionDB |
+| 提取信号 | background review、memory nudge、skill review、用户纠正、`/learn` |
+| 更新记忆/策略 | MemoryStore、memory_tool、skill_manage、MemoryProvider sync |
+| 后续召回 | system prompt startup snapshot、turn start memory prefetch、session_search |
+| 行为改变 | prompt_builder、skills injection、tool selection、用户偏好约束、workflow 变化 |
+
+可抽象为：
+
+```text
+Experience_t
+  → Review_t
+  → Update(Memory_t, Skills_t)
+  → Retrieve(Memory_{t+1}, Skills_{t+1})
+  → Policy_{t+1}
+```
+
+---
+
+## 六、理论依据
+
+Hermes 的学习闭环并非凭空设计，而是有一组论文范式作为支撑。
+
+### 6.1 Reflexion —— 不更新权重的语言反馈强化
+
+**Reflexion: Language Agents with Verbal Reinforcement Learning** 是最直接的支撑。其核心思想是：不重新训练大模型、也不修改模型参数，而是在 Agent 完成任务后依据环境反馈或测试结果判断成败；若失败，则让模型用自然语言总结失败原因、改进策略，并将这段反思写入 episodic memory。下一轮执行时，Agent 携带这些「错题本」继续尝试，从而逐步减少重复错误。论文将该过程组织为「执行者（Actor）—评估者（Evaluator）—反思者（Self-Reflection）」的闭环。
+
+这与 Hermes 的流程高度吻合：`turn_finalizer / background_review` 复盘 → 写入 `MEMORY.md / USER.md / skill` → 后续 turn 注入 prompt → 改变行为。Reflexion 支撑的判断是：**不改模型权重，也可以通过自然语言经验记忆改变 Agent 后续行为。**
+
+**局限性。** Reflexion 将「反思」建立在模型自身判断与外部反馈之上，并不总是可靠：
+
+1. **反思可能出错。** 失败的真实原因可能是工具调用错误、信息不足或环境状态误判，但模型可能给出看似合理却不准确的解释，导致下一轮继续被误导。
+2. **高度依赖明确的评估信号。** 在代码测试、游戏环境等具备成功/失败反馈的任务中较为有效，但在写作、研究、商业分析等开放式任务中难以判断结果是否真正变好。
+3. **记忆管理不够成熟。** 反思内容累积后可能出现冗余、冲突、过期与上下文过长等问题，论文并未系统解决记忆的筛选、压缩与更新。
+4. **未改变模型参数。** 提升源自 prompt 与 memory 对行为的改善，而非模型能力本身的进化。
+5. **更适合可重复尝试的任务。** 若任务一次性完成或每次场景差异较大，历史反思的帮助会明显下降。
+
+### 6.2 Generative Agents —— 记忆、反思与规划
+
+**Generative Agents: Interactive Simulacra of Human Behavior** 提出了一套典型的 memory-reflection-planning 架构：记忆流持续记录 Agent 所见所历，反思机制从碎片记忆中总结更高层的认知，规划机制将高层目标拆解为具体步骤。由此，Agent 的行为从「当前输入 → 当前回复」演进为「历史经验 → 抽象理解 → 未来计划 → 当前行动」。其情人节派对实验表明，LLM 结合外部记忆与规划机制后可产生一定程度的「涌现式社交行为」。
+
+这对应 Hermes 的 `state.db / session_search`（完整历史证据）、`MEMORY.md / USER.md`（长期事实与画像）、`background_review`（反思与总结）与 `prompt_builder`（启动/每轮注入）。它支撑的是：**Agent 可以通过长期记忆流、反思摘要与动态检索，形成跨时间的一致行为。**
+
+**局限性。** 评估偏主观、缺少可复现的量化指标；多 Agent 持续运行成本高；重要性评分与检索排序多依赖启发式，稳定性有限；Smallville 是封闭沙盒，远比真实世界简单；Agent 看似「有想法」，本质仍是 prompt、检索与生成的组合。
+
+### 6.3 Voyager —— 技能库与开放式终身学习
+
+Hermes 里最像「自进化」的其实不是普通 memory，而是 `skills/`，其最强对应是 **Voyager: An Open-Ended Embodied Agent with Large Language Models**。Voyager 不更新 GPT-4 参数，而是通过自动课程、迭代提示与技能库三个外部模块让 Agent 持续变强：技能库将成功经验保存为可复用函数，后续相似任务直接检索复用。
+
+实验显示，Voyager 在 Minecraft 中相较 ReAct、AutoGPT 等基线获得 3.3 倍更多独特物品、移动 2.3 倍更远距离、以最高 15.3 倍速度解锁关键科技树节点，并能在新世界中复用已学技能。Hermes 的 `skill_manage` 与 `SKILL.md + references/scripts/templates/assets`，可理解为 Voyager 技能库在通用 CLI Agent 场景下的工程化版本。它支撑的是：**Agent 可以把经验沉淀为可调用技能库，从而实现开放式、长期的能力积累。**
+
+**局限性。** 并非模型本体自进化，能力增长主要来自外部技能库；强依赖底层模型的规划与纠错能力；技能库长期运行会面临膨胀、重复、过时与版本管理问题；多轮调用与反复试错成本较高。
+
+### 6.4 ExpeL —— 从经验中抽象自然语言知识
+
+**ExpeL: LLM Agents Are Experiential Learners** 提出一种 gradient-free experiential learning：先执行任务得到完整轨迹，再从失败案例中总结「下次不要怎么做」、从成功案例中总结「有效策略」，最后将这些 insight 与相似成功轨迹存入经验库。论文的重要发现是，抽象规则与具体案例互补——仅用 insight 过于宽泛，仅用 retrieval 又过于局部，二者结合效果最佳。
+
+在跨任务迁移实验中（HotpotQA → FEVER），各方法准确率如下：
+
+| 方法 | 准确率 |
+| --- | --- |
+| Act | 58% |
+| ReAct | 63% |
+| ExpeL Transfer（w/o Task Demos） | 65% |
+| ExpeL Transfer（完整） | 70% |
+
+其与 Hermes 的对应关系是：`background_review / skill review` ≈ 从执行轨迹中提炼经验；`MEMORY.md / SKILL.md` ≈ 把经验转成自然语言规则或过程性知识；后续 prompt 注入 ≈ 用经验影响下一次决策。它支撑的是：**LLM Agent 可以不 fine-tune，而是通过自然语言经验沉淀提升跨任务决策能力**——这句话几乎就是 Hermes 学习闭环的论文版表达。
+
+**局限性。** 并未改变底层 LLM 能力，所有提升均依赖外部记忆与上下文注入；经验质量取决于模型的复盘能力，总结有误则可能污染后续任务；随着经验累积，如何压缩、去重、遗忘与更新仍未完整解决。
+
+### 6.5 长期记忆与上下文管理：MemoryBank / MemGPT / Mem0
+
+Hermes 的 `MEMORY.md`、`USER.md` 与 external memory provider 也有一组长期记忆论文支撑：
+
+- **MemoryBank** 让 LLM 拥有长期记忆机制，可召回相关记忆、持续更新记忆并理解用户个性，对应 `USER.md`（用户画像）、`MEMORY.md`（环境经验）、turn end sync（持续更新）与 turn start（召回注入）。支撑点：长期交互场景下，记忆更新与用户画像能提升对话一致性与个性化。
+- **MemGPT** 提出 virtual context management，用类操作系统的分层内存管理有限上下文窗口，对应 Hermes 的「分层存储、按需召回、再注入」。支撑点：LLM 上下文窗口有限，需要外部记忆层级与控制流来管理长期状态。
+- **Mem0** 更偏工程化，强调结构化、可扩展、持久化的长期记忆对生产级 Agent 的重要性，对应 Hermes 的 `MemoryProvider` 接口与 Honcho / Mem0 / RetainDB 的 prefetch / sync / semantic search。支撑点：生产级 Agent 需要可扩展长期记忆，而非只依赖一次性上下文。
+
+### 6.6 Self-Refine —— 自反馈与迭代改进
+
+Hermes 的后台 review、skill review、memory nudge 还可对应 **Self-Refine: Iterative Refinement with Self-Feedback**：LLM 无需额外训练数据或强化学习，而是让同一模型扮演 generator、feedback provider、refiner，通过自反馈迭代改进输出。它支撑「任务完成后 → 模型复盘执行过程 → 判断哪些经验值得保存 → 修补 memory / skill」这一机制。不过 Self-Refine 更偏「单任务内迭代改进」，Hermes 更进一步，把反思结果持久化到跨会话状态里。
+
+### 6.7 机制与论文支撑映射
+
+| Hermes 机制 | 理论/论文支撑 | 支撑点 |
+| --- | --- | --- |
+| `MEMORY.md` / `USER.md` 长期记忆 | MemoryBank、Generative Agents、Mem0 | 长期事实、用户画像、跨会话一致性 |
+| 启动时读取 memory 注入 system prompt | MemGPT、MemoryBank | 外部记忆进入上下文，改变有效策略 |
+| background review / turn finalizer | Reflexion、Self-Refine、Generative Agents | 任务后反思，把反馈转成语言经验 |
+| `skill_manage` 创建/修补 `SKILL.md` | Voyager、ExpeL | 把成功经验抽象成可复用技能 |
+| `/learn` 手动学习入口 | ExpeL、Voyager | 从材料和经验中显式沉淀过程性知识 |
+| `session_search` / SQLite 历史索引 | Generative Agents、MemGPT | 保留 episodic memory 与证据链，按需召回 |
+| MemoryProvider / Honcho / Mem0 / RetainDB | Mem0、MemoryBank | 外部长期记忆、语义召回、用户建模 |
+| 不改模型权重也能改进行为 | Reflexion、ExpeL、Self-Refine | 语言反馈与经验记忆可带来 weight-free adaptation |
+
+---
+
+## 七、参考实现
+
+以下是一个最小化的 Hermes 学习闭环参考实现，覆盖记忆写入、技能沉淀、会话检索与启动快照重载等关键路径，可用作机制验证的可复现示例。它把前文的形式化定义落成可运行代码：`MemoryStore` 对应 `MEMORY.md / USER.md` 的持久化与 snapshot 注入，`SkillStore` 对应 `skill_manage` 的过程性记忆演化，`SessionStore` 对应 `state.db + session_search` 的情景记忆，`ExternalMemoryProvider` 对应跨会话的 memory provider，`MinimalLearningAgent` 则串起「用户 turn → 后台 review → 重载 snapshot」的完整闭环。
+
+```typescript
+import Anthropic from "@anthropic-ai/sdk";
+import type {
+  ContentBlock,
+  MessageParam,
+  TextBlock,
+  Tool,
+  ToolResultBlockParam,
+  ToolUseBlock,
+} from "@anthropic-ai/sdk/resources/messages";
+import { appendFile, mkdir, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
+import { homedir } from "node:os";
+import path from "node:path";
+
+type MemoryTarget = "memory" | "user";
+type MemoryAction = "add" | "replace" | "remove";
+type SkillAction = "create" | "patch" | "edit" | "delete" | "write_file" | "remove_file";
+
+interface MemoryOperation {
+  action: MemoryAction;
+  content?: string;
+  old_text?: string;
+}
+
+interface MemoryInput extends Partial<MemoryOperation> {
+  target: MemoryTarget;
+  operations?: MemoryOperation[];
+}
+
+interface SkillInput {
+  action: SkillAction;
+  name: string;
+  content?: string;
+  old_string?: string;
+  new_string?: string;
+  replace_all?: boolean;
+  category?: string;
+  file_path?: string;
+  file_content?: string;
+  absorbed_into?: string;
+}
+
+interface SessionSearchInput {
+  query: string;
+  limit?: number;
+}
+
+interface RunOptions {
+  quiet?: boolean;
+  maxTokens?: number;
+  maxToolLoops?: number;
+}
+
+interface CliOptions {
+  help: boolean;
+  scripted: boolean;
+  prompt: string;
+}
+
+const ENTRY_DELIMITER = "\n§\n";
+const DEFAULT_MEMORY_LIMIT = 8_000;
+const DEFAULT_MODEL = "claude-sonnet-5";
+const DEFAULT_PROMPT =
+  "Remember that I prefer concise technical answers with concrete file paths. This repository uses repo-local scripts for verification. If this workflow is useful, save it as a reusable skill.";
+
+const MEMORY_GUIDANCE = [
+  "You have persistent memory across sessions. Save durable facts using the memory tool: user preferences, environment details, tool quirks, and stable conventions.",
+  "Memory is injected into every turn, so keep it compact and focused on facts that will still matter later.",
+  "Prioritize what reduces future user steering: the most valuable memory prevents repeated correction.",
+  "Task progress, completed-work logs, temporary TODO state, PR numbers, commit SHAs, and facts likely to go stale in 7 days belong in session history.",
+  "Reusable procedures belong in skills. Memories are declarative facts, not instructions to yourself.",
+].join("\n");
+
+const SESSION_SEARCH_GUIDANCE =
+  "When the user references something from a past conversation or you suspect relevant cross-session context exists, use session_search to recall it before asking them to repeat themselves.";
+
+const SKILLS_GUIDANCE = [
+  "After completing a complex task, fixing a tricky error, or discovering a non-trivial workflow, save the approach as a skill with skill_manage.",
+  "When using a skill and finding it outdated, incomplete, or wrong, patch it immediately with skill_manage(action='patch').",
+  "Good skills include trigger conditions, exact steps, pitfalls, and verification.",
+].join("\n");
+
+const COMBINED_REVIEW_PROMPT = [
+  "Review the conversation above and update two things:",
+  "",
+  "Memory: who the user is. Save persona, preferences, personal details, or expectations about assistant behavior with the memory tool.",
+  "",
+  "Skills: how to do this class of task. Save or patch reusable workflow knowledge with skill_manage.",
+  "",
+  "Preference order for skills:",
+  "1. Patch a currently loaded skill.",
+  "2. Patch an existing umbrella skill.",
+  "3. Add a references/, templates/, or scripts/ support file under an umbrella skill.",
+  "4. Create a new class-level umbrella skill.",
+  "",
+  "If genuinely nothing stands out, say 'Nothing to save.' and stop.",
+].join("\n");
+
+const MEMORY_CONTEXT_NOTE =
+  "[System note: The following is recalled memory context, NOT new user input. Treat as authoritative reference data. It is persistent memory and should inform all responses.]";
+
+const MEMORY_TOOL: Tool = {
+  name: "memory",
+  description: [
+    "Save durable facts to persistent memory that survive across sessions. Memory is injected into every future turn, so keep entries compact and high-signal.",
+    "",
+    "HOW: make ALL your changes in ONE call via an 'operations' array (each item: {action, content?, old_text?}). The batch applies atomically. Use bare action/content/old_text only for one single change.",
+    "",
+    "WHEN: save proactively when the user states a preference, correction, personal detail, or you learn a stable fact about their environment, conventions, or workflow.",
+    "",
+    "TARGETS: 'user' = who the user is. 'memory' = environment, conventions, tool quirks, and lessons.",
+    "",
+    "SKIP: trivial info, task progress, completed-work logs, temporary TODO state. Reusable procedures belong in a skill.",
+  ].join("\n"),
+  input_schema: {
+    type: "object",
+    properties: {
+      action: {
+        type: "string",
+        enum: ["add", "replace", "remove"],
+        description: "Single-op action. Omit when using operations.",
+      },
+      target: {
+        type: "string",
+        enum: ["memory", "user"],
+        description: "memory stores environment/project facts; user stores stable user profile facts.",
+      },
+      content: {
+        type: "string",
+        description: "Entry text for add/replace. Write one compact declarative fact.",
+      },
+      old_text: {
+        type: "string",
+        description: "Unique substring used by replace/remove to find the existing entry.",
+      },
+      operations: {
+        type: "array",
+        description: "Atomic batch of {action, content?, old_text?}. Preferred for multiple changes.",
+        items: {
+          type: "object",
+          properties: {
+            action: { type: "string", enum: ["add", "replace", "remove"] },
+            content: { type: "string" },
+            old_text: { type: "string" },
+          },
+          required: ["action"],
+          additionalProperties: false,
+        },
+      },
+    },
+    required: ["target"],
+    additionalProperties: false,
+  },
+};
+
+const SKILL_MANAGE_TOOL: Tool = {
+  name: "skill_manage",
+  description: [
+    "Manage skills. Skills are procedural memory: reusable approaches for recurring task types.",
+    "Actions: create, patch, edit, delete, write_file, remove_file.",
+    "Create when a complex task succeeded, errors were overcome, a user-corrected approach worked, or a non-trivial workflow was discovered.",
+    "Patch when instructions are stale, wrong, or missing a pitfall.",
+    "Good skills include trigger conditions, numbered steps with exact commands, pitfalls, and verification.",
+  ].join("\n"),
+  input_schema: {
+    type: "object",
+    properties: {
+      action: {
+        type: "string",
+        enum: ["create", "patch", "edit", "delete", "write_file", "remove_file"],
+      },
+      name: {
+        type: "string",
+        description: "Skill name: lowercase letters, numbers, hyphens, or underscores.",
+      },
+      content: {
+        type: "string",
+        description: "Full SKILL.md content for create/edit.",
+      },
+      old_string: {
+        type: "string",
+        description: "Unique text to replace for patch.",
+      },
+      new_string: {
+        type: "string",
+        description: "Replacement text for patch.",
+      },
+      replace_all: {
+        type: "boolean",
+        description: "Patch every occurrence.",
+      },
+      category: {
+        type: "string",
+        description: "Optional category directory under skills/.",
+      },
+      file_path: {
+        type: "string",
+        description: "Support file path under references/, templates/, scripts/, or assets/.",
+      },
+      file_content: {
+        type: "string",
+        description: "Support file content for write_file.",
+      },
+      absorbed_into: {
+        type: "string",
+        description: "Optional delete metadata for merge/prune intent.",
+      },
+    },
+    required: ["action", "name"],
+    additionalProperties: false,
+  },
+};
+
+const SESSION_SEARCH_TOOL: Tool = {
+  name: "session_search",
+  description: SESSION_SEARCH_GUIDANCE,
+  input_schema: {
+    type: "object",
+    properties: {
+      query: {
+        type: "string",
+        description: "Text to search in the demo session ledger.",
+      },
+      limit: {
+        type: "number",
+        description: "Maximum number of matches.",
+      },
+    },
+    required: ["query"],
+    additionalProperties: false,
+  },
+};
+
+class MemoryStore {
+  private readonly memoryDir: string;
+  private entries: Record<MemoryTarget, string[]> = { memory: [], user: [] };
+  private snapshot: Record<MemoryTarget, string> = { memory: "", user: "" };
+
+  constructor(
+    private readonly home: string,
+    private readonly charLimit = DEFAULT_MEMORY_LIMIT,
+  ) {
+    this.memoryDir = path.join(home, "memories");
+  }
+
+  async load(): Promise<void> {
+    await mkdir(this.memoryDir, { recursive: true });
+    this.entries.memory = await this.readEntries("memory");
+    this.entries.user = await this.readEntries("user");
+    this.snapshot = {
+      memory: this.renderBlock("memory", this.entries.memory),
+      user: this.renderBlock("user", this.entries.user),
+    };
+  }
+
+  formatForSystemPrompt(target: MemoryTarget): string | undefined {
+    return this.snapshot[target] || undefined;
+  }
+
+  files(): Record<MemoryTarget, string> {
+    return {
+      memory: this.fileFor("memory"),
+      user: this.fileFor("user"),
+    };
+  }
+
+  async apply(input: unknown): Promise<Record<string, unknown>> {
+    const batch = parseMemoryInput(input);
+    const liveEntries = this.entries[batch.target];
+    const nextEntries = [...liveEntries];
+    const effects: string[] = [];
+
+    for (const operation of batch.operations) {
+      const effect = applyMemoryOperation(nextEntries, operation);
+      effects.push(effect);
+    }
+
+    const size = nextEntries.join(ENTRY_DELIMITER).length;
+    if (size > this.charLimit) {
+      return {
+        success: false,
+        error: `memory limit exceeded: ${size}/${this.charLimit}`,
+        current_entries: liveEntries,
+      };
+    }
+
+    this.entries[batch.target] = nextEntries;
+    await this.writeEntries(batch.target);
+
+    return {
+      success: true,
+      done: true,
+      target: batch.target,
+      message: `Applied ${batch.operations.length} operation(s).`,
+      effects,
+      usage: this.usage(batch.target),
+      entry_count: nextEntries.length,
+      snapshot_note: "Disk changed immediately; the active system prompt snapshot remains frozen until the next load().",
+    };
+  }
+
+  private async readEntries(target: MemoryTarget): Promise<string[]> {
+    try {
+      const text = await readFile(this.fileFor(target), "utf8");
+      return text
+        .split(ENTRY_DELIMITER)
+        .map((entry) => entry.trim())
+        .filter(Boolean);
+    } catch (error) {
+      if (isNodeError(error) && error.code === "ENOENT") {
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  private async writeEntries(target: MemoryTarget): Promise<void> {
+    await mkdir(this.memoryDir, { recursive: true });
+    const file = this.fileFor(target);
+    const tmp = `${file}.${process.pid}.tmp`;
+    await writeFile(tmp, `${this.entries[target].join(ENTRY_DELIMITER)}\n`, "utf8");
+    await rename(tmp, file);
+  }
+
+  private fileFor(target: MemoryTarget): string {
+    return path.join(this.memoryDir, target === "memory" ? "MEMORY.md" : "USER.md");
+  }
+
+  private renderBlock(target: MemoryTarget, entries: string[]): string {
+    if (entries.length === 0) {
+      return "";
+    }
+    const title = target === "memory" ? "MEMORY (your personal notes)" : "USER PROFILE (who the user is)";
+    return [
+      "══════════════════════════════════════════════",
+      `${title} [${this.usage(target)}]`,
+      "══════════════════════════════════════════════",
+      entries.join(ENTRY_DELIMITER),
+    ].join("\n");
+  }
+
+  private usage(target: MemoryTarget): string {
+    const current = this.entries[target].join(ENTRY_DELIMITER).length;
+    const pct = Math.min(100, Math.round((current / this.charLimit) * 100));
+    return `${pct}% - ${current}/${this.charLimit} chars`;
+  }
+}
+
+class SkillStore {
+  private readonly skillsDir: string;
+
+  constructor(private readonly home: string) {
+    this.skillsDir = path.join(home, "skills");
+  }
+
+  files(): Record<string, string> {
+    return {
+      skills: this.skillsDir,
+    };
+  }
+
+  async formatCatalogForSystemPrompt(): Promise<string | undefined> {
+    const skills = await this.listSkills();
+    if (skills.length === 0) {
+      return undefined;
+    }
+    return ["SKILLS (procedural memory)", "==========================", ...skills.map((skill) => `- ${skill}`)].join("\n");
+  }
+
+  async apply(input: unknown): Promise<Record<string, unknown>> {
+    const args = parseSkillInput(input);
+
+    if (args.action === "create") {
+      return this.create(args);
+    }
+    if (args.action === "edit") {
+      return this.edit(args);
+    }
+    if (args.action === "patch") {
+      return this.patch(args);
+    }
+    if (args.action === "write_file") {
+      return this.writeSupportFile(args);
+    }
+    if (args.action === "remove_file") {
+      return this.removeSupportFile(args);
+    }
+    return this.delete(args);
+  }
+
+  private async create(args: SkillInput): Promise<Record<string, unknown>> {
+    if (!args.content?.trim()) {
+      return { success: false, error: "content is required for create" };
+    }
+    const dir = this.skillDir(args.name, args.category);
+    const file = path.join(dir, "SKILL.md");
+    if (await fileExists(file)) {
+      return { success: true, done: true, action: "create", name: args.name, path: file, message: "Skill already exists." };
+    }
+    await mkdir(dir, { recursive: true });
+    await writeFile(file, args.content.trimEnd() + "\n", "utf8");
+    return { success: true, done: true, action: "create", name: args.name, path: file };
+  }
+
+  private async edit(args: SkillInput): Promise<Record<string, unknown>> {
+    if (!args.content?.trim()) {
+      return { success: false, error: "content is required for edit" };
+    }
+    const dir = await this.findSkillDir(args.name, args.category);
+    if (!dir) {
+      return { success: false, error: `skill not found: ${args.name}` };
+    }
+    const file = path.join(dir, "SKILL.md");
+    await writeFile(file, args.content.trimEnd() + "\n", "utf8");
+    return { success: true, done: true, action: "edit", name: args.name, path: file };
+  }
+
+  private async patch(args: SkillInput): Promise<Record<string, unknown>> {
+    if (typeof args.old_string !== "string" || typeof args.new_string !== "string") {
+      return { success: false, error: "old_string and new_string are required for patch" };
+    }
+    const dir = await this.findSkillDir(args.name, args.category);
+    if (!dir) {
+      return { success: false, error: `skill not found: ${args.name}` };
+    }
+    const file = path.join(dir, "SKILL.md");
+    const original = await readFile(file, "utf8");
+    const count = countOccurrences(original, args.old_string);
+    if (count === 0) {
+      return { success: false, error: "old_string was not found" };
+    }
+    if (count > 1 && args.replace_all !== true) {
+      return { success: false, error: "old_string matched more than once; set replace_all=true or provide more context" };
+    }
+    const updated = args.replace_all === true
+      ? original.split(args.old_string).join(args.new_string)
+      : original.replace(args.old_string, args.new_string);
+    await writeFile(file, updated, "utf8");
+    return { success: true, done: true, action: "patch", name: args.name, path: file, replacements: args.replace_all ? count : 1 };
+  }
+
+  private async writeSupportFile(args: SkillInput): Promise<Record<string, unknown>> {
+    if (typeof args.file_path !== "string" || typeof args.file_content !== "string") {
+      return { success: false, error: "file_path and file_content are required for write_file" };
+    }
+    const dir = await this.findSkillDir(args.name, args.category);
+    if (!dir) {
+      return { success: false, error: `skill not found: ${args.name}` };
+    }
+    const relativePath = safeSkillSupportPath(args.file_path);
+    const file = path.join(dir, relativePath);
+    await mkdir(path.dirname(file), { recursive: true });
+    await writeFile(file, args.file_content, "utf8");
+    return { success: true, done: true, action: "write_file", name: args.name, path: file };
+  }
+
+  private async removeSupportFile(args: SkillInput): Promise<Record<string, unknown>> {
+    if (typeof args.file_path !== "string") {
+      return { success: false, error: "file_path is required for remove_file" };
+    }
+    const dir = await this.findSkillDir(args.name, args.category);
+    if (!dir) {
+      return { success: false, error: `skill not found: ${args.name}` };
+    }
+    const relativePath = safeSkillSupportPath(args.file_path);
+    const file = path.join(dir, relativePath);
+    await rm(file, { force: true });
+    return { success: true, done: true, action: "remove_file", name: args.name, path: file };
+  }
+
+  private async delete(args: SkillInput): Promise<Record<string, unknown>> {
+    const dir = await this.findSkillDir(args.name, args.category);
+    if (!dir) {
+      return { success: false, error: `skill not found: ${args.name}` };
+    }
+    await rm(dir, { recursive: true, force: true });
+    return { success: true, done: true, action: "delete", name: args.name, absorbed_into: args.absorbed_into ?? "" };
+  }
+
+  private skillDir(name: string, category?: string): string {
+    const safeName = validateSkillName(name);
+    if (category?.trim()) {
+      return path.join(this.skillsDir, validateSkillName(category.trim()), safeName);
+    }
+    return path.join(this.skillsDir, safeName);
+  }
+
+  private async findSkillDir(name: string, category?: string): Promise<string | undefined> {
+    const direct = this.skillDir(name, category);
+    if (await fileExists(path.join(direct, "SKILL.md"))) {
+      return direct;
+    }
+
+    const rootDirect = path.join(this.skillsDir, validateSkillName(name));
+    if (await fileExists(path.join(rootDirect, "SKILL.md"))) {
+      return rootDirect;
+    }
+
+    const categories = await readdir(this.skillsDir, { withFileTypes: true }).catch(() => []);
+    for (const entry of categories) {
+      if (!entry.isDirectory()) {
+        continue;
+      }
+      const nested = path.join(this.skillsDir, entry.name, validateSkillName(name));
+      if (await fileExists(path.join(nested, "SKILL.md"))) {
+        return nested;
+      }
+    }
+    return undefined;
+  }
+
+  private async listSkills(): Promise<string[]> {
+    const result: string[] = [];
+    const rootEntries = await readdir(this.skillsDir, { withFileTypes: true }).catch(() => []);
+    for (const entry of rootEntries) {
+      if (!entry.isDirectory()) {
+        continue;
+      }
+      const direct = path.join(this.skillsDir, entry.name, "SKILL.md");
+      if (await fileExists(direct)) {
+        result.push(entry.name);
+        continue;
+      }
+      const nestedEntries = await readdir(path.join(this.skillsDir, entry.name), { withFileTypes: true }).catch(() => []);
+      for (const nested of nestedEntries) {
+        if (nested.isDirectory() && await fileExists(path.join(this.skillsDir, entry.name, nested.name, "SKILL.md"))) {
+          result.push(`${entry.name}/${nested.name}`);
+        }
+      }
+    }
+    return result.sort();
+  }
+}
+
+class SessionStore {
+  private readonly file: string;
+
+  constructor(private readonly home: string) {
+    this.file = path.join(home, "state.db.jsonl");
+  }
+
+  files(): Record<string, string> {
+    return {
+      sessionLedger: this.file,
+    };
+  }
+
+  async append(role: "user" | "assistant", content: string): Promise<void> {
+    await mkdir(this.home, { recursive: true });
+    const record = {
+      id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      at: new Date().toISOString(),
+      role,
+      content,
+    };
+    await appendFile(this.file, JSON.stringify(record) + "\n", "utf8");
+  }
+
+  async search(input: unknown): Promise<Record<string, unknown>> {
+    const args = parseSessionSearchInput(input);
+    const records = await this.readRecords();
+    const terms = args.query
+      .toLowerCase()
+      .split(/\s+/)
+      .map((term) => term.trim())
+      .filter(Boolean);
+    const scored = records
+      .map((record) => {
+        const haystack = record.content.toLowerCase();
+        const score = terms.reduce((sum, term) => sum + (haystack.includes(term) ? 1 : 0), 0);
+        return { record, score };
+      })
+      .filter((item) => item.score > 0)
+      .sort((a, b) => b.score - a.score || b.record.at.localeCompare(a.record.at))
+      .slice(0, args.limit ?? 5)
+      .map(({ record, score }) => ({ ...record, score }));
+
+    return {
+      success: true,
+      query: args.query,
+      count: scored.length,
+      results: scored,
+      note: "This demo uses state.db.jsonl as a reproducible stand-in for Hermes SQLite state.db + FTS.",
+    };
+  }
+
+  private async readRecords(): Promise<Array<{ id: string; at: string; role: string; content: string }>> {
+    try {
+      const text = await readFile(this.file, "utf8");
+      return text
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((line) => JSON.parse(line) as { id: string; at: string; role: string; content: string });
+    } catch (error) {
+      if (isNodeError(error) && error.code === "ENOENT") {
+        return [];
+      }
+      throw error;
+    }
+  }
+}
+
+class ExternalMemoryProvider {
+  private readonly file: string;
+
+  constructor(private readonly home: string) {
+    this.file = path.join(home, "external-memory.md");
+  }
+
+  files(): Record<string, string> {
+    return {
+      externalMemory: this.file,
+    };
+  }
+
+  async seedForScriptedDemo(): Promise<void> {
+    if (await fileExists(this.file)) {
+      return;
+    }
+    await mkdir(this.home, { recursive: true });
+    await writeFile(
+      this.file,
+      [
+        "The user is evaluating a minimal Hermes learning-loop demo.",
+        "Prioritize deterministic evidence: show memory writes, skill files, session search, and reload behavior.",
+      ].join("\n"),
+      "utf8",
+    );
+  }
+
+  async prefetch(): Promise<string | undefined> {
+    try {
+      const text = (await readFile(this.file, "utf8")).trim();
+      if (!text) {
+        return undefined;
+      }
+      return ["<memory-context>", MEMORY_CONTEXT_NOTE, "", text, "</memory-context>"].join("\n");
+    } catch (error) {
+      if (isNodeError(error) && error.code === "ENOENT") {
+        return undefined;
+      }
+      throw error;
+    }
+  }
+}
+
+class MinimalLearningAgent {
+  private readonly client: Anthropic | undefined;
+  private readonly transcript: string[] = [];
+  private turnsSinceReview = 0;
+
+  constructor(
+    private readonly store: MemoryStore,
+    private readonly skills: SkillStore,
+    private readonly sessions: SessionStore,
+    private readonly externalMemory: ExternalMemoryProvider,
+    private readonly model: string,
+    private readonly reviewInterval: number,
+    private readonly scripted: boolean,
+  ) {
+    this.client = scripted ? undefined : new Anthropic();
+  }
+
+  async runUserTurn(prompt: string): Promise<void> {
+    this.turnsSinceReview += 1;
+    const userContent = await this.buildUserContent(prompt);
+    const system = await this.buildSystemPrompt();
+
+    const result = this.scripted
+      ? await this.runScriptedTurn(prompt)
+      : await this.completeWithTools([{ role: "user", content: userContent }], system, { maxTokens: 1024 });
+
+    console.log(result.text.trim());
+    this.transcript.push(`User: ${prompt}`, `Assistant: ${result.text.trim()}`);
+    await this.sessions.append("user", prompt);
+    await this.sessions.append("assistant", result.text.trim());
+
+    if (this.reviewInterval > 0 && this.turnsSinceReview >= this.reviewInterval) {
+      this.turnsSinceReview = 0;
+      console.error("\n[background review] started after the user response");
+      const reviewText = this.scripted ? await this.runScriptedBackgroundReview() : await this.runBackgroundReview();
+      console.error(`[background review] ${reviewText || "complete"}`);
+    }
+  }
+
+  private async runScriptedTurn(prompt: string): Promise<{ text: string }> {
+    const userMemory = await this.store.apply({
+      target: "user",
+      operations: [
+        {
+          action: "add",
+          content: "User prefers concise technical answers with concrete file paths.",
+        },
+      ],
+    });
+    const projectMemory = await this.store.apply({
+      target: "memory",
+      operations: [
+        {
+          action: "add",
+          content: "Hermes memory demo stores durable facts in .demo-hermes/memories/MEMORY.md and .demo-hermes/memories/USER.md.",
+        },
+        {
+          action: "add",
+          content: "Hermes learning-loop demos should show startup snapshot reload behavior after memory writes.",
+        },
+      ],
+    });
+    const skill = await this.skills.apply({
+      action: "create",
+      name: "learning-loop-demo",
+      category: "demo",
+      content: demoSkillContent(),
+    });
+    const sessionSearch = await this.sessions.search({ query: "repo-local scripts", limit: 3 });
+
+    return {
+      text: [
+        "Scripted run completed.",
+        "",
+        `Prompt: ${prompt}`,
+        `memory(user): ${JSON.stringify(userMemory)}`,
+        `memory(memory): ${JSON.stringify(projectMemory)}`,
+        `skill_manage: ${JSON.stringify(skill)}`,
+        `session_search: ${JSON.stringify(sessionSearch)}`,
+      ].join("\n"),
+    };
+  }
+
+  private async runScriptedBackgroundReview(): Promise<string> {
+    const memory = await this.store.apply({
+      target: "memory",
+      operations: [
+        {
+          action: "add",
+          content: "Background review saves stable learning signals after the user-visible answer is produced.",
+        },
+      ],
+    });
+    const supportFile = await this.skills.apply({
+      action: "write_file",
+      name: "learning-loop-demo",
+      category: "demo",
+      file_path: "references/background-review.md",
+      file_content: [
+        "# Background Review",
+        "",
+        "The review pass runs after the user response and can save durable memory facts or skill updates.",
+        "This mirrors the report's turn_finalizer/background_review path in a deterministic local file.",
+      ].join("\n"),
+    });
+    return `memory=${JSON.stringify(memory)} skill_support=${JSON.stringify(supportFile)}`;
+  }
+
+  private async runBackgroundReview(): Promise<string> {
+    const reviewPrompt = [
+      COMBINED_REVIEW_PROMPT,
+      "",
+      "<conversation>",
+      this.transcript.join("\n"),
+      "</conversation>",
+    ].join("\n");
+
+    const result = await this.completeWithTools([{ role: "user", content: reviewPrompt }], await this.buildSystemPrompt(), {
+      quiet: true,
+      maxTokens: 768,
+      maxToolLoops: 6,
+    });
+    return result.text.trim();
+  }
+
+  private async completeWithTools(
+    messages: MessageParam[],
+    system: string,
+    options: RunOptions = {},
+  ): Promise<{ text: string }> {
+    if (!this.client) {
+      throw new Error("Anthropic client is unavailable in scripted mode.");
+    }
+
+    const maxToolLoops = options.maxToolLoops ?? 8;
+    let finalText = "";
+
+    for (let loop = 0; loop < maxToolLoops; loop += 1) {
+      const response = await this.client.messages.create({
+        model: this.model,
+        max_tokens: options.maxTokens ?? 1024,
+        system,
+        messages,
+        tools: [MEMORY_TOOL, SKILL_MANAGE_TOOL, SESSION_SEARCH_TOOL],
+      });
+
+      const content = response.content;
+      const text = collectText(content);
+      if (text) {
+        finalText += text;
+      }
+
+      const toolUses = content.filter(isToolUseBlock);
+      if (toolUses.length === 0) {
+        return { text: finalText };
+      }
+
+      messages.push({ role: "assistant", content: content as MessageParam["content"] });
+      const toolResults: ToolResultBlockParam[] = await Promise.all(
+        toolUses.map(async (toolUse) => {
+          const result = await this.dispatchTool(toolUse);
+          return {
+            type: "tool_result",
+            tool_use_id: toolUse.id,
+            content: JSON.stringify(result),
+            is_error: result.success !== true,
+          };
+        }),
+      );
+      messages.push({ role: "user", content: toolResults });
+    }
+
+    throw new Error(`Tool loop exceeded ${maxToolLoops} iterations`);
+  }
+
+  private async dispatchTool(toolUse: ToolUseBlock): Promise<Record<string, unknown>> {
+    try {
+      if (toolUse.name === "memory") {
+        return await this.store.apply(toolUse.input);
+      }
+      if (toolUse.name === "skill_manage") {
+        return await this.skills.apply(toolUse.input);
+      }
+      if (toolUse.name === "session_search") {
+        return await this.sessions.search(toolUse.input);
+      }
+      return { success: false, error: `Unknown tool: ${toolUse.name}` };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  }
+
+  private async buildSystemPrompt(): Promise<string> {
+    return [
+      "You are a minimal Hermes-like agent.",
+      MEMORY_GUIDANCE,
+      SESSION_SEARCH_GUIDANCE,
+      SKILLS_GUIDANCE,
+      "The memory blocks below are a frozen startup snapshot. Memory writes during this process update disk and appear in the system prompt after the next load().",
+      this.store.formatForSystemPrompt("memory"),
+      this.store.formatForSystemPrompt("user"),
+      await this.skills.formatCatalogForSystemPrompt(),
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+  }
+
+  private async buildUserContent(prompt: string): Promise<string> {
+    const external = await this.externalMemory.prefetch();
+    return external ? `${external}\n\n${prompt}` : prompt;
+  }
+}
+
+function applyMemoryOperation(entries: string[], operation: MemoryOperation): string {
+  if (operation.action === "add") {
+    if (!operation.content?.trim()) {
+      throw new Error("content is required for add");
+    }
+    const fact = operation.content.trim();
+    if (entries.includes(fact)) {
+      return "duplicate skipped";
+    }
+    entries.push(fact);
+    return "added";
+  }
+
+  if (operation.action === "replace") {
+    if (!operation.old_text?.trim() || !operation.content?.trim()) {
+      throw new Error("old_text and content are required for replace");
+    }
+    const index = findUniqueEntry(entries, operation.old_text);
+    if (index < 0) {
+      throw new Error("old_text did not match exactly one entry");
+    }
+    entries[index] = operation.content.trim();
+    return "replaced";
+  }
+
+  if (!operation.old_text?.trim()) {
+    throw new Error("old_text is required for remove");
+  }
+  const index = findUniqueEntry(entries, operation.old_text);
+  if (index < 0) {
+    throw new Error("old_text did not match exactly one entry");
+  }
+  entries.splice(index, 1);
+  return "removed";
+}
+
+function parseMemoryInput(input: unknown): { target: MemoryTarget; operations: MemoryOperation[] } {
+  if (!isRecord(input)) {
+    throw new Error("memory input must be an object");
+  }
+  const target = input.target;
+  if (target !== "memory" && target !== "user") {
+    throw new Error("invalid memory target");
+  }
+
+  if (Array.isArray(input.operations)) {
+    return {
+      target,
+      operations: input.operations.map(parseMemoryOperation),
+    };
+  }
+
+  return {
+    target,
+    operations: [parseMemoryOperation(input)],
+  };
+}
+
+function parseMemoryOperation(input: unknown): MemoryOperation {
+  if (!isRecord(input)) {
+    throw new Error("memory operation must be an object");
+  }
+  const action = input.action;
+  if (action !== "add" && action !== "replace" && action !== "remove") {
+    throw new Error("invalid memory action");
+  }
+  return {
+    action,
+    content: typeof input.content === "string" ? input.content : undefined,
+    old_text: typeof input.old_text === "string" ? input.old_text : undefined,
+  };
+}
+
+function parseSkillInput(input: unknown): SkillInput {
+  if (!isRecord(input)) {
+    throw new Error("skill_manage input must be an object");
+  }
+  const action = input.action;
+  const name = input.name;
+  if (
+    action !== "create" &&
+    action !== "patch" &&
+    action !== "edit" &&
+    action !== "delete" &&
+    action !== "write_file" &&
+    action !== "remove_file"
+  ) {
+    throw new Error("invalid skill action");
+  }
+  if (typeof name !== "string") {
+    throw new Error("skill name is required");
+  }
+  validateSkillName(name);
+  return {
+    action,
+    name,
+    content: typeof input.content === "string" ? input.content : undefined,
+    old_string: typeof input.old_string === "string" ? input.old_string : undefined,
+    new_string: typeof input.new_string === "string" ? input.new_string : undefined,
+    replace_all: typeof input.replace_all === "boolean" ? input.replace_all : undefined,
+    category: typeof input.category === "string" ? input.category : undefined,
+    file_path: typeof input.file_path === "string" ? input.file_path : undefined,
+    file_content: typeof input.file_content === "string" ? input.file_content : undefined,
+    absorbed_into: typeof input.absorbed_into === "string" ? input.absorbed_into : undefined,
+  };
+}
+
+function parseSessionSearchInput(input: unknown): SessionSearchInput {
+  if (!isRecord(input)) {
+    throw new Error("session_search input must be an object");
+  }
+  if (typeof input.query !== "string" || !input.query.trim()) {
+    throw new Error("query is required");
+  }
+  return {
+    query: input.query.trim(),
+    limit: typeof input.limit === "number" && Number.isFinite(input.limit) ? Math.max(1, Math.min(20, input.limit)) : 5,
+  };
+}
+
+function collectText(content: ContentBlock[]): string {
+  return content
+    .filter((block): block is TextBlock => block.type === "text" && typeof block.text === "string")
+    .map((block) => block.text)
+    .join("");
+}
+
+function findUniqueEntry(entries: string[], needle: string): number {
+  const matches = entries
+    .map((entry, index) => ({ entry, index }))
+    .filter(({ entry }) => entry.includes(needle.trim()));
+  return matches.length === 1 ? matches[0].index : -1;
+}
+
+function isToolUseBlock(block: ContentBlock): block is ToolUseBlock {
+  return block.type === "tool_use" && typeof block.id === "string" && typeof block.name === "string";
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function isNodeError(error: unknown): error is NodeJS.ErrnoException {
+  return error instanceof Error && "code" in error;
+}
+
+async function fileExists(file: string): Promise<boolean> {
+  try {
+    await readFile(file, "utf8");
+    return true;
+  } catch (error) {
+    if (isNodeError(error) && error.code === "ENOENT") {
+      return false;
+    }
+    throw error;
+  }
+}
+
+function validateSkillName(name: string): string {
+  const trimmed = name.trim();
+  if (!/^[a-z0-9][a-z0-9_-]{0,63}$/.test(trimmed)) {
+    throw new Error(`invalid skill name: ${name}`);
+  }
+  return trimmed;
+}
+
+function safeSkillSupportPath(filePath: string): string {
+  const normalized = path.posix.normalize(filePath.trim());
+  const allowedPrefixes = ["references/", "templates/", "scripts/", "assets/"];
+  if (normalized.startsWith("../") || normalized === ".." || path.isAbsolute(normalized)) {
+    throw new Error("file_path must stay inside the skill directory");
+  }
+  if (!allowedPrefixes.some((prefix) => normalized.startsWith(prefix))) {
+    throw new Error("file_path must start with references/, templates/, scripts/, or assets/");
+  }
+  return normalized;
+}
+
+function countOccurrences(haystack: string, needle: string): number {
+  if (needle.length === 0) {
+    return 0;
+  }
+  let count = 0;
+  let index = haystack.indexOf(needle);
+  while (index >= 0) {
+    count += 1;
+    index = haystack.indexOf(needle, index + needle.length);
+  }
+  return count;
+}
+
+function demoSkillContent(): string {
+  return [
+    "---",
+    "name: learning-loop-demo",
+    "description: Demonstrates Hermes memory learning loop.",
+    "version: 0.1.0",
+    "author: Hermes",
+    "metadata:",
+    "  hermes:",
+    "    tags: [Memory, Skills, Demo]",
+    "---",
+    "",
+    "# Learning Loop Demo",
+    "",
+    "Use this skill when demonstrating how Hermes turns interaction experience into external state that later changes agent behavior.",
+    "",
+    "## When to Use",
+    "",
+    "- The user asks for a reproducible memory or learning-loop demo.",
+    "- The task needs a concrete example of MEMORY.md, USER.md, skill files, session search, and reload behavior.",
+    "",
+    "## Procedure",
+    "",
+    "1. Run the scripted demo with `npm run demo:scripted`.",
+    "2. Inspect `.demo-hermes/memories/MEMORY.md` and `.demo-hermes/memories/USER.md`.",
+    "3. Inspect `.demo-hermes/skills/demo/learning-loop-demo/SKILL.md`.",
+    "4. Re-run the demo and confirm the startup snapshot includes the saved facts.",
+    "",
+    "## Pitfalls",
+    "",
+    "- Keep durable facts in memory.",
+    "- Keep reusable workflows in skills.",
+    "- Keep historical evidence in session search.",
+    "",
+    "## Verification",
+    "",
+    "- `npm run typecheck`",
+    "- `npm run demo:scripted`",
+  ].join("\n");
+}
+
+function demoHome(): string {
+  const configured = process.env.DEMO_HERMES_HOME || process.env.HERMES_HOME || path.join(process.cwd(), ".demo-hermes");
+  return configured.replace(/^~(?=$|\/)/, homedir());
+}
+
+function parseCli(argv: string[]): CliOptions {
+  const promptParts: string[] = [];
+  let help = false;
+  let scripted = false;
+
+  for (const arg of argv) {
+    if (arg === "--help" || arg === "-h") {
+      help = true;
+    } else if (arg === "--scripted") {
+      scripted = true;
+    } else {
+      promptParts.push(arg);
+    }
+  }
+
+  return {
+    help,
+    scripted,
+    prompt: promptParts.join(" ").trim() || DEFAULT_PROMPT,
+  };
+}
+
+function printHelp(): void {
+  console.log([
+    "Hermes memory learning-loop demo",
+    "",
+    "Usage:",
+    "  npm run demo:scripted",
+    "  ANTHROPIC_API_KEY=sk-ant-... npm run demo -- \"Remember my preference...\"",
+    "",
+    "Options:",
+    "  --scripted   Run deterministic local tool calls without an API key.",
+    "  --help       Print this help.",
+    "",
+    "Environment:",
+    "  ANTHROPIC_MODEL      Claude model id. Default: claude-sonnet-5",
+    "  DEMO_HERMES_HOME     Demo home. Default: ./.demo-hermes",
+    "  MEMORY_NUDGE_INTERVAL Background review interval. Default: 1",
+  ].join("\n"));
+}
+
+async function printFreshSnapshot(home: string): Promise<void> {
+  const fresh = new MemoryStore(home);
+  await fresh.load();
+  console.error("\n[fresh snapshot after reload]");
+  console.error(fresh.formatForSystemPrompt("user") || "(empty USER.md)");
+  console.error(fresh.formatForSystemPrompt("memory") || "(empty MEMORY.md)");
+}
+
+async function main(): Promise<void> {
+  const cli = parseCli(process.argv.slice(2));
+  if (cli.help) {
+    printHelp();
+    return;
+  }
+
+  if (!cli.scripted && !process.env.ANTHROPIC_API_KEY) {
+    throw new Error("Set ANTHROPIC_API_KEY or run with --scripted.");
+  }
+
+  const home = demoHome();
+  const model = process.env.ANTHROPIC_MODEL || DEFAULT_MODEL;
+  const reviewInterval = Number.parseInt(process.env.MEMORY_NUDGE_INTERVAL || "1", 10);
+
+  const store = new MemoryStore(home);
+  const skills = new SkillStore(home);
+  const sessions = new SessionStore(home);
+  const externalMemory = new ExternalMemoryProvider(home);
+
+  await store.load();
+  if (cli.scripted) {
+    await externalMemory.seedForScriptedDemo();
+  }
+
+  console.error(`[mode] ${cli.scripted ? "scripted" : "anthropic"}`);
+  console.error(`[memory home] ${home}`);
+  console.error(`[memory files] ${store.files().memory} | ${store.files().user}`);
+  console.error(`[skill dir] ${skills.files().skills}`);
+  console.error(`[session ledger] ${sessions.files().sessionLedger}`);
+  console.error(`[external memory] ${externalMemory.files().externalMemory}`);
+  console.error(`[model] ${model}`);
+
+  const agent = new MinimalLearningAgent(
+    store,
+    skills,
+    sessions,
+    externalMemory,
+    model,
+    Number.isFinite(reviewInterval) ? reviewInterval : 1,
+    cli.scripted,
+  );
+  await agent.runUserTurn(cli.prompt);
+  await printFreshSnapshot(home);
+}
+
+main().catch((error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error);
+  console.error(`Fatal: ${message}`);
+  process.exitCode = 1;
+});
+```
+
+---
+
+## 八、验证方法：如何证明 Hermes 真的越用越好
+
+论文范式只能说明这条路合理，Hermes 自身是否有效仍需实验验证。最直接的做法是设计三组 ablation，在相同任务集上比较表现：
+
+```text
+A: 无 memory / 无 skills   （baseline）
+B: 有 memory / 无 skills
+C: 有 memory / 有 skills
+```
+
+### 8.1 可观测指标
+
+| 指标 | 说明 |
+| --- | --- |
+| 成功率 | 相似任务是否更容易完成 |
+| 首次正确率 | 是否减少用户纠正 |
+| 工具调用次数 | 是否更少踩坑 |
+| 任务完成时间 | 是否更快 |
+| 用户偏好命中率 | 是否更符合用户表达习惯 |
+| 重复错误率 | 是否避免过去犯过的错 |
+| 技能复用率 | 是否触发了正确 skill |
+| 记忆污染率 | 是否写入了错误或无用记忆 |
+| 回查命中率 | session_search 是否能找到真正相关证据 |
+
+### 8.2 一个最小实验方案
+
+```text
+1. 准备 20 个重复/相似任务（如源码研究、报告生成、CLI 调试、论文解读）。
+2. 第一轮关闭 memory 与 skill，记录 baseline。
+3. 第二轮开启 memory、关闭 skill。
+4. 第三轮同时开启 memory 与 skill。
+5. 比较成功率、工具调用数、用户纠正数、耗时与输出质量。
+6. 对失败案例做人工审查：是记忆没召回、召回错了、skill 过拟合，还是模型本身能力不足。
+```
+
+结果解读：若第三组显著优于第一组，即可证明外部记忆 + 过程性技能确实提升 Agent 行为；若第二组优于第一组但第三组未继续提升，说明 memory 有用而 skill 机制尚需改进；若开启 memory 后反而变差，则说明存在记忆污染或召回污染。
+
+### 8.3 成立的关键前提
+
+学习闭环要真正有效，需满足几个前提，也是最容易出问题的地方：
+
+1. **写入的记忆必须高质量。** 稳定事实才写 `MEMORY.md`，长期偏好才写 `USER.md`，可复用流程才写 skill，短期上下文留在 session history；否则 Agent 会越学越偏。
+2. **记忆必须可追溯。** 重要 memory 最好带上 `source_session_id`、`source_message_id`、`created_at`、`confidence`、`last_verified_at` 等元数据，便于审计、冲突处理与过期清理，避免幻觉沉淀为长期事实。
+3. **技能需要 eval、版本管理与回滚。** 一旦 skill 可以 patch，就需要版本号、变更原因、适用条件、失败案例、测试样例与回滚机制，否则技能库会变成一堆越改越乱的自然语言补丁。
+4. **召回必须精准。** 记忆并非越多越好，全量注入会带来上下文污染、偏好过拟合与错误约束增强。这正是 Honcho / Mem0 / RetainDB 等 semantic memory provider 的价值——按任务召回，而非全量注入。
+5. **需要真实反馈信号。** 用户纠正、测试是否通过、文件是否生成、代码是否运行、任务是否完成、用户是否采纳，这些才是比模型自评更硬的学习信号。
+
+---
+
+## 九、边界与结论
+
+### 9.1 Hermes 还不是强意义上的自我改进智能体
+
+需要明确边界。Hermes 当前这套更准确地叫 **memory-augmented self-improving agent** 或 **experience-driven agent adaptation**，而非强意义上的 **recursive self-improving agent**。因为它改的主要是记忆、用户画像、技能文档、流程模板与检索上下文，而**不是**核心推理算法、模型权重、工具实现、规划器、评估器或长期目标函数。
+
+当然，`skill_manage` 已经开始触及「流程自修改」。如果未来它能基于 eval 自动 patch skill、通过测试后启用、并在失败时自动回滚，就会更接近真正的自进化系统。
+
+### 9.2 最终判断
+
+综合来看，从 Reflexion 的反思闭环，到 Generative Agents 的记忆—反思—规划架构，再到 Voyager 的可执行技能库与 ExpeL 的跨任务经验迁移，并辅以 MemoryBank / MemGPT / Mem0 的长期记忆管理与 Self-Refine 的自反馈迭代，学术界已反复验证一个共识：**在模型参数不变的前提下，Agent 仍可通过外部记忆、经验沉淀与检索增强，在系统层面展现出持续学习能力。**
+
+Hermes 的工程实现正是这一思路的落地：以 `MEMORY.md` / `USER.md` 承载语义记忆与用户模型，以 `skills/` 承载过程性记忆，以 `state.db` + `session_search` 承载可追溯的情景记忆，并通过外部 memory provider 实现跨会话的语义召回与长期用户建模。四者协同，构成一个「经验产生 → 反思总结 → 写入长期状态 → 按需召回注入 → 行为改变 → 再产生新经验」的完整闭环。
+
+一句话总结：
+
+> Hermes 的自进化理论上站得住、工程上也有合理闭环，但它不是参数级自训练，而是外部记忆与过程性技能驱动的 Agent 级在线适应。要证明它真的让 AI 越用越强，仍需补上系统化的 eval 与质量控制——`session_search` 提供的证据可追溯性与 `/learn` 提供的人工强监督入口，正是保证该闭环在真实业务中可控、可审计的关键设计。
+
+---
+
+## 参考文献
+
+- [Reflexion: Language Agents with Verbal Reinforcement Learning](https://arxiv.org/abs/2303.11366v4) —— 语言反馈强化、episodic memory、无需更新权重的 Agent 改进框架。
+- [Generative Agents: Interactive Simulacra of Human Behavior](https://arxiv.org/abs/2304.03442) —— memory stream、reflection、retrieval、planning 架构。
+- [Voyager: An Open-Ended Embodied Agent with Large Language Models](https://arxiv.org/abs/2305.16291) —— 终身学习 Agent、自动课程、技能库、开放式探索。
+- [ExpeL: LLM Agents Are Experiential Learners](https://arxiv.org/abs/2308.10144) —— gradient-free experiential learning，从经验中提取自然语言洞察。
+- [MemoryBank: Enhancing Large Language Models with Long-Term Memory](https://arxiv.org/abs/2305.10250) —— LLM 长期记忆、用户个性理解、持续记忆更新。
+- [MemGPT: Towards LLMs as Operating Systems](https://arxiv.org/abs/2310.08560) —— 分层记忆、virtual context management、有限上下文管理。
+- [Mem0: Building Production-Ready AI Agents with Scalable Long-Term Memory](https://arxiv.org/abs/2504.19413) —— 生产级 Agent 的可扩展长期记忆架构。
+- [Self-Refine: Iterative Refinement with Self-Feedback](https://arxiv.org/abs/2303.17651) —— 无额外训练的自反馈、自改进迭代框架。
