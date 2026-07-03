@@ -11,6 +11,7 @@ import {
   shouldAutoFocusDocumentTitle,
   splitDocumentEditorMarkdown,
   shouldShowDocumentStartState,
+  stripEmptyBlockMarkers,
 } from "./MarkdownEditor";
 
 describe("editor empty document state", () => {
@@ -47,6 +48,11 @@ describe("editor empty document state", () => {
     expect(editorSource).toContain("SlashCommandMenu");
     expect(editorSource).toContain("matchSlashCommandTriggerText");
     expect(editorSource).toContain("createSlashWriterEditor");
+  });
+
+  it("strips zero-width block markers from copied text", () => {
+    expect(stripEmptyBlockMarkers("​Heading​")).toBe("Heading");
+    expect(stripEmptyBlockMarkers("plain")).toBe("plain");
   });
 });
 

@@ -14,6 +14,7 @@ import {
   useState,
 } from "react";
 import {
+  CaseSensitive,
   ChevronDown,
   ChevronRight,
   ChevronUp,
@@ -24,6 +25,7 @@ import {
   PanelLeft,
   PanelRight,
   PencilLine,
+  Replace,
   Search,
   Settings,
   Sun,
@@ -59,7 +61,7 @@ import {
   saveAcpSettings as persistAcpSettings,
   type AcpSettings,
 } from "./features/ai-polish/settings";
-import { createR2ImageUploadHandler } from "./features/assets/image-upload";
+import { createImageUploadHandler } from "./features/assets/image-upload";
 import {
   composeDocumentEditorMarkdown,
   DOCUMENT_TITLE_PLACEHOLDER,
@@ -110,6 +112,8 @@ import {
   clearActiveDocumentSearchMatch,
   findDocumentMatches,
   getAdjacentMatchIndex,
+  replaceAllInSource,
+  replaceNthInSource,
   scrollActiveDocumentSearchMatchIntoView,
   type DocumentSearchMatch,
 } from "./features/search/in-document-search";
@@ -121,6 +125,7 @@ const PreviewPane = lazy(() =>
 );
 import { createDocumentCommands } from "./features/session/document-commands";
 import { confirmPublishOverwrite } from "./features/session/publish-document";
+import { SaveStatusIndicator } from "./features/session/SaveStatusIndicator";
 import { useDocumentSession } from "./features/session/useDocumentSession";
 import type { SettingsCheckState } from "./features/settings/WriterSettingsDialog";
 const WriterSettingsDialog = lazy(() =>
@@ -305,6 +310,9 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
   const [isDocumentSearchOpen, setIsDocumentSearchOpen] = useState(false);
   const [documentSearchQuery, setDocumentSearchQuery] = useState("");
   const [activeSearchIndex, setActiveSearchIndex] = useState(-1);
+  const [isReplaceVisible, setIsReplaceVisible] = useState(false);
+  const [documentReplaceQuery, setDocumentReplaceQuery] = useState("");
+  const [isSearchCaseSensitive, setIsSearchCaseSensitive] = useState(false);
   const [startedEmptyDocumentId, setStartedEmptyDocumentId] = useState<
     string | null
   >(null);
@@ -488,9 +496,15 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
       isDocumentSearchOpen
         ? findDocumentMatches(documentEditor?.body ?? "", documentSearchQuery, {
             limit: 500,
+            caseSensitive: isSearchCaseSensitive,
           })
         : [],
-    [documentEditor?.body, documentSearchQuery, isDocumentSearchOpen],
+    [
+      documentEditor?.body,
+      documentSearchQuery,
+      isDocumentSearchOpen,
+      isSearchCaseSensitive,
+    ],
   );
   const historyTargetId = session.document
     ? getVersionTargetId(session.document, session.filePath)
@@ -558,7 +572,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
   );
   const imageUploadHandler = useMemo(
     () =>
-      createR2ImageUploadHandler({
+      createImageUploadHandler({
         assetUpload: platform.assetUpload,
         settings: assetSettings,
         setStatus,
@@ -709,9 +723,65 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
     setIsDocumentSearchOpen(false);
     setDocumentSearchQuery("");
     setActiveSearchIndex(-1);
+    setIsReplaceVisible(false);
+    setDocumentReplaceQuery("");
     clearDocumentSearchHighlight();
     restoreEditorFocus();
   }, [restoreEditorFocus]);
+  const applyDocumentBodyReplacement = useCallback(
+    (nextBody: string) => {
+      // The MDXEditor is uncontrolled after mount, so push the rewritten body
+      // through its imperative API *and* the session so both stay in sync.
+      activeEditorRef.current?.setMarkdown?.(nextBody);
+      changeDocumentBody(nextBody);
+      clearDocumentSearchHighlight();
+    },
+    [changeDocumentBody],
+  );
+  const replaceCurrentMatch = useCallback(() => {
+    if (!documentEditor || !documentSearchQuery || activeSearchIndex < 0) return;
+
+    const nextBody = replaceNthInSource(
+      documentEditor.body,
+      documentSearchQuery,
+      documentReplaceQuery,
+      activeSearchIndex,
+      { caseSensitive: isSearchCaseSensitive },
+    );
+    if (nextBody === documentEditor.body) return;
+
+    applyDocumentBodyReplacement(nextBody);
+    // Keep the cursor on the same ordinal so repeated replace walks forward;
+    // clamp happens naturally on the next match recompute.
+    setActiveSearchIndex((current) => Math.max(0, current));
+  }, [
+    activeSearchIndex,
+    applyDocumentBodyReplacement,
+    documentEditor,
+    documentReplaceQuery,
+    documentSearchQuery,
+    isSearchCaseSensitive,
+  ]);
+  const replaceAllMatches = useCallback(() => {
+    if (!documentEditor || !documentSearchQuery) return;
+
+    const { source: nextBody, count } = replaceAllInSource(
+      documentEditor.body,
+      documentSearchQuery,
+      documentReplaceQuery,
+      { caseSensitive: isSearchCaseSensitive },
+    );
+    if (count === 0 || nextBody === documentEditor.body) return;
+
+    applyDocumentBodyReplacement(nextBody);
+    setActiveSearchIndex(-1);
+  }, [
+    applyDocumentBodyReplacement,
+    documentEditor,
+    documentReplaceQuery,
+    documentSearchQuery,
+    isSearchCaseSensitive,
+  ]);
   const closeQuickOpen = useCallback(() => {
     setIsQuickOpenOpen(false);
     setQuickOpenQuery("");
@@ -1248,12 +1318,23 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
         return;
       }
 
+      if (action.kind === "save") {
+        void saveNow();
+        return;
+      }
+
+      if (action.kind === "document-replace") {
+        setIsDocumentSearchOpen(true);
+        setIsReplaceVisible(true);
+        return;
+      }
+
       setIsDocumentSearchOpen(true);
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [runCommand]);
+  }, [runCommand, saveNow]);
 
   /*
   useEffect(() => {
@@ -1417,6 +1498,9 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
                   })
                 }
               />
+              {session.document ? (
+                <SaveStatusIndicator session={session} status={status} />
+              ) : null}
             </div>
             {session.document ? (
               viewMode === "write" && isDocumentStartStateVisible ? (
@@ -1428,11 +1512,25 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
                       query={documentSearchQuery}
                       matches={documentSearchMatches}
                       activeIndex={activeSearchIndex}
+                      replaceVisible={isReplaceVisible}
+                      replaceQuery={documentReplaceQuery}
+                      caseSensitive={isSearchCaseSensitive}
                       onQueryChange={(query) => {
                         setDocumentSearchQuery(query);
                         setActiveSearchIndex(query ? 0 : -1);
                         clearDocumentSearchHighlight();
                       }}
+                      onReplaceQueryChange={setDocumentReplaceQuery}
+                      onToggleReplace={() =>
+                        setIsReplaceVisible((visible) => !visible)
+                      }
+                      onToggleCaseSensitive={() => {
+                        setIsSearchCaseSensitive((value) => !value);
+                        setActiveSearchIndex(documentSearchQuery ? 0 : -1);
+                        clearDocumentSearchHighlight();
+                      }}
+                      onReplaceOne={replaceCurrentMatch}
+                      onReplaceAll={replaceAllMatches}
                       onClose={() => {
                         closeDocumentSearch();
                       }}
@@ -1831,72 +1929,169 @@ function DocumentSearchBar({
   query,
   matches,
   activeIndex,
+  replaceVisible,
+  replaceQuery,
+  caseSensitive,
   onQueryChange,
+  onReplaceQueryChange,
+  onToggleReplace,
+  onToggleCaseSensitive,
+  onReplaceOne,
+  onReplaceAll,
   onClose,
   onNavigate,
 }: {
   query: string;
   matches: DocumentSearchMatch[];
   activeIndex: number;
+  replaceVisible: boolean;
+  replaceQuery: string;
+  caseSensitive: boolean;
   onQueryChange: (query: string) => void;
+  onReplaceQueryChange: (query: string) => void;
+  onToggleReplace: () => void;
+  onToggleCaseSensitive: () => void;
+  onReplaceOne: () => void;
+  onReplaceAll: () => void;
   onClose: () => void;
   onNavigate: (direction: "next" | "previous") => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const hasMatches = Boolean(query) && matches.length > 0;
 
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
   return (
-    <div className="document-search-bar" role="search">
-      <Search size={14} aria-hidden="true" />
-      <input
-        ref={inputRef}
-        value={query}
-        onChange={(event) => onQueryChange(event.currentTarget.value)}
-        onKeyDown={(event) => {
-          if (event.key === "Escape") {
-            event.preventDefault();
-            onClose();
-            return;
-          }
+    <div
+      className="document-search-bar"
+      role="search"
+      data-replace={replaceVisible ? "true" : undefined}
+    >
+      <button
+        type="button"
+        className="document-search-toggle"
+        aria-label={replaceVisible ? "Hide replace" : "Show replace"}
+        aria-expanded={replaceVisible}
+        title={replaceVisible ? "隐藏替换" : "显示替换"}
+        onClick={onToggleReplace}
+      >
+        <ChevronRight
+          size={14}
+          aria-hidden="true"
+          className="document-search-toggle-icon"
+        />
+      </button>
+      <div className="document-search-fields">
+        <div className="document-search-row">
+          <Search size={14} aria-hidden="true" />
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={(event) => onQueryChange(event.currentTarget.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                event.preventDefault();
+                onClose();
+                return;
+              }
 
-          if (event.key === "Enter") {
-            event.preventDefault();
-            onNavigate(event.shiftKey ? "previous" : "next");
-          }
-        }}
-        placeholder="Find in document"
-        aria-label="Find in document"
-      />
-      <span className="document-search-count" aria-live="polite">
-        {query && matches.length > 0 ? `${activeIndex + 1}/${matches.length}` : "0/0"}
-      </span>
-      <button
-        type="button"
-        aria-label="Previous match"
-        title="Previous match"
-        onClick={() => onNavigate("previous")}
-      >
-        <ChevronUp size={14} aria-hidden="true" />
-      </button>
-      <button
-        type="button"
-        aria-label="Next match"
-        title="Next match"
-        onClick={() => onNavigate("next")}
-      >
-        <ChevronDown size={14} aria-hidden="true" />
-      </button>
-      <button
-        type="button"
-        aria-label="Close search"
-        title="Close search"
-        onClick={onClose}
-      >
-        <X size={14} aria-hidden="true" />
-      </button>
+              if (event.key === "Enter") {
+                event.preventDefault();
+                onNavigate(event.shiftKey ? "previous" : "next");
+              }
+            }}
+            placeholder="Find in document"
+            aria-label="Find in document"
+          />
+          <button
+            type="button"
+            className="document-search-option"
+            data-active={caseSensitive ? "true" : undefined}
+            aria-label="Match case"
+            aria-pressed={caseSensitive}
+            title="区分大小写"
+            onClick={onToggleCaseSensitive}
+          >
+            <CaseSensitive size={15} aria-hidden="true" />
+          </button>
+          <span className="document-search-count" aria-live="polite">
+            {hasMatches ? `${activeIndex + 1}/${matches.length}` : "0/0"}
+          </span>
+          <button
+            type="button"
+            aria-label="Previous match"
+            title="上一个匹配"
+            onClick={() => onNavigate("previous")}
+          >
+            <ChevronUp size={14} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            aria-label="Next match"
+            title="下一个匹配"
+            onClick={() => onNavigate("next")}
+          >
+            <ChevronDown size={14} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            aria-label="Close search"
+            title="关闭 (Esc)"
+            onClick={onClose}
+          >
+            <X size={14} aria-hidden="true" />
+          </button>
+        </div>
+        {replaceVisible ? (
+          <div className="document-search-row document-search-row-replace">
+            <Replace size={14} aria-hidden="true" />
+            <input
+              value={replaceQuery}
+              onChange={(event) =>
+                onReplaceQueryChange(event.currentTarget.value)
+              }
+              onKeyDown={(event) => {
+                if (event.key === "Escape") {
+                  event.preventDefault();
+                  onClose();
+                  return;
+                }
+
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  if (event.shiftKey) {
+                    onReplaceAll();
+                  } else {
+                    onReplaceOne();
+                  }
+                }
+              }}
+              placeholder="Replace with"
+              aria-label="Replace with"
+            />
+            <button
+              type="button"
+              className="document-search-replace-action"
+              onClick={onReplaceOne}
+              disabled={!hasMatches}
+              title="替换当前 (Enter)"
+            >
+              替换
+            </button>
+            <button
+              type="button"
+              className="document-search-replace-action"
+              onClick={onReplaceAll}
+              disabled={!hasMatches}
+              title="全部替换 (Shift+Enter)"
+            >
+              全部
+            </button>
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }

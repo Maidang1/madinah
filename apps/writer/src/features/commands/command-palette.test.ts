@@ -185,7 +185,7 @@ describe("command palette", () => {
       "view.quickOpen": "⌘P",
       "view.commandPalette": "⇧⌘P",
       "document.search": "⌘F",
-      "editor.format.bold": "⌃B",
+      "editor.format.bold": "⌘B",
       "editor.format.italic": "⌘I",
       "editor.format.link": "⌘K",
     });

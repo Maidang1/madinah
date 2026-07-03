@@ -48,17 +48,25 @@ describe("slash commands", () => {
     ]);
   });
 
-  it("matches slash triggers only at the start of a block", () => {
+  it("matches slash triggers at line start and mid-line after whitespace", () => {
     expect(matchSlashCommandTriggerText("/")).toEqual({
       query: "",
       slashOffset: 0,
+      atLineStart: true,
     });
     expect(matchSlashCommandTriggerText("  /table")).toEqual({
       query: "table",
       slashOffset: 2,
+      atLineStart: true,
     });
-    expect(matchSlashCommandTriggerText("hello /table")).toBeNull();
+    expect(matchSlashCommandTriggerText("hello /table")).toEqual({
+      query: "table",
+      slashOffset: 6,
+      atLineStart: false,
+    });
     expect(matchSlashCommandTriggerText("/two words")).toBeNull();
+    // A slash glued to preceding text (like a path) must not trigger.
+    expect(matchSlashCommandTriggerText("a/b")).toBeNull();
   });
 
   it("keeps the menu inside the viewport", () => {
@@ -94,6 +102,22 @@ describe("slash commands", () => {
     expect(
       replaceSlashTriggerInMarkdown("Body\n\n  /table", "  /table", "| x |\n"),
     ).toBe("Body\n\n| x |\n");
+  });
+
+  it("replaces only the /query token for mid-line insertions", () => {
+    expect(
+      replaceSlashTriggerInMarkdown("hello /b", "/b", "**bold**", false),
+    ).toBe("hello **bold**");
+
+    // The preceding sentence and a matching path elsewhere stay untouched.
+    expect(
+      replaceSlashTriggerInMarkdown(
+        "see path/link and here /b",
+        "/b",
+        "**bold**",
+        false,
+      ),
+    ).toBe("see path/link and here **bold**");
   });
 });
 

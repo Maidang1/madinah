@@ -14,6 +14,12 @@ export type WriterKeyboardShortcutAction =
     }
   | {
       kind: "document-search";
+    }
+  | {
+      kind: "document-replace";
+    }
+  | {
+      kind: "save";
     };
 
 export interface WriterKeyboardShortcutEvent {
@@ -58,6 +64,8 @@ export function getWriterKeyboardShortcutAction(
 
   if (key === "p" && event.shiftKey) return { kind: "command-palette" };
   if (key === "p") return { kind: "quick-open" };
+  if (key === "s" && !event.shiftKey) return { kind: "save" };
+  if (key === "f" && event.shiftKey) return { kind: "document-replace" };
   if (key === "f") return { kind: "document-search" };
   const commandId = COMMANDS[key];
   return commandId ? { kind: "command", commandId } : { kind: "none" };

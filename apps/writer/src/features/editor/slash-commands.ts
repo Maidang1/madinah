@@ -19,6 +19,7 @@ export interface SlashCommandPosition {
 export interface SlashCommandTriggerMatch {
   query: string;
   slashOffset: number;
+  atLineStart: boolean;
 }
 
 export interface SlashCommandReplacement {
@@ -46,6 +47,10 @@ const INLINE_SLASH_COMMAND_IDS = new Set([
   "editor.format.link",
   "editor.format.inlineCode",
 ]);
+
+export function isInlineSlashCommandId(id: string): boolean {
+  return INLINE_SLASH_COMMAND_IDS.has(id);
+}
 
 const SLASH_PRIORITY_BY_ID: Record<string, number> = {
   "editor.insert.paragraph": 100,
@@ -115,12 +120,22 @@ export function searchSlashCommandItems(
 export function matchSlashCommandTriggerText(
   textBeforeCaret: string,
 ): SlashCommandTriggerMatch | null {
-  const match = textBeforeCaret.match(/^[\s\u200b]*\/([^\s/]*)$/u);
+  // The slash must sit at the line start (allowing whitespace / zero-width
+  // markers) or directly after a whitespace boundary, so typing mid-sentence
+  // like "note /" still opens the menu without matching a URL path.
+  const match = textBeforeCaret.match(/(^|[\s\u200b])\/([^\s/]*)$/u);
   if (!match) return null;
 
+  const slashOffset = textBeforeCaret.lastIndexOf("/");
+  const linePrefix = textBeforeCaret.slice(
+    textBeforeCaret.lastIndexOf("\n", slashOffset - 1) + 1,
+    slashOffset,
+  );
+
   return {
-    query: match[1] ?? "",
-    slashOffset: textBeforeCaret.lastIndexOf("/"),
+    query: match[2] ?? "",
+    slashOffset,
+    atLineStart: /^[\s\u200b]*$/u.test(linePrefix),
   };
 }
 
@@ -149,8 +164,13 @@ export function replaceSlashTriggerInMarkdown(
   markdown: string,
   triggerText: string,
   insertionMarkdown: string,
+  atLineStart = true,
 ): string {
-  const replacement = findSlashTriggerReplacement(markdown, triggerText);
+  const replacement = findSlashTriggerReplacement(
+    markdown,
+    triggerText,
+    atLineStart,
+  );
   if (!replacement) return `${markdown}${insertionMarkdown}`;
 
   return `${markdown.slice(0, replacement.start)}${insertionMarkdown}${markdown.slice(
@@ -202,6 +222,7 @@ function getSlashCommandScore(item: SlashCommandItem, query: string): number {
 function findSlashTriggerReplacement(
   markdown: string,
   triggerText: string,
+  atLineStart: boolean,
 ): SlashCommandReplacement | null {
   const candidates = [...new Set([triggerText, triggerText.trimStart(), "/"])].filter(
     Boolean,
@@ -214,19 +235,31 @@ function findSlashTriggerReplacement(
       const index = markdown.lastIndexOf(candidate, searchFrom);
       if (index < 0) break;
 
+      const slashIndex = markdown.indexOf("/", index);
       const lineStart = markdown.lastIndexOf("\n", index - 1) + 1;
       const linePrefix = markdown.slice(lineStart, index);
       const end = index + candidate.length;
       const nextChar = markdown[end];
+      const rightBoundaryOk =
+        nextChar === undefined || nextChar === "\n" || nextChar === "\r";
 
-      if (
-        /^[\s\u200b]*$/u.test(linePrefix) &&
-        (nextChar === undefined || nextChar === "\n" || nextChar === "\r")
-      ) {
-        return {
-          start: lineStart,
-          end,
-        };
+      if (atLineStart) {
+        // Block insertion: consume the whole line prefix so the inserted
+        // markdown (headings, lists, tables) starts at the line boundary.
+        if (/^[\s\u200b]*$/u.test(linePrefix) && rightBoundaryOk) {
+          return { start: lineStart, end };
+        }
+      } else if (slashIndex >= 0 && rightBoundaryOk) {
+        // Mid-line insertion: replace only the "/query" token, leaving the
+        // text that precedes it untouched. The slash must follow a whitespace
+        // (or zero-width) boundary so paths like "a/b" are never matched.
+        const charBeforeSlash = markdown[slashIndex - 1];
+        if (
+          charBeforeSlash === undefined ||
+          /[\s\u200b]/u.test(charBeforeSlash)
+        ) {
+          return { start: slashIndex, end };
+        }
       }
 
       searchFrom = index - 1;
