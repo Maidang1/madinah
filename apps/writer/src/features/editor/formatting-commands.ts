@@ -1,7 +1,7 @@
 import type { WriterCommand, WriterEditor } from "../../domain/engine";
 
 const FORMAT_COMMAND_SHORTCUTS: Record<string, string> = {
-  "editor.format.bold": "⌃B",
+  "editor.format.bold": "⌘B",
   "editor.format.italic": "⌘I",
   "editor.format.link": "⌘K",
   "editor.format.heading1": "⌥⌘1",

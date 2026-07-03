@@ -220,6 +220,29 @@ export function useDocumentSession(
     }
   }, [platform, session.document, session.filePath, upsertDocument]);
 
+  // Best-effort flush of unsaved changes when the window loses focus or is
+  // about to close, so a crash / quit within the 500ms autosave debounce does
+  // not drop the last edits. `saveNow` is a no-op when the session is clean.
+  const saveNowRef = useRef(saveNow);
+  saveNowRef.current = saveNow;
+  const isDirtyRef = useRef(session.isDirty);
+  isDirtyRef.current = session.isDirty;
+
+  useEffect(() => {
+    const flush = () => {
+      if (isDirtyRef.current) {
+        void saveNowRef.current();
+      }
+    };
+
+    window.addEventListener("beforeunload", flush);
+    window.addEventListener("blur", flush);
+    return () => {
+      window.removeEventListener("beforeunload", flush);
+      window.removeEventListener("blur", flush);
+    };
+  }, []);
+
   const openStoredDocument = useCallback(
     async (id: string) => {
       try {

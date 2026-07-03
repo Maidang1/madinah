@@ -1,8 +1,11 @@
 import {
   Bold as BoldIcon,
   Code2,
+  Heading2,
   Italic as ItalicIcon,
   Link as LinkIcon,
+  List as ListIcon,
+  TextQuote,
   type LucideIcon,
 } from "lucide-react";
 
@@ -37,7 +40,7 @@ interface EditorSelectionToolbarProps {
 }
 
 export const EDITOR_SELECTION_TOOLBAR_SIZE = {
-  width: 176,
+  width: 308,
   height: 36,
 };
 
@@ -65,6 +68,24 @@ export const EDITOR_SELECTION_TOOLBAR_ACTIONS: EditorSelectionToolbarAction[] = 
     label: "Inline Code",
     commandId: "editor.format.inlineCode",
     Icon: Code2,
+  },
+  {
+    id: "heading",
+    label: "Heading",
+    commandId: "editor.format.heading2",
+    Icon: Heading2,
+  },
+  {
+    id: "quote",
+    label: "Quote",
+    commandId: "editor.format.quote",
+    Icon: TextQuote,
+  },
+  {
+    id: "bullet-list",
+    label: "Bulleted List",
+    commandId: "editor.format.bulletList",
+    Icon: ListIcon,
   },
 ];
 
