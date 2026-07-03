@@ -23,8 +23,13 @@ describe("EditorSelectionToolbar", () => {
     expect(markup).toContain('aria-label="Italic"');
     expect(markup).toContain('aria-label="Link"');
     expect(markup).toContain('aria-label="Inline Code"');
+    expect(markup).toContain('aria-label="Heading"');
+    expect(markup).toContain('aria-label="Quote"');
+    expect(markup).toContain('aria-label="Bulleted List"');
     expect(markup).toContain('data-command-id="editor.format.bold"');
     expect(markup).toContain('data-command-id="editor.format.inlineCode"');
+    expect(markup).toContain('data-command-id="editor.format.heading2"');
+    expect(markup).toContain('data-command-id="editor.format.bulletList"');
   });
 
   it("keeps the toolbar centered near the selection", () => {

@@ -19,6 +19,10 @@ import remarkFrontmatter from "remark-frontmatter";
 import remarkGfm from "remark-gfm";
 import type { EngineProfile, WriterCommand } from "../../domain/engine";
 import { mdxComponents } from "../../components/mdx-components";
+import {
+  CODE_BLOCK_EDITOR_EXTENSIONS,
+  CODE_BLOCK_LANGUAGES,
+} from "./codeBlockLanguages";
 
 export const EMPTY_BLOCK_MARKER = "\u200b";
 
@@ -50,21 +54,6 @@ const jsxComponentDescriptors: JsxComponentDescriptor[] = [
   },
 ];
 
-const codeBlockLanguages = {
-  plaintext: "Plain text",
-  typescript: "TypeScript",
-  javascript: "JavaScript",
-  tsx: "TSX",
-  jsx: "JSX",
-  rust: "Rust",
-  yaml: "YAML",
-  bash: "Bash",
-  shell: "Shell",
-  json: "JSON",
-  jsonc: "JSONC",
-  markdown: "Markdown",
-};
-
 const commonmarkEditorPlugins = [
   headingsPlugin(),
   listsPlugin(),
@@ -74,7 +63,8 @@ const commonmarkEditorPlugins = [
   linkDialogPlugin(),
   codeBlockPlugin({ defaultCodeBlockLanguage: "typescript" }),
   codeMirrorPlugin({
-    codeBlockLanguages,
+    codeBlockLanguages: CODE_BLOCK_LANGUAGES,
+    codeMirrorExtensions: CODE_BLOCK_EDITOR_EXTENSIONS,
     autoLoadLanguageSupport: false,
   }),
   markdownShortcutPlugin(),
@@ -210,10 +200,10 @@ const baseInsertTemplates: InsertMarkdownTemplate[] = [
   {
     id: "code",
     label: "Code block",
-    hint: "Fenced code block",
+    hint: "Editable syntax-highlighted code block",
     group: "Code",
-    keywords: ["fence", "snippet"],
-    markdown: `\`\`\`\n${editablePlaceholder("code")}\n\`\`\`\n\n`,
+    keywords: ["code", "codeblock", "fence", "snippet", "pre"],
+    markdown: "```typescript\n\n```\n\n",
   },
   createCodeInsertTemplate("typescript", "TypeScript"),
   createCodeInsertTemplate("tsx", "TSX"),
@@ -301,9 +291,10 @@ const commonmarkCodeLanguages = [
   { id: "markdown", label: "Markdown" },
 ];
 
-const fullCodeLanguages = Object.entries(codeBlockLanguages).map(([id, label]) => ({
-  id,
-  label,
+const fullCodeLanguages = CODE_BLOCK_LANGUAGES.map((language) => ({
+  id: language.alias?.[0] ?? language.name.toLowerCase(),
+  label: language.name,
+  aliases: language.alias ? [...language.alias] : undefined,
 }));
 
 export function createBuiltinProfiles(): EngineProfile[] {
@@ -376,10 +367,10 @@ function createCodeInsertTemplate(
   return {
     id: `code-${language}`,
     label: `${label} code`,
-    hint: `Fenced ${label} block`,
+    hint: `Editable ${label} block`,
     group: "Code",
-    keywords: [language, "code", "fence", "snippet"],
-    markdown: `\`\`\`${language}\n${editablePlaceholder(`${label} code`)}\n\`\`\`\n\n`,
+    keywords: [language, "code", "codeblock", "fence", "snippet"],
+    markdown: `\`\`\`${language}\n\n\`\`\`\n\n`,
   };
 }
 

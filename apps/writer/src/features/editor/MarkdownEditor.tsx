@@ -18,12 +18,10 @@ import {
 import type { MarkdownDocument } from "../../domain/document";
 import type { WorkspaceInfo, WriterEditor } from "../../domain/engine";
 import type { ElectronContextMenuItem } from "../../platform/electron-api";
-/*
 import {
   getImageFilesFromClipboardData,
   getMarkdownTextFromClipboardData,
 } from "./clipboard";
-*/
 import {
   createSourceModeEditorPlugin,
   EMPTY_BLOCK_MARKER,
@@ -53,6 +51,7 @@ import {
 import {
   createSlashCommandItems,
   getSlashCommandPosition,
+  isInlineSlashCommandId,
   matchSlashCommandTriggerText,
   replaceSlashTriggerInMarkdown,
   searchSlashCommandItems,
@@ -114,7 +113,12 @@ export function MarkdownEditor({
   const slashCommandResults = useMemo(
     () =>
       slashMenu
-        ? searchSlashCommandItems(slashCommandItems, slashMenu.query).slice(0, 10)
+        ? searchSlashCommandItems(slashCommandItems, slashMenu.query)
+            .filter(
+              (item) =>
+                slashMenu.atLineStart || isInlineSlashCommandId(item.id),
+            )
+            .slice(0, 10)
         : [],
     [slashCommandItems, slashMenu],
   );
@@ -225,6 +229,7 @@ export function MarkdownEditor({
       query: trigger.query,
       position: trigger.position,
       triggerText: trigger.triggerText,
+      atLineStart: trigger.atLineStart,
       selectedIndex:
         current?.query === trigger.query ? current.selectedIndex : 0,
     }));
@@ -246,6 +251,7 @@ export function MarkdownEditor({
         editorRef,
         valueRef,
         activeSlashMenu.triggerText,
+        activeSlashMenu.atLineStart,
         onChange,
       );
 
@@ -353,9 +359,6 @@ export function MarkdownEditor({
     );
   }, []);
 
-  /*
-  // Custom clipboard handling is parked while the editor returns to the
-  // MDXEditor-managed paste flow.
   useEffect(() => {
     const shell = shellRef.current;
     if (!shell) return;
@@ -393,7 +396,37 @@ export function MarkdownEditor({
     shell.addEventListener("paste", handlePaste, true);
     return () => shell.removeEventListener("paste", handlePaste, true);
   }, [imageUploadHandler, onError]);
-  */
+
+  useEffect(() => {
+    const shell = shellRef.current;
+    if (!shell) return;
+
+    // Editable placeholders use a zero-width marker; strip it from copied /
+    // cut text so it never leaks invisible characters into other apps.
+    const handleCopyOrCut = (event: ClipboardEvent) => {
+      const selectedText = window.getSelection()?.toString() ?? "";
+      if (!selectedText.includes(EMPTY_BLOCK_MARKER)) return;
+
+      event.clipboardData?.setData(
+        "text/plain",
+        stripEmptyBlockMarkers(selectedText),
+      );
+      event.preventDefault();
+
+      // preventDefault also cancels the native cut deletion, so remove the
+      // selection ourselves to preserve cut semantics.
+      if (event.type === "cut") {
+        globalThis.document.execCommand?.("delete");
+      }
+    };
+
+    shell.addEventListener("copy", handleCopyOrCut, true);
+    shell.addEventListener("cut", handleCopyOrCut, true);
+    return () => {
+      shell.removeEventListener("copy", handleCopyOrCut, true);
+      shell.removeEventListener("cut", handleCopyOrCut, true);
+    };
+  }, []);
 
   const updateSelectionToolbar = useCallback(() => {
     if (contextMenu) return;
@@ -426,11 +459,13 @@ export function MarkdownEditor({
     );
     globalThis.document.addEventListener("selectionchange", scheduleSlashMenuUpdate);
     window.addEventListener("mouseup", scheduleSelectionToolbarUpdate);
-    window.addEventListener("keyup", scheduleSelectionToolbarUpdate);
     window.addEventListener("resize", closeSelectionToolbar);
     window.addEventListener("resize", closeSlashMenu);
-    window.addEventListener("scroll", closeSelectionToolbar, true);
-    window.addEventListener("scroll", closeSlashMenu, true);
+    // Reposition (instead of closing) on scroll so the toolbar / slash menu
+    // follow the caret; updateSelectionToolbar/updateSlashMenu clear themselves
+    // when the selection or trigger is gone.
+    window.addEventListener("scroll", scheduleSelectionToolbarUpdate, true);
+    window.addEventListener("scroll", scheduleSlashMenuUpdate, true);
 
     return () => {
       globalThis.document.removeEventListener(
@@ -442,11 +477,10 @@ export function MarkdownEditor({
         scheduleSlashMenuUpdate,
       );
       window.removeEventListener("mouseup", scheduleSelectionToolbarUpdate);
-      window.removeEventListener("keyup", scheduleSelectionToolbarUpdate);
       window.removeEventListener("resize", closeSelectionToolbar);
       window.removeEventListener("resize", closeSlashMenu);
-      window.removeEventListener("scroll", closeSelectionToolbar, true);
-      window.removeEventListener("scroll", closeSlashMenu, true);
+      window.removeEventListener("scroll", scheduleSelectionToolbarUpdate, true);
+      window.removeEventListener("scroll", scheduleSlashMenuUpdate, true);
     };
   }, [
     closeSelectionToolbar,
@@ -709,8 +743,12 @@ export function shouldAutoFocusDocumentTitle(title: string): boolean {
   return normalizeDocumentTitle(title) === "";
 }
 
+export function stripEmptyBlockMarkers(text: string): string {
+  return text.replaceAll(EMPTY_BLOCK_MARKER, "");
+}
+
 function cleanEmptyBlockMarkers(markdown: string): string {
-  return markdown.replaceAll(EMPTY_BLOCK_MARKER, "");
+  return stripEmptyBlockMarkers(markdown);
 }
 
 function normalizeDocumentTitle(title: string): string {
@@ -738,6 +776,7 @@ interface SlashCommandMenuState {
   query: string;
   position: SlashCommandPosition;
   triggerText: string;
+  atLineStart: boolean;
   selectedIndex: number;
 }
 
@@ -837,7 +876,6 @@ async function showNativeEditorContextMenu({
   }
 }
 
-/*
 async function uploadPastedImages(
   imageFiles: File[],
   imageUploadHandler: ImageUploadHandler,
@@ -856,12 +894,12 @@ async function uploadPastedImages(
     }
   }
 }
-*/
 
 function createSlashWriterEditor(
   editorRef: RefObject<MDXEditorMethods | null>,
   fallbackMarkdownRef: RefObject<string>,
   triggerText: string,
+  atLineStart: boolean,
   onChange: (value: string) => void,
 ): WriterEditor {
   const insertAtSlashRange = (markdown: string) => {
@@ -871,6 +909,7 @@ function createSlashWriterEditor(
       currentMarkdown,
       triggerText,
       markdown,
+      atLineStart,
     );
     editorRef.current?.setMarkdown(nextMarkdown);
     onChange(cleanEmptyBlockMarkers(nextMarkdown));
@@ -900,12 +939,14 @@ function createWriterEditor(
       editorRef.current?.getMarkdown() ?? fallbackMarkdownRef.current,
     setMarkdown: (markdown) => editorRef.current?.setMarkdown(markdown),
     insertMarkdown: (markdown) => editorRef.current?.insertMarkdown(markdown),
-    getSelectionMarkdown: () => getSelectedTextInside(shellRef.current),
-    replaceSelection: (markdown) => {
-      if (!replaceSelectedTextInside(shellRef.current, markdown)) {
-        editorRef.current?.insertMarkdown(markdown);
-      }
-    },
+    // Use MDXEditor's own selection API so formatting commands operate on the
+    // parsed markdown of the selection. insertMarkdown parses and replaces the
+    // active selection, so "**text**" becomes real bold rather than literal
+    // asterisks (which is what the DOM execCommand path produced).
+    getSelectionMarkdown: () =>
+      editorRef.current?.getSelectionMarkdown() ??
+      getSelectedTextInside(shellRef.current),
+    replaceSelection: (markdown) => editorRef.current?.insertMarkdown(markdown),
     focus: () =>
       editorRef.current?.focus(undefined, {
         defaultSelection: "rootEnd",
@@ -946,6 +987,7 @@ function getSlashCommandTrigger(
       { width: window.innerWidth, height: window.innerHeight },
     ),
     triggerText: textBeforeCaret.slice(trigger.slashOffset),
+    atLineStart: trigger.atLineStart,
     selectedIndex: 0,
   };
 }
@@ -994,39 +1036,6 @@ function getSelectedTextInside(element: HTMLElement | null): string {
   const selection = window.getSelection();
   if (!getSelectionRangeInside(element, selection)) return "";
   return selection?.toString() ?? "";
-}
-
-function replaceSelectedTextInside(
-  element: HTMLElement | null,
-  text: string,
-): boolean {
-  if (!element) return false;
-
-  const selection = window.getSelection();
-  const range = getSelectionRangeInside(element, selection);
-  if (!selection || !range) return false;
-
-  if (
-    typeof document.execCommand === "function" &&
-    document.execCommand("insertText", false, text)
-  ) {
-    return true;
-  }
-
-  range.deleteContents();
-  range.insertNode(document.createTextNode(text));
-  range.collapse(false);
-  selection.removeAllRanges();
-  selection.addRange(range);
-
-  element.dispatchEvent(
-    new InputEvent("input", {
-      bubbles: true,
-      inputType: "insertText",
-      data: text,
-    }),
-  );
-  return true;
 }
 
 function getSelectionRangeInside(

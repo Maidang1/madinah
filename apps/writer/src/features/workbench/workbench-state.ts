@@ -17,6 +17,7 @@ export interface WorkbenchState {
 export type WorkbenchAction =
   | { type: "setViewMode"; viewMode: WriterViewMode }
   | { type: "setEditorMode"; editorMode: WriterEditorMode }
+  | { type: "toggleEditorMode" }
   | { type: "showInspectorTab"; tab: InspectorTab }
   | { type: "toggleSidebar" }
   | { type: "toggleInspector" }
@@ -87,6 +88,12 @@ export function workbenchStateReducer(
         ...state,
         viewMode: "write",
         editorMode: action.editorMode,
+      };
+    case "toggleEditorMode":
+      return {
+        ...state,
+        viewMode: "write",
+        editorMode: state.editorMode === "source" ? "rich-text" : "source",
       };
     case "showInspectorTab":
       return {

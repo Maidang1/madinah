@@ -85,6 +85,17 @@ describe("workbench state", () => {
     });
   });
 
+  it("toggles between source and rich-text editor modes", () => {
+    let state = getInitialWorkbenchState(createStorage());
+    expect(state.editorMode).toBe("rich-text");
+
+    state = workbenchStateReducer(state, { type: "toggleEditorMode" });
+    expect(state).toMatchObject({ editorMode: "source", viewMode: "write" });
+
+    state = workbenchStateReducer(state, { type: "toggleEditorMode" });
+    expect(state).toMatchObject({ editorMode: "rich-text", viewMode: "write" });
+  });
+
   it("restores editor focus only when returning from preview to write", () => {
     expect(shouldRestoreEditorFocus("preview", "write")).toBe(true);
     expect(shouldRestoreEditorFocus("write", "preview")).toBe(false);

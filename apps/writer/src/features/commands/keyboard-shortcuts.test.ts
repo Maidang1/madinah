@@ -39,6 +39,9 @@ describe("writer keyboard shortcuts", () => {
       }),
     ).toEqual({ kind: "none" });
     expect(
+      getWriterKeyboardShortcutAction({ key: "b", metaKey: true }),
+    ).toEqual({ kind: "command", commandId: "editor.format.bold" });
+    expect(
       getWriterKeyboardShortcutAction({ key: "b", ctrlKey: true }),
     ).toEqual({ kind: "command", commandId: "editor.format.bold" });
   });
