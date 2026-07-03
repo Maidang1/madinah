@@ -1,12 +1,14 @@
 appId: cn.felixwliu.madinah.writer
 productName: Madinah Writer
-asar: false
+asar: true
 directories:
   output: release
   buildResources: buildResources
 files:
   - out/**/*
   - package.json
+  # Everything is bundled into out/ by rsbuild; keep raw deps out of the app.
+  - "!node_modules/**/*"
 extraMetadata:
   main: out/main/index.cjs
 publish:

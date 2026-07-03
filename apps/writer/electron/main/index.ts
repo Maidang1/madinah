@@ -12,7 +12,7 @@ import {
   type OpenDialogOptions,
   type SaveDialogOptions,
 } from "electron";
-import { existsSync } from "node:fs";
+import { access } from "node:fs/promises";
 import path from "node:path";
 import {
   addRecentFile,
@@ -104,6 +104,8 @@ async function createMainWindow(): Promise<BrowserWindow> {
     height: 900,
     minWidth: 900,
     minHeight: 560,
+    // Avoid a white flash: keep the window hidden until the renderer painted.
+    show: false,
     titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "hidden",
     trafficLightPosition: {
       x: 14,
@@ -115,6 +117,10 @@ async function createMainWindow(): Promise<BrowserWindow> {
       nodeIntegration: false,
       sandbox: false,
     },
+  });
+
+  window.once("ready-to-show", () => {
+    if (!window.isDestroyed()) window.show();
   });
 
   loadRenderer(window);
@@ -175,7 +181,9 @@ function registerIpcHandlers(backend: BackendContext) {
     moveFileTreePathToTrash(workspaceRoot, path),
   );
   ipcMain.handle(IPC.fileTree.revealPath, async (_event, { path }) => {
-    if (!existsSync(path)) throw new Error(`Path not found: ${path}`);
+    await access(path).catch(() => {
+      throw new Error(`Path not found: ${path}`);
+    });
     shell.showItemInFolder(path);
   });
   ipcMain.handle(IPC.fileTree.watch, (event, { root }) =>
@@ -393,8 +401,19 @@ async function startFileTreeWatcher(
 
   fileTreeWatcher = chokidar.watch(root, {
     ignoreInitial: true,
+    // Skip heavyweight directories entirely so chokidar never sets up
+    // watchers inside them (listVisibleChildren ignores them too). Only
+    // segments below the watch root are considered, so a root that itself
+    // lives inside a dot-directory keeps working.
     ignored: (filePath) =>
-      filePath.split(path.sep).some((segment) => segment === ".madinah-writer"),
+      path
+        .relative(root, filePath)
+        .split(path.sep)
+        .some(
+          (segment) =>
+            segment === "node_modules" ||
+            (segment.startsWith(".") && segment !== "." && segment !== ".."),
+        ),
   });
   fileTreeWatcher.on("all", (_eventName, changedPath) => {
     if (!isRelevantFileTreeChange(changedPath)) return;

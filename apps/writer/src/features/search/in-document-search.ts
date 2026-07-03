@@ -8,6 +8,8 @@ export interface DocumentSearchMatch {
 
 export interface DocumentSearchOptions {
   caseSensitive?: boolean;
+  /** Stop scanning once this many matches are found. */
+  limit?: number;
 }
 
 export interface TextMatchRange {
@@ -34,11 +36,12 @@ export function findDocumentMatches(
 
   const haystack = options.caseSensitive ? source : source.toLowerCase();
   const needle = options.caseSensitive ? query : query.toLowerCase();
+  const limit = options.limit ?? Number.POSITIVE_INFINITY;
   const lineStarts = getLineStarts(source);
   const matches: DocumentSearchMatch[] = [];
   let index = haystack.indexOf(needle);
 
-  while (index >= 0) {
+  while (index >= 0 && matches.length < limit) {
     const lineIndex = getLineIndex(lineStarts, index);
     const lineStart = lineStarts[lineIndex] ?? 0;
     const lineEnd = source.indexOf("\n", lineStart);

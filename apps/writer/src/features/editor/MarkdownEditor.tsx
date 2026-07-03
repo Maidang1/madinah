@@ -93,6 +93,10 @@ export function MarkdownEditor({
 }: MarkdownEditorProps) {
   const editorRef = useRef<MDXEditorMethods>(null);
   const shellRef = useRef<HTMLDivElement>(null);
+  // Keep the latest markdown readable from stable callbacks without making
+  // them (and the effects that depend on them) re-run on every keystroke.
+  const valueRef = useRef(value);
+  valueRef.current = value;
   const shouldAutoFocusRef = useRef(autoFocus);
   const initialFocusSelectionRef = useRef<"rootStart" | "rootEnd">(
     getInitialFocusSelection(value),
@@ -134,9 +138,9 @@ export function MarkdownEditor({
   useEffect(() => {
     if (!onEditorReady) return;
 
-    onEditorReady(createWriterEditor(editorRef, shellRef, value));
+    onEditorReady(createWriterEditor(editorRef, shellRef, valueRef));
     return () => onEditorReady(null);
-  }, [onEditorReady, value]);
+  }, [onEditorReady]);
 
   const closeContextMenu = useCallback(() => {
     setContextMenu(null);
@@ -158,7 +162,7 @@ export function MarkdownEditor({
       try {
         await commandRegistry.execute(item.commandId, {
           document,
-          editor: createWriterEditor(editorRef, shellRef, value),
+          editor: createWriterEditor(editorRef, shellRef, valueRef),
           workspace,
         });
         restoreEditorFocus();
@@ -172,14 +176,13 @@ export function MarkdownEditor({
       document,
       onError,
       restoreEditorFocus,
-      value,
       workspace,
     ],
   );
 
   const runSelectionToolbarAction = useCallback(
     async (action: EditorSelectionToolbarAction) => {
-      const editor = createWriterEditor(editorRef, shellRef, value);
+      const editor = createWriterEditor(editorRef, shellRef, valueRef);
       closeSelectionToolbar();
 
       try {
@@ -198,7 +201,6 @@ export function MarkdownEditor({
       commandRegistry,
       document,
       onError,
-      value,
       workspace,
     ],
   );
@@ -242,7 +244,7 @@ export function MarkdownEditor({
 
       const editor = createSlashWriterEditor(
         editorRef,
-        value,
+        valueRef,
         activeSlashMenu.triggerText,
         onChange,
       );
@@ -266,7 +268,6 @@ export function MarkdownEditor({
       onChange,
       onError,
       slashMenu,
-      value,
       workspace,
     ],
   );
@@ -859,12 +860,13 @@ async function uploadPastedImages(
 
 function createSlashWriterEditor(
   editorRef: RefObject<MDXEditorMethods | null>,
-  fallbackMarkdown: string,
+  fallbackMarkdownRef: RefObject<string>,
   triggerText: string,
   onChange: (value: string) => void,
 ): WriterEditor {
   const insertAtSlashRange = (markdown: string) => {
-    const currentMarkdown = editorRef.current?.getMarkdown() ?? fallbackMarkdown;
+    const currentMarkdown =
+      editorRef.current?.getMarkdown() ?? fallbackMarkdownRef.current;
     const nextMarkdown = replaceSlashTriggerInMarkdown(
       currentMarkdown,
       triggerText,
@@ -875,7 +877,8 @@ function createSlashWriterEditor(
   };
 
   return {
-    getMarkdown: () => editorRef.current?.getMarkdown() ?? fallbackMarkdown,
+    getMarkdown: () =>
+      editorRef.current?.getMarkdown() ?? fallbackMarkdownRef.current,
     setMarkdown: (markdown) => editorRef.current?.setMarkdown(markdown),
     insertMarkdown: insertAtSlashRange,
     getSelectionMarkdown: () => "",
@@ -890,10 +893,11 @@ function createSlashWriterEditor(
 function createWriterEditor(
   editorRef: RefObject<MDXEditorMethods | null>,
   shellRef: RefObject<HTMLDivElement | null>,
-  fallbackMarkdown: string,
+  fallbackMarkdownRef: RefObject<string>,
 ): WriterEditor {
   return {
-    getMarkdown: () => editorRef.current?.getMarkdown() ?? fallbackMarkdown,
+    getMarkdown: () =>
+      editorRef.current?.getMarkdown() ?? fallbackMarkdownRef.current,
     setMarkdown: (markdown) => editorRef.current?.setMarkdown(markdown),
     insertMarkdown: (markdown) => editorRef.current?.insertMarkdown(markdown),
     getSelectionMarkdown: () => getSelectedTextInside(shellRef.current),

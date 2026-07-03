@@ -27,7 +27,6 @@ const mainConfig = {
       root: "out/main",
       js: ".",
     },
-    minify: false,
   },
   tools: {
     rspack: {
@@ -52,7 +51,6 @@ const preloadConfig = {
       root: "out/preload",
       js: ".",
     },
-    minify: false,
   },
   tools: {
     rspack: {
@@ -80,7 +78,6 @@ const rendererConfig = {
     distPath: {
       root: "out/renderer",
     },
-    minify: false,
   },
 };
 

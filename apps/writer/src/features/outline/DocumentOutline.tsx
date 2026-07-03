@@ -1,6 +1,7 @@
 import { ListTree } from "lucide-react";
 import { useMemo } from "react";
 import { buildToc, type TocItem } from "../../lib/toc";
+import { useDebouncedValue } from "../../lib/use-debounced-value";
 
 interface DocumentOutlineProps {
   source: string;
@@ -8,7 +9,10 @@ interface DocumentOutlineProps {
 }
 
 export function DocumentOutline({ source, onJump }: DocumentOutlineProps) {
-  const toc = useMemo(() => buildToc(source), [source]);
+  // Headings rarely change per keystroke; trail the source so the outline
+  // doesn't re-scan the whole document while the user types.
+  const debouncedSource = useDebouncedValue(source, 300);
+  const toc = useMemo(() => buildToc(debouncedSource), [debouncedSource]);
 
   return (
     <section className="inspector-section document-outline">

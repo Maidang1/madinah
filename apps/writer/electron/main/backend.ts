@@ -1,13 +1,8 @@
-import {
-  HeadBucketCommand,
-  PutObjectCommand,
-  S3Client,
-} from "@aws-sdk/client-s3";
-import * as acp from "@agentclientprotocol/sdk";
+import type { S3Client } from "@aws-sdk/client-s3";
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, statSync } from "node:fs";
 import {
+  access,
   chmod,
   copyFile,
   mkdir,
@@ -163,7 +158,7 @@ export async function createFileTreeFile(
   }
 
   const filePath = path.join(parentPath, safeName);
-  if (existsSync(filePath)) throw new Error(`${filePath} already exists`);
+  if (await pathExists(filePath)) throw new Error(`${filePath} already exists`);
 
   const stem = path.basename(filePath, path.extname(filePath)).trim() || "Untitled";
   const source = `# ${stem}\n\n`;
@@ -180,7 +175,7 @@ export async function createFileTreeDirectory(
 
   const safeName = validateChildName(name);
   const dirPath = path.join(parentPath, safeName);
-  if (existsSync(dirPath)) throw new Error(`${dirPath} already exists`);
+  if (await pathExists(dirPath)) throw new Error(`${dirPath} already exists`);
 
   await mkdir(dirPath);
   return entryForPath(dirPath);
@@ -204,7 +199,7 @@ export async function renameFileTreePath(
   }
 
   const target = path.join(parent, safeName);
-  if (existsSync(target)) throw new Error(`${target} already exists`);
+  if (await pathExists(target)) throw new Error(`${target} already exists`);
 
   await rename(filePath, target);
   return entryForPath(target);
@@ -219,7 +214,7 @@ export async function duplicateFileTreeFile(
   }
 
   const source = await readFile(filePath, "utf8");
-  const target = nextDuplicatePath(filePath);
+  const target = await nextDuplicatePath(filePath);
   await writeFile(target, source, "utf8");
   return {
     path: target,
@@ -235,7 +230,7 @@ export async function moveFileTreePathToTrash(
   if (!rootStat?.isDirectory()) {
     throw new Error(`Workspace not found: ${workspaceRoot}`);
   }
-  if (!existsSync(filePath)) throw new Error(`Path not found: ${filePath}`);
+  if (!(await pathExists(filePath))) throw new Error(`Path not found: ${filePath}`);
 
   const canonicalRoot = await realPath(workspaceRoot);
   const canonicalPath = await realPath(filePath);
@@ -249,7 +244,9 @@ export async function moveFileTreePathToTrash(
   const originalName = path.basename(filePath);
   if (!originalName) throw new Error("Invalid path name");
 
-  const target = uniquePath(path.join(trashDir, `${Date.now()}-${originalName}`));
+  const target = await uniquePath(
+    path.join(trashDir, `${Date.now()}-${originalName}`),
+  );
   await rename(filePath, target);
   return target;
 }
@@ -258,7 +255,7 @@ export async function listRecentFiles(
   context: BackendContext,
 ): Promise<MarkdownFile[]> {
   const filePath = recentPath(context);
-  if (!existsSync(filePath)) return [];
+  if (!(await pathExists(filePath))) return [];
   return readJsonFile<MarkdownFile[]>(filePath);
 }
 
@@ -281,8 +278,8 @@ export async function addRecentFile(
 export async function importBlogDir(
   inputPath: string,
 ): Promise<Array<{ slug: string; path: string; source: string }>> {
-  const blogsDir = resolveBlogsDir(inputPath);
-  if (!existsSync(blogsDir)) {
+  const blogsDir = await resolveBlogsDir(inputPath);
+  if (!(await pathExists(blogsDir))) {
     throw new Error(`Blog directory not found: ${blogsDir}`);
   }
 
@@ -310,11 +307,11 @@ export async function exportDocumentToBlog(input: {
   source: string;
   overwrite: boolean;
 }): Promise<{ path: string }> {
-  const blogsDir = resolveBlogsDir(input.blogDir);
+  const blogsDir = await resolveBlogsDir(input.blogDir);
   await ensureDir(blogsDir);
 
   const outputPath = exportPathForSlug(blogsDir, input.slug);
-  if (existsSync(outputPath) && !input.overwrite) {
+  if (!input.overwrite && (await pathExists(outputPath))) {
     throw new Error(`${outputPath} already exists`);
   }
 
@@ -323,11 +320,14 @@ export async function exportDocumentToBlog(input: {
   return { path: outputPath };
 }
 
-export function resolveBlogsDir(inputPath: string): string {
+export async function resolveBlogsDir(inputPath: string): Promise<string> {
   if (path.basename(inputPath) === "blogs") return inputPath;
 
   const nested = path.join(inputPath, "src", "blogs");
-  if (existsSync(nested) || !existsSync(path.join(inputPath, "src"))) {
+  if (
+    (await pathExists(nested)) ||
+    !(await pathExists(path.join(inputPath, "src")))
+  ) {
     return nested;
   }
 
@@ -345,18 +345,18 @@ export function exportPathForSlug(blogsDir: string, slug: string): string {
 export async function resolveWorkspace(
   inputPath: string,
 ): Promise<WorkspaceInfo> {
-  const start = workspaceSearchStart(inputPath);
+  const start = await workspaceSearchStart(inputPath);
   const ancestors = pathAncestors(start);
 
   for (const ancestor of ancestors) {
     const configPath = workspaceConfigPath(ancestor);
-    if (existsSync(configPath)) {
+    if (await pathExists(configPath)) {
       return workspaceInfoFromConfig(ancestor, configPath);
     }
   }
 
   for (const ancestor of ancestors) {
-    if (existsSync(path.join(ancestor, "package.json"))) {
+    if (await pathExists(path.join(ancestor, "package.json"))) {
       return defaultWorkspaceInfo(ancestor);
     }
   }
@@ -471,7 +471,8 @@ export async function checkAssetUploadSettings(
 
   try {
     validateCompleteAssetUploadSettings(next);
-    await r2Client(next).send(new HeadBucketCommand({ Bucket: next.bucket }));
+    const { client, sdk } = await r2Client(next);
+    await client.send(new sdk.HeadBucketCommand({ Bucket: next.bucket }));
     return { ok: true, message: "Connected" };
   } catch (error) {
     return { ok: false, message: errorMessage(error) };
@@ -498,8 +499,9 @@ export async function uploadAssetImage(
     now.getUTCMonth() + 1,
   );
 
-  await r2Client(settings).send(
-    new PutObjectCommand({
+  const { client, sdk } = await r2Client(settings);
+  await client.send(
+    new sdk.PutObjectCommand({
       Bucket: settings.bucket,
       Key: key,
       Body: bytes,
@@ -806,21 +808,28 @@ function isMarkdownPath(filePath: string): boolean {
   );
 }
 
-function nextDuplicatePath(filePath: string): string {
+async function pathExists(filePath: string): Promise<boolean> {
+  return access(filePath).then(
+    () => true,
+    () => false,
+  );
+}
+
+async function nextDuplicatePath(filePath: string): Promise<string> {
   const parent = path.dirname(filePath);
   const extension = path.extname(filePath);
   const stem = path.basename(filePath, extension);
   const first = path.join(parent, `${stem} copy${extension}`);
-  if (!existsSync(first)) return first;
+  if (!(await pathExists(first))) return first;
 
   for (let index = 2; ; index += 1) {
     const candidate = path.join(parent, `${stem} copy ${index}${extension}`);
-    if (!existsSync(candidate)) return candidate;
+    if (!(await pathExists(candidate))) return candidate;
   }
 }
 
-function uniquePath(filePath: string): string {
-  if (!existsSync(filePath)) return filePath;
+async function uniquePath(filePath: string): Promise<string> {
+  if (!(await pathExists(filePath))) return filePath;
 
   const parent = path.dirname(filePath);
   const extension = path.extname(filePath);
@@ -828,7 +837,7 @@ function uniquePath(filePath: string): string {
 
   for (let index = 2; ; index += 1) {
     const candidate = path.join(parent, `${stem}-${index}${extension}`);
-    if (!existsSync(candidate)) return candidate;
+    if (!(await pathExists(candidate))) return candidate;
   }
 }
 
@@ -850,12 +859,18 @@ function hashBytes(value: Buffer): string {
   return createHash("sha256").update(value).digest("hex");
 }
 
-async function collectFiles(dir: string): Promise<string[]> {
+const COLLECT_FILES_MAX_DEPTH = 8;
+
+async function collectFiles(dir: string, depth = 0): Promise<string[]> {
+  if (depth > COLLECT_FILES_MAX_DEPTH) return [];
   const entries = await readdir(dir, { withFileTypes: true });
   const nested = await Promise.all(
     entries.map(async (entry) => {
       const filePath = path.join(dir, entry.name);
-      if (entry.isDirectory()) return collectFiles(filePath);
+      if (entry.isDirectory()) {
+        if (shouldIgnoreDirectory(entry.name)) return [];
+        return collectFiles(filePath, depth + 1);
+      }
       if (entry.isFile()) return [filePath];
       return [];
     }),
@@ -873,7 +888,7 @@ function stripExtension(filePath: string): string {
 
 async function readWorkspaceConfig(root: string): Promise<WorkspaceConfig> {
   const configPath = workspaceConfigPath(root);
-  if (!existsSync(configPath)) return defaultWorkspaceConfig();
+  if (!(await pathExists(configPath))) return defaultWorkspaceConfig();
   const raw = await readJsonFile<Partial<WorkspaceConfig>>(configPath);
   return {
     schemaVersion: Number(raw.schemaVersion ?? 1),
@@ -919,26 +934,13 @@ function defaultWorkspaceConfig(): WorkspaceConfig {
   };
 }
 
-function workspaceSearchStart(inputPath: string): string {
-  if (existsSync(inputPath)) {
-    try {
-      const current = statSyncSafe(inputPath);
-      if (current?.isFile()) return path.dirname(inputPath);
-      return inputPath;
-    } catch {
-      return inputPath;
-    }
+async function workspaceSearchStart(inputPath: string): Promise<string> {
+  const current = await stat(inputPath).catch(() => null);
+  if (current) {
+    return current.isFile() ? path.dirname(inputPath) : inputPath;
   }
 
   return path.extname(inputPath) ? path.dirname(inputPath) : inputPath;
-}
-
-function statSyncSafe(filePath: string) {
-  try {
-    return statSync(filePath);
-  } catch {
-    return null;
-  }
 }
 
 function pathAncestors(start: string): string[] {
@@ -1027,7 +1029,7 @@ async function isTrustedPlugin(
 async function readTrustRecords(
   trustPath: string,
 ): Promise<WorkspacePluginTrustRecord[]> {
-  if (!existsSync(trustPath)) return [];
+  if (!(await pathExists(trustPath))) return [];
   return readJsonFile<WorkspacePluginTrustRecord[]>(trustPath);
 }
 
@@ -1044,23 +1046,44 @@ async function readStoredAssetUploadSettings(
 async function readStoredAssetUploadSettingsFromPath(
   settingsPath: string,
 ): Promise<AssetUploadSettings> {
-  if (!existsSync(settingsPath)) return defaultAssetUploadSettings();
+  if (!(await pathExists(settingsPath))) return defaultAssetUploadSettings();
   const settings = await readJsonFile<AssetUploadSettings>(settingsPath);
   const normalized = normalizeAssetUploadSettings(settings);
   validateSafeAssetUploadSettingsShape(normalized);
   return normalized;
 }
 
-function r2Client(settings: AssetUploadSettings): S3Client {
-  return new S3Client({
-    endpoint: `https://${settings.accountId}.r2.cloudflarestorage.com`,
-    region: "auto",
-    credentials: {
-      accessKeyId: settings.accessKeyId,
-      secretAccessKey: settings.secretAccessKey,
-    },
-    forcePathStyle: true,
-  });
+// The AWS SDK is heavy; load it on first use instead of at app startup, and
+// reuse the client (connection pool) across calls until settings change.
+let r2ClientCache: { key: string; client: S3Client } | null = null;
+
+async function r2Client(settings: AssetUploadSettings) {
+  const sdk = await import("@aws-sdk/client-s3");
+  const key = hashString(
+    [
+      settings.accountId,
+      settings.accessKeyId,
+      settings.secretAccessKey,
+    ].join(" "),
+  );
+
+  if (r2ClientCache?.key !== key) {
+    r2ClientCache?.client.destroy();
+    r2ClientCache = {
+      key,
+      client: new sdk.S3Client({
+        endpoint: `https://${settings.accountId}.r2.cloudflarestorage.com`,
+        region: "auto",
+        credentials: {
+          accessKeyId: settings.accessKeyId,
+          secretAccessKey: settings.secretAccessKey,
+        },
+        forcePathStyle: true,
+      }),
+    };
+  }
+
+  return { client: r2ClientCache.client, sdk };
 }
 
 function validateSafeAssetUploadSettingsShape(
@@ -1205,12 +1228,18 @@ async function runAcpCheck(
   };
 }
 
+// Lazy-load the ACP SDK so it stays out of the app startup path.
+function loadAcpSdk() {
+  return import("@agentclientprotocol/sdk");
+}
+
 async function runAcpAgentForText(options: {
   command: string;
   env: AcpEnvVar[];
   cwd: string;
   prompt: string;
 }): Promise<string> {
+  const acp = await loadAcpSdk();
   const child = spawnAcpAgent(options.command, options.env, options.cwd);
   const stream = acp.ndJsonStream(
     Writable.toWeb(child.stdin!),
@@ -1247,6 +1276,7 @@ async function runAcpAgentInitialize(options: {
   env: AcpEnvVar[];
   cwd: string;
 }): Promise<void> {
+  const acp = await loadAcpSdk();
   const child = spawnAcpAgent(options.command, options.env, options.cwd);
   const stream = acp.ndJsonStream(
     Writable.toWeb(child.stdin!),

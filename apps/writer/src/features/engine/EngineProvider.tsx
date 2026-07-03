@@ -13,7 +13,6 @@ import type {
   WriterPlugin,
 } from "../../domain/engine";
 import type { MdxPreviewContent } from "../../lib/mdx-preview";
-import { compileMdxPreview } from "../../lib/mdx-preview";
 import { CommandRegistry } from "./CommandRegistry";
 import { ExtensionHost } from "./ExtensionHost";
 import { ProfileRegistry } from "./ProfileRegistry";
@@ -65,10 +64,15 @@ export function EngineProvider({
   );
 
   const compilePreview = useCallback(
-    (source: string) =>
-      compileMdxPreview(source, {
+    async (source: string) => {
+      // Lazy-load the MDX compile pipeline (@mdx-js/mdx + shiki grammars +
+      // remark/rehype) so it stays out of the initial bundle until the
+      // preview is actually used.
+      const { compileMdxPreview } = await import("../../lib/mdx-preview");
+      return compileMdxPreview(source, {
         profile,
-      }),
+      });
+    },
     [profile],
   );
 

@@ -11,8 +11,10 @@ import type { MarkdownDocument } from "../../domain/document";
 import type { PreviewComponentMap } from "../../domain/engine";
 import { useEngine } from "../engine/EngineProvider";
 import type { MdxPreviewContent } from "../../lib/mdx-preview";
+import { loadMathJax, sourceMayContainMath } from "../../lib/mathjax";
 import { calculateReadingTime } from "../../lib/reading-time";
 import { buildToc } from "../../lib/toc";
+import { useDebouncedValue } from "../../lib/use-debounced-value";
 
 interface PreviewPaneProps {
   document: MarkdownDocument;
@@ -24,10 +26,13 @@ export function PreviewPane({ document }: PreviewPaneProps) {
   const [error, setError] = useState<string | null>(null);
   const [isCompiling, setIsCompiling] = useState(true);
   const previewRef = useRef<HTMLDivElement>(null);
-  const tocItems = useMemo(() => buildToc(document.body), [document.body]);
+  // Trail the body like the compile effect below so TOC/reading time stay off
+  // the keystroke path.
+  const debouncedBody = useDebouncedValue(document.body, 300);
+  const tocItems = useMemo(() => buildToc(debouncedBody), [debouncedBody]);
   const readingTime = useMemo(
-    () => calculateReadingTime(document.body),
-    [document.body],
+    () => calculateReadingTime(debouncedBody),
+    [debouncedBody],
   );
 
   useEffect(() => {
@@ -56,12 +61,22 @@ export function PreviewPane({ document }: PreviewPaneProps) {
   }, [document.body, engine]);
 
   useEffect(() => {
-    if (!previewRef.current || !window.MathJax?.typesetPromise) return;
+    if (!previewRef.current || !sourceMayContainMath(document.body)) return;
 
-    window.MathJax.typesetClear?.([previewRef.current]);
-    window.MathJax.typesetPromise([previewRef.current])
-      .then(markMathJaxParents)
+    let cancelled = false;
+    loadMathJax()
+      .then(() => {
+        const preview = previewRef.current;
+        if (cancelled || !preview || !window.MathJax?.typesetPromise) return;
+
+        window.MathJax.typesetClear?.([preview]);
+        return window.MathJax.typesetPromise([preview]).then(markMathJaxParents);
+      })
       .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
   }, [Content, document.body]);
 
   return (

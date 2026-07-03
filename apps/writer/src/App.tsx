@@ -4,6 +4,8 @@ import {
   type PointerEvent as ReactPointerEvent,
   // type ClipboardEvent as ReactClipboardEvent,
   type ReactNode,
+  lazy,
+  Suspense,
   useCallback,
   useEffect,
   useMemo,
@@ -42,7 +44,11 @@ import {
   WRITER_COMMAND_EVENT,
   getWriterCommandIdFromPayload,
 } from "./features/commands/native-menu";
-import { CommandPalette } from "./features/commands/command-palette";
+const CommandPalette = lazy(() =>
+  import("./features/commands/command-palette").then((mod) => ({
+    default: mod.CommandPalette,
+  })),
+);
 import { PLUGIN_DIAGNOSTICS_PANEL_ID } from "./features/engine/PluginDiagnostics";
 import {
   AI_POLISH_COMMAND_ID,
@@ -108,14 +114,20 @@ import {
   type DocumentSearchMatch,
 } from "./features/search/in-document-search";
 import { DocumentInspector } from "./features/inspector/DocumentInspector";
-import { PreviewPane } from "./features/preview/PreviewPane";
+const PreviewPane = lazy(() =>
+  import("./features/preview/PreviewPane").then((mod) => ({
+    default: mod.PreviewPane,
+  })),
+);
 import { createDocumentCommands } from "./features/session/document-commands";
 import { confirmPublishOverwrite } from "./features/session/publish-document";
 import { useDocumentSession } from "./features/session/useDocumentSession";
-import {
-  WriterSettingsDialog,
-  type SettingsCheckState,
-} from "./features/settings/WriterSettingsDialog";
+import type { SettingsCheckState } from "./features/settings/WriterSettingsDialog";
+const WriterSettingsDialog = lazy(() =>
+  import("./features/settings/WriterSettingsDialog").then((mod) => ({
+    default: mod.WriterSettingsDialog,
+  })),
+);
 import { ViewModeControl } from "./features/workbench/ViewModeControl";
 import { createWorkbenchCommands } from "./features/workbench/workbench-commands";
 import {
@@ -143,6 +155,7 @@ import {
   type SidebarTreeNode,
 } from "./features/workbench/document-summary";
 import type { TocItem } from "./lib/toc";
+import { useDebouncedValue } from "./lib/use-debounced-value";
 import {
   createPlatformAdapters,
   type PlatformAdapters,
@@ -432,9 +445,15 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
       cancelled = true;
     };
   }, [platform.assetUpload]);
+  // Word-count style metrics don't need keystroke-level accuracy; trail the
+  // body so the regex passes stay off the typing hot path.
+  const debouncedDocumentBody = useDebouncedValue(
+    session.document?.body ?? "",
+    300,
+  );
   const metrics = useMemo(
-    () => getDocumentMetrics(session.document?.body ?? ""),
-    [session.document?.body],
+    () => getDocumentMetrics(debouncedDocumentBody),
+    [debouncedDocumentBody],
   );
   const documentEditor = useMemo(() => {
     if (!session.document) return null;
@@ -448,13 +467,17 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
       ),
     };
   }, [session.document]);
+  // Building the quick-open index walks every document body; only pay for it
+  // while the dialog is open instead of on every keystroke in the editor.
   const quickOpenItems = useMemo(
     () =>
-      buildQuickOpenItems({
-        documents: visibleDocuments,
-        fileTreeNodes,
-      }),
-    [fileTreeNodes, visibleDocuments],
+      isQuickOpenOpen
+        ? buildQuickOpenItems({
+            documents: visibleDocuments,
+            fileTreeNodes,
+          })
+        : [],
+    [fileTreeNodes, isQuickOpenOpen, visibleDocuments],
   );
   const quickOpenResults = useMemo(
     () => searchQuickOpenItems(quickOpenItems, quickOpenQuery).slice(0, 12),
@@ -462,8 +485,12 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
   );
   const documentSearchMatches = useMemo(
     () =>
-      findDocumentMatches(documentEditor?.body ?? "", documentSearchQuery).slice(0, 500),
-    [documentEditor?.body, documentSearchQuery],
+      isDocumentSearchOpen
+        ? findDocumentMatches(documentEditor?.body ?? "", documentSearchQuery, {
+            limit: 500,
+          })
+        : [],
+    [documentEditor?.body, documentSearchQuery, isDocumentSearchOpen],
   );
   const historyTargetId = session.document
     ? getVersionTargetId(session.document, session.filePath)
@@ -1421,7 +1448,9 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
                     />
                   ) : null}
                   {viewMode === "preview" ? (
-                    <PreviewPane document={session.document} />
+                    <Suspense fallback={null}>
+                      <PreviewPane document={session.document} />
+                    </Suspense>
                   ) : documentEditor ? (
                     <DocumentEditorShell
                       title={documentEditor.title}
@@ -1497,6 +1526,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
           {isInspectorVisible && session.document ? (
             <DocumentInspector
               document={session.document}
+              metrics={metrics}
               versions={versions}
               profileName={engine.profile.name}
               pluginDiagnostics={engine.diagnostics}
@@ -1532,39 +1562,45 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
         />
       ) : null}
       {isCommandPaletteOpen ? (
-        <CommandPalette
-          commands={commandRegistry.list()}
-          query={commandPaletteQuery}
-          onQueryChange={setCommandPaletteQuery}
-          onClose={closeCommandPalette}
-          onRun={(command) => {
-            setIsCommandPaletteOpen(false);
-            setCommandPaletteQuery("");
-            void runCommand(command.id).finally(() => {
-              if (!COMMANDS_THAT_OPEN_OVERLAYS.has(command.id)) {
-                restoreEditorFocus();
-              }
-            });
-          }}
-        />
+        <Suspense fallback={null}>
+          <CommandPalette
+            commands={commandRegistry.list()}
+            query={commandPaletteQuery}
+            onQueryChange={setCommandPaletteQuery}
+            onClose={closeCommandPalette}
+            onRun={(command) => {
+              setIsCommandPaletteOpen(false);
+              setCommandPaletteQuery("");
+              void runCommand(command.id).finally(() => {
+                if (!COMMANDS_THAT_OPEN_OVERLAYS.has(command.id)) {
+                  restoreEditorFocus();
+                }
+              });
+            }}
+          />
+        </Suspense>
       ) : null}
-      <WriterSettingsDialog
-        isOpen={isSettingsOpen}
-        aiAvailable={platform.aiPolish.isAvailable}
-        assetUploadAvailable={platform.assetUpload.isAvailable}
-        profiles={engine.profiles}
-        profileId={engine.profile.id}
-        acpSettings={acpSettings}
-        assetSettings={assetSettings}
-        acpCheckState={acpCheckState}
-        assetCheckState={assetCheckState}
-        onClose={closeSettings}
-        onSaveProfile={saveProfileSettings}
-        onSaveAcp={saveAcpSettings}
-        onCheckAcp={(config) => void checkAcpAgent(config)}
-        onSaveAssets={(settings) => void saveAssetSettings(settings)}
-        onCheckAssets={(settings) => void checkAssetSettings(settings)}
-      />
+      {isSettingsOpen ? (
+        <Suspense fallback={null}>
+          <WriterSettingsDialog
+            isOpen={isSettingsOpen}
+            aiAvailable={platform.aiPolish.isAvailable}
+            assetUploadAvailable={platform.assetUpload.isAvailable}
+            profiles={engine.profiles}
+            profileId={engine.profile.id}
+            acpSettings={acpSettings}
+            assetSettings={assetSettings}
+            acpCheckState={acpCheckState}
+            assetCheckState={assetCheckState}
+            onClose={closeSettings}
+            onSaveProfile={saveProfileSettings}
+            onSaveAcp={saveAcpSettings}
+            onCheckAcp={(config) => void checkAcpAgent(config)}
+            onSaveAssets={(settings) => void saveAssetSettings(settings)}
+            onCheckAssets={(settings) => void checkAssetSettings(settings)}
+          />
+        </Suspense>
+      ) : null}
     </main>
   );
 }

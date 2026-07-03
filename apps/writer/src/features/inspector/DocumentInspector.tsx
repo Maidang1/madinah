@@ -13,8 +13,8 @@ import { PluginDiagnostics } from "../engine/PluginDiagnostics";
 import {
   DOCUMENT_STATUSES,
   formatVersionTimestamp,
-  getDocumentMetrics,
   getWritingMetricItems,
+  type DocumentMetrics,
   type WritingMetricItem,
 } from "../workbench/document-summary";
 import type { InspectorTab } from "../workbench/workbench-state";
@@ -30,6 +30,7 @@ import { WritingStats } from "./WritingStats";
 
 interface DocumentInspectorProps {
   document: MarkdownDocument;
+  metrics: DocumentMetrics;
   versions: DocumentVersion[];
   profileName: string;
   pluginDiagnostics: PluginDiagnostic[];
@@ -44,6 +45,7 @@ interface DocumentInspectorProps {
 
 export function DocumentInspector({
   document,
+  metrics,
   versions,
   profileName,
   pluginDiagnostics,
@@ -56,10 +58,6 @@ export function DocumentInspector({
   onRestoreVersion,
 }: DocumentInspectorProps) {
   const [tagsInput, setTagsInput] = useState(document.tags.join(", "));
-  const metrics = useMemo(
-    () => getDocumentMetrics(document.body),
-    [document.body],
-  );
   const writingMetricItems = useMemo(
     () => getWritingMetricItems(metrics),
     [metrics],
