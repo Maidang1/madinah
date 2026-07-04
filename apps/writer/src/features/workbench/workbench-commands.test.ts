@@ -21,6 +21,7 @@ describe("workbench commands", () => {
       "inspector.showOutline",
       "inspector.showProperties",
       "inspector.showStats",
+      "inspector.showReview",
       "inspector.showHistory",
     ]);
   });
@@ -59,6 +60,7 @@ describe("workbench commands", () => {
     run(commands, "inspector.showOutline");
     run(commands, "inspector.showProperties");
     run(commands, "inspector.showStats");
+    run(commands, "inspector.showReview");
     run(commands, "inspector.showHistory");
 
     expect(actions).toEqual([
@@ -75,6 +77,7 @@ describe("workbench commands", () => {
       { type: "showInspectorTab", tab: "outline" },
       { type: "showInspectorTab", tab: "properties" },
       { type: "showInspectorTab", tab: "stats" },
+      { type: "showInspectorTab", tab: "review" },
       { type: "showInspectorTab", tab: "history" },
     ]);
   });

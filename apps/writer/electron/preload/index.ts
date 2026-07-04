@@ -65,6 +65,10 @@ const api: MadinahWriterElectronApi = {
     polish: (input) => invoke(IPC.aiPolish.polish, { input }),
     check: (input) => invoke(IPC.aiPolish.check, { input }),
   },
+  ai: {
+    runAction: (input) => invoke(IPC.ai.runAction, { input }),
+    check: (input) => invoke(IPC.ai.check, { input }),
+  },
   assetUpload: {
     loadSettings: () => invoke(IPC.assetUpload.loadSettings),
     saveSettings: (settings) =>

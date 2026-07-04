@@ -16,6 +16,7 @@ describe("macOS document window layout", () => {
     expect(css).toMatch(/\.light \.writer-simple-app\s*\{[^}]*--reader-ink: rgba\(36, 41, 47, 0\.9\);/);
     expect(css).toMatch(/\.writer-simple-canvas\s*\{[^}]*width: 100%;/);
     expect(css).toMatch(/\.writer-simple-canvas\s*\{[^}]*height: 100%;/);
+    expect(css).toMatch(/\.writer-simple-canvas\s*\{[^}]*--writer-canvas-actions-block-size: 56px;/);
     expect(css).toMatch(/\.writer-simple-canvas\s*\{[^}]*overflow: auto;/);
     expect(css).toMatch(/\.writer-simple-canvas\s*\{[^}]*border: 0;/);
     expect(css).toMatch(/\.writer-simple-canvas\s*\{[^}]*border-radius: 0;/);
@@ -71,13 +72,15 @@ describe("macOS document window layout", () => {
     expect(css).toMatch(/\.slash-command-menu\s*\{[^}]*width: 280px;/);
     expect(css).toMatch(/\.slash-command-menu\s*\{[^}]*max-height: min\(340px, calc\(100dvh - 24px\)\);/);
     expect(css).toMatch(/\.slash-command-menu button\.is-selected\s*\{[^}]*box-shadow: inset 0 0 0 1px/);
-    expect(css).toMatch(/margin: 56px auto 0;/);
+    expect(css).toMatch(/\.document-editor-shell\s*\{[^}]*margin: 0 auto;/);
+    expect(css).toMatch(/\.writer-preview \.post-shell\s*\{[^}]*margin: 0 auto;/);
     expect(css).toMatch(/\.writer-toolbar-button\s*\{[^}]*width: 30px;/);
     expect(css).toMatch(/\.writer-toolbar-button\s*\{[^}]*height: 30px;/);
     expect(css).toMatch(/\.writer-toolbar-button\.is-active\s*\{[^}]*background: transparent;/);
     expect(css).toMatch(/\.writer-toolbar-button:focus-visible\s*,/);
-    expect(css).toMatch(/\.writer-canvas-actions\s*\{[^}]*top: 14px;/);
-    expect(css).toMatch(/\.writer-canvas-actions\s*\{[^}]*right: 18px;/);
+    expect(css).toMatch(/\.writer-canvas-actions\s*\{[^}]*position: relative;/);
+    expect(css).toMatch(/\.writer-canvas-actions\s*\{[^}]*align-self: flex-end;/);
+    expect(css).toMatch(/\.writer-canvas-actions\s*\{[^}]*margin: 14px 18px 14px auto;/);
     expect(css).toMatch(/\.writer-view-mode-toggle\s*\{/);
     expect(css).toMatch(/\.writer-view-mode-toggle\s*\{[^}]*width: 24px;/);
     expect(css).toMatch(/\.writer-view-mode-toggle\s*\{[^}]*height: 24px;/);
@@ -110,6 +113,9 @@ describe("macOS document window layout", () => {
       /\.live-mdx-shell\.is-empty-document \.live-mdx-content\s*\{[^}]*background: transparent;/,
     );
     expect(css).toMatch(/\.document-start-state\s*\{[^}]*place-items: center;/);
+    expect(css).toMatch(
+      /\.document-start-state\s*\{[^}]*min-height: calc\(100% - var\(--writer-canvas-actions-block-size\)\);/,
+    );
     expect(css).toMatch(/\.document-start-state\s*\{[^}]*text-align: center;/);
     expect(css).toMatch(/\.document-start-copy p\s*\{[^}]*font-size: 14px;/);
     expect(css).toMatch(/\.document-start-button\s*\{[^}]*display: inline-flex;/);

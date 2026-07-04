@@ -36,6 +36,7 @@ import {
   renameFileTreePath,
   resolveWorkspace,
   resolveWorkspacePlugins,
+  runAiActionWithAcp,
   saveAssetUploadSettings,
   saveDocument,
   setWorkspacePluginTrust,
@@ -238,6 +239,10 @@ function registerIpcHandlers(backend: BackendContext) {
     polishTextWithAcp(input),
   );
   ipcMain.handle(IPC.aiPolish.check, (_event, { input }) => checkAcpAgent(input));
+  ipcMain.handle(IPC.ai.runAction, (_event, { input }) =>
+    runAiActionWithAcp(input),
+  );
+  ipcMain.handle(IPC.ai.check, (_event, { input }) => checkAcpAgent(input));
 
   ipcMain.handle(IPC.assetUpload.loadSettings, () =>
     loadAssetUploadSettings(backend),
@@ -512,6 +517,7 @@ function buildApplicationMenu(): Menu {
             commandItem("Outline", undefined, "inspector.showOutline"),
             commandItem("Properties", undefined, "inspector.showProperties"),
             commandItem("Writing Stats", undefined, "inspector.showStats"),
+            commandItem("AI Review", undefined, "inspector.showReview"),
             commandItem("History", undefined, "inspector.showHistory"),
           ],
         },

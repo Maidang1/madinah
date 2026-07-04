@@ -13,6 +13,7 @@ const INSPECTOR_TABS: Array<{
   { id: "outline", label: "Outline" },
   { id: "properties", label: "Properties" },
   { id: "stats", label: "Stats" },
+  { id: "review", label: "Review" },
   { id: "history", label: "History" },
 ];
 

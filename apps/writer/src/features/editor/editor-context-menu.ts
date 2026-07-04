@@ -66,9 +66,19 @@ export function getEditorContextMenuSize(
 export function resolveEditorContextMenuItems(
   items: EditorContextMenuItem[],
   hasSelection: boolean,
+  disabledCommandIds: readonly string[] = [],
 ): EditorContextMenuItem[] {
+  const disabledCommandIdSet = new Set(disabledCommandIds);
+
   return items.map((item) => {
     if (isEditorContextMenuSeparator(item)) return item;
+    if (disabledCommandIdSet.has(item.commandId)) {
+      return {
+        ...item,
+        disabled: true,
+      };
+    }
+
     if (!item.requiresSelection || hasSelection) return item;
 
     return {

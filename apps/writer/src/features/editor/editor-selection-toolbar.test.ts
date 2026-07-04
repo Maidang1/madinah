@@ -19,6 +19,7 @@ describe("EditorSelectionToolbar", () => {
 
     expect(markup).toContain('role="toolbar"');
     expect(markup).toContain('aria-label="Selection formatting"');
+    expect(markup).toContain('aria-label="Rewrite Selection"');
     expect(markup).toContain('aria-label="Bold"');
     expect(markup).toContain('aria-label="Italic"');
     expect(markup).toContain('aria-label="Link"');
@@ -26,10 +27,27 @@ describe("EditorSelectionToolbar", () => {
     expect(markup).toContain('aria-label="Heading"');
     expect(markup).toContain('aria-label="Quote"');
     expect(markup).toContain('aria-label="Bulleted List"');
+    expect(markup).toContain('data-command-id="ai.rewriteSelection"');
     expect(markup).toContain('data-command-id="editor.format.bold"');
     expect(markup).toContain('data-command-id="editor.format.inlineCode"');
     expect(markup).toContain('data-command-id="editor.format.heading2"');
     expect(markup).toContain('data-command-id="editor.format.bulletList"');
+  });
+
+  it("marks active disabled commands", () => {
+    const markup = renderToStaticMarkup(
+      createElement(EditorSelectionToolbar, {
+        actions: EDITOR_SELECTION_TOOLBAR_ACTIONS,
+        position: { x: 24, y: 48 },
+        activeCommandId: "ai.rewriteSelection",
+        disabledCommandIds: ["ai.rewriteSelection"],
+        onRun: () => {},
+      }),
+    );
+
+    expect(markup).toContain('class="is-active"');
+    expect(markup).toContain('aria-busy="true"');
+    expect(markup).toContain("disabled");
   });
 
   it("keeps the toolbar centered near the selection", () => {

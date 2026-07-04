@@ -5,11 +5,13 @@ import type {
 } from "../domain/assets";
 import { createDefaultAssetUploadSettings } from "../domain/assets";
 import type {
+  AcpAiActionInput,
   AcpAgentRuntimeConfig,
   AcpPolishInput,
 } from "../domain/ai-polish";
 import type { WorkspacePluginTrustInput } from "../domain/engine";
 import type {
+  AiAdapter,
   AiPolishAdapter,
   AssetUploadAdapter,
   BlogStore,
@@ -35,6 +37,7 @@ export function createBrowserAdapters(): PlatformAdapters {
     blogStore: createBrowserBlogStore(),
     pluginResolver: createBrowserPluginResolver(),
     windowAdapter: createBrowserWindowAdapter(),
+    ai: createBrowserAiAdapter(),
     aiPolish: createBrowserAiPolishAdapter(),
     assetUpload: createBrowserAssetUploadAdapter(),
   };
@@ -194,6 +197,22 @@ function createBrowserAiPolishAdapter(): AiPolishAdapter {
       return {
         ok: false,
         message: "ACP polishing requires the desktop app",
+      };
+    },
+  };
+}
+
+function createBrowserAiAdapter(): AiAdapter {
+  const unavailable = () =>
+    Promise.reject(new Error("ACP AI actions require the desktop app"));
+
+  return {
+    isAvailable: false,
+    runAction: (_input: AcpAiActionInput) => unavailable(),
+    async check(_input: AcpAgentRuntimeConfig) {
+      return {
+        ok: false,
+        message: "ACP AI actions require the desktop app",
       };
     },
   };

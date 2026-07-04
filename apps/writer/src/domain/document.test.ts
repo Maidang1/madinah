@@ -4,9 +4,9 @@ import {
   createSlug,
   parseMdxDocument,
   serializeMdxDocument,
-} from "./content";
+} from "./document";
 
-describe("content model", () => {
+describe("document model", () => {
   it("parses blog frontmatter into a writer document", () => {
     const source = `---
 title: Rust 异步编程

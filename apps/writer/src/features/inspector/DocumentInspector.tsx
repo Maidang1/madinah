@@ -6,6 +6,10 @@ import {
   type MarkdownDocument,
 } from "../../domain/document";
 import type {
+  AiDocumentReviewIssue,
+  AiDocumentReviewState,
+} from "../../domain/ai-polish";
+import type {
   PluginDiagnostic,
   WorkspaceInfo,
 } from "../../domain/engine";
@@ -32,6 +36,7 @@ interface DocumentInspectorProps {
   document: MarkdownDocument;
   metrics: DocumentMetrics;
   versions: DocumentVersion[];
+  aiReviewState: AiDocumentReviewState;
   profileName: string;
   pluginDiagnostics: PluginDiagnostic[];
   workspace: WorkspaceInfo | null;
@@ -39,6 +44,7 @@ interface DocumentInspectorProps {
   onTabChange: (tab: InspectorTab) => void;
   onMetadataChange: (patch: DocumentMetadataPatch) => void;
   onOutlineJump: (item: TocItem) => void;
+  onRunAiReview: () => void;
   onSaveVersion: () => void;
   onRestoreVersion: (version: DocumentVersion) => void;
 }
@@ -47,6 +53,7 @@ export function DocumentInspector({
   document,
   metrics,
   versions,
+  aiReviewState,
   profileName,
   pluginDiagnostics,
   workspace,
@@ -54,6 +61,7 @@ export function DocumentInspector({
   onTabChange,
   onMetadataChange,
   onOutlineJump,
+  onRunAiReview,
   onSaveVersion,
   onRestoreVersion,
 }: DocumentInspectorProps) {
@@ -94,6 +102,9 @@ export function DocumentInspector({
             profileName={profileName}
             writingMetricItems={writingMetricItems}
           />
+        ) : null}
+        {activeTab === "review" ? (
+          <ReviewPanel state={aiReviewState} onRunAiReview={onRunAiReview} />
         ) : null}
         {activeTab === "history" ? (
           <HistoryPanel
@@ -229,6 +240,77 @@ function StatsPanel({
       </div>
       <WritingStats items={writingMetricItems} />
     </section>
+  );
+}
+
+function ReviewPanel({
+  state,
+  onRunAiReview,
+}: {
+  state: AiDocumentReviewState;
+  onRunAiReview: () => void;
+}) {
+  return (
+    <section className="inspector-section">
+      <div className="inspector-section-header">
+        <span>AI Review</span>
+        <button
+          type="button"
+          className="inspector-inline-button"
+          onClick={onRunAiReview}
+          disabled={state.status === "loading"}
+        >
+          {state.status === "loading" ? "Running" : "Run"}
+        </button>
+      </div>
+      {state.status === "ready" && state.review ? (
+        <div className="ai-review-result">
+          <p className="ai-review-summary">{state.review.summary}</p>
+          {state.updatedAt ? (
+            <small className="ai-review-updated">
+              {formatVersionTimestamp(state.updatedAt)}
+            </small>
+          ) : null}
+          <div className="ai-review-issues" role="list">
+            {state.review.issues.length > 0 ? (
+              state.review.issues.map((issue, index) => (
+                <ReviewIssueItem key={`${issue.title}-${index}`} issue={issue} />
+              ))
+            ) : (
+              <p className="inspector-empty-state">No issues found.</p>
+            )}
+          </div>
+        </div>
+      ) : (
+        <p
+          className={
+            state.status === "error"
+              ? "inspector-error-state"
+              : "inspector-empty-state"
+          }
+        >
+          {state.message}
+        </p>
+      )}
+    </section>
+  );
+}
+
+function ReviewIssueItem({ issue }: { issue: AiDocumentReviewIssue }) {
+  return (
+    <article
+      className={`ai-review-issue is-${issue.severity}`}
+      role="listitem"
+    >
+      <div className="ai-review-issue-header">
+        <span>{issue.title}</span>
+        <small>{issue.severity}</small>
+      </div>
+      {issue.detail ? <p>{issue.detail}</p> : null}
+      {issue.suggestion ? (
+        <p className="ai-review-suggestion">{issue.suggestion}</p>
+      ) : null}
+    </article>
   );
 }
 

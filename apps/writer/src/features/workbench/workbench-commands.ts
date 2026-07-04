@@ -174,6 +174,13 @@ function createInspectorTabCommands(
       dispatch,
     ),
     createInspectorTabCommand(
+      "inspector.showReview",
+      "Show AI Review",
+      "review",
+      ["ai", "review", "issues"],
+      dispatch,
+    ),
+    createInspectorTabCommand(
       "inspector.showHistory",
       "Show History",
       "history",

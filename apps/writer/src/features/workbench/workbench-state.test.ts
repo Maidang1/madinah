@@ -11,13 +11,13 @@ describe("workbench state", () => {
   it("loads persisted view mode and inspector tab with stable defaults", () => {
     const storage = createStorage({
       "madinah-writer-view-mode": "preview",
-      "madinah-writer-inspector-tab": "history",
+      "madinah-writer-inspector-tab": "review",
     });
 
     expect(getInitialWorkbenchState(storage)).toEqual({
       viewMode: "preview",
       editorMode: "rich-text",
-      inspectorTab: "history",
+      inspectorTab: "review",
       isSidebarVisible: true,
       isInspectorVisible: false,
       isFocusMode: false,

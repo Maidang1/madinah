@@ -16,9 +16,15 @@ import path from "node:path";
 import { Readable, Writable } from "node:stream";
 import { parse as parseShellCommand } from "shell-quote";
 import type {
+  AcpAiActionInput,
+  AcpAiActionResult,
   AcpAgentCheckResult,
   AcpAgentRuntimeConfig,
   AcpEnvVar,
+  AiDocumentReview,
+  AiDocumentReviewIssue,
+  AiDocumentReviewIssueSeverity,
+  AiMetadataSuggestion,
   AcpPolishInput,
   AcpPolishResult,
 } from "../../src/domain/ai-polish";
@@ -76,6 +82,10 @@ const DEFAULT_MAX_BYTES = 25 * 1024 * 1024;
 const MAX_ALLOWED_BYTES = 500 * 1024 * 1024;
 const CACHE_CONTROL_IMMUTABLE = "public, max-age=31536000, immutable";
 const ACP_DEFAULT_TIMEOUT_SECONDS = 120;
+const ACP_RESULT_START = "MADINAH_WRITER_RESULT_START";
+const ACP_RESULT_END = "MADINAH_WRITER_RESULT_END";
+const ACP_MEDIUM_THINKING_EFFORT = "medium";
+const ACP_THINKING_CONFIG_IDS = new Set(["reasoning_effort", "effort"]);
 
 export async function listDocuments(
   context: BackendContext,
@@ -641,12 +651,39 @@ export function buildAcpPolishPrompt(
   content: string,
   instruction: string,
 ): string {
-  const trimmedInstruction = instruction.trim();
+  return buildAcpActionPrompt({
+    kind: "polish-document",
+    content,
+    instruction,
+  });
+}
+
+export function buildAcpActionPrompt(
+  input: Pick<AcpAiActionInput, "kind" | "content" | "instruction">,
+): string {
+  const content = input.content.trim();
+  const trimmedInstruction = input.instruction.trim();
+  const extraInstruction = trimmedInstruction
+    ? `\n\nAdditional writing instruction:\n${trimmedInstruction}`
+    : "";
+
+  if (input.kind === "rewrite-selection") {
+    return `Rewrite the selected Markdown for clarity, fluency, and natural expression.${extraInstruction}\n\nRules:\n- Return only the rewritten selected Markdown.\n- Preserve factual meaning, Markdown structure, links, code fences, and MDX/JSX components.\n- Do not add commentary or wrap the result in a code fence.\n${buildAcpResultEnvelopeInstruction()}\n\nSelected Markdown:\n<<<MADINAH_WRITER_SELECTION\n${content}\nMADINAH_WRITER_SELECTION`;
+  }
+
+  if (input.kind === "generate-metadata") {
+    return `Generate publication metadata for the Markdown body.${extraInstruction}\n\nReturn only valid JSON with this exact shape:\n{\n  "title": "string",\n  "description": "string",\n  "tags": ["string"],\n  "slug": "string"\n}\n\nRules:\n- Keep the title concise and specific.\n- Keep description under 180 characters.\n- Return 3 to 6 lowercase tags when possible.\n- Use a URL-safe kebab-case slug.\n- Do not include Markdown fences or explanatory text.\n${buildAcpResultEnvelopeInstruction()}\n\nMarkdown body:\n<<<MADINAH_WRITER_BODY\n${content}\nMADINAH_WRITER_BODY`;
+  }
+
+  if (input.kind === "review-document") {
+    return `Review the Markdown document for structure, clarity, and publishing readiness.${extraInstruction}\n\nReturn only valid JSON with this exact shape:\n{\n  "summary": "string",\n  "issues": [\n    {\n      "severity": "info | warning | critical",\n      "title": "string",\n      "detail": "string",\n      "suggestion": "string"\n    }\n  ]\n}\n\nRules:\n- Prefer concrete issues over generic advice.\n- Use "critical" only for issues that block publication or make the article misleading.\n- Keep every field concise.\n- Do not include Markdown fences or explanatory text.\n${buildAcpResultEnvelopeInstruction()}\n\nMarkdown body:\n<<<MADINAH_WRITER_BODY\n${content}\nMADINAH_WRITER_BODY`;
+  }
+
   const finalInstruction =
     trimmedInstruction ||
     "Polish the Markdown body for clarity, fluency, and natural expression.";
 
-  return `${finalInstruction}\n\nRules:\n- Return only the polished Markdown body.\n- Preserve Markdown structure, links, code fences, MDX/JSX components, and factual meaning.\n- Keep frontmatter out of the output.\n\nMarkdown body:\n<<<MADINAH_WRITER_BODY\n${content}\nMADINAH_WRITER_BODY`;
+  return `${finalInstruction}\n\nRules:\n- Return only the polished Markdown body.\n- Preserve Markdown structure, links, code fences, MDX/JSX components, and factual meaning.\n- Keep frontmatter out of the output.\n${buildAcpResultEnvelopeInstruction()}\n\nMarkdown body:\n<<<MADINAH_WRITER_BODY\n${content}\nMADINAH_WRITER_BODY`;
 }
 
 export function normalizeAcpTimeout(value: number): number {
@@ -654,23 +691,218 @@ export function normalizeAcpTimeout(value: number): number {
   return Math.max(10, Math.min(600, value));
 }
 
+export function getAcpMediumThinkingConfigRequests(
+  configOptions: unknown,
+): Array<{ configId: string; value: string }> {
+  if (!Array.isArray(configOptions)) return [];
+
+  return configOptions.flatMap((option) => {
+    if (!isRecord(option) || typeof option.id !== "string") return [];
+    if (!ACP_THINKING_CONFIG_IDS.has(option.id)) return [];
+    if (option.currentValue === ACP_MEDIUM_THINKING_EFFORT) return [];
+
+    const options = Array.isArray(option.options) ? option.options : [];
+    const supportsMedium = options.some(
+      (item) =>
+        isRecord(item) && item.value === ACP_MEDIUM_THINKING_EFFORT,
+    );
+    if (!supportsMedium) return [];
+
+    return [
+      {
+        configId: option.id,
+        value: ACP_MEDIUM_THINKING_EFFORT,
+      },
+    ];
+  });
+}
+
 export async function polishTextWithAcp(
   input: AcpPolishInput,
 ): Promise<AcpPolishResult> {
+  const result = await runAiActionWithAcp({
+    ...input,
+    kind: "polish-document",
+  });
+  return {
+    content: result.content,
+    provider: result.provider,
+  };
+}
+
+export async function runAiActionWithAcp(
+  input: AcpAiActionInput,
+): Promise<AcpAiActionResult> {
   const timeoutSeconds = normalizeAcpTimeout(input.timeoutSeconds);
-  const content = await withTimeout(
-    runAcpPolish(input),
+  const rawContent = await withTimeout(
+    runAcpAction(input),
     timeoutSeconds,
     `ACP agent timed out after ${timeoutSeconds}s`,
   );
 
-  const trimmed = content.trim();
+  const trimmed = normalizeAcpActionText(rawContent);
   if (!trimmed) throw new Error("ACP agent returned empty content");
 
-  return {
+  const base = {
+    kind: input.kind,
     content: trimmed,
     provider: input.provider,
   };
+
+  if (input.kind === "generate-metadata") {
+    return {
+      ...base,
+      metadata: parseAiMetadataSuggestion(trimmed),
+    };
+  }
+
+  if (input.kind === "review-document") {
+    return {
+      ...base,
+      review: parseAiDocumentReview(trimmed),
+    };
+  }
+
+  return base;
+}
+
+export function normalizeAcpActionText(value: string): string {
+  const withoutDiagnostics = stripAcpDiagnosticOutput(value);
+  const enveloped = extractAcpResultEnvelope(withoutDiagnostics);
+  const trimmed = (enveloped ?? withoutDiagnostics).trim();
+  const fenced = trimmed.match(/^```(?:json|markdown|md)?\s*\n([\s\S]*?)\n```$/i);
+  return (fenced?.[1] ?? trimmed).trim();
+}
+
+function buildAcpResultEnvelopeInstruction(): string {
+  return `- Put the final payload between ${ACP_RESULT_START} and ${ACP_RESULT_END}.
+- Do not put warnings, notes, or explanations outside those markers.`;
+}
+
+function extractAcpResultEnvelope(value: string): string | null {
+  const pattern = new RegExp(
+    `${escapeRegExp(ACP_RESULT_START)}\\s*\\n?([\\s\\S]*?)\\n?\\s*${escapeRegExp(ACP_RESULT_END)}`,
+    "g",
+  );
+  let match: RegExpExecArray | null = null;
+  let lastMatch: RegExpExecArray | null = null;
+
+  while ((match = pattern.exec(value)) !== null) {
+    lastMatch = match;
+  }
+
+  return lastMatch?.[1] ?? null;
+}
+
+function stripAcpDiagnosticOutput(value: string): string {
+  return value
+    .split(/\r?\n/u)
+    .filter((line) => !isAcpDiagnosticLine(line))
+    .join("\n")
+    .trim();
+}
+
+function isAcpDiagnosticLine(line: string): boolean {
+  const normalized = line.replace(/\u001b\[[0-9;]*m/gu, "").trim();
+  return /^Warning: Skill descriptions were shortened to fit the \d+% skills context budget\./u.test(
+    normalized,
+  );
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+}
+
+export function parseAiMetadataSuggestion(value: string): AiMetadataSuggestion {
+  const parsed = parseAcpJsonObject(value, "metadata suggestion");
+  const title = stringField(parsed, "title");
+  const description = stringField(parsed, "description");
+  const tagsValue = parsed.tags;
+  const tags = Array.isArray(tagsValue)
+    ? [
+        ...new Set(
+          tagsValue
+            .map((tag) => String(tag).trim().toLowerCase())
+            .filter(Boolean),
+        ),
+      ]
+    : [];
+  const slug = slugField(parsed.slug || title);
+
+  return {
+    title,
+    description,
+    tags,
+    slug,
+  };
+}
+
+export function parseAiDocumentReview(value: string): AiDocumentReview {
+  const parsed = parseAcpJsonObject(value, "document review");
+  const issuesValue = parsed.issues;
+
+  return {
+    summary: stringField(parsed, "summary"),
+    issues: Array.isArray(issuesValue)
+      ? issuesValue.flatMap((issue): AiDocumentReviewIssue[] => {
+          if (!isRecord(issue)) return [];
+          const title = stringField(issue, "title", false);
+          const detail = stringField(issue, "detail", false);
+          const suggestion = stringField(issue, "suggestion", false);
+          if (!title && !detail && !suggestion) return [];
+          return [
+            {
+              severity: reviewSeverity(issue.severity),
+              title: title || "Writing issue",
+              detail,
+              suggestion,
+            },
+          ];
+        })
+      : [],
+  };
+}
+
+function parseAcpJsonObject(value: string, label: string): Record<string, unknown> {
+  try {
+    const parsed = JSON.parse(normalizeAcpActionText(value));
+    if (isRecord(parsed)) return parsed;
+  } catch {
+    // Throw the normalized error below so callers get a stable message.
+  }
+
+  throw new Error(`ACP agent returned invalid ${label} JSON`);
+}
+
+function stringField(
+  record: Record<string, unknown>,
+  key: string,
+  required = true,
+): string {
+  const value = record[key];
+  const text = typeof value === "string" ? value.trim() : "";
+  if (!text && required) {
+    throw new Error(`ACP agent returned metadata without ${key}`);
+  }
+  return text;
+}
+
+function slugField(value: unknown): string {
+  const raw = typeof value === "string" ? value : String(value ?? "");
+  const slug = raw
+    .normalize("NFKD")
+    .trim()
+    .toLowerCase()
+    .replace(/['"]/g, "")
+    .replace(/[^\p{Letter}\p{Number}]+/gu, "-")
+    .replace(/^-+|-+$/g, "");
+  return slug || "untitled";
+}
+
+function reviewSeverity(value: unknown): AiDocumentReviewIssueSeverity {
+  return value === "critical" || value === "warning" || value === "info"
+    ? value
+    : "info";
 }
 
 export async function checkAcpAgent(
@@ -1266,7 +1498,14 @@ function isValidEnvName(value: string): boolean {
 }
 
 async function runAcpPolish(input: AcpPolishInput): Promise<string> {
-  const prompt = buildAcpPolishPrompt(input.content, input.instruction);
+  return runAcpAction({
+    ...input,
+    kind: "polish-document",
+  });
+}
+
+async function runAcpAction(input: AcpAiActionInput): Promise<string> {
+  const prompt = buildAcpActionPrompt(input);
   return runAcpAgentForText({
     command: input.command,
     env: input.env,
@@ -1324,6 +1563,7 @@ async function runAcpAgentForText(options: {
         });
 
         return ctx.buildSession(options.cwd).withSession(async (session) => {
+          await applyAcpMediumThinkingEffort(acp.methods, ctx, session);
           void session.prompt(options.prompt);
           return session.readText();
         });
@@ -1331,6 +1571,49 @@ async function runAcpAgentForText(options: {
   } finally {
     child.kill();
   }
+}
+
+async function applyAcpMediumThinkingEffort(
+  methods: AcpMethodsLike,
+  ctx: AcpClientContextLike,
+  session: AcpSessionLike,
+): Promise<void> {
+  const requests = getAcpMediumThinkingConfigRequests(
+    session.newSessionResponse?.configOptions,
+  );
+
+  for (const request of requests) {
+    try {
+      await ctx.request(methods.agent.session.setConfigOption, {
+        sessionId: session.sessionId,
+        configId: request.configId,
+        value: request.value,
+      });
+    } catch (error) {
+      console.warn(
+        `Failed to set ACP ${request.configId} to ${request.value}: ${errorMessage(error)}`,
+      );
+    }
+  }
+}
+
+interface AcpMethodsLike {
+  agent: {
+    session: {
+      setConfigOption: string;
+    };
+  };
+}
+
+interface AcpClientContextLike {
+  request(method: string, params: unknown): Promise<unknown>;
+}
+
+interface AcpSessionLike {
+  sessionId: string;
+  newSessionResponse?: {
+    configOptions?: unknown;
+  };
 }
 
 async function runAcpAgentInitialize(options: {

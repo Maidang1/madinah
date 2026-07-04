@@ -34,7 +34,12 @@ import {
   X,
 } from "lucide-react";
 import type { TreeApi } from "react-arborist";
-import type { AcpAgentRuntimeConfig } from "./domain/ai-polish";
+import type {
+  AcpAgentRuntimeConfig,
+  AiDocumentReviewState,
+  AiOperationState,
+} from "./domain/ai-polish";
+import { EMPTY_AI_OPERATION_STATE } from "./domain/ai-polish";
 import {
   createDefaultAssetUploadSettings,
   type AssetUploadSettings,
@@ -51,7 +56,6 @@ import {
 } from "./domain/document";
 import { getWriterKeyboardShortcutAction } from "./features/commands/keyboard-shortcuts";
 import {
-  WRITER_COMMAND_EVENT,
   getWriterCommandIdFromPayload,
 } from "./features/commands/native-menu";
 const CommandPalette = lazy(() =>
@@ -61,9 +65,13 @@ const CommandPalette = lazy(() =>
 );
 import { PLUGIN_DIAGNOSTICS_PANEL_ID } from "./features/engine/PluginDiagnostics";
 import {
-  AI_POLISH_COMMAND_ID,
-  createAiPolishCommand,
+  AI_GENERATE_METADATA_COMMAND_ID,
+  AI_REVIEW_DOCUMENT_COMMAND_ID,
+  AI_REWRITE_SELECTION_COMMAND_ID,
+  EMPTY_AI_REVIEW_STATE,
+  createAiCommands,
 } from "./features/ai-polish/command";
+import { AiOperationBanner } from "./features/ai-polish/AiOperationBanner";
 import {
   loadAcpSettings,
   saveAcpSettings as persistAcpSettings,
@@ -193,9 +201,20 @@ const LEGACY_FILE_TREE_ROOT_STORAGE_KEY = "madinah-writer-file-tree-root";
 const PUBLISH_TARGET_STORAGE_KEY = "madinah-writer-publish-target";
 const EDITOR_CONTEXT_MENU_ITEMS: EditorContextMenuItem[] = [
   {
-    id: "ai-polish",
-    label: "AI Polish",
-    commandId: AI_POLISH_COMMAND_ID,
+    id: "ai-rewrite-selection",
+    label: "Rewrite Selection",
+    commandId: AI_REWRITE_SELECTION_COMMAND_ID,
+    requiresSelection: true,
+  },
+  {
+    id: "ai-generate-metadata",
+    label: "Generate Metadata",
+    commandId: AI_GENERATE_METADATA_COMMAND_ID,
+  },
+  {
+    id: "ai-review-document",
+    label: "Review Document",
+    commandId: AI_REVIEW_DOCUMENT_COMMAND_ID,
   },
   {
     id: "format-separator",
@@ -418,6 +437,11 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [versions, setVersions] = useState<DocumentVersion[]>([]);
   const historyStore = useMemo(() => createLocalDocumentHistoryStore(), []);
+  const [aiReviewState, setAiReviewState] = useState<AiDocumentReviewState>(
+    EMPTY_AI_REVIEW_STATE,
+  );
+  const [aiOperationState, setAiOperationState] =
+    useState<AiOperationState>(EMPTY_AI_OPERATION_STATE);
   const [acpCheckState, setAcpCheckState] = useState<SettingsCheckState>({
     status: "idle",
     message: "Ready",
@@ -553,6 +577,9 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
       cancelled = true;
     };
   }, [platform.assetUpload]);
+  useEffect(() => {
+    setAiReviewState(EMPTY_AI_REVIEW_STATE);
+  }, [session.document?.id]);
   // Word-count style metrics don't need keystroke-level accuracy; trail the
   // body so the regex passes stay off the typing hot path.
   const debouncedDocumentBody = useDebouncedValue(
@@ -679,15 +706,59 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
     (error: string) => setStatus(error),
     [setStatus],
   );
-  const aiPolishCommand = useMemo(
+  const saveCurrentVersion = useCallback(
+    (reason = "Manual snapshot") => {
+      if (!session.document || !historyTargetId) return;
+
+      const nextVersions = historyStore.save(
+        createDocumentVersion({
+          targetId: historyTargetId,
+          document: session.document,
+          reason,
+        }),
+      );
+      setVersions(nextVersions);
+      setStatus("Version saved");
+    },
+    [historyStore, historyTargetId, session.document, setStatus],
+  );
+  const showAiReview = useCallback(() => {
+    dispatchWorkbenchState({ type: "showInspectorTab", tab: "review" });
+  }, []);
+  const aiCommands = useMemo(
     () =>
-      createAiPolishCommand({
-        aiPolish: platform.aiPolish,
+      createAiCommands({
+        ai: platform.ai,
         settings: acpSettings,
         setStatus,
+        setOperationState: setAiOperationState,
+        changeMetadata,
+        saveVersion: saveCurrentVersion,
+        setReviewState: setAiReviewState,
+        showReview: showAiReview,
       }),
-    [acpSettings, platform.aiPolish, setStatus],
+    [
+      acpSettings,
+      changeMetadata,
+      platform.ai,
+      saveCurrentVersion,
+      setStatus,
+      showAiReview,
+    ],
   );
+  useEffect(() => {
+    if (
+      aiOperationState.status === "idle" ||
+      aiOperationState.status === "running"
+    ) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setAiOperationState(EMPTY_AI_OPERATION_STATE);
+    }, 2400);
+    return () => window.clearTimeout(timeout);
+  }, [aiOperationState]);
   const imageUploadHandler = useMemo(
     () =>
       createImageUploadHandler({
@@ -823,7 +894,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
         [
           ...(engine.profile.commands ?? []),
           ...formattingCommands,
-          aiPolishCommand,
+          ...aiCommands,
           ...blogCommands,
           ...workbenchCommands,
           ...createDocumentCommands({
@@ -835,7 +906,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
         ],
       ),
     [
-      aiPolishCommand,
+      aiCommands,
       blogCommands,
       closeDocumentCommand,
       createNewDocumentCommand,
@@ -889,7 +960,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
       setAcpCheckState({ status: "checking", message: "Checking" });
 
       try {
-        const result = await platform.aiPolish.check(config);
+        const result = await platform.ai.check(config);
         setAcpCheckState({
           status: result.ok ? "success" : "error",
           message: result.message,
@@ -901,7 +972,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
         });
       }
     },
-    [platform.aiPolish],
+    [platform.ai],
   );
   const checkAssetSettings = useCallback(
     async (settings: AssetUploadSettings) => {
@@ -1515,23 +1586,6 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
     setTheme((current) => (current === "dark" ? "light" : "dark"));
   }, []);
 
-  const saveCurrentVersion = useCallback(
-    (reason = "Manual snapshot") => {
-      if (!session.document || !historyTargetId) return;
-
-      const nextVersions = historyStore.save(
-        createDocumentVersion({
-          targetId: historyTargetId,
-          document: session.document,
-          reason,
-        }),
-      );
-      setVersions(nextVersions);
-      setStatus("Version saved");
-    },
-    [historyStore, historyTargetId, session.document, setStatus],
-  );
-
   const restoreDocumentVersion = useCallback(
     (version: DocumentVersion) => {
       if (!session.document || !historyTargetId) return;
@@ -1849,6 +1903,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
             className="writer-simple-canvas"
             aria-label={viewMode === "preview" ? "Preview" : "Editor"}
           >
+            <AiOperationBanner state={aiOperationState} />
             <div className="writer-canvas-actions">
               <ViewModeControl
                 viewMode={viewMode}
@@ -1932,6 +1987,14 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
                           !shouldAutoFocusDocumentTitle(documentEditor.title)
                         }
                         contextMenuItems={EDITOR_CONTEXT_MENU_ITEMS}
+                        isAiOperationRunning={
+                          aiOperationState.status === "running"
+                        }
+                        activeAiCommandId={
+                          aiOperationState.status === "running"
+                            ? aiOperationState.commandId
+                            : null
+                        }
                         onEditorReady={handleEditorReady}
                         onChange={handleEditorBodyChange}
                         onError={handleEditorError}
@@ -1957,6 +2020,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
               versions={versions}
               profileName={engine.profile.name}
               pluginDiagnostics={engine.diagnostics}
+              aiReviewState={aiReviewState}
               workspace={engine.workspace}
               activeTab={inspectorTab}
               onTabChange={(tab) =>
@@ -1964,6 +2028,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
               }
               onMetadataChange={changeMetadata}
               onOutlineJump={jumpToOutlineItem}
+              onRunAiReview={() => void runCommand(AI_REVIEW_DOCUMENT_COMMAND_ID)}
               onSaveVersion={() => saveCurrentVersion()}
               onRestoreVersion={restoreDocumentVersion}
             />
@@ -2011,7 +2076,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
         <Suspense fallback={null}>
           <WriterSettingsDialog
             isOpen={isSettingsOpen}
-            aiAvailable={platform.aiPolish.isAvailable}
+            aiAvailable={platform.ai.isAvailable}
             assetUploadAvailable={platform.assetUpload.isAvailable}
             workspacePluginsAvailable={platform.fileTreeStore.isAvailable}
             profiles={engine.profiles}

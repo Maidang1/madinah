@@ -2,7 +2,12 @@ export type WriterViewMode = "write" | "preview";
 
 export type WriterEditorMode = "rich-text" | "source";
 
-export type InspectorTab = "outline" | "properties" | "stats" | "history";
+export type InspectorTab =
+  | "outline"
+  | "properties"
+  | "stats"
+  | "history"
+  | "review";
 
 export interface WorkbenchState {
   viewMode: WriterViewMode;
@@ -130,7 +135,8 @@ function readInspectorTab(storage?: WorkbenchStorage | null): InspectorTab {
   if (
     value === "properties" ||
     value === "stats" ||
-    value === "history"
+    value === "history" ||
+    value === "review"
   ) {
     return value;
   }

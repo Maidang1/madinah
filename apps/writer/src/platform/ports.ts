@@ -6,6 +6,8 @@ import type {
   AssetUploadSettings,
 } from "../domain/assets";
 import type {
+  AcpAiActionInput,
+  AcpAiActionResult,
   AcpAgentCheckResult,
   AcpAgentRuntimeConfig,
   AcpPolishInput,
@@ -118,6 +120,12 @@ export interface AiPolishAdapter {
   check(input: AcpAgentRuntimeConfig): Promise<AcpAgentCheckResult>;
 }
 
+export interface AiAdapter {
+  isAvailable: boolean;
+  runAction(input: AcpAiActionInput): Promise<AcpAiActionResult>;
+  check(input: AcpAgentRuntimeConfig): Promise<AcpAgentCheckResult>;
+}
+
 export interface AssetUploadAdapter {
   isAvailable: boolean;
   loadSettings(): Promise<AssetUploadSettings>;
@@ -134,6 +142,7 @@ export interface PlatformAdapters {
   blogStore: BlogStore;
   pluginResolver: PluginResolver;
   windowAdapter: WindowAdapter;
+  ai: AiAdapter;
   aiPolish: AiPolishAdapter;
   assetUpload: AssetUploadAdapter;
 }

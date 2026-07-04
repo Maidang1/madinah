@@ -29,17 +29,26 @@ describe("editor context menu helpers", () => {
   it("uses a stable 200px menu width with separators", () => {
     expect(
       getEditorContextMenuSize([
-        { id: "ai", label: "AI Polish", commandId: "ai.polish.document" },
+        { id: "rewrite", label: "Rewrite Selection", commandId: "ai.rewriteSelection" },
+        { id: "metadata", label: "Generate Metadata", commandId: "ai.generateMetadata" },
+        { id: "review", label: "Review Document", commandId: "ai.reviewDocument" },
         { id: "format-separator", type: "separator" },
         { id: "bold", label: "Bold", commandId: "editor.format.bold" },
       ]),
-    ).toEqual({ width: 200, height: 83 });
+    ).toEqual({ width: 200, height: 147 });
   });
 
   it("disables selection-only commands when the selection is empty", () => {
     const items = resolveEditorContextMenuItems(
       [
-        { id: "ai", label: "AI Polish", commandId: "ai.polish.document" },
+        {
+          id: "rewrite",
+          label: "Rewrite Selection",
+          commandId: "ai.rewriteSelection",
+          requiresSelection: true,
+        },
+        { id: "metadata", label: "Generate Metadata", commandId: "ai.generateMetadata" },
+        { id: "review", label: "Review Document", commandId: "ai.reviewDocument" },
         { id: "format-separator", type: "separator" },
         {
           id: "bold",
@@ -52,7 +61,15 @@ describe("editor context menu helpers", () => {
     );
 
     expect(items).toEqual([
-      { id: "ai", label: "AI Polish", commandId: "ai.polish.document" },
+      {
+        id: "rewrite",
+        label: "Rewrite Selection",
+        commandId: "ai.rewriteSelection",
+        requiresSelection: true,
+        disabled: true,
+      },
+      { id: "metadata", label: "Generate Metadata", commandId: "ai.generateMetadata" },
+      { id: "review", label: "Review Document", commandId: "ai.reviewDocument" },
       { id: "format-separator", type: "separator" },
       {
         id: "bold",
@@ -60,6 +77,43 @@ describe("editor context menu helpers", () => {
         commandId: "editor.format.bold",
         requiresSelection: true,
         disabled: true,
+      },
+    ]);
+  });
+
+  it("disables commands passed by id", () => {
+    const items = resolveEditorContextMenuItems(
+      [
+        {
+          id: "rewrite",
+          label: "Rewrite Selection",
+          commandId: "ai.rewriteSelection",
+          requiresSelection: true,
+        },
+        {
+          id: "bold",
+          label: "Bold",
+          commandId: "editor.format.bold",
+          requiresSelection: true,
+        },
+      ],
+      true,
+      ["ai.rewriteSelection"],
+    );
+
+    expect(items).toEqual([
+      {
+        id: "rewrite",
+        label: "Rewrite Selection",
+        commandId: "ai.rewriteSelection",
+        requiresSelection: true,
+        disabled: true,
+      },
+      {
+        id: "bold",
+        label: "Bold",
+        commandId: "editor.format.bold",
+        requiresSelection: true,
       },
     ]);
   });

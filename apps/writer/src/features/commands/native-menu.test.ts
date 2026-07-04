@@ -39,6 +39,7 @@ describe("native menu command events", () => {
       "inspector.showOutline",
       "inspector.showProperties",
       "inspector.showStats",
+      "inspector.showReview",
       "inspector.showHistory",
     ]);
   });

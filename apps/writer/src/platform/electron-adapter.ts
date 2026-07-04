@@ -4,6 +4,7 @@ import type {
   AssetUploadSettings,
 } from "../domain/assets";
 import type {
+  AcpAiActionInput,
   AcpAgentRuntimeConfig,
   AcpPolishInput,
 } from "../domain/ai-polish";
@@ -12,6 +13,7 @@ import type {
   WorkspacePluginTrustInput,
 } from "../domain/engine";
 import type {
+  AiAdapter,
   AiPolishAdapter,
   AssetUploadAdapter,
   BlogStore,
@@ -41,6 +43,7 @@ export function createElectronAdapters(): PlatformAdapters {
     blogStore: createElectronBlogStore(api),
     pluginResolver: createElectronPluginResolver(api),
     windowAdapter: createElectronWindowAdapter(api),
+    ai: createElectronAiAdapter(api),
     aiPolish: createElectronAiPolishAdapter(api),
     assetUpload: createElectronAssetUploadAdapter(api),
   };
@@ -137,6 +140,14 @@ function createElectronAiPolishAdapter(
     isAvailable: true,
     polish: (input: AcpPolishInput) => api.aiPolish.polish(input),
     check: (input: AcpAgentRuntimeConfig) => api.aiPolish.check(input),
+  };
+}
+
+function createElectronAiAdapter(api: MadinahWriterElectronApi): AiAdapter {
+  return {
+    isAvailable: true,
+    runAction: (input: AcpAiActionInput) => api.ai.runAction(input),
+    check: (input: AcpAgentRuntimeConfig) => api.ai.check(input),
   };
 }
 

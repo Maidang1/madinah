@@ -24,6 +24,7 @@ export const NATIVE_MENU_COMMAND_IDS = [
   "inspector.showOutline",
   "inspector.showProperties",
   "inspector.showStats",
+  "inspector.showReview",
   "inspector.showHistory",
 ] as const;
 

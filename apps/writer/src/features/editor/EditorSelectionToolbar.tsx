@@ -5,6 +5,7 @@ import {
   Italic as ItalicIcon,
   Link as LinkIcon,
   List as ListIcon,
+  Sparkles,
   TextQuote,
   type LucideIcon,
 } from "lucide-react";
@@ -36,15 +37,23 @@ interface Size {
 interface EditorSelectionToolbarProps {
   actions: EditorSelectionToolbarAction[];
   position: EditorSelectionToolbarPosition;
+  activeCommandId?: string | null;
+  disabledCommandIds?: readonly string[];
   onRun: (action: EditorSelectionToolbarAction) => void;
 }
 
 export const EDITOR_SELECTION_TOOLBAR_SIZE = {
-  width: 308,
+  width: 344,
   height: 36,
 };
 
 export const EDITOR_SELECTION_TOOLBAR_ACTIONS: EditorSelectionToolbarAction[] = [
+  {
+    id: "ai-rewrite-selection",
+    label: "Rewrite Selection",
+    commandId: "ai.rewriteSelection",
+    Icon: Sparkles,
+  },
   {
     id: "bold",
     label: "Bold",
@@ -92,8 +101,12 @@ export const EDITOR_SELECTION_TOOLBAR_ACTIONS: EditorSelectionToolbarAction[] = 
 export function EditorSelectionToolbar({
   actions,
   position,
+  activeCommandId = null,
+  disabledCommandIds = [],
   onRun,
 }: EditorSelectionToolbarProps) {
+  const disabledCommandIdSet = new Set(disabledCommandIds);
+
   return (
     <div
       className="editor-selection-toolbar"
@@ -102,18 +115,26 @@ export function EditorSelectionToolbar({
       aria-label="Selection formatting"
       onMouseDown={(event) => event.preventDefault()}
     >
-      {actions.map(({ Icon, ...action }) => (
-        <button
-          key={action.id}
-          type="button"
-          aria-label={action.label}
-          title={action.label}
-          data-command-id={action.commandId}
-          onClick={() => onRun({ ...action, Icon })}
-        >
-          <Icon size={15} aria-hidden="true" />
-        </button>
-      ))}
+      {actions.map(({ Icon, ...action }) => {
+        const isActive = activeCommandId === action.commandId;
+        const isDisabled = disabledCommandIdSet.has(action.commandId);
+
+        return (
+          <button
+            key={action.id}
+            type="button"
+            aria-label={action.label}
+            aria-busy={isActive}
+            title={action.label}
+            className={isActive ? "is-active" : undefined}
+            data-command-id={action.commandId}
+            disabled={isDisabled}
+            onClick={() => onRun({ ...action, Icon })}
+          >
+            <Icon size={15} aria-hidden="true" />
+          </button>
+        );
+      })}
     </div>
   );
 }

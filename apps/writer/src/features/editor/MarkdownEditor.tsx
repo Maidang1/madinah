@@ -62,6 +62,8 @@ import {
   type SlashCommandPosition,
 } from "./slash-commands";
 
+const EMPTY_DISABLED_COMMAND_IDS: readonly string[] = [];
+
 interface MarkdownEditorProps {
   value: string;
   // Bumped by the session only when `value` reflects an EXTERNAL content change
@@ -78,6 +80,8 @@ interface MarkdownEditorProps {
   autoFocus?: boolean;
   imageUploadHandler?: ImageUploadHandler | null;
   contextMenuItems?: EditorContextMenuItem[];
+  isAiOperationRunning?: boolean;
+  activeAiCommandId?: string | null;
   onEditorReady?: (editor: WriterEditor | null) => void;
   onChange: (value: string) => void;
   onError: (error: string) => void;
@@ -88,7 +92,6 @@ export const DOCUMENT_TITLE_PLACEHOLDER = "写下标题";
 export const MarkdownEditor = memo(function MarkdownEditor({
   value,
   valueEpoch,
-  documentId,
   documentRef,
   workspaceRef,
   editorPlugins,
@@ -97,6 +100,8 @@ export const MarkdownEditor = memo(function MarkdownEditor({
   autoFocus = true,
   imageUploadHandler = null,
   contextMenuItems = [],
+  isAiOperationRunning = false,
+  activeAiCommandId = null,
   onEditorReady,
   onChange,
   onError,
@@ -146,6 +151,22 @@ export const MarkdownEditor = memo(function MarkdownEditor({
       createSourceModeEditorPlugin(editorMode),
     ],
     [editorMode, editorPlugins, imageUploadHandler],
+  );
+  const disabledContextMenuCommandIds = useMemo(
+    () =>
+      isAiOperationRunning
+        ? getAiCommandIdsFromContextMenuItems(contextMenuItems)
+        : EMPTY_DISABLED_COMMAND_IDS,
+    [contextMenuItems, isAiOperationRunning],
+  );
+  const disabledSelectionToolbarCommandIds = useMemo(
+    () =>
+      isAiOperationRunning
+        ? getAiCommandIdsFromSelectionToolbarActions(
+            EDITOR_SELECTION_TOOLBAR_ACTIONS,
+          )
+        : EMPTY_DISABLED_COMMAND_IDS,
+    [isAiOperationRunning],
   );
   const restoreEditorFocus = useCallback(() => {
     requestAnimationFrame(() =>
@@ -231,6 +252,8 @@ export const MarkdownEditor = memo(function MarkdownEditor({
 
   const runSelectionToolbarAction = useCallback(
     async (action: EditorSelectionToolbarAction) => {
+      if (isAiOperationRunning && isAiCommandId(action.commandId)) return;
+
       const editor = createWriterEditor(editorRef, shellRef, valueRef);
       closeSelectionToolbar();
 
@@ -249,6 +272,7 @@ export const MarkdownEditor = memo(function MarkdownEditor({
       closeSelectionToolbar,
       commandRegistry,
       documentRef,
+      isAiOperationRunning,
       onError,
       workspaceRef,
     ],
@@ -701,6 +725,7 @@ export const MarkdownEditor = memo(function MarkdownEditor({
       const items = resolveEditorContextMenuItems(
         contextMenuItems,
         hasSelection,
+        disabledContextMenuCommandIds,
       );
 
       if (window.madinahWriter) {
@@ -732,7 +757,13 @@ export const MarkdownEditor = memo(function MarkdownEditor({
         items,
       });
     },
-    [closeSelectionToolbar, closeSlashMenu, contextMenuItems, runContextMenuItem],
+    [
+      closeSelectionToolbar,
+      closeSlashMenu,
+      contextMenuItems,
+      disabledContextMenuCommandIds,
+      runContextMenuItem,
+    ],
   );
 
   return (
@@ -740,6 +771,7 @@ export const MarkdownEditor = memo(function MarkdownEditor({
       className={[
         "live-mdx-shell",
         isEditorEmptyDocument(shellMarkdown) ? "is-empty-document" : "",
+        isAiOperationRunning ? "is-ai-operation-running" : "",
       ]
         .filter(Boolean)
         .join(" ")}
@@ -784,6 +816,8 @@ export const MarkdownEditor = memo(function MarkdownEditor({
         <EditorSelectionToolbar
           actions={EDITOR_SELECTION_TOOLBAR_ACTIONS}
           position={selectionToolbar.position}
+          activeCommandId={activeAiCommandId}
+          disabledCommandIds={disabledSelectionToolbarCommandIds}
           onRun={(action) => void runSelectionToolbarAction(action)}
         />
       ) : null}
@@ -822,6 +856,8 @@ function areMarkdownEditorPropsEqual(
     previous.autoFocus === next.autoFocus &&
     previous.imageUploadHandler === next.imageUploadHandler &&
     previous.contextMenuItems === next.contextMenuItems &&
+    previous.isAiOperationRunning === next.isAiOperationRunning &&
+    previous.activeAiCommandId === next.activeAiCommandId &&
     previous.onEditorReady === next.onEditorReady &&
     previous.onChange === next.onChange &&
     previous.onError === next.onError &&
@@ -848,6 +884,28 @@ export function shouldShowDocumentStartState(
 
 export function getEditorInlinePlaceholder() {
   return null;
+}
+
+function getAiCommandIdsFromContextMenuItems(
+  items: readonly EditorContextMenuItem[],
+): string[] {
+  return items.flatMap((item) =>
+    isEditorContextMenuSeparator(item) || !isAiCommandId(item.commandId)
+      ? []
+      : [item.commandId],
+  );
+}
+
+function getAiCommandIdsFromSelectionToolbarActions(
+  actions: readonly EditorSelectionToolbarAction[],
+): string[] {
+  return actions.flatMap((action) =>
+    isAiCommandId(action.commandId) ? [action.commandId] : [],
+  );
+}
+
+function isAiCommandId(commandId: string): boolean {
+  return commandId.startsWith("ai.");
 }
 
 export function splitDocumentEditorMarkdown(markdown: string): {

@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   buildAcpAgentArgs,
+  buildAcpActionPrompt,
   buildAcpPolishPrompt,
   buildAssetObjectKey,
   checkAssetUploadSettings,
@@ -13,10 +14,14 @@ import {
   defaultAssetUploadSettings,
   duplicateFileTreeFile,
   exportPathForSlug,
+  getAcpMediumThinkingConfigRequests,
   listFileTree,
   moveFileTreePathToTrash,
+  normalizeAcpActionText,
   normalizeAcpTimeout,
   normalizeAssetUploadSettings,
+  parseAiDocumentReview,
+  parseAiMetadataSuggestion,
   renameFileTreePath,
   resolveWorkspace,
   resolveWorkspacePluginsFromRootWithTrust,
@@ -352,11 +357,166 @@ describe("Electron backend ACP helpers", () => {
     const prompt = buildAcpPolishPrompt("# Title\n\nBody", "Make it clear.");
     expect(prompt).toContain("Make it clear.");
     expect(prompt).toContain("Return only the polished Markdown body.");
+    expect(prompt).toContain("MADINAH_WRITER_RESULT_START");
+    expect(prompt).toContain("MADINAH_WRITER_RESULT_END");
     expect(prompt).toContain(
       "<<<MADINAH_WRITER_BODY\n# Title\n\nBody\nMADINAH_WRITER_BODY",
     );
     expect(normalizeAcpTimeout(0)).toBe(120);
     expect(normalizeAcpTimeout(900)).toBe(600);
+  });
+
+  it("builds action-specific prompts for selection, metadata, and review", () => {
+    expect(
+      buildAcpActionPrompt({
+        kind: "rewrite-selection",
+        content: "rough text",
+        instruction: "Keep it direct.",
+      }),
+    ).toContain("Selected Markdown:\n<<<MADINAH_WRITER_SELECTION\nrough text");
+
+    const metadataPrompt = buildAcpActionPrompt({
+      kind: "generate-metadata",
+      content: "# Title\n\nBody",
+      instruction: "",
+    });
+    expect(metadataPrompt).toContain('"title": "string"');
+    expect(metadataPrompt).toContain("Return only valid JSON");
+    expect(metadataPrompt).toContain("MADINAH_WRITER_RESULT_START");
+
+    const reviewPrompt = buildAcpActionPrompt({
+      kind: "review-document",
+      content: "# Title\n\nBody",
+      instruction: "",
+    });
+    expect(reviewPrompt).toContain('"severity": "info | warning | critical"');
+  });
+
+  it("normalizes fenced output and parses metadata JSON", () => {
+    expect(normalizeAcpActionText("```json\n{\"title\":\"A\"}\n```")).toBe(
+      '{"title":"A"}',
+    );
+    expect(
+      normalizeAcpActionText(
+        [
+          "Warning: Skill descriptions were shortened to fit the 2% skills context budget. Codex can still see every skill, but some descriptions are shorter.",
+          "MADINAH_WRITER_RESULT_START",
+          "```markdown",
+          "# Polished",
+          "",
+          "Better body.",
+          "```",
+          "MADINAH_WRITER_RESULT_END",
+        ].join("\n"),
+      ),
+    ).toBe("# Polished\n\nBetter body.");
+    expect(
+      normalizeAcpActionText(
+        "Warning: Skill descriptions were shortened to fit the 2% skills context budget. Codex can still see every skill, but some descriptions are shorter.",
+      ),
+    ).toBe("");
+    expect(
+      parseAiMetadataSuggestion(
+        "```json\n{\"title\":\"Madinah AI\",\"description\":\"Useful.\",\"tags\":[\"AI\",\"writer\",\"AI\"],\"slug\":\"Madinah AI\"}\n```",
+      ),
+    ).toEqual({
+      title: "Madinah AI",
+      description: "Useful.",
+      tags: ["ai", "writer"],
+      slug: "madinah-ai",
+    });
+    expect(() => parseAiMetadataSuggestion("not json")).toThrow(
+      "invalid metadata suggestion JSON",
+    );
+  });
+
+  it("builds medium thinking config requests for Codex and Claude ACP options", () => {
+    expect(
+      getAcpMediumThinkingConfigRequests([
+        {
+          id: "reasoning_effort",
+          currentValue: "xhigh",
+          options: [
+            { value: "low" },
+            { value: "medium" },
+            { value: "high" },
+          ],
+        },
+        {
+          id: "effort",
+          currentValue: "default",
+          options: [
+            { value: "default" },
+            { value: "medium" },
+          ],
+        },
+        {
+          id: "model",
+          currentValue: "gpt-5.5",
+          options: [{ value: "gpt-5.5" }],
+        },
+      ]),
+    ).toEqual([
+      { configId: "reasoning_effort", value: "medium" },
+      { configId: "effort", value: "medium" },
+    ]);
+  });
+
+  it("skips medium thinking requests when the option is already medium or unsupported", () => {
+    expect(
+      getAcpMediumThinkingConfigRequests([
+        {
+          id: "reasoning_effort",
+          currentValue: "medium",
+          options: [{ value: "medium" }],
+        },
+        {
+          id: "effort",
+          currentValue: "default",
+          options: [{ value: "default" }],
+        },
+      ]),
+    ).toEqual([]);
+  });
+
+  it("parses document review JSON with safe severities", () => {
+    expect(
+      parseAiDocumentReview(
+        JSON.stringify({
+          summary: "Good article.",
+          issues: [
+            {
+              severity: "critical",
+              title: "Missing claim",
+              detail: "The opening lacks a claim.",
+              suggestion: "Add one concrete claim.",
+            },
+            {
+              severity: "unknown",
+              title: "Tone",
+              detail: "",
+              suggestion: "Keep the voice consistent.",
+            },
+          ],
+        }),
+      ),
+    ).toEqual({
+      summary: "Good article.",
+      issues: [
+        {
+          severity: "critical",
+          title: "Missing claim",
+          detail: "The opening lacks a claim.",
+          suggestion: "Add one concrete claim.",
+        },
+        {
+          severity: "info",
+          title: "Tone",
+          detail: "",
+          suggestion: "Keep the voice consistent.",
+        },
+      ],
+    });
   });
 });
 

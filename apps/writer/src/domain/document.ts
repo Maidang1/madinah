@@ -3,7 +3,7 @@ export type DocumentStatus = "draft" | "published" | "archived" | "WIP";
 export type DocumentMetadataPatch = Partial<
   Omit<
     MarkdownDocument,
-    "id" | "slug" | "tags" | "body" | "createdAt" | "updatedAt"
+    "id" | "tags" | "body" | "createdAt" | "updatedAt"
   >
 > & {
   tags?: string[] | string;
@@ -198,6 +198,7 @@ function normalizeMetadataPatch(
   }
   if (patch.author !== undefined) next.author = String(patch.author).trim();
   if (patch.pubDate !== undefined) next.pubDate = String(patch.pubDate).trim();
+  if (patch.slug !== undefined) next.slug = createSlug(String(patch.slug));
   if (patch.status !== undefined) next.status = toStatus(patch.status);
   if (patch.tags !== undefined) next.tags = normalizeTags(patch.tags);
 

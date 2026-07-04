@@ -1,4 +1,6 @@
 import type {
+  AcpAiActionInput,
+  AcpAiActionResult,
   AcpAgentCheckResult,
   AcpAgentRuntimeConfig,
   AcpPolishInput,
@@ -109,6 +111,10 @@ export interface MadinahWriterElectronApi {
   };
   aiPolish: {
     polish(input: AcpPolishInput): Promise<AcpPolishResult>;
+    check(input: AcpAgentRuntimeConfig): Promise<AcpAgentCheckResult>;
+  };
+  ai: {
+    runAction(input: AcpAiActionInput): Promise<AcpAiActionResult>;
     check(input: AcpAgentRuntimeConfig): Promise<AcpAgentCheckResult>;
   };
   assetUpload: {

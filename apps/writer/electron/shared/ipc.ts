@@ -48,6 +48,10 @@ export const IPC = {
     polish: "madinah:ai-polish:polish",
     check: "madinah:ai-polish:check",
   },
+  ai: {
+    runAction: "madinah:ai:run-action",
+    check: "madinah:ai:check",
+  },
   assetUpload: {
     loadSettings: "madinah:asset-upload:load-settings",
     saveSettings: "madinah:asset-upload:save-settings",
