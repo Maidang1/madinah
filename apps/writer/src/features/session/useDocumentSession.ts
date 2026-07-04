@@ -7,6 +7,10 @@ import {
   type DocumentMetadataPatch,
   type MarkdownDocument,
 } from "../../domain/document";
+import {
+  getDocumentSourceFilePath,
+  isDraftDocumentSource,
+} from "../../domain/document-source";
 import type { WorkspaceInfo, WriterPlugin } from "../../domain/engine";
 import type { BlogDocumentFile, PlatformAdapters } from "../../platform/ports";
 import { loadTrustedWorkspacePlugins } from "../engine/workspace-loader";
@@ -86,9 +90,10 @@ export function useDocumentSession(
     const timeout = window.setTimeout(() => {
       setStatus("Saving");
 
-      const saveTask = session.filePath
+      const filePath = getDocumentSourceFilePath(session.source);
+      const saveTask = filePath
         ? platform.fileStore
-            .writeMarkdownFile(session.filePath, serializeMdxDocument(snapshot))
+            .writeMarkdownFile(filePath, serializeMdxDocument(snapshot))
             .then(() => snapshot)
         : platform.documentStore.save(snapshot);
 
@@ -100,7 +105,7 @@ export function useDocumentSession(
               document: saved,
               savedFrom: snapshot,
             });
-            if (!session.filePath) {
+            if (!filePath) {
               upsertDocument(saved);
             }
             setStatus("Saved");
@@ -117,7 +122,7 @@ export function useDocumentSession(
   }, [
     platform,
     session.document,
-    session.filePath,
+    session.source,
     session.isDirty,
     upsertDocument,
   ]);
@@ -206,9 +211,10 @@ export function useDocumentSession(
     const snapshot = session.document;
     try {
       setStatus("Saving");
-      if (session.filePath) {
+      const filePath = getDocumentSourceFilePath(session.source);
+      if (filePath) {
         await platform.fileStore.writeMarkdownFile(
-          session.filePath,
+          filePath,
           serializeMdxDocument(snapshot),
         );
         dispatch({
@@ -227,7 +233,7 @@ export function useDocumentSession(
       dispatch({ type: "saveFailed", error: message });
       setStatus(message);
     }
-  }, [platform, session.document, session.filePath, upsertDocument]);
+  }, [platform, session.document, session.source, upsertDocument]);
 
   // Best-effort flush of unsaved changes when the window loses focus or is
   // about to close, so a crash / quit within the 500ms autosave debounce does
@@ -342,7 +348,7 @@ export function useDocumentSession(
         setStatus("Publishing");
         if (
           session.isDirty &&
-          (session.document?.id !== id || session.filePath)
+          (session.document?.id !== id || !isDraftDocumentSource(session.source))
         ) {
           await saveNow();
         }
@@ -352,7 +358,7 @@ export function useDocumentSession(
           id,
           targetPath: filePath,
           activeDocument: session.document,
-          activeFilePath: session.filePath,
+          activeFilePath: getDocumentSourceFilePath(session.source),
           documentStore: platform.documentStore,
           fileStore: platform.fileStore,
           recentStore: platform.recentStore,
@@ -376,7 +382,7 @@ export function useDocumentSession(
       platform.recentStore,
       saveNow,
       session.document,
-      session.filePath,
+      session.source,
       session.isDirty,
     ],
   );
@@ -386,7 +392,7 @@ export function useDocumentSession(
       try {
         setStatus("Updating");
         const current =
-          session.document?.id === id && !session.filePath
+          session.document?.id === id && isDraftDocumentSource(session.source)
             ? session.document
             : await platform.documentStore.get(id);
         const updated: MarkdownDocument = {
@@ -397,7 +403,7 @@ export function useDocumentSession(
         const saved = await platform.documentStore.save(updated);
         upsertDocument(saved);
 
-        if (session.document?.id === id && !session.filePath) {
+        if (session.document?.id === id && isDraftDocumentSource(session.source)) {
           dispatch({ type: "saveSucceeded", document: saved });
         }
 
@@ -406,7 +412,7 @@ export function useDocumentSession(
         setStatus(String(error));
       }
     },
-    [platform, session.document, session.filePath, upsertDocument],
+    [platform, session.document, session.source, upsertDocument],
   );
 
   const deleteStoredDocument = useCallback(
@@ -420,7 +426,7 @@ export function useDocumentSession(
           documents.filter((document) => document.id !== id),
         );
 
-        if (session.document?.id === id && !session.filePath) {
+        if (session.document?.id === id && isDraftDocumentSource(session.source)) {
           const nextDocument =
             nextDocuments[0] ??
             (await platform.documentStore.save(createEmptyDocument()));
@@ -439,7 +445,7 @@ export function useDocumentSession(
         setStatus(String(error));
       }
     },
-    [documents, platform, session.document?.id, session.filePath],
+    [documents, platform, session.document?.id, session.source],
   );
 
   const revert = useCallback(() => {

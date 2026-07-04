@@ -1,6 +1,7 @@
 import type {
   WriterCommand,
   WriterCommandContext,
+  WriterCommandSurface,
 } from "../../domain/engine";
 
 export class CommandRegistry {
@@ -17,8 +18,10 @@ export class CommandRegistry {
     this.commands.set(command.id, command);
   }
 
-  list(): WriterCommand[] {
-    return [...this.commands.values()];
+  list(surface?: WriterCommandSurface): WriterCommand[] {
+    const commands = [...this.commands.values()];
+    if (!surface) return commands;
+    return commands.filter((command) => commandSupportsSurface(command, surface));
   }
 
   get(id: string): WriterCommand | undefined {
@@ -33,5 +36,12 @@ export class CommandRegistry {
 
     await command.run(ctx);
   }
+}
 
+function commandSupportsSurface(
+  command: WriterCommand,
+  surface: WriterCommandSurface,
+): boolean {
+  if (!command.surfaces) return surface === "palette";
+  return command.surfaces.includes(surface);
 }

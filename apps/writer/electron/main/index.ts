@@ -62,8 +62,8 @@ const PRODUCT_NAME = "Madinah Writer";
 const FILE_TREE_DEBOUNCE_MS = 500;
 
 let mainWindow: BrowserWindow | null = null;
-let fileTreeWatcher: FSWatcher | null = null;
-let fileTreeTimer: NodeJS.Timeout | null = null;
+const fileTreeWatchers = new Map<string, FSWatcher>();
+const fileTreeTimers = new Map<string, NodeJS.Timeout>();
 let isQuitting = false;
 
 app.setName(PRODUCT_NAME);
@@ -196,7 +196,9 @@ function registerIpcHandlers(backend: BackendContext) {
   ipcMain.handle(IPC.fileTree.watch, (event, { root }) =>
     startFileTreeWatcher(root, event.sender),
   );
-  ipcMain.handle(IPC.fileTree.unwatch, () => stopFileTreeWatcher());
+  ipcMain.handle(IPC.fileTree.unwatch, (_event, { root }) =>
+    stopFileTreeWatcher(root),
+  );
 
   ipcMain.handle(IPC.recent.list, () => listRecentFiles(backend));
   ipcMain.handle(IPC.recent.add, (_event, { path }) =>
@@ -392,9 +394,9 @@ async function startFileTreeWatcher(
   );
   if (!current?.isDirectory()) throw new Error(`Not a directory: ${root}`);
 
-  await stopFileTreeWatcher();
+  await stopFileTreeWatcher(root);
 
-  fileTreeWatcher = chokidar.watch(root, {
+  const watcher = chokidar.watch(root, {
     ignoreInitial: true,
     // Skip heavyweight directories entirely so chokidar never sets up
     // watchers inside them (listVisibleChildren ignores them too). Only
@@ -410,22 +412,34 @@ async function startFileTreeWatcher(
             (segment.startsWith(".") && segment !== "." && segment !== ".."),
         ),
   });
-  fileTreeWatcher.on("all", (_eventName, changedPath) => {
+  fileTreeWatchers.set(root, watcher);
+  watcher.on("all", (_eventName, changedPath) => {
     if (!isRelevantFileTreeChange(changedPath)) return;
-    if (fileTreeTimer) clearTimeout(fileTreeTimer);
-    fileTreeTimer = setTimeout(() => {
+    const currentTimer = fileTreeTimers.get(root);
+    if (currentTimer) clearTimeout(currentTimer);
+    const nextTimer = setTimeout(() => {
+      fileTreeTimers.delete(root);
       sender.send(FILE_TREE_CHANGED_EVENT, changedPath);
     }, FILE_TREE_DEBOUNCE_MS);
+    fileTreeTimers.set(root, nextTimer);
   });
 }
 
-async function stopFileTreeWatcher(): Promise<void> {
-  if (fileTreeTimer) {
-    clearTimeout(fileTreeTimer);
-    fileTreeTimer = null;
+async function stopFileTreeWatcher(root?: string): Promise<void> {
+  if (!root) {
+    await Promise.all([...fileTreeWatchers.keys()].map((watchRoot) =>
+      stopFileTreeWatcher(watchRoot),
+    ));
+    return;
   }
-  const watcher = fileTreeWatcher;
-  fileTreeWatcher = null;
+
+  const timer = fileTreeTimers.get(root);
+  if (timer) {
+    clearTimeout(timer);
+    fileTreeTimers.delete(root);
+  }
+  const watcher = fileTreeWatchers.get(root);
+  fileTreeWatchers.delete(root);
   if (watcher) await watcher.close();
 }
 

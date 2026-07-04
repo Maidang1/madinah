@@ -70,6 +70,7 @@ export function createAiPolishCommand(
     group: "AI",
     keywords: ["rewrite", "polish", "improve"],
     scope: "ai",
+    surfaces: ["palette", "context"],
     priority: 70,
     run: async ({ document, editor, workspace }) => {
       const target = editor as MarkdownEditorLike | null;
@@ -131,6 +132,7 @@ export function createAiRewriteSelectionCommand(
     group: "AI",
     keywords: ["rewrite", "selection", "polish", "improve"],
     scope: "ai",
+    surfaces: ["palette", "context"],
     priority: 74,
     run: async ({ editor, workspace }) => {
       const target = editor as MarkdownEditorLike | null;
@@ -193,6 +195,7 @@ export function createAiGenerateMetadataCommand(
     group: "AI",
     keywords: ["frontmatter", "metadata", "title", "description", "tags", "slug"],
     scope: "ai",
+    surfaces: ["palette", "context"],
     priority: 73,
     run: async ({ document, editor, workspace }) => {
       const target = editor as MarkdownEditorLike | null;
@@ -255,6 +258,7 @@ export function createAiReviewDocumentCommand(
     group: "AI",
     keywords: ["review", "issues", "structure", "clarity"],
     scope: "ai",
+    surfaces: ["palette", "context"],
     priority: 72,
     run: async ({ document, editor, workspace }) => {
       const target = editor as MarkdownEditorLike | null;

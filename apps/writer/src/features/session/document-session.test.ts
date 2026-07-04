@@ -20,6 +20,8 @@ describe("document session reducer", () => {
     expect(session.document?.id).toBe("doc-1");
     expect(session.lastSavedDocument?.id).toBe("doc-1");
     expect(session.workspace?.root).toBe("/tmp/project");
+    expect(session.source).toEqual({ kind: "draft", id: "doc-1" });
+    expect(session.filePath).toBeNull();
     expect(session.isDirty).toBe(false);
   });
 
@@ -136,6 +138,10 @@ describe("document session reducer", () => {
     });
 
     expect(saved.filePath).toBe("/tmp/project/original.md");
+    expect(saved.source).toEqual({
+      kind: "file",
+      path: "/tmp/project/original.md",
+    });
     expect(saved.isDirty).toBe(false);
     expect(saved.lastSavedDocument?.body).toBe("# File update");
   });

@@ -179,11 +179,7 @@ export function replaceSlashTriggerInMarkdown(
 }
 
 function isSlashCommand(command: WriterCommand): boolean {
-  return (
-    command.id.startsWith("editor.insert.") ||
-    INLINE_SLASH_COMMAND_IDS.has(command.id) ||
-    (command.scope === "insert" && !command.id.startsWith("editor.format."))
-  );
+  return command.surfaces?.includes("slash") === true;
 }
 
 function getSlashCommandGroup(command: WriterCommand): string {

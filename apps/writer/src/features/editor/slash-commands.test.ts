@@ -133,6 +133,17 @@ function command(
     group: scope === "insert" ? "Insert" : "Commands",
     keywords,
     scope,
+    surfaces: isSlashSurfaceCommand(id) ? ["palette", "slash"] : ["palette"],
     run: () => {},
   };
+}
+
+function isSlashSurfaceCommand(id: string): boolean {
+  return (
+    id.startsWith("editor.insert.") ||
+    id === "editor.format.bold" ||
+    id === "editor.format.italic" ||
+    id === "editor.format.link" ||
+    id === "editor.format.inlineCode"
+  );
 }

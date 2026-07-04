@@ -129,7 +129,7 @@ export const MarkdownEditor = memo(function MarkdownEditor({
   const slashMenuFrameRef = useRef<number | null>(null);
   const selectionToolbarFrameRef = useRef<number | null>(null);
   const slashCommandItems = useMemo(
-    () => createSlashCommandItems(commandRegistry.list()),
+    () => createSlashCommandItems(commandRegistry.list("slash")),
     [commandRegistry],
   );
   const slashCommandResults = useMemo(

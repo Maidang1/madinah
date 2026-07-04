@@ -3,12 +3,18 @@ import {
   type DocumentMetadataPatch,
   type MarkdownDocument,
 } from "../../domain/document";
+import {
+  createDocumentSource,
+  getDocumentSourceFilePath,
+  type DocumentSource,
+} from "../../domain/document-source";
 import type { WorkspaceInfo } from "../../domain/engine";
 
 export interface DocumentSession {
   document: MarkdownDocument | null;
   lastSavedDocument: MarkdownDocument | null;
   workspace: WorkspaceInfo | null;
+  source: DocumentSource | null;
   filePath: string | null;
   isDirty: boolean;
   error: string | null;
@@ -25,6 +31,7 @@ export type DocumentSessionAction =
       type: "openSucceeded";
       document: MarkdownDocument;
       workspace: WorkspaceInfo;
+      source?: DocumentSource | null;
       filePath?: string | null;
     }
   | {
@@ -69,6 +76,7 @@ export function createDocumentSession(): DocumentSession {
     document: null,
     lastSavedDocument: null,
     workspace: null,
+    source: null,
     filePath: null,
     isDirty: false,
     error: null,
@@ -82,11 +90,13 @@ export function documentSessionReducer(
 ): DocumentSession {
   switch (action.type) {
     case "openSucceeded":
+      const source = action.source ?? createDocumentSource(action.document, action.filePath);
       return {
         document: action.document,
         lastSavedDocument: action.document,
         workspace: action.workspace,
-        filePath: action.filePath ?? null,
+        source,
+        filePath: getDocumentSourceFilePath(source),
         isDirty: false,
         error: null,
         // External content replacement — reset the editor to this document.

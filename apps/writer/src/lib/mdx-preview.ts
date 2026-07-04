@@ -1,124 +1,129 @@
 import type { ComponentType } from "react";
 import { Fragment } from "react";
 import { jsx, jsxs } from "react/jsx-runtime";
-import { evaluate } from "@mdx-js/mdx";
-import bash from "@shikijs/langs/bash";
-import javascript from "@shikijs/langs/javascript";
-import json from "@shikijs/langs/json";
-import jsonc from "@shikijs/langs/jsonc";
-import jsxLang from "@shikijs/langs/jsx";
-import markdown from "@shikijs/langs/markdown";
-import rust from "@shikijs/langs/rust";
-import shellscript from "@shikijs/langs/shellscript";
-import tsx from "@shikijs/langs/tsx";
-import typescript from "@shikijs/langs/typescript";
-import yaml from "@shikijs/langs/yaml";
-import rehypeShikiFromHighlighter from "@shikijs/rehype/core";
-import githubDark from "@shikijs/themes/github-dark";
-import githubLight from "@shikijs/themes/github-light";
-import rehypeAutolinkHeadings from "rehype-autolink-headings";
-import rehypeRaw from "rehype-raw";
-import rehypeSlug from "rehype-slug";
-import remarkFrontmatter from "remark-frontmatter";
-import remarkGfm from "remark-gfm";
-import { createHighlighterCore } from "shiki/core";
-import { createJavaScriptRegexEngine } from "shiki/engine/javascript";
+import { run } from "@mdx-js/mdx";
 import type { EngineProfile } from "../domain/engine";
+import {
+  compileMdxPreviewCode,
+  createBuiltinPreviewCompileProfile,
+} from "./mdx-preview-compiler";
 
 export type MdxPreviewContent = ComponentType<{
   components?: Record<string, ComponentType<Record<string, unknown>>>;
 }>;
 
-let highlighterPromise: ReturnType<typeof createPreviewHighlighter> | null = null;
-
 interface CompileMdxPreviewOptions {
   profile?: EngineProfile;
 }
+
+interface PreviewWorkerRequest {
+  requestId: number;
+  source: string;
+  profileId: string;
+}
+
+type PreviewWorkerResponse =
+  | {
+      requestId: number;
+      ok: true;
+      code: string;
+    }
+  | {
+      requestId: number;
+      ok: false;
+      error: string;
+    };
+
+const previewWorkerRequests = new Map<
+  number,
+  {
+    resolve: (code: string) => void;
+    reject: (error: Error) => void;
+  }
+>();
+let previewWorker: Worker | null = null;
+let previewWorkerRequestId = 0;
 
 export async function compileMdxPreview(
   source: string,
   options: CompileMdxPreviewOptions = {},
 ): Promise<MdxPreviewContent> {
-  const highlighter = await getPreviewHighlighter();
-  const remarkPlugins = options.profile?.remarkPlugins ?? [
-    remarkFrontmatter,
-    remarkGfm,
-  ];
-  const rehypePlugins = [
-    [
-      rehypeRaw,
-      {
-        passThrough: [
-          "mdxjsEsm",
-          "mdxFlowExpression",
-          "mdxJsxFlowElement",
-          "mdxJsxTextElement",
-          "mdxTextExpression",
-        ],
-      },
-    ],
-    rehypeSlug,
-    [
-      rehypeAutolinkHeadings,
-      {
-        behavior: "append",
-        properties: {
-          className: ["header-anchor"],
-          ariaLabel: "Link to section",
-        },
-      },
-    ],
-    [
-      rehypeShikiFromHighlighter,
-      highlighter,
-      {
-        themes: {
-          light: "github-light",
-          dark: "github-dark",
-        },
-        defaultColor: false,
-      },
-    ],
-    ...(options.profile?.rehypePlugins ?? []),
-  ];
-
-  const mod = await evaluate(source, {
+  const code =
+    (await compileMdxPreviewCodeInWorker(source, options.profile).catch(() => null)) ??
+    (await compileMdxPreviewCode(source, {
+      profile: options.profile,
+    }));
+  const mod = await run(code, {
     Fragment,
     jsx,
     jsxs,
     baseUrl: import.meta.url,
-    remarkPlugins: remarkPlugins as never,
-    rehypePlugins: rehypePlugins as never,
   });
 
   return mod.default as MdxPreviewContent;
 }
 
-function getPreviewHighlighter() {
-  highlighterPromise ??= createPreviewHighlighter();
-  return highlighterPromise;
+function compileMdxPreviewCodeInWorker(
+  source: string,
+  profile: EngineProfile | undefined,
+): Promise<string> {
+  if (!canCompileInPreviewWorker(profile)) {
+    return Promise.reject(new Error("Preview worker does not support this profile"));
+  }
+  if (typeof Worker === "undefined") {
+    return Promise.reject(new Error("Preview worker is unavailable"));
+  }
+
+  const worker = getPreviewWorker();
+  const requestId = ++previewWorkerRequestId;
+  return new Promise((resolve, reject) => {
+    previewWorkerRequests.set(requestId, { resolve, reject });
+    worker.postMessage({
+      requestId,
+      source,
+      profileId: profile.id,
+    } satisfies PreviewWorkerRequest);
+  });
 }
 
-function createPreviewHighlighter() {
-  return createHighlighterCore({
-    themes: [githubLight, githubDark],
-    langs: [
-      typescript,
-      javascript,
-      tsx,
-      jsxLang,
-      rust,
-      yaml,
-      bash,
-      shellscript,
-      json,
-      jsonc,
-      markdown,
-    ],
-    langAlias: {
-      shell: "shellscript",
-      sh: "shellscript",
-    },
-    engine: createJavaScriptRegexEngine(),
+function canCompileInPreviewWorker(
+  profile: EngineProfile | undefined,
+): profile is EngineProfile {
+  if (!profile) return false;
+  return createBuiltinPreviewCompileProfile(profile.id) !== null;
+}
+
+function getPreviewWorker(): Worker {
+  if (previewWorker) return previewWorker;
+
+  previewWorker = new Worker(new URL("./mdx-preview.worker.ts", import.meta.url), {
+    type: "module",
   });
+  previewWorker.addEventListener("message", handlePreviewWorkerMessage);
+  previewWorker.addEventListener("error", handlePreviewWorkerFailure);
+  return previewWorker;
+}
+
+function handlePreviewWorkerMessage(event: MessageEvent<PreviewWorkerResponse>) {
+  const payload = event.data;
+  const request = previewWorkerRequests.get(payload.requestId);
+  if (!request) return;
+  previewWorkerRequests.delete(payload.requestId);
+
+  if (payload.ok) {
+    request.resolve(payload.code);
+    return;
+  }
+
+  request.reject(new Error(payload.error));
+}
+
+function handlePreviewWorkerFailure(event: ErrorEvent) {
+  const error = new Error(event.message || "Preview worker failed");
+  for (const [requestId, request] of previewWorkerRequests) {
+    previewWorkerRequests.delete(requestId);
+    request.reject(error);
+  }
+  previewWorker?.terminate();
+  previewWorker = null;
 }

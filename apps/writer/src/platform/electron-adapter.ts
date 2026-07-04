@@ -93,7 +93,7 @@ function createElectronFileTreeStore(
       await api.fileTree.watch(root);
       return () => {
         unsubscribe();
-        void api.fileTree.unwatch().catch(() => {});
+        void api.fileTree.unwatch(root).catch(() => {});
       };
     },
   };

@@ -63,6 +63,7 @@ export class ExtensionHost {
           contribution,
           registeredCommands,
         );
+        validatePluginCapabilities(plugin, combinedContribution);
         profiles.push(...(combinedContribution.profiles ?? []));
         profiles.push(profileFromPluginContribution(plugin, combinedContribution));
       } catch (error) {
@@ -120,4 +121,40 @@ function withRegisteredCommands(
     ...contribution,
     commands: [...registeredCommands, ...(contribution.commands ?? [])],
   };
+}
+
+function validatePluginCapabilities(
+  plugin: WriterPlugin,
+  contribution: PluginContribution,
+): void {
+  if (!plugin.capabilities) return;
+
+  const declared = new Set(plugin.capabilities);
+  const required = getRequiredCapabilities(contribution);
+  const missing = required.filter((capability) => !declared.has(capability));
+  if (missing.length === 0) return;
+
+  throw new Error(
+    `Plugin ${plugin.id} missing capabilities: ${missing.join(", ")}`,
+  );
+}
+
+function getRequiredCapabilities(
+  contribution: PluginContribution,
+): string[] {
+  const required: string[] = [];
+  if ((contribution.commands ?? []).length > 0) required.push("commands");
+  if ((contribution.profiles ?? []).length > 0) required.push("profiles");
+  if ((contribution.remarkPlugins ?? []).length > 0) required.push("remark");
+  if ((contribution.rehypePlugins ?? []).length > 0) required.push("rehype");
+  if ((contribution.editorPlugins ?? []).length > 0) {
+    required.push("editorPlugins");
+  }
+  if (Object.keys(contribution.previewComponents ?? {}).length > 0) {
+    required.push("previewComponents");
+  }
+  if ((contribution.codeLanguages ?? []).length > 0) {
+    required.push("codeLanguages");
+  }
+  return required;
 }

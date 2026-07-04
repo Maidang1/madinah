@@ -105,6 +105,35 @@ describe("ExtensionHost", () => {
       },
     ]);
   });
+
+  it("rejects contributions outside declared plugin capabilities", async () => {
+    const host = new ExtensionHost({
+      baseProfiles: [baseProfile],
+      baseProfileId: "gfm",
+    });
+    const plugin: WriterPlugin = {
+      id: "plugin.limited",
+      name: "Limited",
+      version: "1.0.0",
+      capabilities: ["commands"],
+      activate: () => ({
+        previewComponents: {
+          Badge: () => null,
+        },
+      }),
+    };
+
+    const result = await host.activatePlugins([plugin], pluginContext);
+
+    expect(result.profile.id).toBe("gfm");
+    expect(result.diagnostics).toEqual([
+      {
+        pluginId: "plugin.limited",
+        severity: "error",
+        message: "Plugin plugin.limited missing capabilities: previewComponents",
+      },
+    ]);
+  });
 });
 
 const baseProfile: EngineProfile = {

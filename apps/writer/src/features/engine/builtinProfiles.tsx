@@ -348,6 +348,7 @@ function createInsertMarkdownCommand(command: InsertMarkdownTemplate): WriterCom
     group: "Insert",
     keywords: [command.group ?? "Insert", command.hint, ...(command.keywords ?? [])],
     scope: "insert",
+    surfaces: ["palette", "slash"],
     priority: 10,
     run: ({ editor }) => {
       if (command.markdown) {

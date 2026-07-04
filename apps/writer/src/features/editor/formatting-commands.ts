@@ -1,4 +1,5 @@
 import type { WriterCommand, WriterEditor } from "../../domain/engine";
+import type { WriterCommandSurface } from "../../domain/engine";
 
 const FORMAT_COMMAND_SHORTCUTS: Record<string, string> = {
   "editor.format.bold": "⌘B",
@@ -105,6 +106,7 @@ function markdownCommand(
     keywords,
     shortcut: FORMAT_COMMAND_SHORTCUTS[id],
     scope: group === "Insert" ? "insert" : "edit",
+    surfaces: getFormattingCommandSurfaces(id, group),
     priority: FORMAT_COMMAND_PRIORITIES[id] ?? (group === "Insert" ? 25 : 45),
     run: ({ editor }) => {
       applyMarkdownEdit(editor, format(editor?.getSelectionMarkdown?.() ?? ""));
@@ -126,6 +128,24 @@ function applyMarkdownEdit(editor: WriterEditor | null | undefined, markdown: st
 function headingMarkdown(selection: string, depth: 1 | 2 | 3): string {
   const text = selection.replace(/^#{1,6}\s+/gm, "").trim() || "Heading";
   return `${"#".repeat(depth)} ${text}\n`;
+}
+
+function getFormattingCommandSurfaces(
+  id: string,
+  group: string,
+): WriterCommandSurface[] {
+  if (group === "Insert") return ["palette", "slash"];
+  if (
+    id === "editor.format.bold" ||
+    id === "editor.format.italic" ||
+    id === "editor.format.link"
+  ) {
+    return ["palette", "menu", "context", "slash"];
+  }
+  if (id === "editor.format.inlineCode") {
+    return ["palette", "context", "slash"];
+  }
+  return ["palette", "context"];
 }
 
 function numberedMarkdownLines(selection: string): string {

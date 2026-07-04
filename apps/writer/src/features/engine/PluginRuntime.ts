@@ -35,7 +35,10 @@ export async function importResolvedPlugin(
     if (!loaded) {
       throw new Error(`Plugin ${plugin.packageId} has no default export`);
     }
-    return loaded as WriterPlugin;
+    return {
+      ...(loaded as WriterPlugin),
+      capabilities: [...plugin.capabilities],
+    };
   } finally {
     URL.revokeObjectURL(url);
   }

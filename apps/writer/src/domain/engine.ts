@@ -38,9 +38,12 @@ export interface WriterCommand {
   keywords?: string[];
   shortcut?: string;
   scope?: WriterCommandScope;
+  surfaces?: WriterCommandSurface[];
   priority?: number;
   run: (ctx: WriterCommandContext) => void | Promise<void>;
 }
+
+export type WriterCommandSurface = "palette" | "menu" | "context" | "slash";
 
 export type WriterCommandScope =
   | "file"
@@ -84,6 +87,7 @@ export interface WriterPlugin {
   id: string;
   name: string;
   version: string;
+  capabilities?: string[];
   activate: (
     ctx: PluginContext,
   ) => PluginContribution | Promise<PluginContribution>;

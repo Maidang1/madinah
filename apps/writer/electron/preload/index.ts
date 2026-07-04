@@ -32,7 +32,7 @@ const api: MadinahWriterElectronApi = {
       invoke(IPC.fileTree.moveToTrash, { workspaceRoot, path }),
     revealPath: (path) => invoke(IPC.fileTree.revealPath, { path }),
     watch: (root) => invoke(IPC.fileTree.watch, { root }),
-    unwatch: () => invoke(IPC.fileTree.unwatch),
+    unwatch: (root) => invoke(IPC.fileTree.unwatch, { root }),
   },
   recent: {
     list: () => invoke(IPC.recent.list),

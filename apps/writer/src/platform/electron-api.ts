@@ -70,7 +70,7 @@ export interface MadinahWriterElectronApi {
     moveToTrash(workspaceRoot: string, path: string): Promise<string>;
     revealPath(path: string): Promise<void>;
     watch(root: string): Promise<void>;
-    unwatch(): Promise<void>;
+    unwatch(root: string): Promise<void>;
   };
   recent: {
     list(): Promise<MarkdownFile[]>;
