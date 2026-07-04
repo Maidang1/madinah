@@ -9,8 +9,6 @@ pubDate: 2024-10-19 16:42:00
 status: draft
 ---
 
-# FarmFE plugins CI
-
 I recently worked on a repository that ships both JavaScript plugins and Rust plugins. Both plugin types need CI builds and npm publishing, but Rust adds one extra requirement: each native binding has to be built for several platforms before publishing.
 
 This note records the GitHub Actions setup I used for that mixed plugin repository

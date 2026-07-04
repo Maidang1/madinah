@@ -242,7 +242,7 @@ const EDITOR_CONTEXT_MENU_ITEMS: EditorContextMenuItem[] = [
     requiresSelection: true,
   },
 ];
-const EMPTY_EDITOR_PLUGINS: unknown[] = [];
+const EMPTY_EDITOR_EXTENSIONS: unknown[] = [];
 
 type WriterTheme = "dark" | "light";
 
@@ -952,8 +952,8 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
   }, [engine.workspace?.root, refreshWorkspacePlugins]);
   const applyDocumentBodyReplacement = useCallback(
     (nextBody: string) => {
-      // The MDXEditor is uncontrolled after mount, so push the rewritten body
-      // through its imperative API *and* the session so both stay in sync.
+      // The editor owns its live CodeMirror state, so push the rewritten body
+      // through its imperative API and the session so both stay in sync.
       activeEditorRef.current?.setMarkdown?.(nextBody);
       changeDocumentBody(nextBody);
       clearDocumentSearchHighlight();
@@ -1822,14 +1822,15 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
                       onTitleChange={changeDocumentTitle}
                     >
                       <MarkdownEditor
-                        key={`${session.document.id}:${editorMode}`}
+                        key={`${session.document.id}:${editorMode}:${engine.profile.id}`}
                         value={documentEditor.body}
                         documentId={session.document.id}
                         documentRef={sessionDocumentRef}
                         workspaceRef={sessionWorkspaceRef}
                         valueEpoch={session.contentEpoch}
-                        editorPlugins={
-                          engine.profile.editorPlugins ?? EMPTY_EDITOR_PLUGINS
+                        editorExtensions={
+                          engine.profile.editorExtensions ??
+                          EMPTY_EDITOR_EXTENSIONS
                         }
                         editorMode={editorMode}
                         commandRegistry={commandRegistry}

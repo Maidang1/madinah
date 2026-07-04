@@ -1,6 +1,5 @@
 ---
 import '../styles/global.css';
-import ThemeToggle from '../components/ThemeToggle';
 
 interface Props {
   title?: string;
@@ -9,8 +8,6 @@ interface Props {
 }
 
 const { title = "Madinah's Blog", description = "A modern blog built with Astro", variant = 'post' } = Astro.props;
-const currentPath = Astro.url.pathname;
-const normalizedPath = currentPath.replace(/\/$/, '') || '/';
 ---
 
 <!doctype html>
@@ -88,30 +85,6 @@ const normalizedPath = currentPath.replace(/\/$/, '') || '/';
   <body id="top" class:list={['site-shell font-sans antialiased', variant === 'list' ? 'site-list-surface' : 'site-post-surface']}>
     <div class="top-link-sentinel" aria-hidden="true"></div>
     <div class="flex min-h-[100dvh] flex-col">
-      <header class="site-header">
-        <div class="site-nav">
-          <div class="site-logo">
-            <a href="/" class="site-brand">Madinah</a>
-            <ThemeToggle client:idle />
-          </div>
-
-          <nav aria-label="Primary navigation">
-            <ul class="site-menu">
-              <li>
-                <a href="/" aria-current={normalizedPath === "/" || normalizedPath.startsWith("/blog") ? "page" : undefined}>
-                  Blog
-                </a>
-              </li>
-              <li>
-                <a href="/projects" aria-current={normalizedPath === "/projects" ? "page" : undefined}>
-                  Projects
-                </a>
-              </li>
-            </ul>
-          </nav>
-        </div>
-      </header>
-
       <main id="main-content" class="site-main flex-1">
         <slot />
       </main>

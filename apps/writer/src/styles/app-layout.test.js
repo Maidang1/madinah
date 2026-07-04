@@ -10,6 +10,7 @@ describe("macOS document window layout", () => {
     expect(css).toMatch(/\.writer-simple-app\s*\{[^}]*--reader-page: rgb\(29, 30, 32\);/);
     expect(css).toMatch(/\.writer-simple-app\s*\{[^}]*--reader-paper: rgb\(46, 46, 51\);/);
     expect(css).toMatch(/\.writer-simple-app\s*\{[^}]*--reader-width: 760px;/);
+    expect(css).toMatch(/\.writer-simple-app\s*\{[^}]*--reader-content-width: 780px;/);
     expect(css).toMatch(/\.writer-simple-app\s*\{[^}]*--reader-font: "TsangerJinKai02"/);
     expect(css).toMatch(/\.light \.writer-simple-app\s*\{[^}]*--reader-page: rgb\(250, 249, 245\);/);
     expect(css).toMatch(/\.light \.writer-simple-app\s*\{[^}]*--reader-paper: rgb\(250, 249, 245\);/);
@@ -96,10 +97,13 @@ describe("macOS document window layout", () => {
       /\.writer-simple-canvas \.live-mdx-content\s*\{[^}]*font-family: var\(--reader-font\);/,
     );
     expect(css).toMatch(
-      /\.writer-simple-canvas \.live-mdx-content\s*\{[^}]*font-size: 15\.2px;/,
+      /\.writer-simple-canvas \.live-mdx-content\s*\{[^}]*width: min\(var\(--reader-content-width\), calc\(100% - 120px\)\);/,
     );
-    expect(css).toMatch(/\.writer-simple-canvas \.live-mdx-content\s*\{[^}]*letter-spacing: 0;/);
-    expect(css).toMatch(/\.writer-simple-canvas \.live-mdx-content\s*\{[^}]*line-height: 1\.72;/);
+    expect(css).toMatch(
+      /\.writer-simple-canvas \.live-mdx-content\s*\{[^}]*font-size: 16\.15px;/,
+    );
+    expect(css).toMatch(/\.writer-simple-canvas \.live-mdx-content\s*\{[^}]*letter-spacing: 0\.42px;/);
+    expect(css).toMatch(/\.writer-simple-canvas \.live-mdx-content\s*\{[^}]*line-height: 1\.76;/);
     expect(css).toMatch(
       /\.live-mdx-shell\.is-empty-document \.live-mdx-content\s*\{[^}]*margin: 0 auto;/,
     );
@@ -130,8 +134,14 @@ describe("macOS document window layout", () => {
     expect(css).toMatch(/\.writer-preview\s*\{[^}]*overflow: visible;/);
     expect(css).toMatch(/\.writer-preview \.post-shell\s*\{[^}]*box-sizing: border-box;/);
     expect(css).toMatch(
+      /\.writer-preview \.post-shell\s*\{[^}]*width: min\(var\(--reader-content-width\), calc\(100% - 120px\)\);/,
+    );
+    expect(css).toMatch(
       /\.writer-preview \.post-shell\s*\{[^}]*min-height: calc\(100dvh - var\(--writer-titlebar-height\) - 56px\);/,
     );
+    expect(css).toMatch(/\.writer-preview \.post-content\s*\{[^}]*font-size: 16\.15px;/);
+    expect(css).toMatch(/\.writer-preview \.post-content\s*\{[^}]*letter-spacing: 0\.42px;/);
+    expect(css).toMatch(/\.writer-preview \.post-content\s*\{[^}]*line-height: 1\.76;/);
     expect(css).toMatch(/\.document-title-input\s*\{[^}]*font-size: 27px;/);
     expect(css).toMatch(/\.document-title-input\s*\{[^}]*border: 0;/);
     expect(css).toMatch(/\.document-title-input::placeholder\s*\{/);

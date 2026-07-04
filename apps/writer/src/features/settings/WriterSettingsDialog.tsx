@@ -34,7 +34,7 @@ interface WriterProfileOption {
   name: string;
   remarkPlugins?: readonly unknown[];
   rehypePlugins?: readonly unknown[];
-  editorPlugins?: readonly unknown[];
+  editorExtensions?: readonly unknown[];
   codeLanguages?: readonly unknown[];
   commands?: readonly unknown[];
 }
@@ -542,8 +542,8 @@ function ProfileCapabilityCard({
       `${languageCount} code language${languageCount === 1 ? "" : "s"}`,
     );
   }
-  if (profile.editorPlugins?.length) {
-    features.push("Editor plugins");
+  if (profile.editorExtensions?.length) {
+    features.push("Editor extensions");
   }
   if (remarkCount > 0 || rehypeCount > 0) {
     features.push("Remark / Rehype");

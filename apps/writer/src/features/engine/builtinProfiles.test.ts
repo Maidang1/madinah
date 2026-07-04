@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   createBuiltinProfiles,
-  createSourceModeEditorPlugin,
   EMPTY_BLOCK_MARKER,
 } from "./builtinProfiles";
 
@@ -107,12 +106,15 @@ describe("built-in engine profiles", () => {
     );
   });
 
-  it("creates a source-mode editor plugin for Markdown source editing", () => {
-    expect(createSourceModeEditorPlugin("source")).toMatchObject({
-      init: expect.any(Function),
-      postInit: expect.any(Function),
-      update: expect.any(Function),
-    });
+  it("exposes CodeMirror editor profile extensions", () => {
+    const profiles = createBuiltinProfiles();
+
+    expect(profiles.map((profile) => profile.editorExtensions?.[0])).toEqual([
+      { kind: "markdown-editor-profile", syntax: "commonmark" },
+      { kind: "markdown-editor-profile", syntax: "gfm" },
+      { kind: "markdown-editor-profile", syntax: "mdx" },
+      { kind: "markdown-editor-profile", syntax: "blog-mdx" },
+    ]);
   });
 
   it("inserts visible selected placeholders for insert commands", async () => {

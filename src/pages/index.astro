@@ -27,7 +27,7 @@ const postsWithReadingTime = await getPublishedPosts();
           <footer class="entry-meta">
             <Time time={post.data.pubDate} />
             <span>/</span>
-            <span>{post.readingTime.minutes} min read</span>
+            <span>{post.readingTime.minutes} 分钟</span>
             {post.data.author && (
               <>
                 <span>/</span>

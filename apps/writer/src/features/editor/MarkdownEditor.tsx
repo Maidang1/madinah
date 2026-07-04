@@ -1,18 +1,12 @@
+import { EditorSelection, EditorState, Transaction } from "@codemirror/state";
+import { EditorView } from "@codemirror/view";
 import {
-  MDXEditor,
-  imagePlugin,
-  type ImageUploadHandler,
-  type MDXEditorMethods,
-} from "@mdxeditor/editor";
-import "@mdxeditor/editor/style.css";
-import {
-  type FormEvent as ReactFormEvent,
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
   type RefObject,
+  memo,
   useCallback,
   useEffect,
-  memo,
   useMemo,
   useRef,
   useState,
@@ -24,16 +18,20 @@ import {
   getImageFilesFromClipboardData,
   getMarkdownTextFromClipboardData,
 } from "./clipboard";
-import { getWrappedSelection, isWrappingKey } from "./wrap-selection";
+import { createWriterCodeMirrorExtensions } from "./codemirror/editor-extensions";
 import {
-  createSourceModeEditorPlugin,
-  EMPTY_BLOCK_MARKER,
   type MarkdownEditorMode,
-} from "../engine/builtinProfiles";
-import type { CommandRegistry } from "../engine/CommandRegistry";
+  resolveMarkdownEditorSyntax,
+} from "./codemirror/profile";
 import {
-  getEditorContextMenuSize,
+  getWrappedSelection,
+  isWrappingKey,
+} from "./wrap-selection";
+import type { CommandRegistry } from "../engine/CommandRegistry";
+import { EMPTY_BLOCK_MARKER } from "../engine/builtinProfiles";
+import {
   getEditorContextMenuPosition,
+  getEditorContextMenuSize,
   isEditorContextMenuSeparator,
   resolveEditorContextMenuItems,
   type EditorContextMenuCommandItem,
@@ -56,25 +54,22 @@ import {
   getSlashCommandPosition,
   isInlineSlashCommandId,
   matchSlashCommandTriggerText,
-  replaceSlashTriggerInMarkdown,
   searchSlashCommandItems,
   type SlashCommandItem,
   type SlashCommandPosition,
 } from "./slash-commands";
 
+export type ImageUploadHandler = (image: File | null) => Promise<string>;
+
 const EMPTY_DISABLED_COMMAND_IDS: readonly string[] = [];
 
 interface MarkdownEditorProps {
   value: string;
-  // Bumped by the session only when `value` reflects an EXTERNAL content change
-  // (open file / restore / revert). Unchanged across user keystrokes, so the
-  // reset effect can distinguish self-edits (never reset) from external swaps
-  // (reset the editor). See DocumentSession.contentEpoch.
   valueEpoch: number;
   documentId: string | null;
   documentRef: RefObject<MarkdownDocument | null>;
   workspaceRef: RefObject<WorkspaceInfo | null>;
-  editorPlugins: unknown[];
+  editorExtensions: unknown[];
   editorMode?: MarkdownEditorMode;
   commandRegistry: CommandRegistry;
   autoFocus?: boolean;
@@ -94,7 +89,7 @@ export const MarkdownEditor = memo(function MarkdownEditor({
   valueEpoch,
   documentRef,
   workspaceRef,
-  editorPlugins,
+  editorExtensions,
   editorMode = "rich-text",
   commandRegistry,
   autoFocus = true,
@@ -106,12 +101,14 @@ export const MarkdownEditor = memo(function MarkdownEditor({
   onChange,
   onError,
 }: MarkdownEditorProps) {
-  const editorRef = useRef<MDXEditorMethods>(null);
+  const editorViewRef = useRef<EditorView | null>(null);
   const shellRef = useRef<HTMLDivElement>(null);
-  // Keep the latest markdown readable from stable callbacks without making
-  // them (and the effects that depend on them) re-run on every keystroke.
   const valueRef = useRef(value);
   const lastEpochRef = useRef(valueEpoch);
+  const onChangeRef = useRef(onChange);
+  const onErrorRef = useRef(onError);
+  const imageUploadHandlerRef = useRef(imageUploadHandler);
+  const onEditorReadyRef = useRef(onEditorReady);
   const shouldAutoFocusRef = useRef(autoFocus);
   const initialFocusSelectionRef = useRef<"rootStart" | "rootEnd">(
     getInitialFocusSelection(value),
@@ -123,11 +120,13 @@ export const MarkdownEditor = memo(function MarkdownEditor({
   const [selectionToolbar, setSelectionToolbar] =
     useState<EditorSelectionToolbarState | null>(null);
   const slashMenuRef = useRef<SlashCommandMenuState | null>(null);
-  slashMenuRef.current = slashMenu;
   const selectionToolbarRef = useRef<EditorSelectionToolbarState | null>(null);
-  selectionToolbarRef.current = selectionToolbar;
   const slashMenuFrameRef = useRef<number | null>(null);
   const selectionToolbarFrameRef = useRef<number | null>(null);
+  const editorSyntax = useMemo(
+    () => resolveMarkdownEditorSyntax(editorExtensions),
+    [editorExtensions],
+  );
   const slashCommandItems = useMemo(
     () => createSlashCommandItems(commandRegistry.list("slash")),
     [commandRegistry],
@@ -143,14 +142,6 @@ export const MarkdownEditor = memo(function MarkdownEditor({
             .slice(0, 10)
         : [],
     [slashCommandItems, slashMenu],
-  );
-  const resolvedEditorPlugins = useMemo(
-    () => [
-      ...editorPlugins,
-      imagePlugin({ imageUploadHandler }),
-      createSourceModeEditorPlugin(editorMode),
-    ],
-    [editorMode, editorPlugins, imageUploadHandler],
   );
   const disabledContextMenuCommandIds = useMemo(
     () =>
@@ -168,14 +159,14 @@ export const MarkdownEditor = memo(function MarkdownEditor({
         : EMPTY_DISABLED_COMMAND_IDS,
     [isAiOperationRunning],
   );
-  const restoreEditorFocus = useCallback(() => {
-    requestAnimationFrame(() =>
-      editorRef.current?.focus(undefined, {
-        defaultSelection: "rootEnd",
-        preventScroll: true,
-      }),
-    );
-  }, []);
+
+  slashMenuRef.current = slashMenu;
+  selectionToolbarRef.current = selectionToolbar;
+  onChangeRef.current = onChange;
+  onErrorRef.current = onError;
+  imageUploadHandlerRef.current = imageUploadHandler;
+  onEditorReadyRef.current = onEditorReady;
+
   const syncEmptyDocumentClass = useCallback((markdown: string) => {
     shellRef.current?.classList.toggle(
       "is-empty-document",
@@ -183,34 +174,59 @@ export const MarkdownEditor = memo(function MarkdownEditor({
     );
   }, []);
 
-  // Reset the (uncontrolled) editor content ONLY on an external content change,
-  // signalled by a bumped `valueEpoch`. User keystrokes flow out via onChange and
-  // come back as a new `value` with the SAME epoch — we deliberately ignore those,
-  // so we never call setMarkdown mid-typing (which would clear the Lexical root and
-  // send the caret to the document start). This sidesteps the impedance mismatch
-  // between our compose/split-normalized `value` and MDXEditor's own re-serialized
-  // getMarkdown() output, which can never be byte-equal.
+  const replaceEditorDocument = useCallback(
+    (
+      markdown: string,
+      options: {
+        notify: boolean;
+        selection?: "rootStart" | "rootEnd";
+      },
+    ) => {
+      const view = editorViewRef.current;
+      valueRef.current = markdown;
+      syncEmptyDocumentClass(markdown);
+
+      if (!view) return;
+
+      const cursor =
+        options.selection === "rootStart"
+          ? 0
+          : options.selection === "rootEnd"
+            ? markdown.length
+            : Math.min(view.state.selection.main.head, markdown.length);
+
+      view.dispatch({
+        changes: { from: 0, to: view.state.doc.length, insert: markdown },
+        selection: EditorSelection.cursor(cursor),
+        annotations: [
+          Transaction.addToHistory.of(false),
+          Transaction.userEvent.of(
+            options.notify ? "writer.setMarkdown" : "writer.external",
+          ),
+        ],
+        scrollIntoView: false,
+      });
+
+    },
+    [syncEmptyDocumentClass],
+  );
+
+  const restoreEditorFocus = useCallback(() => {
+    requestAnimationFrame(() =>
+      focusEditor(editorViewRef.current, "rootEnd", true),
+    );
+  }, []);
+
   useEffect(() => {
     valueRef.current = value;
     if (lastEpochRef.current === valueEpoch) return;
     lastEpochRef.current = valueEpoch;
 
-    // External swap. Skip the reset if the editor already shows this content
-    // (e.g. reverting to what's on screen), comparing with MDXEditor's own trim
-    // semantics to avoid a needless caret-resetting setMarkdown.
-    const current = editorRef.current?.getMarkdown() ?? "";
+    const current = editorViewRef.current?.state.doc.toString() ?? "";
     if (current.trim() === value.trim()) return;
 
-    editorRef.current?.setMarkdown(value);
-    syncEmptyDocumentClass(value);
-  }, [syncEmptyDocumentClass, value, valueEpoch]);
-
-  useEffect(() => {
-    if (!onEditorReady) return;
-
-    onEditorReady(createWriterEditor(editorRef, shellRef, valueRef));
-    return () => onEditorReady(null);
-  }, [onEditorReady]);
+    replaceEditorDocument(value, { notify: false });
+  }, [replaceEditorDocument, value, valueEpoch]);
 
   const closeContextMenu = useCallback(() => {
     setContextMenu(null);
@@ -224,6 +240,21 @@ export const MarkdownEditor = memo(function MarkdownEditor({
     setSelectionToolbar(null);
   }, []);
 
+  const createEditor = useCallback(
+    (): WriterEditor =>
+      createWriterEditor({
+        viewRef: editorViewRef,
+        shellRef,
+        fallbackMarkdownRef: valueRef,
+        setMarkdown: (markdown, selection) =>
+          replaceEditorDocument(markdown, {
+            notify: true,
+            selection,
+          }),
+      }),
+    [replaceEditorDocument],
+  );
+
   const runContextMenuItem = useCallback(
     async (item: EditorContextMenuCommandItem) => {
       if (item.disabled) return;
@@ -232,19 +263,19 @@ export const MarkdownEditor = memo(function MarkdownEditor({
       try {
         await commandRegistry.execute(item.commandId, {
           document: documentRef.current,
-          editor: createWriterEditor(editorRef, shellRef, valueRef),
+          editor: createEditor(),
           workspace: workspaceRef.current,
         });
         restoreEditorFocus();
       } catch (error: unknown) {
-        onError(error instanceof Error ? error.message : String(error));
+        onErrorRef.current(error instanceof Error ? error.message : String(error));
       }
     },
     [
       closeContextMenu,
       commandRegistry,
+      createEditor,
       documentRef,
-      onError,
       restoreEditorFocus,
       workspaceRef,
     ],
@@ -254,7 +285,7 @@ export const MarkdownEditor = memo(function MarkdownEditor({
     async (action: EditorSelectionToolbarAction) => {
       if (isAiOperationRunning && isAiCommandId(action.commandId)) return;
 
-      const editor = createWriterEditor(editorRef, shellRef, valueRef);
+      const editor = createEditor();
       closeSelectionToolbar();
 
       try {
@@ -265,29 +296,27 @@ export const MarkdownEditor = memo(function MarkdownEditor({
         });
         editor.focus?.();
       } catch (error: unknown) {
-        onError(error instanceof Error ? error.message : String(error));
+        onErrorRef.current(error instanceof Error ? error.message : String(error));
       }
     },
     [
       closeSelectionToolbar,
       commandRegistry,
+      createEditor,
       documentRef,
       isAiOperationRunning,
-      onError,
       workspaceRef,
     ],
   );
 
   const updateSlashMenu = useCallback(() => {
-    if (contextMenu || slashCommandItems.length === 0) {
+    const view = editorViewRef.current;
+    if (contextMenu || slashCommandItems.length === 0 || !view) {
       setSlashMenu(null);
       return;
     }
 
-    const trigger = getSlashCommandTrigger(
-      shellRef.current,
-      window.getSelection(),
-    );
+    const trigger = getSlashCommandTrigger(view);
     if (!trigger) {
       setSlashMenu(null);
       return;
@@ -295,10 +324,7 @@ export const MarkdownEditor = memo(function MarkdownEditor({
 
     closeSelectionToolbar();
     setSlashMenu((current) => ({
-      query: trigger.query,
-      position: trigger.position,
-      triggerText: trigger.triggerText,
-      atLineStart: trigger.atLineStart,
+      ...trigger,
       selectedIndex:
         current?.query === trigger.query ? current.selectedIndex : 0,
     }));
@@ -318,32 +344,19 @@ export const MarkdownEditor = memo(function MarkdownEditor({
     scheduleSlashMenuUpdate();
   }, [scheduleSlashMenuUpdate]);
 
-  const handleEditorInput = useCallback(
-    (event: ReactFormEvent<HTMLDivElement>) => {
-      if (!slashMenuRef.current && !inputEventMayOpenSlashMenu(event.nativeEvent)) {
-        return;
-      }
-
-      scheduleSlashMenuUpdate();
-    },
-    [scheduleSlashMenuUpdate],
-  );
-
   const runSlashCommand = useCallback(
     async (item: SlashCommandItem) => {
-      const activeSlashMenu = slashMenu;
-      if (!activeSlashMenu) return;
+      const activeSlashMenu = slashMenuRef.current;
+      const view = editorViewRef.current;
+      if (!activeSlashMenu || !view) return;
 
       closeSlashMenu();
       closeSelectionToolbar();
 
-      const editor = createSlashWriterEditor(
-        editorRef,
-        valueRef,
-        activeSlashMenu.triggerText,
-        activeSlashMenu.atLineStart,
-        onChange,
-      );
+      const editor = createSlashWriterEditor({
+        view,
+        range: activeSlashMenu.range,
+      });
 
       try {
         await commandRegistry.execute(item.command.id, {
@@ -353,7 +366,7 @@ export const MarkdownEditor = memo(function MarkdownEditor({
         });
         editor.focus?.();
       } catch (error: unknown) {
-        onError(error instanceof Error ? error.message : String(error));
+        onErrorRef.current(error instanceof Error ? error.message : String(error));
       }
     },
     [
@@ -361,18 +374,15 @@ export const MarkdownEditor = memo(function MarkdownEditor({
       closeSlashMenu,
       commandRegistry,
       documentRef,
-      onChange,
-      onError,
-      slashMenu,
       workspaceRef,
     ],
   );
 
   const handleEditorKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLDivElement>) => {
-      // Wrap the current selection when a paired symbol is typed over it.
-      // Only in rich-text mode (CodeMirror handles its own bracket matching in
-      // source mode) and only for a bare keypress with no modifiers.
+      const view = editorViewRef.current;
+      if (!view) return;
+
       if (
         editorMode === "rich-text" &&
         !event.metaKey &&
@@ -380,24 +390,27 @@ export const MarkdownEditor = memo(function MarkdownEditor({
         !event.altKey &&
         isWrappingKey(event.key)
       ) {
-        const selection = window.getSelection();
-        const range = getSelectionRangeInside(shellRef.current, selection);
-        if (range && selection) {
-          const wrapped = getWrappedSelection(event.key, selection.toString());
+        const range = view.state.selection.main;
+        if (!range.empty) {
+          const selectedText = view.state.sliceDoc(range.from, range.to);
+          const wrapped = getWrappedSelection(event.key, selectedText);
           if (wrapped) {
             event.preventDefault();
             event.stopPropagation();
-            // execCommand("insertText") routes through Lexical's beforeinput
-            // handling, so the wrap lands as plain text and stays on the
-            // native undo stack. (`document` here is the component prop, so use
-            // the global explicitly.)
-            window.document.execCommand("insertText", false, wrapped.text);
+            view.dispatch({
+              changes: { from: range.from, to: range.to, insert: wrapped.text },
+              selection: EditorSelection.range(
+                range.from + wrapped.opening.length,
+                range.from + wrapped.opening.length + selectedText.length,
+              ),
+              userEvent: "input.wrapSelection",
+            });
             return;
           }
         }
       }
 
-      if (!slashMenu) return;
+      if (!slashMenuRef.current) return;
 
       if (event.key === "Escape") {
         event.preventDefault();
@@ -444,13 +457,15 @@ export const MarkdownEditor = memo(function MarkdownEditor({
       if (event.key === "Enter") {
         event.preventDefault();
         event.stopPropagation();
-        const item = slashCommandResults[slashMenu.selectedIndex];
+        const activeSlashMenu = slashMenuRef.current;
+        const item =
+          activeSlashMenu && slashCommandResults[activeSlashMenu.selectedIndex];
         if (!item) return;
 
         void runSlashCommand(item);
       }
     },
-    [closeSlashMenu, editorMode, runSlashCommand, slashCommandResults, slashMenu],
+    [closeSlashMenu, editorMode, runSlashCommand, slashCommandResults],
   );
 
   useEffect(() => {
@@ -465,97 +480,27 @@ export const MarkdownEditor = memo(function MarkdownEditor({
     });
   }, [slashCommandResults.length, slashMenu]);
 
-  useEffect(() => {
-    if (!shouldAutoFocusRef.current) return;
-
-    requestAnimationFrame(() =>
-      editorRef.current?.focus(undefined, {
-        defaultSelection: initialFocusSelectionRef.current,
-        preventScroll: true,
-      }),
-    );
-  }, []);
-
-  useEffect(() => {
-    const shell = shellRef.current;
-    if (!shell) return;
-
-    const handlePaste = (event: ClipboardEvent) => {
-      const target = event.target;
-      if (
-        !(target instanceof Node) ||
-        !shell.querySelector(".live-mdx-content")?.contains(target)
-      ) {
-        return;
-      }
-
-      const imageFiles = imageUploadHandler
-        ? getImageFilesFromClipboardData(event.clipboardData)
-        : [];
-      const text = getMarkdownTextFromClipboardData(event.clipboardData);
-
-      // Let the editor handle anything we don't explicitly take over.
-      if (imageFiles.length === 0 && text === null) return;
-
-      event.preventDefault();
-      event.stopImmediatePropagation();
-
-      if (text !== null) {
-        editorRef.current?.insertMarkdown(text);
-        return;
-      }
-
-      if (imageFiles.length > 0 && imageUploadHandler) {
-        void uploadPastedImages(imageFiles, imageUploadHandler, editorRef, onError);
-      }
-    };
-
-    shell.addEventListener("paste", handlePaste, true);
-    return () => shell.removeEventListener("paste", handlePaste, true);
-  }, [imageUploadHandler, onError]);
-
-  useEffect(() => {
-    const shell = shellRef.current;
-    if (!shell) return;
-
-    // Editable placeholders use a zero-width marker; strip it from copied /
-    // cut text so it never leaks invisible characters into other apps.
-    const handleCopyOrCut = (event: ClipboardEvent) => {
-      const selectedText = window.getSelection()?.toString() ?? "";
-      if (!selectedText.includes(EMPTY_BLOCK_MARKER)) return;
-
-      event.clipboardData?.setData(
-        "text/plain",
-        stripEmptyBlockMarkers(selectedText),
-      );
-      event.preventDefault();
-
-      // preventDefault also cancels the native cut deletion, so remove the
-      // selection ourselves to preserve cut semantics.
-      if (event.type === "cut") {
-        globalThis.document.execCommand?.("delete");
-      }
-    };
-
-    shell.addEventListener("copy", handleCopyOrCut, true);
-    shell.addEventListener("cut", handleCopyOrCut, true);
-    return () => {
-      shell.removeEventListener("copy", handleCopyOrCut, true);
-      shell.removeEventListener("cut", handleCopyOrCut, true);
-    };
-  }, []);
-
   const updateSelectionToolbar = useCallback(() => {
     if (contextMenu) return;
 
-    const selection = window.getSelection();
-    const range = getSelectionRangeInside(shellRef.current, selection);
-    if (!range) {
+    const view = editorViewRef.current;
+    if (!view) {
       setSelectionToolbar(null);
       return;
     }
 
-    const rect = range.getBoundingClientRect();
+    const range = view.state.selection.main;
+    if (range.empty) {
+      setSelectionToolbar(null);
+      return;
+    }
+
+    const rect = getEditorSelectionRect(view, range.from, range.to);
+    if (!rect) {
+      setSelectionToolbar(null);
+      return;
+    }
+
     setSelectionToolbar({
       position: getEditorSelectionToolbarPosition(
         rect,
@@ -566,13 +511,9 @@ export const MarkdownEditor = memo(function MarkdownEditor({
   }, [contextMenu]);
 
   const scheduleSelectionToolbarUpdate = useCallback(() => {
-    const selection = window.getSelection();
-    if (
-      !selectionToolbarRef.current &&
-      (!selection || selection.rangeCount === 0 || selection.isCollapsed)
-    ) {
-      return;
-    }
+    const view = editorViewRef.current;
+    if (!view) return;
+    if (!selectionToolbarRef.current && view.state.selection.main.empty) return;
     if (selectionToolbarFrameRef.current !== null) return;
 
     selectionToolbarFrameRef.current = requestAnimationFrame(() => {
@@ -580,6 +521,84 @@ export const MarkdownEditor = memo(function MarkdownEditor({
       updateSelectionToolbar();
     });
   }, [updateSelectionToolbar]);
+
+  const mountEditor = useCallback(
+    (element: HTMLDivElement | null) => {
+      if (!element) {
+        editorViewRef.current?.destroy();
+        editorViewRef.current = null;
+        onEditorReadyRef.current?.(null);
+        return;
+      }
+
+      if (editorViewRef.current) return;
+
+      const updateListener = EditorView.updateListener.of((update) => {
+        const isExternal = update.transactions.some((transaction) =>
+          transaction.isUserEvent("writer.external"),
+        );
+
+        if (update.docChanged && !isExternal) {
+          const nextMarkdown = cleanEmptyBlockMarkers(update.state.doc.toString());
+          valueRef.current = nextMarkdown;
+          syncEmptyDocumentClass(nextMarkdown);
+          onChangeRef.current(nextMarkdown);
+          scheduleSlashMenuUpdate();
+        }
+
+        if (update.selectionSet || update.docChanged) {
+          scheduleSelectionToolbarUpdate();
+          scheduleSlashMenuUpdateIfOpen();
+        }
+      });
+
+      const pasteHandlers = EditorView.domEventHandlers({
+        paste(event, view) {
+          return handleEditorPaste(event, view, {
+            imageUploadHandlerRef,
+            onErrorRef,
+          });
+        },
+      });
+
+      const view = new EditorView({
+        parent: element,
+        state: EditorState.create({
+          doc: valueRef.current,
+          extensions: createWriterCodeMirrorExtensions({
+            mode: editorMode,
+            syntax: editorSyntax,
+            updateListener,
+            pasteHandlers,
+          }),
+        }),
+      });
+
+      editorViewRef.current = view;
+      syncEmptyDocumentClass(valueRef.current);
+      onEditorReadyRef.current?.(createEditor());
+
+      if (shouldAutoFocusRef.current) {
+        requestAnimationFrame(() =>
+          focusEditor(view, initialFocusSelectionRef.current, true),
+        );
+      }
+    },
+    [
+      createEditor,
+      editorMode,
+      editorSyntax,
+      scheduleSelectionToolbarUpdate,
+      scheduleSlashMenuUpdate,
+      scheduleSlashMenuUpdateIfOpen,
+      syncEmptyDocumentClass,
+    ],
+  );
+
+  useEffect(() => {
+    onEditorReadyRef.current?.(editorViewRef.current ? createEditor() : null);
+    return () => onEditorReadyRef.current?.(null);
+  }, [createEditor]);
 
   useEffect(() => {
     globalThis.document.addEventListener(
@@ -593,9 +612,6 @@ export const MarkdownEditor = memo(function MarkdownEditor({
     window.addEventListener("mouseup", scheduleSelectionToolbarUpdate);
     window.addEventListener("resize", closeSelectionToolbar);
     window.addEventListener("resize", closeSlashMenu);
-    // Reposition (instead of closing) on scroll so the toolbar / slash menu
-    // follow the caret; updateSelectionToolbar/updateSlashMenu clear themselves
-    // when the selection or trigger is gone.
     window.addEventListener("scroll", scheduleSelectionToolbarUpdate, true);
     window.addEventListener("scroll", scheduleSlashMenuUpdateIfOpen, true);
 
@@ -668,12 +684,6 @@ export const MarkdownEditor = memo(function MarkdownEditor({
     };
   }, [closeContextMenu, contextMenu, restoreEditorFocus]);
 
-  // On an external content change (epoch bumped) the incoming `value` is the
-  // authority until the reset effect runs; otherwise the live edited content in
-  // `valueRef` is freshest (updated from onChange between renders).
-  const shellMarkdown =
-    lastEpochRef.current === valueEpoch ? valueRef.current : value;
-
   useEffect(() => {
     if (!slashMenu) return;
 
@@ -703,6 +713,38 @@ export const MarkdownEditor = memo(function MarkdownEditor({
     };
   }, [closeSlashMenu, slashMenu]);
 
+  useEffect(() => {
+    const shell = shellRef.current;
+    if (!shell) return;
+
+    const handleCopyOrCut = (event: ClipboardEvent) => {
+      const selectedText = editorViewRef.current
+        ? getSelectionMarkdown(editorViewRef.current)
+        : "";
+      if (!selectedText.includes(EMPTY_BLOCK_MARKER)) return;
+
+      event.clipboardData?.setData(
+        "text/plain",
+        stripEmptyBlockMarkers(selectedText),
+      );
+      event.preventDefault();
+
+      if (event.type === "cut") {
+        replaceEditorSelection(editorViewRef.current, "");
+      }
+    };
+
+    shell.addEventListener("copy", handleCopyOrCut, true);
+    shell.addEventListener("cut", handleCopyOrCut, true);
+    return () => {
+      shell.removeEventListener("copy", handleCopyOrCut, true);
+      shell.removeEventListener("cut", handleCopyOrCut, true);
+    };
+  }, []);
+
+  const shellMarkdown =
+    lastEpochRef.current === valueEpoch ? valueRef.current : value;
+
   const handleContextMenu = useCallback(
     (event: ReactMouseEvent<HTMLDivElement>) => {
       if (contextMenuItems.length === 0) return;
@@ -719,9 +761,9 @@ export const MarkdownEditor = memo(function MarkdownEditor({
       event.stopPropagation();
       closeSlashMenu();
       closeSelectionToolbar();
-      const hasSelection = Boolean(
-        getSelectionRangeInside(shellRef.current, window.getSelection()),
-      );
+
+      const view = editorViewRef.current;
+      const hasSelection = Boolean(view && !view.state.selection.main.empty);
       const items = resolveEditorContextMenuItems(
         contextMenuItems,
         hasSelection,
@@ -730,10 +772,7 @@ export const MarkdownEditor = memo(function MarkdownEditor({
 
       if (window.madinahWriter) {
         if (!hasSelection) {
-          editorRef.current?.focus(undefined, {
-            defaultSelection: "rootEnd",
-            preventScroll: true,
-          });
+          focusEditor(view, "rootEnd", true);
         }
 
         void showNativeEditorContextMenu({
@@ -777,32 +816,11 @@ export const MarkdownEditor = memo(function MarkdownEditor({
         .join(" ")}
       ref={shellRef}
       onContextMenu={handleContextMenu}
-      onInput={handleEditorInput}
       onKeyDownCapture={handleEditorKeyDown}
     >
-      <MDXEditor
-        ref={editorRef}
-        markdown={value}
-        onChange={(markdown, initialMarkdownNormalize) => {
-          if (initialMarkdownNormalize) return;
-          const nextMarkdown = cleanEmptyBlockMarkers(markdown);
-          valueRef.current = nextMarkdown;
-          syncEmptyDocumentClass(nextMarkdown);
-          onChange(nextMarkdown);
-        }}
-        onError={(payload) => onError(payload.error)}
-        plugins={resolvedEditorPlugins as never}
-        contentEditableClassName="post-content live-mdx-content"
-        className="live-mdx-editor"
-        autoFocus={
-          shouldAutoFocusRef.current
-            ? {
-                defaultSelection: initialFocusSelectionRef.current,
-                preventScroll: true,
-              }
-            : undefined
-        }
-        placeholder={getEditorInlinePlaceholder()}
+      <div
+        ref={mountEditor}
+        className="post-content live-mdx-content live-mdx-editor"
         spellCheck
       />
       {contextMenu ? (
@@ -843,14 +861,11 @@ function areMarkdownEditorPropsEqual(
   previous: MarkdownEditorProps,
   next: MarkdownEditorProps,
 ): boolean {
-  // Pure render optimization. Correctness of content resets no longer depends
-  // on this guard — the reset effect keys off `valueEpoch`, so even if a
-  // self-edit re-renders the component, it will not reset the editor.
   return (
     previous.documentId === next.documentId &&
     previous.documentRef === next.documentRef &&
     previous.workspaceRef === next.workspaceRef &&
-    previous.editorPlugins === next.editorPlugins &&
+    previous.editorExtensions === next.editorExtensions &&
     previous.editorMode === next.editorMode &&
     previous.commandRegistry === next.commandRegistry &&
     previous.autoFocus === next.autoFocus &&
@@ -962,18 +977,10 @@ function cleanEmptyBlockMarkers(markdown: string): string {
   return stripEmptyBlockMarkers(markdown);
 }
 
-// Strip leading blank lines from a body. `composeDocumentEditorMarkdown` applies
-// this when joining title + body, so the body that flows back into the editor is
-// normalized this way. The editor's own live content must be normalized the same
-// way before comparing, otherwise the value guard sees raw-vs-normalized drift
-// and needlessly resets the editor (moving the caret to the start).
 function stripLeadingBlankLines(body: string): string {
   return body.replace(/^(?:[ \t]*\r?\n)+/, "");
 }
 
-// Normalize the editor's live markdown into the same shape as the `value` prop
-// (which is derived via compose→split). Used to decide whether an incoming
-// `value` actually differs from what the editor already shows.
 export function normalizeEditorBody(markdown: string): string {
   return stripLeadingBlankLines(cleanEmptyBlockMarkers(markdown));
 }
@@ -985,11 +992,6 @@ function normalizeDocumentTitle(title: string): string {
 function getInitialFocusSelection(markdown: string): "rootStart" | "rootEnd" {
   const normalized = cleanEmptyBlockMarkers(markdown).trim();
   return normalized === "" || normalized === "# Untitled" ? "rootEnd" : "rootStart";
-}
-
-function inputEventMayOpenSlashMenu(event: Event): boolean {
-  const inputEvent = event as InputEvent;
-  return typeof inputEvent.data === "string" && inputEvent.data.includes("/");
 }
 
 interface EditorContextMenuState {
@@ -1007,7 +1009,10 @@ interface EditorSelectionToolbarState {
 interface SlashCommandMenuState {
   query: string;
   position: SlashCommandPosition;
-  triggerText: string;
+  range: {
+    from: number;
+    to: number;
+  };
   atLineStart: boolean;
   selectedIndex: number;
 }
@@ -1108,198 +1113,262 @@ async function showNativeEditorContextMenu({
   }
 }
 
+function handleEditorPaste(
+  event: ClipboardEvent,
+  view: EditorView,
+  {
+    imageUploadHandlerRef,
+    onErrorRef,
+  }: {
+    imageUploadHandlerRef: RefObject<ImageUploadHandler | null>;
+    onErrorRef: RefObject<(error: string) => void>;
+  },
+): boolean {
+  const imageFiles = imageUploadHandlerRef.current
+    ? getImageFilesFromClipboardData(event.clipboardData)
+    : [];
+  const text = getMarkdownTextFromClipboardData(event.clipboardData);
+
+  if (imageFiles.length === 0 && text === null) return false;
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  if (text !== null) {
+    replaceEditorSelection(view, text);
+    return true;
+  }
+
+  if (imageFiles.length > 0 && imageUploadHandlerRef.current) {
+    void uploadPastedImages(
+      imageFiles,
+      imageUploadHandlerRef.current,
+      view,
+      onErrorRef.current,
+    );
+  }
+  return true;
+}
+
 async function uploadPastedImages(
   imageFiles: File[],
   imageUploadHandler: ImageUploadHandler,
-  editorRef: RefObject<MDXEditorMethods | null>,
+  view: EditorView,
   onError: (error: string) => void,
 ): Promise<void> {
-  if (!imageUploadHandler) return;
-
   for (const file of imageFiles) {
     try {
       const url = await imageUploadHandler(file);
       const altText = file.name.replace(/\.[^.]+$/, "");
-      editorRef.current?.insertMarkdown(`![${altText}](${url})\n\n`);
+      replaceEditorSelection(view, `![${altText}](${url})\n\n`);
     } catch (error: unknown) {
       onError(error instanceof Error ? error.message : String(error));
     }
   }
 }
 
-function createSlashWriterEditor(
-  editorRef: RefObject<MDXEditorMethods | null>,
-  fallbackMarkdownRef: RefObject<string>,
-  triggerText: string,
-  atLineStart: boolean,
-  onChange: (value: string) => void,
-): WriterEditor {
+function createSlashWriterEditor({
+  view,
+  range,
+}: {
+  view: EditorView;
+  range: { from: number; to: number };
+}): WriterEditor {
   const insertAtSlashRange = (markdown: string) => {
-    const currentMarkdown =
-      editorRef.current?.getMarkdown() ?? fallbackMarkdownRef.current;
-    const nextMarkdown = replaceSlashTriggerInMarkdown(
-      currentMarkdown,
-      triggerText,
-      markdown,
-      atLineStart,
-    );
-    fallbackMarkdownRef.current = nextMarkdown;
-    editorRef.current?.setMarkdown(nextMarkdown);
-    onChange(cleanEmptyBlockMarkers(nextMarkdown));
+    const inserted = prepareInsertedMarkdown(markdown);
+    view.dispatch({
+      changes: { from: range.from, to: range.to, insert: inserted.markdown },
+      selection: inserted.selection
+        ? EditorSelection.range(
+            range.from + inserted.selection.from,
+            range.from + inserted.selection.to,
+          )
+        : EditorSelection.cursor(range.from + inserted.markdown.length),
+      userEvent: "input.slashCommand",
+    });
   };
 
   return {
-    getMarkdown: () =>
-      editorRef.current?.getMarkdown() ?? fallbackMarkdownRef.current,
+    getMarkdown: () => view.state.doc.toString(),
     setMarkdown: (markdown) => {
-      fallbackMarkdownRef.current = markdown;
-      editorRef.current?.setMarkdown(markdown);
+      view.dispatch({
+        changes: { from: 0, to: view.state.doc.length, insert: markdown },
+        userEvent: "writer.setMarkdown",
+      });
     },
     insertMarkdown: insertAtSlashRange,
     getSelectionMarkdown: () => "",
     replaceSelection: insertAtSlashRange,
-    focus: () =>
-      editorRef.current?.focus(undefined, {
-        preventScroll: true,
-      }),
+    focus: () => focusEditor(view, undefined, true),
   };
 }
 
-function createWriterEditor(
-  editorRef: RefObject<MDXEditorMethods | null>,
-  shellRef: RefObject<HTMLDivElement | null>,
-  fallbackMarkdownRef: RefObject<string>,
-): WriterEditor {
+function createWriterEditor({
+  viewRef,
+  shellRef,
+  fallbackMarkdownRef,
+  setMarkdown,
+}: {
+  viewRef: RefObject<EditorView | null>;
+  shellRef: RefObject<HTMLDivElement | null>;
+  fallbackMarkdownRef: RefObject<string>;
+  setMarkdown: (
+    markdown: string,
+    selection?: "rootStart" | "rootEnd",
+  ) => void;
+}): WriterEditor {
   return {
     getMarkdown: () =>
-      editorRef.current?.getMarkdown() ?? fallbackMarkdownRef.current,
+      viewRef.current?.state.doc.toString() ?? fallbackMarkdownRef.current,
     setMarkdown: (markdown) => {
       fallbackMarkdownRef.current = markdown;
       shellRef.current?.classList.toggle(
         "is-empty-document",
         isEditorEmptyDocument(markdown),
       );
-      editorRef.current?.setMarkdown(markdown);
+      setMarkdown(markdown);
     },
-    insertMarkdown: (markdown) => editorRef.current?.insertMarkdown(markdown),
-    // Use MDXEditor's own selection API so formatting commands operate on the
-    // parsed markdown of the selection. insertMarkdown parses and replaces the
-    // active selection, so "**text**" becomes real bold rather than literal
-    // asterisks (which is what the DOM execCommand path produced).
+    insertMarkdown: (markdown) => {
+      const view = viewRef.current;
+      if (!view) return;
+      replaceEditorSelection(view, markdown);
+    },
     getSelectionMarkdown: () =>
-      editorRef.current?.getSelectionMarkdown() ??
-      getSelectedTextInside(shellRef.current),
-    replaceSelection: (markdown) => editorRef.current?.insertMarkdown(markdown),
-    focus: () =>
-      editorRef.current?.focus(undefined, {
-        defaultSelection: "rootEnd",
-        preventScroll: true,
-      }),
+      viewRef.current ? getSelectionMarkdown(viewRef.current) : "",
+    replaceSelection: (markdown) => {
+      const view = viewRef.current;
+      if (!view) return;
+      replaceEditorSelection(view, markdown);
+    },
+    focus: () => focusEditor(viewRef.current, "rootEnd", true),
   };
 }
 
-function getSlashCommandTrigger(
-  shell: HTMLElement | null,
-  selection: Selection | null,
-): SlashCommandMenuState | null {
-  if (!shell || !selection || selection.rangeCount === 0 || !selection.isCollapsed) {
-    return null;
-  }
+function getSlashCommandTrigger(view: EditorView): SlashCommandMenuState | null {
+  const range = view.state.selection.main;
+  if (!range.empty) return null;
 
-  const contentRoot = shell.querySelector<HTMLElement>(".live-mdx-content");
-  if (!contentRoot) return null;
-
-  const anchorNode = selection.anchorNode;
-  if (!anchorNode || !contentRoot.contains(anchorNode)) return null;
-
-  const block = getSlashCommandBlockElement(contentRoot, anchorNode);
-  if (!block) return null;
-
-  const caretRange = selection.getRangeAt(0).cloneRange();
-  const textBeforeCaret = getTextBeforeCaret(block, caretRange);
-  if (textBeforeCaret === null) return null;
-
+  const line = view.state.doc.lineAt(range.head);
+  const lineOffset = range.head - line.from;
+  const textBeforeCaret = line.text.slice(0, lineOffset);
   const trigger = matchSlashCommandTriggerText(textBeforeCaret);
   if (!trigger) return null;
+
+  const caretRect = view.coordsAtPos(range.head);
+  if (!caretRect) return null;
 
   return {
     query: trigger.query,
     position: getSlashCommandPosition(
-      getSlashCommandCaretRect(caretRange, block),
+      rectLikeToDomRect(caretRect),
       SLASH_COMMAND_MENU_SIZE,
-      { width: window.innerWidth, height: window.innerHeight },
+      {
+        width: window.innerWidth,
+        height: window.innerHeight,
+      },
     ),
-    triggerText: textBeforeCaret.slice(trigger.slashOffset),
+    range: {
+      from: line.from + trigger.slashOffset,
+      to: range.head,
+    },
     atLineStart: trigger.atLineStart,
     selectedIndex: 0,
   };
 }
 
-function getSlashCommandBlockElement(
-  contentRoot: HTMLElement,
-  node: Node,
-): HTMLElement | null {
-  const element =
-    node instanceof HTMLElement ? node : node.parentElement;
-  if (!element) return null;
+function getEditorSelectionRect(
+  view: EditorView,
+  from: number,
+  to: number,
+): DOMRect | null {
+  const start = view.coordsAtPos(from);
+  const end = view.coordsAtPos(to);
+  if (!start && !end) return null;
+  if (!start) return end ? rectLikeToDomRect(end) : null;
+  if (!end) return rectLikeToDomRect(start);
 
-  const block = element.closest<HTMLElement>(
-    "p,h1,h2,h3,h4,h5,h6,li,blockquote,pre,td,th",
-  );
-
-  if (block && contentRoot.contains(block)) return block;
-  return contentRoot;
-}
-
-function getTextBeforeCaret(block: HTMLElement, caretRange: Range): string | null {
-  try {
-    const range = document.createRange();
-    range.selectNodeContents(block);
-    range.setEnd(caretRange.endContainer, caretRange.endOffset);
-    return range.toString();
-  } catch {
-    return null;
-  }
-}
-
-function getSlashCommandCaretRect(range: Range, block: HTMLElement): DOMRect {
-  const rect = range.getBoundingClientRect();
-  if (rect.width > 0 || rect.height > 0) return rect;
-
-  const fallback = block.getBoundingClientRect();
   return new DOMRect(
-    fallback.left,
-    fallback.top,
-    Math.max(fallback.width, 1),
-    Math.max(fallback.height, 1),
+    Math.min(start.left, end.left),
+    Math.min(start.top, end.top),
+    Math.max(1, Math.abs(end.right - start.left)),
+    Math.max(start.bottom - start.top, end.bottom - end.top),
   );
 }
 
-function getSelectedTextInside(element: HTMLElement | null): string {
-  const selection = window.getSelection();
-  if (!getSelectionRangeInside(element, selection)) return "";
-  return selection?.toString() ?? "";
+function rectLikeToDomRect(rect: {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+}): DOMRect {
+  return new DOMRect(
+    rect.left,
+    rect.top,
+    Math.max(1, rect.right - rect.left),
+    Math.max(1, rect.bottom - rect.top),
+  );
 }
 
-function getSelectionRangeInside(
-  element: HTMLElement | null,
-  selection: Selection | null,
-): Range | null {
-  if (!element || !selection || selection.rangeCount === 0 || selection.isCollapsed) {
-    return null;
+function getSelectionMarkdown(view: EditorView): string {
+  const range = view.state.selection.main;
+  if (range.empty) return "";
+  return view.state.sliceDoc(range.from, range.to);
+}
+
+function replaceEditorSelection(view: EditorView | null, markdown: string) {
+  if (!view) return;
+
+  const range = view.state.selection.main;
+  const inserted = prepareInsertedMarkdown(markdown);
+  view.dispatch({
+    changes: { from: range.from, to: range.to, insert: inserted.markdown },
+    selection: inserted.selection
+      ? EditorSelection.range(
+          range.from + inserted.selection.from,
+          range.from + inserted.selection.to,
+        )
+      : EditorSelection.cursor(range.from + inserted.markdown.length),
+    userEvent: "input.insertMarkdown",
+  });
+}
+
+function prepareInsertedMarkdown(markdown: string): {
+  markdown: string;
+  selection: { from: number; to: number } | null;
+} {
+  const first = markdown.indexOf(EMPTY_BLOCK_MARKER);
+  const second =
+    first >= 0 ? markdown.indexOf(EMPTY_BLOCK_MARKER, first + 1) : -1;
+  const clean = cleanEmptyBlockMarkers(markdown);
+
+  if (first < 0 || second < 0) {
+    return { markdown: clean, selection: null };
   }
 
-  const anchorNode = selection.anchorNode;
-  const focusNode = selection.focusNode;
-  if (!anchorNode || !focusNode) return null;
-  if (!element.contains(anchorNode) || !element.contains(focusNode)) return null;
+  return {
+    markdown: clean,
+    selection: {
+      from: first,
+      to: Math.max(first, second - EMPTY_BLOCK_MARKER.length),
+    },
+  };
+}
 
-  const text = selection.toString();
-  if (!text.trim()) return null;
+function focusEditor(
+  view: EditorView | null,
+  selection?: "rootStart" | "rootEnd",
+  preventScroll = false,
+) {
+  if (!view) return;
 
-  const range = selection.getRangeAt(0);
-  const rect = range.getBoundingClientRect();
-  if (rect.width === 0 && rect.height === 0) return null;
+  if (selection) {
+    view.dispatch({
+      selection: EditorSelection.cursor(
+        selection === "rootStart" ? 0 : view.state.doc.length,
+      ),
+      scrollIntoView: !preventScroll,
+    });
+  }
 
-  return range;
+  view.focus();
 }

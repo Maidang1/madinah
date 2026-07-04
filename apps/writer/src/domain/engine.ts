@@ -58,7 +58,7 @@ export interface EngineProfile {
   name: string;
   remarkPlugins?: unknown[];
   rehypePlugins?: unknown[];
-  editorPlugins?: unknown[];
+  editorExtensions?: unknown[];
   previewComponents?: PreviewComponentMap;
   codeLanguages?: CodeLanguage[];
   commands?: WriterCommand[];
@@ -68,7 +68,7 @@ export interface PluginContribution {
   profiles?: EngineProfile[];
   remarkPlugins?: unknown[];
   rehypePlugins?: unknown[];
-  editorPlugins?: unknown[];
+  editorExtensions?: unknown[];
   previewComponents?: PreviewComponentMap;
   codeLanguages?: CodeLanguage[];
   commands?: WriterCommand[];
@@ -150,7 +150,7 @@ export function mergeEngineProfiles(profiles: EngineProfile[]): EngineProfile {
     name: profiles.map((profile) => profile.name).join(" + "),
     remarkPlugins: [],
     rehypePlugins: [],
-    editorPlugins: [],
+    editorExtensions: [],
     previewComponents: {},
     codeLanguages: [],
     commands: [],
@@ -159,7 +159,7 @@ export function mergeEngineProfiles(profiles: EngineProfile[]): EngineProfile {
   for (const profile of profiles) {
     merged.remarkPlugins.push(...(profile.remarkPlugins ?? []));
     merged.rehypePlugins.push(...(profile.rehypePlugins ?? []));
-    merged.editorPlugins.push(...(profile.editorPlugins ?? []));
+    merged.editorExtensions.push(...(profile.editorExtensions ?? []));
     Object.assign(merged.previewComponents, profile.previewComponents ?? {});
     merged.codeLanguages.push(...(profile.codeLanguages ?? []));
 
@@ -184,7 +184,7 @@ export function profileFromPluginContribution(
     name: plugin.name,
     remarkPlugins: contribution.remarkPlugins,
     rehypePlugins: contribution.rehypePlugins,
-    editorPlugins: contribution.editorPlugins,
+    editorExtensions: contribution.editorExtensions,
     previewComponents: contribution.previewComponents,
     codeLanguages: contribution.codeLanguages,
     commands: contribution.commands,

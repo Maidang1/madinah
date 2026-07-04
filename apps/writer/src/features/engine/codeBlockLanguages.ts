@@ -14,18 +14,24 @@ import { xml } from "@codemirror/lang-xml";
 import { yaml } from "@codemirror/lang-yaml";
 import {
   HighlightStyle,
+  type LanguageSupport,
   syntaxHighlighting,
 } from "@codemirror/language";
 import { tags as t } from "@lezer/highlight";
 import type { Extension } from "@codemirror/state";
 import { Prec } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import type { CodeBlockLanguage } from "@mdxeditor/editor";
 
-// The canonical fence token for each language is `alias[0]`; MDXEditor derives
-// the ```<token> written into markdown from it, so these must stay stable to
-// keep existing documents parsing. `extensions` lets a fence use a file
-// extension (e.g. ```ts) and still resolve to the right grammar.
+export interface CodeBlockLanguage {
+  name: string;
+  alias?: string[];
+  support?: {
+    extension: LanguageSupport;
+  };
+}
+
+// The canonical fence token for each language is `alias[0]`; keep these stable
+// so existing documents continue to resolve their fenced code grammar.
 export const CODE_BLOCK_LANGUAGES: CodeBlockLanguage[] = [
   {
     name: "Plain text",

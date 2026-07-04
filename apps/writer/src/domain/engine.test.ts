@@ -26,7 +26,7 @@ describe("engine profile merge", () => {
       name: "GitHub Flavored Markdown",
       remarkPlugins: ["remark-frontmatter", "remark-gfm"],
       rehypePlugins: ["rehype-slug"],
-      editorPlugins: ["headings", "lists"],
+      editorExtensions: ["headings", "lists"],
       previewComponents: {
         Callout: NullComponent,
       },
@@ -38,7 +38,7 @@ describe("engine profile merge", () => {
       name: "Workspace",
       remarkPlugins: ["remark-directive"],
       rehypePlugins: ["rehype-autolink-headings"],
-      editorPlugins: ["callout-editor"],
+      editorExtensions: ["callout-editor"],
       previewComponents: {
         Chart: NullComponent,
       },
@@ -58,7 +58,11 @@ describe("engine profile merge", () => {
       "rehype-slug",
       "rehype-autolink-headings",
     ]);
-    expect(merged.editorPlugins).toEqual(["headings", "lists", "callout-editor"]);
+    expect(merged.editorExtensions).toEqual([
+      "headings",
+      "lists",
+      "callout-editor",
+    ]);
     expect(Object.keys(merged.previewComponents ?? {})).toEqual(["Callout", "Chart"]);
     expect((merged.codeLanguages ?? []).map((language) => language.id)).toEqual([
       "typescript",

@@ -11,12 +11,14 @@ const isValid = !isNaN(parsed.getTime());
 let formattedDate = '';
 
 if (isValid) {
-  formattedDate = new Intl.DateTimeFormat('en-US', {
+  const parts = new Intl.DateTimeFormat('zh-CN', {
     year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  }).format(parsed);
-  
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(parsed);
+  const dateParts = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+
+  formattedDate = `${dateParts.year}.${dateParts.month}.${dateParts.day}`;
 } else {
   formattedDate = String(time);
 }

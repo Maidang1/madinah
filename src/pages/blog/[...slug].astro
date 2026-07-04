@@ -39,46 +39,76 @@ const tocItems = Array.from(post.body.matchAll(/^(#{1,3})\s+(.+)$/gm))
 
 <BaseLayout title={`${post.data.title} - Madinah's Blog`} description={post.data.description}>
   <article class="post-shell">
-    <header class="post-header">
-      <h1 class="post-title">{post.data.title}</h1>
+    <div class="post-layout">
+      <div class="post-main-column">
+        <a href="/" class="post-back" aria-label="Back to blog list">
+          <span aria-hidden="true">&larr;</span>
+          Blog
+        </a>
 
-      <div class="post-meta">
-        <Time time={post.data.pubDate} />
-        <span>/</span>
-        <span>{readingTime.minutes} min read</span>
-        {post.data.author && (
-          <>
+        <header class="post-header">
+          <h1 class="post-title">{post.data.title}</h1>
+
+          <div class="post-meta">
+            <Time time={post.data.pubDate} />
             <span>/</span>
-            <span>{post.data.author}</span>
-          </>
+            <span>{readingTime.minutes} 分钟</span>
+            {post.data.author && (
+              <>
+                <span>/</span>
+                <span>{post.data.author}</span>
+              </>
+            )}
+          </div>
+        </header>
+
+        {tocItems.length > 0 && (
+          <div class="toc toc-mobile">
+            <details>
+              <summary accesskey="c" title="(Alt + C)">
+                <span class="details">目录</span>
+              </summary>
+
+              <div class="inner">
+                <ul>
+                  {tocItems.map((item) => (
+                    <li class:list={[item.depth > 2 && "toc-depth-3"]}>
+                      <a href={`#${item.id}`} aria-label={item.text}>{item.text}</a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </details>
+          </div>
         )}
+
+        <div class="post-content">
+          <Content components={components} />
+        </div>
+
+        <LicenseNotice />
       </div>
-    </header>
 
-    {tocItems.length > 0 && (
-      <div class="toc">
-        <details>
-          <summary accesskey="c" title="(Alt + C)">
-            <span class="details">Table of Contents</span>
-          </summary>
-
-          <div class="inner">
+      {tocItems.length > 0 && (
+        <aside class="toc-rail" aria-label="目录">
+          <h2>目录</h2>
+          <nav>
             <ul>
-              {tocItems.map((item) => (
-                <li class:list={[item.depth > 1 && "toc-depth-3"]}>
-                  <a href={`#${item.id}`} aria-label={item.text}>{item.text}</a>
+              {tocItems.map((item, index) => (
+                <li class:list={[item.depth > 2 && "toc-depth-3"]}>
+                  <a
+                    href={`#${item.id}`}
+                    aria-label={item.text}
+                    class:list={[index === 0 && "is-active"]}
+                  >
+                    {item.text}
+                  </a>
                 </li>
               ))}
             </ul>
-          </div>
-        </details>
-      </div>
-    )}
-
-    <div class="post-content">
-      <Content components={components} />
+          </nav>
+        </aside>
+      )}
     </div>
-
-    <LicenseNotice />
   </article>
 </BaseLayout>

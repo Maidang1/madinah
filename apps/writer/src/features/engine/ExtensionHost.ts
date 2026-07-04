@@ -147,8 +147,8 @@ function getRequiredCapabilities(
   if ((contribution.profiles ?? []).length > 0) required.push("profiles");
   if ((contribution.remarkPlugins ?? []).length > 0) required.push("remark");
   if ((contribution.rehypePlugins ?? []).length > 0) required.push("rehype");
-  if ((contribution.editorPlugins ?? []).length > 0) {
-    required.push("editorPlugins");
+  if ((contribution.editorExtensions ?? []).length > 0) {
+    required.push("editorExtensions");
   }
   if (Object.keys(contribution.previewComponents ?? {}).length > 0) {
     required.push("previewComponents");

@@ -194,6 +194,7 @@ textarea {
   --reader-code-border: rgb(78, 75, 92);
   --reader-code-text: rgb(196, 184, 255);
   --reader-width: 760px;
+  --reader-content-width: 780px;
   --reader-font: "TsangerJinKai02", "STKaiti", "KaiTi", "Kaiti SC",
     "Songti SC", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
@@ -2985,146 +2986,9 @@ body.is-resizing-writer-pane * {
 }
 
 .live-mdx-editor {
-  --accentBase: transparent;
-  --accentBgSubtle: color-mix(in srgb, var(--reader-paper) 84%, var(--reader-page));
-  --accentBg: color-mix(in srgb, var(--reader-paper) 72%, var(--reader-page));
-  --accentText: var(--reader-ink);
-  --accentSolid: var(--reader-ink);
-  --baseBase: var(--reader-page);
-  --baseBgSubtle: var(--reader-paper);
-  --baseBg: var(--reader-paper);
-  --baseText: var(--reader-ink);
-  --baseBorder: color-mix(in srgb, var(--reader-soft) 34%, transparent);
   min-height: 100%;
   background: transparent;
   font-family: var(--reader-font);
-}
-
-.live-mdx-editor [role="toolbar"],
-.live-mdx-editor .mdxeditor-toolbar {
-  display: none;
-}
-
-.live-mdx-editor .mdxeditor-popup-container {
-  font-family: var(--writer-ui-font);
-}
-
-/* Custom link edit dialog (WriterLinkDialog, injected via linkDialogPlugin).
-   Our own component + classes — not an override of MDXEditor internals. Matches
-   the app's other floating surfaces and adapts to the theme. */
-.writer-link-dialog {
-  z-index: 30;
-  display: flex;
-  flex-direction: column;
-  width: 280px;
-  padding: 10px;
-  border: 1px solid var(--writer-rule-strong);
-  border-radius: 9px;
-  background: var(--writer-editor-bg);
-  box-shadow: 0 16px 44px var(--writer-shadow);
-  color: var(--writer-text);
-  font-family: var(--writer-ui-font);
-}
-
-.writer-link-dialog-arrow {
-  fill: var(--writer-editor-bg);
-}
-
-.writer-link-dialog-form {
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-}
-
-.writer-link-dialog-field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.writer-link-dialog-field > span {
-  color: var(--writer-muted);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-}
-
-.writer-link-dialog-field input {
-  height: 30px;
-  padding: 0 9px;
-  border: 1px solid var(--writer-rule-strong);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--writer-text);
-  font-family: var(--writer-ui-font);
-  font-size: 12px;
-  outline: none;
-}
-
-.writer-link-dialog-field input:focus-visible {
-  border-color: color-mix(in srgb, var(--writer-text) 45%, transparent);
-}
-
-.writer-link-dialog-field input::placeholder {
-  color: color-mix(in srgb, var(--writer-muted) 70%, transparent);
-}
-
-.writer-link-dialog-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-top: 2px;
-}
-
-.writer-link-dialog-actions-primary {
-  display: inline-flex;
-  gap: 6px;
-  margin-left: auto;
-}
-
-.writer-link-dialog-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  height: 28px;
-  padding: 0 10px;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--writer-muted);
-  font-family: var(--writer-ui-font);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.writer-link-dialog-button:hover,
-.writer-link-dialog-button:focus-visible {
-  background: var(--writer-control-hover);
-  color: var(--writer-text);
-  outline: none;
-}
-
-.writer-link-dialog-button.is-primary {
-  background: color-mix(in srgb, var(--writer-text) 88%, transparent);
-  color: var(--writer-editor-bg);
-}
-
-.writer-link-dialog-button.is-primary:hover,
-.writer-link-dialog-button.is-primary:focus-visible {
-  background: var(--writer-text);
-  color: var(--writer-editor-bg);
-}
-
-.writer-link-dialog-button.is-danger {
-  color: var(--writer-danger, #d05252);
-}
-
-.writer-link-dialog-button.is-danger:hover,
-.writer-link-dialog-button.is-danger:focus-visible {
-  background: color-mix(in srgb, var(--writer-danger, #d05252) 12%, transparent);
-  color: var(--writer-danger, #d05252);
 }
 
 .live-mdx-content {
@@ -3156,7 +3020,7 @@ body.is-resizing-writer-pane * {
 .writer-simple-canvas .live-mdx-content {
   counter-reset: figure-counter;
   box-sizing: border-box;
-  width: min(var(--reader-width), calc(100% - 120px));
+  width: min(var(--reader-content-width), calc(100% - 120px));
   min-height: calc(100dvh - var(--writer-titlebar-height) - 56px);
   margin: 56px auto 0;
   padding: 0 10px 140px;
@@ -3164,9 +3028,9 @@ body.is-resizing-writer-pane * {
   background: transparent;
   color: var(--reader-ink);
   font-family: var(--reader-font);
-  font-size: 15.2px;
-  letter-spacing: 0;
-  line-height: 1.72;
+  font-size: 16.15px;
+  letter-spacing: 0.42px;
+  line-height: 1.76;
   text-autospace: ideograph-alpha ideograph-numeric;
 }
 
@@ -3183,148 +3047,33 @@ body.is-resizing-writer-pane * {
   padding-bottom: 42vh;
 }
 
-.live-mdx-content [contenteditable="true"] {
-  outline: none;
-}
-
-.live-mdx-content .mdxeditor-nested-editor,
-.live-mdx-content .cm-editor {
-  overflow: hidden;
+.live-mdx-content > .cm-editor {
+  overflow: visible;
+  min-height: inherit;
   border: 0;
-  border-radius: 0;
-  background: rgb(21, 20, 27);
-  color: rgb(237, 236, 238);
-}
-
-.live-mdx-content [class*="codeMirrorWrapper"] {
-  position: relative;
-  overflow: hidden;
-  margin: 12px auto 20px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: var(--radius);
-  background: rgb(21, 20, 27);
-}
-
-/* Code block toolbar: language picker + delete. Revealed on hover / focus so it
-   stays out of the way while reading but is reachable when editing. */
-.live-mdx-content [class*="codeMirrorToolbar"] {
-  display: flex;
-  position: absolute;
-  z-index: 2;
-  top: 6px;
-  right: 8px;
-  align-items: center;
-  gap: 4px;
-  opacity: 0;
-  transition: opacity 120ms ease;
-}
-
-.live-mdx-content [class*="codeMirrorWrapper"]:hover [class*="codeMirrorToolbar"],
-.live-mdx-content [class*="codeMirrorWrapper"]:focus-within [class*="codeMirrorToolbar"] {
-  opacity: 1;
-}
-
-.live-mdx-content [class*="codeMirrorToolbar"] [class*="selectTrigger"] {
-  display: inline-flex;
-  gap: 2px;
-  align-items: center;
-  height: 24px;
-  padding: 0 6px 0 8px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.06);
-  color: rgb(210, 210, 216);
-  font-family: var(--writer-ui-font);
-  font-size: 12px;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.live-mdx-content [class*="codeMirrorToolbar"] [class*="selectTrigger"]:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: rgb(237, 236, 238);
-}
-
-.live-mdx-content [class*="codeMirrorToolbar"] [class*="selectDropdownArrow"] svg {
-  width: 14px;
-  height: 14px;
-}
-
-.live-mdx-content [class*="codeMirrorToolbar"] [class*="iconButton"] {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border: 1px solid transparent;
-  border-radius: 6px;
   background: transparent;
-  color: rgb(180, 180, 188);
-  cursor: pointer;
+  color: var(--reader-ink);
 }
 
-.live-mdx-content [class*="codeMirrorToolbar"] [class*="iconButton"]:hover {
-  background: rgba(255, 90, 90, 0.16);
-  color: rgb(255, 150, 150);
+.live-mdx-content > .cm-editor .cm-scroller {
+  overflow: visible;
+  font-family: var(--reader-font);
 }
 
-.live-mdx-content [class*="codeMirrorToolbar"] [class*="iconButton"] svg {
-  width: 16px;
-  height: 16px;
+.live-mdx-content > .cm-editor .cm-content {
+  padding: 0 0 140px;
+  color: var(--reader-ink);
+  font-family: var(--reader-font);
+  font-size: inherit;
+  line-height: inherit;
 }
 
-/* Language picker dropdown (portaled to the editor root). */
-.mdxeditor-select-content {
-  z-index: 40;
-  overflow: hidden auto;
-  max-height: min(320px, var(--radix-select-content-available-height, 320px));
-  padding: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  background: rgb(30, 29, 37);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
-  font-family: var(--writer-ui-font);
+.live-mdx-content > .cm-editor .cm-line {
+  padding: 0;
 }
 
-.mdxeditor-select-content [class*="selectItem"] {
-  display: flex;
-  align-items: center;
-  padding: 6px 10px;
-  border-radius: 6px;
-  color: rgb(210, 210, 216);
-  font-size: 12px;
-  line-height: 1.2;
-  cursor: pointer;
-  outline: none;
-  user-select: none;
-}
-
-.mdxeditor-select-content [class*="selectItem"][data-highlighted],
-.mdxeditor-select-content [class*="selectItem"][data-state="checked"] {
-  background: rgba(120, 140, 255, 0.24);
-  color: rgb(237, 236, 238);
-}
-
-.live-mdx-content .cm-gutters {
+.live-mdx-content > .cm-editor .cm-gutters {
   display: none;
-}
-
-.live-mdx-content .cm-scroller {
-  padding: 14px 20px;
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
-    "Liberation Mono", monospace;
-}
-
-.live-mdx-content .cm-content {
-  padding: 0;
-  color: rgb(237, 236, 238);
-  font-size: 12px;
-  line-height: 1.75;
-}
-
-.live-mdx-content .cm-line {
-  padding: 0;
 }
 
 .preview-error,
@@ -3365,7 +3114,7 @@ body.is-resizing-writer-pane * {
 
 .writer-preview .post-shell {
   box-sizing: border-box;
-  width: min(var(--reader-width), calc(100% - 120px));
+  width: min(var(--reader-content-width), calc(100% - 120px));
   min-height: calc(100dvh - var(--writer-titlebar-height) - 56px);
   margin: 0 auto;
   padding: 0 10px 140px;
@@ -3437,9 +3186,9 @@ body.is-resizing-writer-pane * {
 .writer-preview .post-content {
   color: var(--reader-ink);
   font-family: var(--reader-font);
-  font-size: 15.2px;
-  letter-spacing: 0;
-  line-height: 1.72;
+  font-size: 16.15px;
+  letter-spacing: 0.42px;
+  line-height: 1.76;
   text-autospace: ideograph-alpha ideograph-numeric;
 }
 
@@ -3462,10 +3211,13 @@ body.is-resizing-writer-pane * {
 }
 
 @media (max-width: 1180px) {
-  .document-editor-shell,
+  .document-editor-shell {
+    width: min(var(--reader-width), calc(100% - 112px));
+  }
+
   .writer-preview .post-shell,
   .writer-simple-canvas .live-mdx-content {
-    width: min(var(--reader-width), calc(100% - 112px));
+    width: min(var(--reader-content-width), calc(100% - 112px));
   }
 }
 
@@ -3630,8 +3382,7 @@ body.is-resizing-writer-pane * {
   .writer-sidebar,
   .writer-titlebar,
   .tree-row,
-  .writer-simple-canvas .live-mdx-content pre,
-  .live-mdx-content [class*="codeMirrorWrapper"] {
+  .writer-simple-canvas .live-mdx-content pre {
     border-color: var(--writer-rule-strong);
   }
 }

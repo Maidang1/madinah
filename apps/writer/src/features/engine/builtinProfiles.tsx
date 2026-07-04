@@ -1,33 +1,15 @@
-import {
-  GenericJsxEditor,
-  codeBlockPlugin,
-  codeMirrorPlugin,
-  diffSourcePlugin,
-  headingsPlugin,
-  jsxPlugin,
-  linkDialogPlugin,
-  linkPlugin,
-  listsPlugin,
-  markdownShortcutPlugin,
-  quotePlugin,
-  tablePlugin,
-  thematicBreakPlugin,
-  type JsxComponentDescriptor,
-  type ViewMode,
-} from "@mdxeditor/editor";
 import remarkFrontmatter from "remark-frontmatter";
 import remarkGfm from "remark-gfm";
 import type { EngineProfile, WriterCommand } from "../../domain/engine";
 import { mdxComponents } from "../../components/mdx-components";
-import { WriterLinkDialog } from "../editor/WriterLinkDialog";
 import {
-  CODE_BLOCK_EDITOR_EXTENSIONS,
+  createMarkdownEditorProfileExtension,
+} from "../editor/codemirror/profile";
+import {
   CODE_BLOCK_LANGUAGES,
 } from "./codeBlockLanguages";
 
 export const EMPTY_BLOCK_MARKER = "\u200b";
-
-export type MarkdownEditorMode = Extract<ViewMode, "rich-text" | "source">;
 
 interface InsertMarkdownTemplate {
   id: string;
@@ -42,39 +24,13 @@ function editablePlaceholder(value: string): string {
   return `${EMPTY_BLOCK_MARKER}${value}${EMPTY_BLOCK_MARKER}`;
 }
 
-const jsxComponentDescriptors: JsxComponentDescriptor[] = [
-  {
-    name: "Callout",
-    kind: "flow",
-    props: [
-      { name: "type", type: "string" },
-      { name: "title", type: "string" },
-    ],
-    hasChildren: true,
-    Editor: GenericJsxEditor,
-  },
+const commonmarkEditorExtensions = [
+  createMarkdownEditorProfileExtension("commonmark"),
 ];
-
-const commonmarkEditorPlugins = [
-  headingsPlugin(),
-  listsPlugin(),
-  quotePlugin(),
-  thematicBreakPlugin(),
-  linkPlugin(),
-  linkDialogPlugin({ LinkDialog: WriterLinkDialog }),
-  codeBlockPlugin({ defaultCodeBlockLanguage: "typescript" }),
-  codeMirrorPlugin({
-    codeBlockLanguages: CODE_BLOCK_LANGUAGES,
-    codeMirrorExtensions: CODE_BLOCK_EDITOR_EXTENSIONS,
-    autoLoadLanguageSupport: false,
-  }),
-  markdownShortcutPlugin(),
-];
-
-const gfmEditorPlugins = [tablePlugin(), ...commonmarkEditorPlugins];
-const mdxEditorPlugins = [
-  jsxPlugin({ jsxComponentDescriptors }),
-  ...gfmEditorPlugins,
+const gfmEditorExtensions = [createMarkdownEditorProfileExtension("gfm")];
+const mdxEditorExtensions = [createMarkdownEditorProfileExtension("mdx")];
+const blogMdxEditorExtensions = [
+  createMarkdownEditorProfileExtension("blog-mdx"),
 ];
 
 const baseInsertTemplates: InsertMarkdownTemplate[] = [
@@ -302,7 +258,7 @@ export function createBuiltinProfiles(): EngineProfile[] {
   const commonmark: EngineProfile = {
     id: "commonmark",
     name: "CommonMark",
-    editorPlugins: commonmarkEditorPlugins,
+    editorExtensions: commonmarkEditorExtensions,
     commands: commonmarkCommands.commands,
     codeLanguages: commonmarkCodeLanguages,
   };
@@ -311,7 +267,7 @@ export function createBuiltinProfiles(): EngineProfile[] {
     id: "gfm",
     name: "GitHub Flavored Markdown",
     remarkPlugins: [remarkGfm],
-    editorPlugins: gfmEditorPlugins,
+    editorExtensions: gfmEditorExtensions,
     commands: gfmCommands.commands,
     codeLanguages: fullCodeLanguages,
   };
@@ -320,7 +276,7 @@ export function createBuiltinProfiles(): EngineProfile[] {
     id: "mdx",
     name: "MDX",
     remarkPlugins: [remarkGfm],
-    editorPlugins: mdxEditorPlugins,
+    editorExtensions: mdxEditorExtensions,
     previewComponents: mdxComponents,
     commands: mdxCommands.commands,
     codeLanguages: fullCodeLanguages,
@@ -331,14 +287,11 @@ export function createBuiltinProfiles(): EngineProfile[] {
     id: "blog-mdx",
     name: "Blog MDX",
     remarkPlugins: [remarkFrontmatter, remarkGfm],
+    editorExtensions: blogMdxEditorExtensions,
     commands: baseWriterCommands,
   };
 
   return [commonmark, gfm, mdx, blogMdx];
-}
-
-export function createSourceModeEditorPlugin(mode: MarkdownEditorMode): unknown {
-  return diffSourcePlugin({ viewMode: mode });
 }
 
 function createInsertMarkdownCommand(command: InsertMarkdownTemplate): WriterCommand {

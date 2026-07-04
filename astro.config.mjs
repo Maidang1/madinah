@@ -1,7 +1,6 @@
 // @ts-check
 import { defineConfig } from "astro/config";
 import tailwindcss from "@tailwindcss/vite";
-import react from "@astrojs/react";
 import partytown from "@astrojs/partytown";
 import mdx from "@astrojs/mdx";
 import cloudflare from "@astrojs/cloudflare";
@@ -26,7 +25,6 @@ export default defineConfig({
     ],
   },
   integrations: [
-    react(),
     partytown(),
     mdx({
       syntaxHighlight: "shiki",

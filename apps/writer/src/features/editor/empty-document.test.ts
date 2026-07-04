@@ -64,16 +64,18 @@ describe("editor empty document state", () => {
     // The reset is driven by valueEpoch, not by fragile value-string matching.
     expect(editorSource).toContain("valueEpoch: number");
     expect(editorSource).toContain("if (lastEpochRef.current === valueEpoch) return;");
-    expect(editorSource).toContain("editorRef.current?.setMarkdown(value)");
+    expect(editorSource).toContain("replaceEditorDocument(value, { notify: false })");
     // The old self-edit string-alignment guard must be gone.
     expect(editorSource).not.toContain("selfEditValueRef");
     // App feeds the session's contentEpoch and no longer tracks a self-edit ref.
     expect(appSource).toContain("valueEpoch={session.contentEpoch}");
     expect(appSource).not.toContain("selfEditedBodyRef");
     expect(appSource).toContain("onChange={handleEditorBodyChange}");
-    expect(appSource).toContain("EMPTY_EDITOR_PLUGINS");
+    expect(appSource).toContain("EMPTY_EDITOR_EXTENSIONS");
     expect(appSource).not.toContain("onChange={changeDocumentBody}");
-    expect(appSource).not.toContain("editorPlugins={engine.profile.editorPlugins ?? []}");
+    expect(appSource).not.toContain(
+      "editorExtensions={engine.profile.editorExtensions ?? []}",
+    );
   });
 
   it("strips zero-width block markers from copied text", () => {
