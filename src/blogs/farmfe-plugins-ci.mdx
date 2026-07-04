@@ -6,11 +6,14 @@ tags:
   - ci
   - github actions
 pubDate: 2024-10-19 16:42:00
+status: draft
 ---
+
+# FarmFE plugins CI
 
 I recently worked on a repository that ships both JavaScript plugins and Rust plugins. Both plugin types need CI builds and npm publishing, but Rust adds one extra requirement: each native binding has to be built for several platforms before publishing.
 
-This note records the GitHub Actions setup I used for that mixed plugin repository.
+This note records the GitHub Actions setup I used for that mixed plugin repository
 
 ## Rust plugins
 
@@ -298,8 +301,7 @@ jobs:
 
 The JavaScript release workflow uses the same trigger strategy as the Rust release workflow. Commits containing `js-plugins` or `all` run the release job, then publish changed JavaScript plugin packages to npm.
 
-
 ### Summary
 
-- Use `pnpm --filter "{xx}[HEAD~1]"` to build and publish only changed packages.
-- Use `contains(github.event.head_commit.message, ...)` to route commits into the Rust, JavaScript, or full release workflow.
+* Use `pnpm --filter "{xx}[HEAD~1]"` to build and publish only changed packages.
+* Use `contains(github.event.head_commit.message, ...)` to route commits into the Rust, JavaScript, or full release workflow.

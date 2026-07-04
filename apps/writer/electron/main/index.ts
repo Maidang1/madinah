@@ -46,8 +46,14 @@ import {
 import { FILE_TREE_CHANGED_EVENT, IPC, WRITER_COMMAND_EVENT } from "../shared/ipc";
 import {
   NATIVE_MENU_EDIT_ROLES,
-  type NativeMenuEditRole,
 } from "../shared/native-menu";
+import {
+  OPEN_DEVELOPER_TOOLS_ACTION_ID,
+  createContextMenuTemplate,
+  isDevelopmentRuntime,
+  withDeveloperToolsMenu,
+  type NativeContextMenuRequest,
+} from "./context-menu";
 import { createUpdateController } from "./updater";
 
 const APP_ID = "cn.felixwliu.madinah.writer";
@@ -330,26 +336,19 @@ function markdownFilters() {
 
 function showContextMenu(
   event: IpcMainInvokeEvent,
-  request: {
-    groups: Array<
-      Array<
-        | {
-            id: string;
-            label: string;
-            disabled?: boolean;
-          }
-        | {
-            role: NativeMenuEditRole;
-            label?: string;
-            disabled?: boolean;
-          }
-      >
-    >;
-    position: { x: number; y: number };
-  },
+  request: NativeContextMenuRequest,
 ): Promise<string | null> {
   const window = BrowserWindow.fromWebContents(event.sender);
-  if (!window || request.groups.length === 0) return Promise.resolve(null);
+  if (!window) return Promise.resolve(null);
+
+  const groups = withDeveloperToolsMenu(
+    request.groups,
+    isDevelopmentRuntime({
+      isPackaged: app.isPackaged,
+      rendererUrl: process.env.ELECTRON_RENDERER_URL,
+    }),
+  );
+  if (groups.length === 0) return Promise.resolve(null);
 
   return new Promise((resolve) => {
     let settled = false;
@@ -359,24 +358,15 @@ function showContextMenu(
       resolve(value);
     };
 
-    const template = request.groups.flatMap((group, groupIndex) => [
-      ...(groupIndex > 0 ? [{ type: "separator" as const }] : []),
-      ...group.map((item) => {
-        if ("role" in item) {
-          return {
-            role: item.role,
-            label: item.label,
-            ...(item.disabled === undefined ? {} : { enabled: !item.disabled }),
-          };
-        }
+    const template = createContextMenuTemplate(groups, (commandId) => {
+      if (commandId === OPEN_DEVELOPER_TOOLS_ACTION_ID) {
+        window.webContents.openDevTools({ mode: "detach" });
+        done(null);
+        return;
+      }
 
-        return {
-          label: item.label,
-          enabled: !item.disabled,
-          click: () => done(item.id),
-        };
-      }),
-    ]);
+      done(commandId);
+    });
 
     const menu = Menu.buildFromTemplate(template);
     menu.popup({
@@ -419,7 +409,7 @@ async function startFileTreeWatcher(
     if (!isRelevantFileTreeChange(changedPath)) return;
     if (fileTreeTimer) clearTimeout(fileTreeTimer);
     fileTreeTimer = setTimeout(() => {
-      sender.send(FILE_TREE_CHANGED_EVENT);
+      sender.send(FILE_TREE_CHANGED_EVENT, changedPath);
     }, FILE_TREE_DEBOUNCE_MS);
   });
 }
@@ -471,6 +461,9 @@ function buildApplicationMenu(): Menu {
       submenu: [
         commandItem("New Document", "CmdOrCtrl+N", "document.new"),
         commandItem("Open...", "CmdOrCtrl+O", "document.open"),
+        { type: "separator" },
+        commandItem("Import Blog Directory...", undefined, "blog.importDirectory"),
+        commandItem("Export to Blog...", undefined, "blog.exportDocument"),
         { type: "separator" },
         commandItem("Revert", undefined, "document.revert"),
         commandItem("Close", "CmdOrCtrl+W", "document.close"),

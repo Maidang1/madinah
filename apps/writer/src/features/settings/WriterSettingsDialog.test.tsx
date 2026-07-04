@@ -8,24 +8,7 @@ describe("WriterSettingsDialog", () => {
   it("renders markdown profile inside editor settings", () => {
     const html = renderToStaticMarkup(
       <WriterSettingsDialog
-        isOpen
-        aiAvailable
-        assetUploadAvailable
-        profiles={[
-          { id: "gfm", name: "GitHub Flavored Markdown" },
-          { id: "mdx", name: "MDX" },
-        ]}
-        profileId="gfm"
-        acpSettings={createDefaultAcpSettings()}
-        assetSettings={createDefaultAssetUploadSettings()}
-        acpCheckState={{ status: "idle", message: "Ready" }}
-        assetCheckState={{ status: "idle", message: "Ready" }}
-        onClose={vi.fn()}
-        onSaveProfile={vi.fn()}
-        onSaveAcp={vi.fn()}
-        onCheckAcp={vi.fn()}
-        onSaveAssets={vi.fn()}
-        onCheckAssets={vi.fn()}
+        {...createSettingsDialogProps()}
       />,
     );
 
@@ -37,3 +20,33 @@ describe("WriterSettingsDialog", () => {
     expect(html).toContain('class="writer-settings-select"');
   });
 });
+
+function createSettingsDialogProps() {
+  return {
+    isOpen: true,
+    aiAvailable: true,
+    assetUploadAvailable: true,
+    workspacePluginsAvailable: true,
+    profiles: [
+      { id: "gfm", name: "GitHub Flavored Markdown" },
+      { id: "mdx", name: "MDX" },
+    ],
+    profileId: "gfm",
+    workspace: null,
+    workspacePlugins: [],
+    pluginDiagnostics: [],
+    acpSettings: createDefaultAcpSettings(),
+    assetSettings: createDefaultAssetUploadSettings(),
+    acpCheckState: { status: "idle" as const, message: "Ready" },
+    assetCheckState: { status: "idle" as const, message: "Ready" },
+    workspacePluginCheckState: { status: "idle" as const, message: "Ready" },
+    onClose: vi.fn(),
+    onSaveProfile: vi.fn(),
+    onSaveAcp: vi.fn(),
+    onCheckAcp: vi.fn(),
+    onSaveAssets: vi.fn(),
+    onCheckAssets: vi.fn(),
+    onRefreshWorkspacePlugins: vi.fn(),
+    onSetWorkspacePluginTrust: vi.fn(),
+  };
+}

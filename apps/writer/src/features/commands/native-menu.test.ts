@@ -18,6 +18,8 @@ describe("native menu command events", () => {
     expect(NATIVE_MENU_COMMAND_IDS).toEqual([
       "document.new",
       "document.open",
+      "blog.importDirectory",
+      "blog.exportDocument",
       "document.revert",
       "document.close",
       "editor.format.bold",

@@ -135,8 +135,9 @@ textarea {
 .writer-empty-panel {
   display: grid;
   width: min(360px, calc(100% - 32px));
-  gap: 14px;
+  gap: 20px;
   justify-items: center;
+  padding: 40px 24px;
   color: var(--writer-muted);
   text-align: center;
 }
@@ -167,12 +168,20 @@ textarea {
   cursor: pointer;
   font-size: 12px;
   font-weight: 650;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease,
+    transform 80ms ease;
 }
 
 .writer-empty-actions button:hover,
 .writer-empty-actions button:focus-visible {
   background: var(--writer-control-hover);
   color: var(--writer-text);
+}
+
+.writer-empty-actions button:active {
+  transform: scale(0.96);
 }
 
 .writer-simple-app {
@@ -281,7 +290,7 @@ textarea {
   min-width: 0;
   align-items: center;
   justify-content: flex-end;
-  gap: 2px;
+  gap: 4px;
   color: var(--writer-muted);
   font-size: 13px;
   font-weight: 560;
@@ -333,8 +342,8 @@ textarea {
 
 .writer-view-mode-toggle {
   display: inline-flex;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   align-items: center;
   justify-content: center;
   padding: 0;
@@ -346,7 +355,8 @@ textarea {
   line-height: 1;
   transition:
     background-color 140ms ease,
-    color 140ms ease;
+    color 140ms ease,
+    transform 80ms ease;
 }
 
 .writer-view-mode-toggle svg {
@@ -357,6 +367,10 @@ textarea {
 
 .writer-view-mode-toggle:hover {
   color: var(--writer-text);
+}
+
+.writer-view-mode-toggle:active {
+  transform: scale(0.88);
 }
 
 .writer-toolbar-button:focus-visible,
@@ -466,7 +480,7 @@ body.is-resizing-writer-pane * {
 .writer-settings-dialog {
   display: grid;
   width: min(780px, calc(100vw - 48px));
-  height: min(620px, calc(100dvh - 48px));
+  height: min(540px, calc(100dvh - 48px));
   grid-template-columns: 188px minmax(0, 1fr);
   overflow: hidden;
   border: 1px solid var(--writer-rule-strong);
@@ -566,9 +580,9 @@ body.is-resizing-writer-pane * {
   display: grid;
   min-width: 0;
   align-content: start;
-  gap: 14px;
+  gap: 16px;
   overflow: auto;
-  padding: 18px 20px 22px;
+  padding: 20px 22px 24px;
 }
 
 .writer-settings-footer {
@@ -687,8 +701,9 @@ body.is-resizing-writer-pane * {
 
 .writer-settings-field span {
   color: var(--writer-muted);
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 11.5px;
+  font-weight: 680;
+  letter-spacing: 0.01em;
   line-height: 1.2;
 }
 
@@ -745,6 +760,79 @@ body.is-resizing-writer-pane * {
   outline-offset: 2px;
 }
 
+.writer-settings-section {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--writer-rule);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--writer-control-bg) 42%, transparent);
+}
+
+.writer-settings-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: color-mix(in srgb, var(--writer-text) 78%, transparent);
+  font-size: 12px;
+  font-weight: 740;
+  letter-spacing: 0;
+  line-height: 1.2;
+}
+
+.writer-settings-section-title svg {
+  width: 14px;
+  height: 14px;
+  color: var(--writer-muted);
+}
+
+.writer-settings-description {
+  color: var(--writer-muted);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+.writer-settings-profile-card {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid var(--writer-rule);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--writer-sidebar-bg) 60%, var(--writer-window-bg));
+}
+
+.writer-settings-profile-card strong {
+  color: color-mix(in srgb, var(--writer-text) 88%, transparent);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.writer-settings-profile-card p {
+  margin: 0;
+  color: var(--writer-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.writer-settings-profile-features {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.writer-settings-profile-features span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--writer-control-bg) 80%, transparent);
+  color: var(--writer-muted);
+  font-size: 10.5px;
+  font-weight: 680;
+}
+
 .writer-settings-error,
 .writer-settings-status {
   min-width: 0;
@@ -766,6 +854,150 @@ body.is-resizing-writer-pane * {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+}
+
+.writer-settings-note {
+  padding: 10px 12px;
+  border: 1px solid var(--writer-rule);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--writer-control-bg) 58%, transparent);
+  color: var(--writer-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.writer-settings-plugin-panel {
+  display: grid;
+  min-width: 0;
+  gap: 12px;
+}
+
+.writer-settings-plugin-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.writer-settings-plugin-workspace {
+  overflow: hidden;
+  padding: 8px 10px;
+  border: 1px solid var(--writer-rule);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--writer-control-bg) 48%, transparent);
+  color: color-mix(in srgb, var(--writer-text) 68%, transparent);
+  font-size: 11px;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.writer-settings-plugin-list,
+.writer-settings-plugin-diagnostics {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.writer-settings-plugin-row {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+  padding: 10px;
+  border: 1px solid var(--writer-rule);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--writer-control-bg) 52%, transparent);
+}
+
+.writer-settings-plugin-main {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.writer-settings-plugin-main strong,
+.writer-settings-plugin-diagnostics strong {
+  overflow: hidden;
+  color: color-mix(in srgb, var(--writer-text) 88%, transparent);
+  font-size: 12px;
+  font-weight: 740;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.writer-settings-plugin-main span,
+.writer-settings-plugin-main small {
+  overflow: hidden;
+  color: var(--writer-muted);
+  font-size: 11px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.writer-settings-plugin-meta {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.writer-settings-plugin-meta span {
+  width: max-content;
+  max-width: 100%;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--writer-sidebar-bg) 80%, transparent);
+  font-size: 10px;
+  font-weight: 720;
+}
+
+.writer-settings-plugin-trust {
+  color: var(--writer-save-edited);
+}
+
+.writer-settings-plugin-trust.is-trusted {
+  color: var(--writer-save-saved);
+}
+
+.writer-settings-plugin-diagnostics li {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+  padding: 9px 10px;
+  border: 1px solid color-mix(in srgb, var(--writer-save-edited) 36%, transparent);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--writer-control-bg) 48%, transparent);
+}
+
+.writer-settings-plugin-diagnostics li.is-error {
+  border-color: color-mix(in srgb, var(--writer-save-error) 42%, transparent);
+}
+
+.writer-settings-plugin-diagnostics span {
+  width: max-content;
+  color: var(--writer-save-edited);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.writer-settings-plugin-diagnostics li.is-error span {
+  color: var(--writer-save-error);
+}
+
+.writer-settings-plugin-diagnostics p {
+  margin: 0;
+  color: color-mix(in srgb, var(--writer-text) 68%, transparent);
+  font-size: 12px;
+  line-height: 1.42;
 }
 
 .writer-window.is-sidebar-hidden .writer-titlebar::before {
@@ -790,7 +1022,7 @@ body.is-resizing-writer-pane * {
 
 .writer-sidebar-header {
   display: flex;
-  min-height: 34px;
+  min-height: 36px;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
@@ -814,13 +1046,13 @@ body.is-resizing-writer-pane * {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  opacity: 0.58;
+  opacity: 0.5;
   transition: opacity 140ms ease;
 }
 
 .writer-sidebar:hover .writer-sidebar-actions,
 .writer-sidebar:focus-within .writer-sidebar-actions {
-  opacity: 1;
+  opacity: 0.92;
 }
 
 .writer-sidebar-icon-button {
@@ -834,11 +1066,19 @@ body.is-resizing-writer-pane * {
   background: transparent;
   color: color-mix(in srgb, var(--writer-text) 62%, transparent);
   cursor: pointer;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease,
+    transform 80ms ease;
 }
 
 .writer-sidebar-icon-button:hover {
   background: var(--writer-control-hover);
   color: var(--writer-text);
+}
+
+.writer-sidebar-icon-button:active {
+  transform: scale(0.88);
 }
 
 .writer-sidebar-icon-button:focus-visible {
@@ -855,7 +1095,7 @@ body.is-resizing-writer-pane * {
   display: grid;
   gap: 10px;
   margin-top: auto;
-  padding: 12px 16px 14px 20px;
+  padding: 12px 18px 14px 20px;
   border-top: 1px solid color-mix(in srgb, var(--writer-rule) 74%, transparent);
   background: color-mix(in srgb, var(--writer-sidebar-bg) 86%, var(--writer-window-bg));
 }
@@ -902,12 +1142,17 @@ body.is-resizing-writer-pane * {
   transition:
     background-color 140ms ease,
     border-color 140ms ease,
-    color 140ms ease;
+    color 140ms ease,
+    transform 80ms ease;
 }
 
 .writer-sidebar-tool-button:hover {
   background: var(--writer-control-hover);
   color: var(--writer-text);
+}
+
+.writer-sidebar-tool-button:active {
+  transform: scale(0.9);
 }
 
 .writer-inspector {
@@ -1399,13 +1644,23 @@ body.is-resizing-writer-pane * {
   text-align: left;
   transition:
     background-color 140ms ease,
-    color 140ms ease;
+    color 140ms ease,
+    transform 80ms ease;
 }
 
-.tree-row:hover,
+.tree-row:hover:not(.is-active) {
+  background: color-mix(in srgb, var(--writer-sidebar-active) 55%, transparent);
+  color: color-mix(in srgb, var(--writer-text) 82%, transparent);
+}
+
 .tree-row.is-active {
   background: var(--writer-sidebar-active);
   color: color-mix(in srgb, var(--writer-text) 82%, transparent);
+  box-shadow: inset 3px 0 0 var(--writer-focus);
+}
+
+.tree-row:active:not(.is-editing) {
+  transform: scale(0.985);
 }
 
 .tree-row.is-root {
@@ -2119,7 +2374,7 @@ body.is-resizing-writer-pane * {
   z-index: 18;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .document-start-state {
@@ -2127,7 +2382,7 @@ body.is-resizing-writer-pane * {
   min-height: 100%;
   place-items: center;
   align-content: center;
-  gap: 10px;
+  gap: 18px;
   padding: 48px;
   color: var(--reader-ink);
   font-family: var(--writer-ui-font);
@@ -2172,6 +2427,10 @@ body.is-resizing-writer-pane * {
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease,
+    transform 80ms ease;
 }
 
 .document-start-button:hover,
@@ -2179,6 +2438,10 @@ body.is-resizing-writer-pane * {
   background: var(--writer-control-hover);
   color: var(--writer-text);
   outline: none;
+}
+
+.document-start-button:active {
+  transform: scale(0.96);
 }
 
 .document-start-button:focus-visible {
@@ -2190,12 +2453,12 @@ body.is-resizing-writer-pane * {
   display: flex;
   box-sizing: border-box;
   width: min(var(--reader-width), calc(100% - 120px));
-  min-height: calc(100dvh - var(--writer-titlebar-height) - 72px);
+  min-height: calc(100dvh - var(--writer-titlebar-height) - 56px);
   flex: 1 1 auto;
   flex-direction: column;
-  margin: 72px auto 0;
+  margin: 56px auto 0;
   overflow: visible;
-  padding: 0 10px 120px;
+  padding: 0 10px 140px;
   border-radius: 0;
   background: transparent;
   color: var(--reader-ink);
@@ -2204,9 +2467,10 @@ body.is-resizing-writer-pane * {
 .document-title-input {
   width: 100%;
   min-width: 0;
-  margin: 0 0 14px;
-  padding: 0;
+  margin: 0 0 20px;
+  padding: 0 0 18px;
   border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--reader-ink) 12%, transparent);
   background: transparent;
   color: var(--reader-ink);
   font-family: var(--reader-font);
@@ -2215,6 +2479,11 @@ body.is-resizing-writer-pane * {
   letter-spacing: 0;
   line-height: 1.34;
   outline: none;
+  transition: border-color 200ms ease;
+}
+
+.document-title-input:placeholder-shown {
+  border-bottom-color: transparent;
 }
 
 .document-title-input::placeholder {
@@ -2357,16 +2626,22 @@ body.is-resizing-writer-pane * {
 .save-status-indicator {
   position: relative;
   display: inline-flex;
+  width: 24px;
+  height: 24px;
   align-items: center;
+  justify-content: center;
   font-family: var(--writer-ui-font);
 }
 
 .save-status-indicator-chip {
   display: inline-flex;
+  width: 24px;
+  min-width: 24px;
   align-items: center;
+  justify-content: center;
   gap: 5px;
   height: 24px;
-  padding: 0 8px;
+  padding: 0;
   border: 0;
   border-radius: 6px;
   background: transparent;
@@ -2376,6 +2651,22 @@ body.is-resizing-writer-pane * {
   letter-spacing: 0.01em;
   cursor: default;
   transition: opacity 0.4s ease, color 0.2s ease;
+}
+
+.save-status-indicator-chip svg {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 13px;
+}
+
+.save-status-indicator-label {
+  position: absolute;
+  overflow: hidden;
+  width: 1px;
+  height: 1px;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .save-status-indicator[data-kind="saved"] .save-status-indicator-chip {
@@ -2652,9 +2943,9 @@ body.is-resizing-writer-pane * {
   counter-reset: figure-counter;
   box-sizing: border-box;
   width: min(var(--reader-width), calc(100% - 120px));
-  min-height: calc(100dvh - var(--writer-titlebar-height) - 72px);
-  margin: 72px auto 0;
-  padding: 0 10px 120px;
+  min-height: calc(100dvh - var(--writer-titlebar-height) - 56px);
+  margin: 56px auto 0;
+  padding: 0 10px 140px;
   border-radius: 0;
   background: transparent;
   color: var(--reader-ink);
@@ -2861,9 +3152,9 @@ body.is-resizing-writer-pane * {
 .writer-preview .post-shell {
   box-sizing: border-box;
   width: min(var(--reader-width), calc(100% - 120px));
-  min-height: calc(100dvh - var(--writer-titlebar-height) - 72px);
-  margin: 72px auto 0;
-  padding: 0 10px 120px;
+  min-height: calc(100dvh - var(--writer-titlebar-height) - 56px);
+  margin: 56px auto 0;
+  padding: 0 10px 140px;
   border-radius: 0;
   background: transparent;
   color: var(--reader-ink);

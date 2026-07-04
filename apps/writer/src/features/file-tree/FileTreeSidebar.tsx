@@ -96,7 +96,7 @@ const FILE_TREE_DRAFT_MENU_GROUPS: FileTreeDraftAction[][] = [
   ["delete"],
 ];
 
-export function FileTreeSidebar({
+export const FileTreeSidebar = memo(function FileTreeSidebar({
   activePath,
   activeDocumentId,
   drafts,
@@ -409,7 +409,7 @@ export function FileTreeSidebar({
       {footer}
     </aside>
   );
-}
+});
 
 const FileTreeNodeRow = memo(function FileTreeNodeRow({
   node,

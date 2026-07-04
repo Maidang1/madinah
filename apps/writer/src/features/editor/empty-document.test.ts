@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
+import appSource from "../../App.tsx?raw";
 import editorSource from "./MarkdownEditor.tsx?raw";
-import legacyEditorSource from "../../components/LiveMdxEditor.tsx?raw";
 import {
   composeDocumentEditorMarkdown,
   DOCUMENT_TITLE_PLACEHOLDER,
@@ -8,6 +8,7 @@ import {
   getDocumentEditorTitle,
   getEditorInlinePlaceholder,
   isEditorEmptyDocument,
+  normalizeEditorBody,
   shouldAutoFocusDocumentTitle,
   splitDocumentEditorMarkdown,
   shouldShowDocumentStartState,
@@ -36,18 +37,43 @@ describe("editor empty document state", () => {
     expect(shouldShowDocumentStartState("Body", false)).toBe(false);
   });
 
+  it("keeps the empty start state paste ingress wired", () => {
+    expect(appSource).toContain("getMarkdownTextFromClipboardData");
+    expect(appSource).toContain("pasteMarkdownIntoEmptyDocument");
+    expect(appSource).toContain("window.addEventListener(\"paste\", handlePaste)");
+    expect(appSource).toContain("isEditablePasteTarget");
+  });
+
   it("keeps the editor body free of inline prompt text", () => {
     expect(getEditorInlinePlaceholder()).toBeNull();
   });
 
   it("removes the legacy English editor prompt text", () => {
-    expect(`${editorSource}\n${legacyEditorSource}`).not.toContain("Start writing...");
+    expect(editorSource).not.toContain("Start writing...");
   });
 
   it("keeps slash insertion in the editor surface", () => {
     expect(editorSource).toContain("SlashCommandMenu");
     expect(editorSource).toContain("matchSlashCommandTriggerText");
     expect(editorSource).toContain("createSlashWriterEditor");
+  });
+
+  it("resets the editor content only on external epoch changes", () => {
+    expect(editorSource).toContain("export const MarkdownEditor = memo(");
+    expect(editorSource).toContain("areMarkdownEditorPropsEqual");
+    // The reset is driven by valueEpoch, not by fragile value-string matching.
+    expect(editorSource).toContain("valueEpoch: number");
+    expect(editorSource).toContain("if (lastEpochRef.current === valueEpoch) return;");
+    expect(editorSource).toContain("editorRef.current?.setMarkdown(value)");
+    // The old self-edit string-alignment guard must be gone.
+    expect(editorSource).not.toContain("selfEditValueRef");
+    // App feeds the session's contentEpoch and no longer tracks a self-edit ref.
+    expect(appSource).toContain("valueEpoch={session.contentEpoch}");
+    expect(appSource).not.toContain("selfEditedBodyRef");
+    expect(appSource).toContain("onChange={handleEditorBodyChange}");
+    expect(appSource).toContain("EMPTY_EDITOR_PLUGINS");
+    expect(appSource).not.toContain("onChange={changeDocumentBody}");
+    expect(appSource).not.toContain("editorPlugins={engine.profile.editorPlugins ?? []}");
   });
 
   it("strips zero-width block markers from copied text", () => {
@@ -76,6 +102,39 @@ describe("document editor title", () => {
       "# My Title\n\nBody",
     );
     expect(composeDocumentEditorMarkdown("", "Body")).toBe("Body");
+  });
+
+  // Regression: the editor is uncontrolled and only reset via setMarkdown when
+  // the incoming `value` differs from its live content. `value` is derived as
+  // split(compose(title, rawBody)).body, so for a self-edit the editor's own
+  // content (after normalizeEditorBody) MUST equal that value — otherwise the
+  // reset effect fires on every keystroke and the caret jumps to the start.
+  describe("self-edit value stays stable (no caret reset)", () => {
+    const rawEditorBodies = [
+      "hello world",
+      "hello\nworld",
+      "\nhello", // leading blank line — the case that previously drifted
+      "  indented start",
+      "line1\n\nline2",
+      "# Subheading in body\n\ntext",
+      "",
+      "text with ​ empty-block marker",
+    ];
+
+    for (const rawBody of rawEditorBodies) {
+      it(`round-trips ${JSON.stringify(rawBody)}`, () => {
+        const title = "My Title";
+        // Model the real pipeline: the editor emits raw markdown, onChange
+        // strips empty-block markers before it becomes the stored body, then
+        // compose→split derives the `value` prop that flows back in.
+        const emitted = stripEmptyBlockMarkers(rawBody);
+        const source = composeDocumentEditorMarkdown(title, emitted);
+        const value = splitDocumentEditorMarkdown(source).body;
+        // What the reset effect derives from the editor's live content:
+        const editorContent = normalizeEditorBody(rawBody);
+        expect(editorContent).toBe(value);
+      });
+    }
   });
 
   it("uses metadata title as the title field fallback", () => {

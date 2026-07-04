@@ -6,11 +6,13 @@ import {
 } from "@mdxeditor/editor";
 import "@mdxeditor/editor/style.css";
 import {
+  type FormEvent as ReactFormEvent,
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
   type RefObject,
   useCallback,
   useEffect,
+  memo,
   useMemo,
   useRef,
   useState,
@@ -62,8 +64,14 @@ import {
 
 interface MarkdownEditorProps {
   value: string;
-  document: MarkdownDocument | null;
-  workspace: WorkspaceInfo | null;
+  // Bumped by the session only when `value` reflects an EXTERNAL content change
+  // (open file / restore / revert). Unchanged across user keystrokes, so the
+  // reset effect can distinguish self-edits (never reset) from external swaps
+  // (reset the editor). See DocumentSession.contentEpoch.
+  valueEpoch: number;
+  documentId: string | null;
+  documentRef: RefObject<MarkdownDocument | null>;
+  workspaceRef: RefObject<WorkspaceInfo | null>;
   editorPlugins: unknown[];
   editorMode?: MarkdownEditorMode;
   commandRegistry: CommandRegistry;
@@ -77,10 +85,12 @@ interface MarkdownEditorProps {
 
 export const DOCUMENT_TITLE_PLACEHOLDER = "写下标题";
 
-export function MarkdownEditor({
+export const MarkdownEditor = memo(function MarkdownEditor({
   value,
-  document,
-  workspace,
+  valueEpoch,
+  documentId,
+  documentRef,
+  workspaceRef,
   editorPlugins,
   editorMode = "rich-text",
   commandRegistry,
@@ -96,7 +106,7 @@ export function MarkdownEditor({
   // Keep the latest markdown readable from stable callbacks without making
   // them (and the effects that depend on them) re-run on every keystroke.
   const valueRef = useRef(value);
-  valueRef.current = value;
+  const lastEpochRef = useRef(valueEpoch);
   const shouldAutoFocusRef = useRef(autoFocus);
   const initialFocusSelectionRef = useRef<"rootStart" | "rootEnd">(
     getInitialFocusSelection(value),
@@ -107,6 +117,12 @@ export function MarkdownEditor({
   const [slashMenu, setSlashMenu] = useState<SlashCommandMenuState | null>(null);
   const [selectionToolbar, setSelectionToolbar] =
     useState<EditorSelectionToolbarState | null>(null);
+  const slashMenuRef = useRef<SlashCommandMenuState | null>(null);
+  slashMenuRef.current = slashMenu;
+  const selectionToolbarRef = useRef<EditorSelectionToolbarState | null>(null);
+  selectionToolbarRef.current = selectionToolbar;
+  const slashMenuFrameRef = useRef<number | null>(null);
+  const selectionToolbarFrameRef = useRef<number | null>(null);
   const slashCommandItems = useMemo(
     () => createSlashCommandItems(commandRegistry.list()),
     [commandRegistry],
@@ -139,6 +155,34 @@ export function MarkdownEditor({
       }),
     );
   }, []);
+  const syncEmptyDocumentClass = useCallback((markdown: string) => {
+    shellRef.current?.classList.toggle(
+      "is-empty-document",
+      isEditorEmptyDocument(markdown),
+    );
+  }, []);
+
+  // Reset the (uncontrolled) editor content ONLY on an external content change,
+  // signalled by a bumped `valueEpoch`. User keystrokes flow out via onChange and
+  // come back as a new `value` with the SAME epoch — we deliberately ignore those,
+  // so we never call setMarkdown mid-typing (which would clear the Lexical root and
+  // send the caret to the document start). This sidesteps the impedance mismatch
+  // between our compose/split-normalized `value` and MDXEditor's own re-serialized
+  // getMarkdown() output, which can never be byte-equal.
+  useEffect(() => {
+    valueRef.current = value;
+    if (lastEpochRef.current === valueEpoch) return;
+    lastEpochRef.current = valueEpoch;
+
+    // External swap. Skip the reset if the editor already shows this content
+    // (e.g. reverting to what's on screen), comparing with MDXEditor's own trim
+    // semantics to avoid a needless caret-resetting setMarkdown.
+    const current = editorRef.current?.getMarkdown() ?? "";
+    if (current.trim() === value.trim()) return;
+
+    editorRef.current?.setMarkdown(value);
+    syncEmptyDocumentClass(value);
+  }, [syncEmptyDocumentClass, value, valueEpoch]);
 
   useEffect(() => {
     if (!onEditorReady) return;
@@ -166,9 +210,9 @@ export function MarkdownEditor({
       closeContextMenu();
       try {
         await commandRegistry.execute(item.commandId, {
-          document,
+          document: documentRef.current,
           editor: createWriterEditor(editorRef, shellRef, valueRef),
-          workspace,
+          workspace: workspaceRef.current,
         });
         restoreEditorFocus();
       } catch (error: unknown) {
@@ -178,10 +222,10 @@ export function MarkdownEditor({
     [
       closeContextMenu,
       commandRegistry,
-      document,
+      documentRef,
       onError,
       restoreEditorFocus,
-      workspace,
+      workspaceRef,
     ],
   );
 
@@ -192,9 +236,9 @@ export function MarkdownEditor({
 
       try {
         await commandRegistry.execute(action.commandId, {
-          document,
+          document: documentRef.current,
           editor,
-          workspace,
+          workspace: workspaceRef.current,
         });
         editor.focus?.();
       } catch (error: unknown) {
@@ -204,9 +248,9 @@ export function MarkdownEditor({
     [
       closeSelectionToolbar,
       commandRegistry,
-      document,
+      documentRef,
       onError,
-      workspace,
+      workspaceRef,
     ],
   );
 
@@ -237,8 +281,29 @@ export function MarkdownEditor({
   }, [closeSelectionToolbar, contextMenu, slashCommandItems.length]);
 
   const scheduleSlashMenuUpdate = useCallback(() => {
-    requestAnimationFrame(updateSlashMenu);
+    if (slashMenuFrameRef.current !== null) return;
+
+    slashMenuFrameRef.current = requestAnimationFrame(() => {
+      slashMenuFrameRef.current = null;
+      updateSlashMenu();
+    });
   }, [updateSlashMenu]);
+
+  const scheduleSlashMenuUpdateIfOpen = useCallback(() => {
+    if (!slashMenuRef.current) return;
+    scheduleSlashMenuUpdate();
+  }, [scheduleSlashMenuUpdate]);
+
+  const handleEditorInput = useCallback(
+    (event: ReactFormEvent<HTMLDivElement>) => {
+      if (!slashMenuRef.current && !inputEventMayOpenSlashMenu(event.nativeEvent)) {
+        return;
+      }
+
+      scheduleSlashMenuUpdate();
+    },
+    [scheduleSlashMenuUpdate],
+  );
 
   const runSlashCommand = useCallback(
     async (item: SlashCommandItem) => {
@@ -258,9 +323,9 @@ export function MarkdownEditor({
 
       try {
         await commandRegistry.execute(item.command.id, {
-          document,
+          document: documentRef.current,
           editor,
-          workspace,
+          workspace: workspaceRef.current,
         });
         editor.focus?.();
       } catch (error: unknown) {
@@ -271,11 +336,11 @@ export function MarkdownEditor({
       closeSelectionToolbar,
       closeSlashMenu,
       commandRegistry,
-      document,
+      documentRef,
       onChange,
       onError,
       slashMenu,
-      workspace,
+      workspaceRef,
     ],
   );
 
@@ -477,7 +542,19 @@ export function MarkdownEditor({
   }, [contextMenu]);
 
   const scheduleSelectionToolbarUpdate = useCallback(() => {
-    requestAnimationFrame(updateSelectionToolbar);
+    const selection = window.getSelection();
+    if (
+      !selectionToolbarRef.current &&
+      (!selection || selection.rangeCount === 0 || selection.isCollapsed)
+    ) {
+      return;
+    }
+    if (selectionToolbarFrameRef.current !== null) return;
+
+    selectionToolbarFrameRef.current = requestAnimationFrame(() => {
+      selectionToolbarFrameRef.current = null;
+      updateSelectionToolbar();
+    });
   }, [updateSelectionToolbar]);
 
   useEffect(() => {
@@ -485,7 +562,10 @@ export function MarkdownEditor({
       "selectionchange",
       scheduleSelectionToolbarUpdate,
     );
-    globalThis.document.addEventListener("selectionchange", scheduleSlashMenuUpdate);
+    globalThis.document.addEventListener(
+      "selectionchange",
+      scheduleSlashMenuUpdateIfOpen,
+    );
     window.addEventListener("mouseup", scheduleSelectionToolbarUpdate);
     window.addEventListener("resize", closeSelectionToolbar);
     window.addEventListener("resize", closeSlashMenu);
@@ -493,7 +573,7 @@ export function MarkdownEditor({
     // follow the caret; updateSelectionToolbar/updateSlashMenu clear themselves
     // when the selection or trigger is gone.
     window.addEventListener("scroll", scheduleSelectionToolbarUpdate, true);
-    window.addEventListener("scroll", scheduleSlashMenuUpdate, true);
+    window.addEventListener("scroll", scheduleSlashMenuUpdateIfOpen, true);
 
     return () => {
       globalThis.document.removeEventListener(
@@ -502,20 +582,31 @@ export function MarkdownEditor({
       );
       globalThis.document.removeEventListener(
         "selectionchange",
-        scheduleSlashMenuUpdate,
+        scheduleSlashMenuUpdateIfOpen,
       );
       window.removeEventListener("mouseup", scheduleSelectionToolbarUpdate);
       window.removeEventListener("resize", closeSelectionToolbar);
       window.removeEventListener("resize", closeSlashMenu);
       window.removeEventListener("scroll", scheduleSelectionToolbarUpdate, true);
-      window.removeEventListener("scroll", scheduleSlashMenuUpdate, true);
+      window.removeEventListener("scroll", scheduleSlashMenuUpdateIfOpen, true);
     };
   }, [
     closeSelectionToolbar,
     closeSlashMenu,
     scheduleSelectionToolbarUpdate,
-    scheduleSlashMenuUpdate,
+    scheduleSlashMenuUpdateIfOpen,
   ]);
+
+  useEffect(() => {
+    return () => {
+      if (slashMenuFrameRef.current !== null) {
+        cancelAnimationFrame(slashMenuFrameRef.current);
+      }
+      if (selectionToolbarFrameRef.current !== null) {
+        cancelAnimationFrame(selectionToolbarFrameRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!selectionToolbar) return;
@@ -552,6 +643,12 @@ export function MarkdownEditor({
       window.removeEventListener("scroll", closeContextMenu, true);
     };
   }, [closeContextMenu, contextMenu, restoreEditorFocus]);
+
+  // On an external content change (epoch bumped) the incoming `value` is the
+  // authority until the reset effect runs; otherwise the live edited content in
+  // `valueRef` is freshest (updated from onChange between renders).
+  const shellMarkdown =
+    lastEpochRef.current === valueEpoch ? valueRef.current : value;
 
   useEffect(() => {
     if (!slashMenu) return;
@@ -642,13 +739,13 @@ export function MarkdownEditor({
     <div
       className={[
         "live-mdx-shell",
-        isEditorEmptyDocument(value) ? "is-empty-document" : "",
+        isEditorEmptyDocument(shellMarkdown) ? "is-empty-document" : "",
       ]
         .filter(Boolean)
         .join(" ")}
       ref={shellRef}
       onContextMenu={handleContextMenu}
-      onInput={scheduleSlashMenuUpdate}
+      onInput={handleEditorInput}
       onKeyDownCapture={handleEditorKeyDown}
     >
       <MDXEditor
@@ -656,7 +753,10 @@ export function MarkdownEditor({
         markdown={value}
         onChange={(markdown, initialMarkdownNormalize) => {
           if (initialMarkdownNormalize) return;
-          onChange(cleanEmptyBlockMarkers(markdown));
+          const nextMarkdown = cleanEmptyBlockMarkers(markdown);
+          valueRef.current = nextMarkdown;
+          syncEmptyDocumentClass(nextMarkdown);
+          onChange(nextMarkdown);
         }}
         onError={(payload) => onError(payload.error)}
         plugins={resolvedEditorPlugins as never}
@@ -703,6 +803,31 @@ export function MarkdownEditor({
       ) : null}
     </div>
   );
+}, areMarkdownEditorPropsEqual);
+
+function areMarkdownEditorPropsEqual(
+  previous: MarkdownEditorProps,
+  next: MarkdownEditorProps,
+): boolean {
+  // Pure render optimization. Correctness of content resets no longer depends
+  // on this guard — the reset effect keys off `valueEpoch`, so even if a
+  // self-edit re-renders the component, it will not reset the editor.
+  return (
+    previous.documentId === next.documentId &&
+    previous.documentRef === next.documentRef &&
+    previous.workspaceRef === next.workspaceRef &&
+    previous.editorPlugins === next.editorPlugins &&
+    previous.editorMode === next.editorMode &&
+    previous.commandRegistry === next.commandRegistry &&
+    previous.autoFocus === next.autoFocus &&
+    previous.imageUploadHandler === next.imageUploadHandler &&
+    previous.contextMenuItems === next.contextMenuItems &&
+    previous.onEditorReady === next.onEditorReady &&
+    previous.onChange === next.onChange &&
+    previous.onError === next.onError &&
+    previous.value === next.value &&
+    previous.valueEpoch === next.valueEpoch
+  );
 }
 
 export function isEditorEmptyDocument(markdown: string): boolean {
@@ -748,7 +873,7 @@ export function composeDocumentEditorMarkdown(
   body: string,
 ): string {
   const normalizedTitle = normalizeDocumentTitle(title);
-  const normalizedBody = body.replace(/^(?:[ \t]*\r?\n)+/, "");
+  const normalizedBody = stripLeadingBlankLines(body);
 
   if (!normalizedTitle) return normalizedBody;
   if (!normalizedBody.trim()) return `# ${normalizedTitle}\n\n`;
@@ -779,6 +904,22 @@ function cleanEmptyBlockMarkers(markdown: string): string {
   return stripEmptyBlockMarkers(markdown);
 }
 
+// Strip leading blank lines from a body. `composeDocumentEditorMarkdown` applies
+// this when joining title + body, so the body that flows back into the editor is
+// normalized this way. The editor's own live content must be normalized the same
+// way before comparing, otherwise the value guard sees raw-vs-normalized drift
+// and needlessly resets the editor (moving the caret to the start).
+function stripLeadingBlankLines(body: string): string {
+  return body.replace(/^(?:[ \t]*\r?\n)+/, "");
+}
+
+// Normalize the editor's live markdown into the same shape as the `value` prop
+// (which is derived via compose→split). Used to decide whether an incoming
+// `value` actually differs from what the editor already shows.
+export function normalizeEditorBody(markdown: string): string {
+  return stripLeadingBlankLines(cleanEmptyBlockMarkers(markdown));
+}
+
 function normalizeDocumentTitle(title: string): string {
   return title.replace(/\s+/g, " ").trim();
 }
@@ -786,6 +927,11 @@ function normalizeDocumentTitle(title: string): string {
 function getInitialFocusSelection(markdown: string): "rootStart" | "rootEnd" {
   const normalized = cleanEmptyBlockMarkers(markdown).trim();
   return normalized === "" || normalized === "# Untitled" ? "rootEnd" : "rootStart";
+}
+
+function inputEventMayOpenSlashMenu(event: Event): boolean {
+  const inputEvent = event as InputEvent;
+  return typeof inputEvent.data === "string" && inputEvent.data.includes("/");
 }
 
 interface EditorContextMenuState {
@@ -939,6 +1085,7 @@ function createSlashWriterEditor(
       markdown,
       atLineStart,
     );
+    fallbackMarkdownRef.current = nextMarkdown;
     editorRef.current?.setMarkdown(nextMarkdown);
     onChange(cleanEmptyBlockMarkers(nextMarkdown));
   };
@@ -946,7 +1093,10 @@ function createSlashWriterEditor(
   return {
     getMarkdown: () =>
       editorRef.current?.getMarkdown() ?? fallbackMarkdownRef.current,
-    setMarkdown: (markdown) => editorRef.current?.setMarkdown(markdown),
+    setMarkdown: (markdown) => {
+      fallbackMarkdownRef.current = markdown;
+      editorRef.current?.setMarkdown(markdown);
+    },
     insertMarkdown: insertAtSlashRange,
     getSelectionMarkdown: () => "",
     replaceSelection: insertAtSlashRange,
@@ -965,7 +1115,14 @@ function createWriterEditor(
   return {
     getMarkdown: () =>
       editorRef.current?.getMarkdown() ?? fallbackMarkdownRef.current,
-    setMarkdown: (markdown) => editorRef.current?.setMarkdown(markdown),
+    setMarkdown: (markdown) => {
+      fallbackMarkdownRef.current = markdown;
+      shellRef.current?.classList.toggle(
+        "is-empty-document",
+        isEditorEmptyDocument(markdown),
+      );
+      editorRef.current?.setMarkdown(markdown);
+    },
     insertMarkdown: (markdown) => editorRef.current?.insertMarkdown(markdown),
     // Use MDXEditor's own selection API so formatting commands operate on the
     // parsed markdown of the selection. insertMarkdown parses and replaces the

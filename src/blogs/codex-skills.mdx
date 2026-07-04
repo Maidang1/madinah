@@ -5,16 +5,16 @@ description: How Codex loads skills, injects skill instructions, and uses skill 
 tags:
   - codex
 pubDate: 2026-02-04 23:33:00
+status: draft
 ---
-
 
 # What are skills?
 
 [Agent Skills](https://agentskills.io/home) explains the general idea behind skills. This note focuses on the Codex implementation: where skills are loaded, how they enter the prompt context, and how they affect tool routing.
 
 
-# Codex skills flow
 
+# Codex skills flow
 
 ## High-level flow
 
@@ -98,7 +98,6 @@ At a high level, Codex loads the available skills during session setup, exposes 
 
 ```
 
-
 ## Entry Points in `core/src/codex.rs`
 
 ```rust
@@ -115,10 +114,7 @@ pub(crate) async fn spawn( mut config: Config, skills_manager: Arc<SkillsManager
 }
 ```
 
-
 The skill list becomes part of the session’s base instruction context, together with user instructions and `AGENTS.md`. The model can see which skills exist and how each skill should be used.
-
-
 
 ## Per-turn skill resolution and injection
 
@@ -207,71 +203,67 @@ pub(crate) async fn run_sampling_request(
 
 Skill names also influence app connector filtering. If a skill and a connector share a slug, Codex keeps the connector available only when the user explicitly references that connector.
 
-
 ## Skill loading details
 
 ### 1) SkillsManager setup
 
-- File: `codex-rs/core/src/skills/manager.rs`.
-- `SkillsManager::new` installs embedded system skills into `CODEX_HOME/skills/.system`.
-- A per-cwd cache (`cache_by_cwd`) stores `SkillLoadOutcome` to avoid rescanning on every turn.
+* File: `codex-rs/core/src/skills/manager.rs`.
+* `SkillsManager::new` installs embedded system skills into `CODEX_HOME/skills/.system`.
+* A per-cwd cache (`cache_by_cwd`) stores `SkillLoadOutcome` to avoid rescanning on every turn.
 
 ### 2) Skill roots and discovery
 
-- File: `codex-rs/core/src/skills/loader.rs`.
-- Roots (ordered by precedence):
-  - Repo skills: `.codex/skills` in project config layer.
-  - User skills:
-    - `CODEX_HOME/skills` (legacy)
-    - `$HOME/.agents/skills`
-  - System skills: `CODEX_HOME/skills/.system` (installed from embedded assets)
-  - Admin skills: `/etc/codex/skills` (system config layer)
-  - Repo-local agents folders: any `.agents/skills` between project root and current cwd.
-- Discovery:
-  - Scans each root for `SKILL.md` within a limited depth.
-  - Parses YAML frontmatter for `name` and `description`.
-  - Optional metadata from `agents/openai.yaml` for UI interface and dependencies.
-  - Dedupe by path and sort by scope priority.
+* File: `codex-rs/core/src/skills/loader.rs`.
+* Roots (ordered by precedence):
+  * Repo skills: `.codex/skills` in project config layer.
+  * User skills:
+    * `CODEX_HOME/skills` (legacy)
+    * `$HOME/.agents/skills`
+  * System skills: `CODEX_HOME/skills/.system` (installed from embedded assets)
+  * Admin skills: `/etc/codex/skills` (system config layer)
+  * Repo-local agents folders: any `.agents/skills` between project root and current cwd.
+* Discovery:
+  * Scans each root for `SKILL.md` within a limited depth.
+  * Parses YAML frontmatter for `name` and `description`.
+  * Optional metadata from `agents/openai.yaml` for UI interface and dependencies.
+  * Dedupe by path and sort by scope priority.
 
 ### 3) Disabled skills
 
-- File: `codex-rs/core/src/skills/manager.rs`.
-- Disabled skill paths are read from the user config layer (`skills` config section).
-- Disabled paths are excluded by `enabled_skills()` and by selection logic during injection.
+* File: `codex-rs/core/src/skills/manager.rs`.
+* Disabled skill paths are read from the user config layer (`skills` config section).
+* Disabled paths are excluded by `enabled_skills()` and by selection logic during injection.
 
 ## Input context: how skill content reaches the model
 
 1. **Session-level instructions**
-   - `get_user_instructions` appends the Skills section (list + usage rules) into the base instructions.
-   - This is visible to the model before any per-turn content.
-
+   * `get_user_instructions` appends the Skills section (list + usage rules) into the base instructions.
+   * This is visible to the model before any per-turn content.
 2. **Per-turn skill injection**
-   - Skill mentions in the user input drive selection.
-   - The skill file contents are wrapped into `SkillInstructions` and inserted as `ResponseItem`s.
-   - These items are recorded into the conversation history and included in the sampling request input.
-
+   * Skill mentions in the user input drive selection.
+   * The skill file contents are wrapped into `SkillInstructions` and inserted as `ResponseItem`s.
+   * These items are recorded into the conversation history and included in the sampling request input.
 3. **Tool filtering**
-   - Skill name counts are used to disambiguate connector mentions during tool selection.
+   * Skill name counts are used to disambiguate connector mentions during tool selection.
 
 ## Output artifacts produced by the skill flow
 
-- **Skill list output** (session instructions)
-  - `render_skills_section` creates a markdown list of available skills and usage rules.
-
-- **Skill injection items** (per turn)
-  - `SkillInstructions` response items are inserted into the conversation history.
-  - Any failed reads result in warning events for the user.
+* **Skill list output** (session instructions)
+  * `render_skills_section` creates a markdown list of available skills and usage rules.
+* **Skill injection items** (per turn)
+  * `SkillInstructions` response items are inserted into the conversation history.
+  * Any failed reads result in warning events for the user.
 
 ## Key files and call sites
 
-- Entry points:
-  - `codex-rs/core/src/codex.rs`
-- Skill manager and loader:
-  - `codex-rs/core/src/skills/manager.rs`
-  - `codex-rs/core/src/skills/loader.rs`
-  - `codex-rs/core/src/skills/system.rs`
-- Mention parsing and injection:
-  - `codex-rs/core/src/skills/injection.rs`
-  - `codex-rs/core/src/mentions.rs`
-- Project doc assembly:
-  - `codex-rs/core/src/project_doc.rs`
+* Entry points:
+  * `codex-rs/core/src/codex.rs`
+* Skill manager and loader:
+  * `codex-rs/core/src/skills/manager.rs`
+  * `codex-rs/core/src/skills/loader.rs`
+  * `codex-rs/core/src/skills/system.rs`
+* Mention parsing and injection:
+  * `codex-rs/core/src/skills/injection.rs`
+  * `codex-rs/core/src/mentions.rs`
+* Project doc assembly:
+  * `codex-rs/core/src/project_doc.rs`

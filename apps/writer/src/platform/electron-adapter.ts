@@ -14,6 +14,7 @@ import type {
 import type {
   AiPolishAdapter,
   AssetUploadAdapter,
+  BlogStore,
   DocumentStore,
   FileTreeStore,
   PlatformAdapters,
@@ -37,6 +38,7 @@ export function createElectronAdapters(): PlatformAdapters {
       list: () => api.recent.list(),
       add: (path) => api.recent.add(path),
     },
+    blogStore: createElectronBlogStore(api),
     pluginResolver: createElectronPluginResolver(api),
     windowAdapter: createElectronWindowAdapter(api),
     aiPolish: createElectronAiPolishAdapter(api),
@@ -91,6 +93,14 @@ function createElectronFileTreeStore(
         void api.fileTree.unwatch().catch(() => {});
       };
     },
+  };
+}
+
+function createElectronBlogStore(api: MadinahWriterElectronApi): BlogStore {
+  return {
+    isAvailable: true,
+    importDirectory: (path) => api.blog.importDirectory(path),
+    exportDocument: (input) => api.blog.exportDocument(input),
   };
 }
 

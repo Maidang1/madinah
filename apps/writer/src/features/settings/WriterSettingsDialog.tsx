@@ -1,10 +1,16 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { FileCode2 } from "lucide-react";
 import type {
   AcpAgentProvider,
   AcpAgentRuntimeConfig,
 } from "../../domain/ai-polish";
 import type { AssetUploadSettings } from "../../domain/assets";
 import { normalizeAssetUploadSettings } from "../../domain/assets";
+import type {
+  PluginDiagnostic,
+  ResolvedPlugin,
+  WorkspaceInfo,
+} from "../../domain/engine";
 import {
   ACP_PROVIDER_LABEL,
   createDefaultAcpSettings,
@@ -21,47 +27,66 @@ export type SettingsCheckState =
   | { status: "success"; message: string }
   | { status: "error"; message: string };
 
-type SettingsTab = "editor" | "ai" | "assets";
+type SettingsTab = "editor" | "ai" | "assets" | "plugins";
 
 interface WriterProfileOption {
   id: string;
   name: string;
+  remarkPlugins?: readonly unknown[];
+  rehypePlugins?: readonly unknown[];
+  editorPlugins?: readonly unknown[];
+  codeLanguages?: readonly unknown[];
+  commands?: readonly unknown[];
 }
 
 interface WriterSettingsDialogProps {
   isOpen: boolean;
   aiAvailable: boolean;
   assetUploadAvailable: boolean;
+  workspacePluginsAvailable: boolean;
   profiles: WriterProfileOption[];
   profileId: string;
+  workspace: WorkspaceInfo | null;
+  workspacePlugins: ResolvedPlugin[];
+  pluginDiagnostics: PluginDiagnostic[];
   acpSettings: AcpSettings;
   assetSettings: AssetUploadSettings;
   acpCheckState: SettingsCheckState;
   assetCheckState: SettingsCheckState;
+  workspacePluginCheckState: SettingsCheckState;
   onClose: () => void;
   onSaveProfile: (profileId: string) => void;
   onSaveAcp: (settings: AcpSettings) => void;
   onCheckAcp: (config: AcpAgentRuntimeConfig) => void;
   onSaveAssets: (settings: AssetUploadSettings) => void;
   onCheckAssets: (settings: AssetUploadSettings) => void;
+  onRefreshWorkspacePlugins: () => void;
+  onSetWorkspacePluginTrust: (plugin: ResolvedPlugin, trusted: boolean) => void;
 }
 
 export function WriterSettingsDialog({
   isOpen,
   aiAvailable,
   assetUploadAvailable,
+  workspacePluginsAvailable,
   profiles,
   profileId,
+  workspace,
+  workspacePlugins,
+  pluginDiagnostics,
   acpSettings,
   assetSettings,
   acpCheckState,
   assetCheckState,
+  workspacePluginCheckState,
   onClose,
   onSaveProfile,
   onSaveAcp,
   onCheckAcp,
   onSaveAssets,
   onCheckAssets,
+  onRefreshWorkspacePlugins,
+  onSetWorkspacePluginTrust,
 }: WriterSettingsDialogProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>("editor");
   const [profileDraft, setProfileDraft] = useState(profileId);
@@ -190,20 +215,31 @@ export function WriterSettingsDialog({
   const checkState =
     activeTab === "assets"
       ? assetCheckState
+      : activeTab === "plugins"
+        ? workspacePluginCheckState
       : activeTab === "ai"
         ? acpCheckState
         : { status: "idle" as const, message: "Editor preferences" };
   const canCheck = activeTab === "assets" ? assetUploadAvailable : aiAvailable;
-  const showCheckButton = activeTab !== "editor";
+  const showCheckButton = activeTab === "assets" || activeTab === "ai";
+  const showSaveButton = activeTab !== "plugins";
   const hasBlockingErrors = activeTab === "ai" && hasEnvErrors;
   const settingsSubtitle =
     activeTab === "assets"
       ? "Upload service assets"
+      : activeTab === "plugins"
+        ? "Workspace extensions"
       : activeTab === "ai"
         ? "ACP local agent"
         : "Markdown editing";
   const settingsTitle =
-    activeTab === "assets" ? "Assets" : activeTab === "ai" ? "AI" : "Editor";
+    activeTab === "assets"
+      ? "Assets"
+      : activeTab === "plugins"
+        ? "Plugins"
+        : activeTab === "ai"
+          ? "AI"
+          : "Editor";
 
   return (
     <div className="writer-settings-backdrop" role="presentation">
@@ -244,6 +280,14 @@ export function WriterSettingsDialog({
             >
               Assets
             </button>
+            <button
+              type="button"
+              className={activeTab === "plugins" ? "is-selected" : undefined}
+              aria-current={activeTab === "plugins" ? "page" : undefined}
+              onClick={() => setActiveTab("plugins")}
+            >
+              Plugins
+            </button>
           </nav>
         </aside>
 
@@ -260,20 +304,50 @@ export function WriterSettingsDialog({
 
           <div className="writer-settings-content">
             {activeTab === "editor" ? (
-              <label className="writer-settings-field">
-                <span>Markdown Profile</span>
-                <select
-                  className="writer-settings-select"
-                  value={profileDraft}
-                  onChange={(event) => setProfileDraft(event.currentTarget.value)}
-                >
-                  {profiles.map((profile) => (
-                    <option key={profile.id} value={profile.id}>
-                      {profile.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <>
+                <div className="writer-settings-section">
+                  <div className="writer-settings-section-title">
+                    <FileCode2 aria-hidden="true" />
+                    Markdown Profile
+                  </div>
+                  <p className="writer-settings-description">
+                    Controls which Markdown extensions and editor features are
+                    active. Choose the profile that matches how you write.
+                  </p>
+                  <label className="writer-settings-field">
+                    <span>Active profile</span>
+                    <select
+                      className="writer-settings-select"
+                      value={profileDraft}
+                      onChange={(event) =>
+                        setProfileDraft(event.currentTarget.value)
+                      }
+                    >
+                      {profiles.map((profile) => (
+                        <option key={profile.id} value={profile.id}>
+                          {profile.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <ProfileCapabilityCard
+                  profile={
+                    profiles.find((profile) => profile.id === profileDraft) ??
+                    null
+                  }
+                />
+              </>
+            ) : activeTab === "plugins" ? (
+              <WorkspacePluginsSettings
+                available={workspacePluginsAvailable}
+                diagnostics={pluginDiagnostics}
+                isLoading={workspacePluginCheckState.status === "checking"}
+                plugins={workspacePlugins}
+                workspace={workspace}
+                onRefresh={onRefreshWorkspacePlugins}
+                onSetTrust={onSetWorkspacePluginTrust}
+              />
             ) : activeTab === "ai" ? (
               <>
                 <div className="writer-settings-segments" role="tablist" aria-label="Agent">
@@ -430,17 +504,174 @@ export function WriterSettingsDialog({
                   {checkState.status === "checking" ? "Checking" : "Test"}
                 </button>
               ) : null}
-              <button
-                type="submit"
-                className="writer-settings-primary"
-                disabled={hasBlockingErrors}
-              >
-                Save
-              </button>
+              {showSaveButton ? (
+                <button
+                  type="submit"
+                  className="writer-settings-primary"
+                  disabled={hasBlockingErrors}
+                >
+                  Save
+                </button>
+              ) : null}
             </div>
           </footer>
         </section>
       </form>
+    </div>
+  );
+}
+
+function ProfileCapabilityCard({
+  profile,
+}: {
+  profile: WriterProfileOption | null;
+}) {
+  if (!profile) return null;
+
+  const features: string[] = [];
+  const commandCount = profile.commands?.length ?? 0;
+  const languageCount = profile.codeLanguages?.length ?? 0;
+  const remarkCount = profile.remarkPlugins?.length ?? 0;
+  const rehypeCount = profile.rehypePlugins?.length ?? 0;
+
+  if (commandCount > 0) {
+    features.push(`${commandCount} command${commandCount === 1 ? "" : "s"}`);
+  }
+  if (languageCount > 0) {
+    features.push(
+      `${languageCount} code language${languageCount === 1 ? "" : "s"}`,
+    );
+  }
+  if (profile.editorPlugins?.length) {
+    features.push("Editor plugins");
+  }
+  if (remarkCount > 0 || rehypeCount > 0) {
+    features.push("Remark / Rehype");
+  }
+
+  return (
+    <div className="writer-settings-profile-card">
+      <strong>{profile.name}</strong>
+      {features.length > 0 ? (
+        <div className="writer-settings-profile-features">
+          {features.map((feature) => (
+            <span key={feature}>{feature}</span>
+          ))}
+        </div>
+      ) : (
+        <p>Standard Markdown with no additional extensions enabled.</p>
+      )}
+    </div>
+  );
+}
+
+function WorkspacePluginsSettings({
+  available,
+  diagnostics,
+  isLoading,
+  plugins,
+  workspace,
+  onRefresh,
+  onSetTrust,
+}: {
+  available: boolean;
+  diagnostics: PluginDiagnostic[];
+  isLoading: boolean;
+  plugins: ResolvedPlugin[];
+  workspace: WorkspaceInfo | null;
+  onRefresh: () => void;
+  onSetTrust: (plugin: ResolvedPlugin, trusted: boolean) => void;
+}) {
+  if (!available) {
+    return (
+      <div className="writer-settings-note">
+        Workspace plugins require the desktop app.
+      </div>
+    );
+  }
+
+  if (!workspace) {
+    return (
+      <div className="writer-settings-note">
+        Open a workspace file to inspect plugins.
+      </div>
+    );
+  }
+
+  return (
+    <div className="writer-settings-plugin-panel">
+      <div className="writer-settings-plugin-toolbar">
+        <div className="writer-settings-plugin-workspace" title={workspace.root}>
+          {workspace.root}
+        </div>
+        <button
+          type="button"
+          className="writer-settings-secondary"
+          onClick={onRefresh}
+          disabled={isLoading}
+        >
+          {isLoading ? "Refreshing" : "Refresh"}
+        </button>
+      </div>
+
+      {plugins.length === 0 ? (
+        <div className="writer-settings-note">
+          Workspace config has no plugins.
+        </div>
+      ) : (
+        <ul className="writer-settings-plugin-list">
+          {plugins.map((plugin) => (
+            <li className="writer-settings-plugin-row" key={plugin.packageId}>
+              <div className="writer-settings-plugin-main">
+                <strong>{plugin.name}</strong>
+                <span>
+                  {plugin.packageId}@{plugin.version}
+                </span>
+                <small title={plugin.entryPath}>{plugin.entryPath}</small>
+                <div className="writer-settings-plugin-meta">
+                  <span
+                    className={
+                      plugin.trusted
+                        ? "writer-settings-plugin-trust is-trusted"
+                        : "writer-settings-plugin-trust"
+                    }
+                  >
+                    {plugin.trusted ? "Trusted" : "Untrusted"}
+                  </span>
+                  {plugin.capabilities.length > 0 ? (
+                    <span>{plugin.capabilities.join(", ")}</span>
+                  ) : (
+                    <span>No capabilities declared</span>
+                  )}
+                </div>
+              </div>
+              <button
+                type="button"
+                className="writer-settings-secondary"
+                onClick={() => onSetTrust(plugin, !plugin.trusted)}
+                disabled={isLoading}
+              >
+                {plugin.trusted ? "Revoke Trust" : "Trust"}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {diagnostics.length > 0 ? (
+        <ul className="writer-settings-plugin-diagnostics">
+          {diagnostics.map((diagnostic, index) => (
+            <li
+              key={`${diagnostic.pluginId}:${diagnostic.severity}:${index}`}
+              className={`is-${diagnostic.severity}`}
+            >
+              <strong>{diagnostic.pluginId}</strong>
+              <span>{diagnostic.severity}</span>
+              <p>{diagnostic.message}</p>
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </div>
   );
 }

@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { AlertCircle, Check, Cloud, Loader2 } from "lucide-react";
 import type { DocumentSession } from "./document-session";
 
+const SAVE_STATUS_SAVING_VISIBILITY_DELAY_MS = 180;
+
 type SaveStatusKind = "saved" | "dirty" | "saving" | "error";
 
 interface SaveStatusView {
@@ -65,12 +67,30 @@ export function SaveStatusIndicator({
   session: Pick<DocumentSession, "isDirty" | "error" | "document">;
   status: string;
 }) {
-  const view = deriveSaveStatus(session, status);
+  const rawView = deriveSaveStatus(session, status);
+  const [showSaving, setShowSaving] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
 
   // "saved" state fades to a quieter presence after a beat so it never nags.
   const [recentlySaved, setRecentlySaved] = useState(false);
   const previousKind = useRef<SaveStatusKind | null>(null);
+  const view =
+    rawView?.kind === "saving" && !showSaving
+      ? ({ kind: "dirty", label: "未保存" } satisfies SaveStatusView)
+      : rawView;
+
+  useEffect(() => {
+    if (rawView?.kind !== "saving") {
+      setShowSaving(false);
+      return undefined;
+    }
+
+    const timeout = window.setTimeout(
+      () => setShowSaving(true),
+      SAVE_STATUS_SAVING_VISIBILITY_DELAY_MS,
+    );
+    return () => window.clearTimeout(timeout);
+  }, [rawView?.kind]);
 
   useEffect(() => {
     const kind = view?.kind ?? null;

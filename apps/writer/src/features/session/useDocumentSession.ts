@@ -8,7 +8,7 @@ import {
   type MarkdownDocument,
 } from "../../domain/document";
 import type { WorkspaceInfo, WriterPlugin } from "../../domain/engine";
-import type { PlatformAdapters } from "../../platform/ports";
+import type { BlogDocumentFile, PlatformAdapters } from "../../platform/ports";
 import { loadTrustedWorkspacePlugins } from "../engine/workspace-loader";
 import {
   createDocumentSession,
@@ -95,7 +95,11 @@ export function useDocumentSession(
       void saveTask
         .then((saved) => {
           if (saveTokenRef.current === token) {
-            dispatch({ type: "saveSucceeded", document: saved });
+            dispatch({
+              type: "saveSucceeded",
+              document: saved,
+              savedFrom: snapshot,
+            });
             if (!session.filePath) {
               upsertDocument(saved);
             }
@@ -199,17 +203,22 @@ export function useDocumentSession(
   const saveNow = useCallback(async () => {
     if (!session.document) return;
 
+    const snapshot = session.document;
     try {
       setStatus("Saving");
       if (session.filePath) {
         await platform.fileStore.writeMarkdownFile(
           session.filePath,
-          serializeMdxDocument(session.document),
+          serializeMdxDocument(snapshot),
         );
-        dispatch({ type: "saveSucceeded", document: session.document });
+        dispatch({
+          type: "saveSucceeded",
+          document: snapshot,
+          savedFrom: snapshot,
+        });
       } else {
-        const saved = await platform.documentStore.save(session.document);
-        dispatch({ type: "saveSucceeded", document: saved });
+        const saved = await platform.documentStore.save(snapshot);
+        dispatch({ type: "saveSucceeded", document: saved, savedFrom: snapshot });
         upsertDocument(saved);
       }
       setStatus("Saved");
@@ -285,6 +294,47 @@ export function useDocumentSession(
       setStatus(String(error));
     }
   }, [platform, saveNow, session.isDirty, upsertDocument]);
+
+  const importBlogDocuments = useCallback(
+    async (files: BlogDocumentFile[]) => {
+      if (files.length === 0) {
+        setStatus("No blog posts found");
+        return [];
+      }
+
+      try {
+        if (session.isDirty) {
+          await saveNow();
+        }
+
+        setStatus("Importing");
+        const imported = await Promise.all(
+          files.map((file) =>
+            platform.documentStore.save(
+              parseMdxDocument(file.source, {
+                slug: file.slug,
+              }),
+            ),
+          ),
+        );
+
+        setDocuments((current) => sortDocuments([...current, ...imported]));
+        dispatch({
+          type: "openSucceeded",
+          document: imported[0],
+          workspace: LOCAL_WORKSPACE,
+        });
+        setStatus(
+          `Imported ${imported.length} blog ${imported.length === 1 ? "post" : "posts"}`,
+        );
+        return imported;
+      } catch (error: unknown) {
+        setStatus(String(error));
+        return [];
+      }
+    },
+    [platform.documentStore, saveNow, session.isDirty],
+  );
 
   const publishStoredDocument = useCallback(
     async (id: string, filePath: string) => {
@@ -419,6 +469,7 @@ export function useDocumentSession(
     openStoredDocument,
     createNewDocument,
     openMarkdownPath,
+    importBlogDocuments,
     publishStoredDocument,
     updateStoredDocumentStatus,
     deleteStoredDocument,

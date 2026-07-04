@@ -16,6 +16,9 @@ import { calculateReadingTime } from "../../lib/reading-time";
 import { buildToc } from "../../lib/toc";
 import { useDebouncedValue } from "../../lib/use-debounced-value";
 
+const PREVIEW_COMPILE_DELAY_MS = 300;
+const PREVIEW_LOADING_DELAY_MS = 120;
+
 interface PreviewPaneProps {
   document: MarkdownDocument;
 }
@@ -24,7 +27,7 @@ export function PreviewPane({ document }: PreviewPaneProps) {
   const engine = useEngine();
   const [Content, setContent] = useState<MdxPreviewContent | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isCompiling, setIsCompiling] = useState(true);
+  const [isCompiling, setIsCompiling] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
   // Trail the body like the compile effect below so TOC/reading time stay off
   // the keystroke path.
@@ -37,26 +40,31 @@ export function PreviewPane({ document }: PreviewPaneProps) {
 
   useEffect(() => {
     let cancelled = false;
-    setIsCompiling(true);
-    const timer = window.setTimeout(() => {
+    const loadingTimer = window.setTimeout(() => {
+      if (!cancelled) setIsCompiling(true);
+    }, PREVIEW_LOADING_DELAY_MS);
+    const compileTimer = window.setTimeout(() => {
       engine
         .compilePreview(document.body)
         .then((component) => {
           if (cancelled) return;
+          window.clearTimeout(loadingTimer);
           setContent(() => component);
           setError(null);
           setIsCompiling(false);
         })
         .catch((compileError: unknown) => {
           if (cancelled) return;
+          window.clearTimeout(loadingTimer);
           setError(String(compileError));
           setIsCompiling(false);
         });
-    }, 300);
+    }, PREVIEW_COMPILE_DELAY_MS);
 
     return () => {
       cancelled = true;
-      window.clearTimeout(timer);
+      window.clearTimeout(loadingTimer);
+      window.clearTimeout(compileTimer);
     };
   }, [document.body, engine]);
 

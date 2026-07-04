@@ -12,6 +12,7 @@ import type { WorkspacePluginTrustInput } from "../domain/engine";
 import type {
   AiPolishAdapter,
   AssetUploadAdapter,
+  BlogStore,
   DocumentStore,
   FileTreeStore,
   FileStore,
@@ -31,6 +32,7 @@ export function createBrowserAdapters(): PlatformAdapters {
     fileTreeStore: createUnavailableFileTreeStore(),
     fileStore: createBrowserFileStore(),
     recentStore: createBrowserRecentStore(),
+    blogStore: createBrowserBlogStore(),
     pluginResolver: createBrowserPluginResolver(),
     windowAdapter: createBrowserWindowAdapter(),
     aiPolish: createBrowserAiPolishAdapter(),
@@ -123,6 +125,17 @@ function createBrowserRecentStore(): RecentStore {
       ].slice(0, 20);
       writeJson(RECENT_KEY, next);
     },
+  };
+}
+
+function createBrowserBlogStore(): BlogStore {
+  const unavailable = () =>
+    Promise.reject(new Error("Blog import and export require the desktop app"));
+
+  return {
+    isAvailable: false,
+    importDirectory: unavailable,
+    exportDocument: unavailable,
   };
 }
 

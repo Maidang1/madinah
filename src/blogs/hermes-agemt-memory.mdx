@@ -14,7 +14,7 @@ status: published
 
 Hermes Agent 中的「自进化」不应被理解为模型权重在运行时自动更新，也不属于严格意义上的 recursive self-improvement。更准确的定义是：
 
-> Hermes 通过持久化记忆、用户画像、过程性技能、历史会话检索与外部 memory provider，将每次交互经验转化为后续任务可召回、可注入、可复用的外部状态，从而改变 Agent 的有效行为策略。
+> Hermes 通过持久化记忆、用户画像、过程性技能、历史会话检索与外部 memory provider，将每次交互经验转化为后续任务可召回、可注入、可复用的外部状态，从而改变 Agent 的有效行为策略
 
 因此，它的学习闭环并非传统的参数更新范式：
 
@@ -98,8 +98,6 @@ S_{t+1} = U(S_t, x_t, y_t, feedback_t, trace_t)
 ***
 
 ## 三、Hermes 的三层记忆协作
-
-
 
 ![这是图片](https://r2-uploader-example-worker.sqvw5m2btv.workers.dev/AcpR9lSO1fdOUmpS.webp)
 

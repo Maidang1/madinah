@@ -2,6 +2,7 @@ import { createRef } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { TreeApi } from "react-arborist";
+import appSource from "../../App.tsx?raw";
 import { FileTreeSidebar } from "./FileTreeSidebar";
 import type { FileTreeNode } from "./file-tree";
 
@@ -27,6 +28,12 @@ describe("FileTreeSidebar", () => {
     onRename: () => {},
     onToggleDirectory: () => {},
   };
+
+  it("is a memoized sidebar boundary", () => {
+    expect((FileTreeSidebar as unknown as { $$typeof: symbol }).$$typeof).toBe(
+      Symbol.for("react.memo"),
+    );
+  });
 
   it("renders empty workspace actions", () => {
     const html = renderToStaticMarkup(
@@ -67,5 +74,16 @@ describe("FileTreeSidebar", () => {
 
     expect(html).toContain("file-tree-list");
     expect(html).toContain("file-tree-list-row");
+  });
+
+  it("receives stable App props across save-only renders", () => {
+    expect(appSource).toContain("const handleFileTreeAction = useStableCallback");
+    expect(appSource).toContain("const sidebarTools = useMemo(");
+    expect(appSource).toContain("onAction={handleFileTreeAction}");
+    expect(appSource).toContain("onOpenFile={handleOpenFileTreePath}");
+    expect(appSource).toContain("onRename={handleRenamePath}");
+    expect(appSource).not.toContain(
+      "onAction={(action, node) => void runFileTreeAction(action, node)}",
+    );
   });
 });

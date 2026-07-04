@@ -25,6 +25,10 @@ export interface MarkdownFile {
   source: string;
 }
 
+export interface BlogDocumentFile extends MarkdownFile {
+  slug: string;
+}
+
 export type FileTreeNodeKind = "directory" | "file";
 
 export interface FileTreeNode {
@@ -51,7 +55,10 @@ export interface FileTreeStore {
   duplicateFile(path: string): Promise<MarkdownFile>;
   moveToTrash(workspaceRoot: string, path: string): Promise<string>;
   revealPath(path: string): Promise<void>;
-  watchTree(root: string, onChange: () => void): Promise<() => void>;
+  watchTree(
+    root: string,
+    onChange: (changedPath?: string) => void,
+  ): Promise<() => void>;
 }
 
 export interface DocumentStore {
@@ -64,6 +71,17 @@ export interface DocumentStore {
 export interface RecentStore {
   list(): Promise<MarkdownFile[]>;
   add(path: string): Promise<void>;
+}
+
+export interface BlogStore {
+  isAvailable: boolean;
+  importDirectory(path: string): Promise<BlogDocumentFile[]>;
+  exportDocument(input: {
+    blogDir: string;
+    slug: string;
+    source: string;
+    overwrite: boolean;
+  }): Promise<{ path: string }>;
 }
 
 export interface PluginResolver {
@@ -113,6 +131,7 @@ export interface PlatformAdapters {
   fileTreeStore: FileTreeStore;
   fileStore: FileStore;
   recentStore: RecentStore;
+  blogStore: BlogStore;
   pluginResolver: PluginResolver;
   windowAdapter: WindowAdapter;
   aiPolish: AiPolishAdapter;

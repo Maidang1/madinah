@@ -120,7 +120,7 @@ export interface MadinahWriterElectronApi {
     uploadImage(input: AssetImageUploadInput): Promise<AssetImageUploadResult>;
   };
   onWriterCommand(callback: (commandId: string) => void): () => void;
-  onFileTreeChanged(callback: () => void): () => void;
+  onFileTreeChanged(callback: (changedPath?: string) => void): () => void;
 }
 
 declare global {

@@ -2,16 +2,18 @@ import {
   type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
-  // type ClipboardEvent as ReactClipboardEvent,
   type ReactNode,
   lazy,
+  memo,
   Suspense,
   useCallback,
+  useDeferredValue,
   useEffect,
   useMemo,
   useReducer,
   useRef,
   useState,
+  useTransition,
 } from "react";
 import {
   CaseSensitive,
@@ -37,8 +39,14 @@ import {
   createDefaultAssetUploadSettings,
   type AssetUploadSettings,
 } from "./domain/assets";
-import type { WriterEditor } from "./domain/engine";
+import type {
+  ResolvedPlugin,
+  WriterCommand,
+  WriterEditor,
+  WorkspaceInfo,
+} from "./domain/engine";
 import {
+  serializeMdxDocument,
   type MarkdownDocument,
 } from "./domain/document";
 import { getWriterKeyboardShortcutAction } from "./features/commands/keyboard-shortcuts";
@@ -72,10 +80,12 @@ import {
   splitDocumentEditorMarkdown,
   shouldShowDocumentStartState,
 } from "./features/editor/MarkdownEditor";
-// import { getMarkdownTextFromClipboardData } from "./features/editor/clipboard";
+import { getMarkdownTextFromClipboardData } from "./features/editor/clipboard";
+import type { EditorContextMenuItem } from "./features/editor/editor-context-menu";
 import { createFormattingCommands } from "./features/editor/formatting-commands";
 import { CommandRegistry } from "./features/engine/CommandRegistry";
 import { EngineProvider, useEngine } from "./features/engine/EngineProvider";
+import { loadTrustedWorkspacePlugins } from "./features/engine/workspace-loader";
 import { FileTreeSidebar } from "./features/file-tree/FileTreeSidebar";
 import {
   addFileTreeRoot,
@@ -96,6 +106,10 @@ import {
   serializeFileTreeRoots,
   toRelativePath,
 } from "./features/file-tree/file-tree";
+import {
+  markSelfWrittenFilePath,
+  shouldIgnoreSelfWrittenFileTreeChange,
+} from "./features/file-tree/self-write-guard";
 import {
   createDocumentVersion,
   documentFromVersion,
@@ -177,8 +191,53 @@ const COMMANDS_THAT_OPEN_OVERLAYS = new Set([
 const FILE_TREE_ROOTS_STORAGE_KEY = "madinah-writer-file-tree-roots";
 const LEGACY_FILE_TREE_ROOT_STORAGE_KEY = "madinah-writer-file-tree-root";
 const PUBLISH_TARGET_STORAGE_KEY = "madinah-writer-publish-target";
+const EDITOR_CONTEXT_MENU_ITEMS: EditorContextMenuItem[] = [
+  {
+    id: "ai-polish",
+    label: "AI Polish",
+    commandId: AI_POLISH_COMMAND_ID,
+  },
+  {
+    id: "format-separator",
+    type: "separator",
+  },
+  {
+    id: "bold",
+    label: "Bold",
+    commandId: "editor.format.bold",
+    requiresSelection: true,
+  },
+  {
+    id: "italic",
+    label: "Italic",
+    commandId: "editor.format.italic",
+    requiresSelection: true,
+  },
+  {
+    id: "link",
+    label: "Link",
+    commandId: "editor.format.link",
+    requiresSelection: true,
+  },
+  {
+    id: "inline-code",
+    label: "Inline Code",
+    commandId: "editor.format.inlineCode",
+    requiresSelection: true,
+  },
+];
+const EMPTY_EDITOR_PLUGINS: unknown[] = [];
 
 type WriterTheme = "dark" | "light";
+
+function useStableCallback<Args extends unknown[], Result>(
+  callback: (...args: Args) => Result,
+): (...args: Args) => Result {
+  const callbackRef = useRef(callback);
+  callbackRef.current = callback;
+
+  return useCallback((...args: Args) => callbackRef.current(...args), []);
+}
 
 export default function App() {
   const platform = useMemo(() => createPlatformAdapters(), []);
@@ -192,6 +251,30 @@ export default function App() {
 
 function WriterSurface({ platform }: { platform: PlatformAdapters }) {
   const engine = useEngine();
+  const selfWrittenFilePathsRef = useRef(new Map<string, number>());
+  const markSelfWrittenPath = useCallback((filePath: string) => {
+    markSelfWrittenFilePath(selfWrittenFilePathsRef.current, filePath);
+  }, []);
+  const shouldSkipFileTreeRefresh = useCallback((changedPath?: string) => {
+    return shouldIgnoreSelfWrittenFileTreeChange(
+      selfWrittenFilePathsRef.current,
+      changedPath,
+    );
+  }, []);
+  const documentPlatform = useMemo<PlatformAdapters>(
+    () => ({
+      ...platform,
+      fileStore: {
+        ...platform.fileStore,
+        writeMarkdownFile: async (path, source) => {
+          const file = await platform.fileStore.writeMarkdownFile(path, source);
+          markSelfWrittenPath(path);
+          return file;
+        },
+      },
+    }),
+    [markSelfWrittenPath, platform],
+  );
   const {
     session,
     documents,
@@ -203,6 +286,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
     openStoredDocument,
     openMarkdownPath,
     createNewDocument,
+    importBlogDocuments,
     publishStoredDocument,
     updateStoredDocumentStatus,
     deleteStoredDocument,
@@ -210,14 +294,24 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
     revert,
     close,
     setStatus,
-  } = useDocumentSession(platform, engine.activateWorkspacePlugins);
+  } = useDocumentSession(documentPlatform, engine.activateWorkspacePlugins);
+  const sessionDocumentRef = useRef<MarkdownDocument | null>(null);
+  sessionDocumentRef.current = session.document;
+  const sessionWorkspaceRef = useRef<WorkspaceInfo | null>(null);
+  sessionWorkspaceRef.current = session.workspace;
+  const deferredDocument = useDeferredValue(session.document);
+  const derivedDocument =
+    session.document && deferredDocument?.id === session.document.id
+      ? deferredDocument
+      : session.document;
+  const [, startDocumentChangeTransition] = useTransition();
   const visibleDocuments = useMemo(
-    () => mergeActiveDocument(documents, session.document),
-    [documents, session.document],
+    () => mergeActiveDocument(documents, derivedDocument),
+    [derivedDocument, documents],
   );
   const draftDocuments = useMemo(
-    () => mergeActiveDocument(documents, session.filePath ? null : session.document),
-    [documents, session.document, session.filePath],
+    () => mergeActiveDocument(documents, session.filePath ? null : derivedDocument),
+    [derivedDocument, documents, session.filePath],
   );
   const sidebarDrafts = useMemo(
     () => buildFileTreeDraftItems(draftDocuments),
@@ -332,6 +426,12 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
     status: "idle",
     message: "Ready",
   });
+  const [workspacePlugins, setWorkspacePlugins] = useState<ResolvedPlugin[]>([]);
+  const [workspacePluginCheckState, setWorkspacePluginCheckState] =
+    useState<SettingsCheckState>({
+      status: "idle",
+      message: "Open a workspace file to inspect plugins",
+    });
   const restoreEditorFocus = useCallback(() => {
     requestAnimationFrame(() => {
       activeEditorRef.current?.focus?.();
@@ -526,7 +626,6 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
       changeSource(editableMarkdown);
     }
   }, [changeSource, session.document]);
-  /*
   const pasteMarkdownIntoEmptyDocument = useCallback(
     (markdown: string) => {
       if (!session.document) return;
@@ -536,7 +635,6 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
     },
     [changeSource, session.document],
   );
-  */
   const changeDocumentTitle = useCallback(
     (title: string) => {
       if (!session.document || !documentEditor) return;
@@ -557,9 +655,29 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
     (body: string) => {
       if (!session.document || !documentEditor) return;
 
-      changeSource(composeDocumentEditorMarkdown(documentEditor.title, body));
+      const nextSource = composeDocumentEditorMarkdown(documentEditor.title, body);
+      if (nextSource === session.document.body) return;
+
+      startDocumentChangeTransition(() => {
+        changeSource(nextSource);
+      });
     },
-    [changeSource, documentEditor, session.document],
+    [
+      changeSource,
+      documentEditor,
+      session.document,
+      startDocumentChangeTransition,
+    ],
+  );
+  const handleEditorBodyChange = useStableCallback((body: string) => {
+    changeDocumentBody(body);
+  });
+  const handleEditorReady = useCallback((editor: WriterEditor | null) => {
+    activeEditorRef.current = editor;
+  }, []);
+  const handleEditorError = useCallback(
+    (error: string) => setStatus(error),
+    [setStatus],
   );
   const aiPolishCommand = useMemo(
     () =>
@@ -599,6 +717,106 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
       }),
     [showWorkspaceDiagnostics],
   );
+  const createNewDocumentCommand = useStableCallback(() => {
+    return createNewDocument();
+  });
+  const openDocumentCommand = useStableCallback(() => {
+    return openFromDialog();
+  });
+  const importBlogDirectoryCommand = useStableCallback(async () => {
+    if (!platform.blogStore.isAvailable) {
+      setStatus("Blog import requires the desktop app");
+      return;
+    }
+
+    const blogDir = await platform.windowAdapter.openDirectory({
+      title: "Import Blog Directory",
+    });
+    if (!blogDir) return;
+
+    setStatus("Importing blog");
+    const files = await platform.blogStore.importDirectory(blogDir);
+    await importBlogDocuments(files);
+  });
+  const exportCurrentDocumentToBlogCommand = useStableCallback(async () => {
+    const document = sessionDocumentRef.current;
+    if (!document) {
+      setStatus("Open a document before exporting");
+      return;
+    }
+    if (!platform.blogStore.isAvailable) {
+      setStatus("Blog export requires the desktop app");
+      return;
+    }
+
+    const blogDir = await platform.windowAdapter.openDirectory({
+      title: "Export to Blog Directory",
+    });
+    if (!blogDir) return;
+
+    const input = {
+      blogDir,
+      slug: document.slug || "untitled",
+      source: serializeMdxDocument(document),
+      overwrite: false,
+    };
+
+    try {
+      setStatus("Exporting blog");
+      const result = await platform.blogStore.exportDocument(input);
+      setStatus(`Exported to ${result.path}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (!message.includes("already exists")) {
+        setStatus(message);
+        return;
+      }
+
+      const overwrite = await platform.windowAdapter.confirm(
+        `${input.slug}.mdx already exists. Overwrite it?`,
+        { title: "Export to Blog" },
+      );
+      if (!overwrite) {
+        setStatus("Export cancelled");
+        return;
+      }
+
+      const result = await platform.blogStore.exportDocument({
+        ...input,
+        overwrite: true,
+      });
+      setStatus(`Exported to ${result.path}`);
+    }
+  });
+  const blogCommands = useMemo<WriterCommand[]>(
+    () => [
+      {
+        id: "blog.importDirectory",
+        label: "Import Blog Directory",
+        group: "File",
+        keywords: ["blog", "mdx", "directory"],
+        scope: "file",
+        priority: 70,
+        run: importBlogDirectoryCommand,
+      },
+      {
+        id: "blog.exportDocument",
+        label: "Export to Blog",
+        group: "File",
+        keywords: ["blog", "mdx", "publish"],
+        scope: "file",
+        priority: 68,
+        run: exportCurrentDocumentToBlogCommand,
+      },
+    ],
+    [exportCurrentDocumentToBlogCommand, importBlogDirectoryCommand],
+  );
+  const revertDocumentCommand = useStableCallback(() => {
+    revert();
+  });
+  const closeDocumentCommand = useStableCallback(() => {
+    return close();
+  });
   const commandRegistry = useMemo(
     () =>
       new CommandRegistry(
@@ -606,23 +824,25 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
           ...(engine.profile.commands ?? []),
           ...formattingCommands,
           aiPolishCommand,
+          ...blogCommands,
           ...workbenchCommands,
           ...createDocumentCommands({
-            newDocument: createNewDocument,
-            open: openFromDialog,
-            revert,
-            close,
+            newDocument: createNewDocumentCommand,
+            open: openDocumentCommand,
+            revert: revertDocumentCommand,
+            close: closeDocumentCommand,
           }),
         ],
       ),
     [
       aiPolishCommand,
-      close,
-      createNewDocument,
+      blogCommands,
+      closeDocumentCommand,
+      createNewDocumentCommand,
       engine.profile.commands,
       formattingCommands,
-      openFromDialog,
-      revert,
+      openDocumentCommand,
+      revertDocumentCommand,
       workbenchCommands,
     ],
   );
@@ -702,17 +922,97 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
     },
     [platform.assetUpload],
   );
+  const refreshWorkspacePlugins = useStableCallback(async () => {
+    if (!platform.fileTreeStore.isAvailable) {
+      setWorkspacePlugins([]);
+      setWorkspacePluginCheckState({
+        status: "idle",
+        message: "Workspace plugins require the desktop app",
+      });
+      return;
+    }
+
+    const workspace = engine.workspace;
+    if (!workspace) {
+      setWorkspacePlugins([]);
+      setWorkspacePluginCheckState({
+        status: "idle",
+        message: "Open a workspace file to inspect plugins",
+      });
+      return;
+    }
+
+    setWorkspacePluginCheckState({
+      status: "checking",
+      message: "Scanning workspace plugins",
+    });
+
+    try {
+      const plugins = await platform.pluginResolver.resolveWorkspacePlugins(
+        workspace.root,
+      );
+      setWorkspacePlugins(plugins);
+      setWorkspacePluginCheckState({
+        status: "success",
+        message:
+          plugins.length === 1
+            ? "1 workspace plugin found"
+            : `${plugins.length} workspace plugins found`,
+      });
+    } catch (error: unknown) {
+      setWorkspacePluginCheckState({
+        status: "error",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+  const setWorkspacePluginTrust = useStableCallback(
+    async (plugin: ResolvedPlugin, trusted: boolean) => {
+      setWorkspacePluginCheckState({
+        status: "checking",
+        message: trusted ? "Trusting plugin" : "Revoking plugin trust",
+      });
+
+      try {
+        await platform.pluginResolver.setWorkspacePluginTrust({
+          workspaceRoot: plugin.workspaceRoot,
+          packageId: plugin.packageId,
+          version: plugin.version,
+          bundleHash: plugin.bundleHash,
+          trusted,
+        });
+
+        const loadPath = sessionDocumentRef.current
+          ? (session.filePath ?? engine.workspace?.root ?? plugin.workspaceRoot)
+          : (engine.workspace?.root ?? plugin.workspaceRoot);
+        const loaded = await loadTrustedWorkspacePlugins(
+          loadPath,
+          platform.pluginResolver,
+        );
+        await engine.activateWorkspacePlugins(loaded.workspace, loaded.plugins);
+        await refreshWorkspacePlugins();
+        setStatus(trusted ? "Workspace plugin trusted" : "Workspace plugin trust revoked");
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        setWorkspacePluginCheckState({ status: "error", message });
+        setStatus(message);
+      }
+    },
+  );
+  useEffect(() => {
+    void refreshWorkspacePlugins();
+  }, [engine.workspace?.root, refreshWorkspacePlugins]);
   const runCommand = useCallback(
     (commandId: string) => {
       return commandRegistry
         .execute(commandId, {
-          document: session.document,
+          document: sessionDocumentRef.current,
           editor: activeEditorRef.current,
-          workspace: session.workspace,
+          workspace: sessionWorkspaceRef.current,
         })
         .catch((error: unknown) => setStatus(String(error)));
     },
-    [commandRegistry, session.document, session.workspace, setStatus],
+    [commandRegistry, sessionDocumentRef, sessionWorkspaceRef, setStatus],
   );
   const closeCommandPalette = useCallback(() => {
     setIsCommandPaletteOpen(false);
@@ -1179,6 +1479,41 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
       updateStoredDocumentStatus,
     ],
   );
+  // Keep sidebar props stable when save status changes in the editor session.
+  const handleFileTreeAction = useStableCallback(
+    (action: FileTreeMenuAction, node: FileTreeNode) => {
+      void runFileTreeAction(action, node);
+    },
+  );
+  const handleDraftAction = useStableCallback(
+    (action: FileTreeDraftAction, draft: FileTreeDraftItem) => {
+      void runDraftAction(action, draft);
+    },
+  );
+  const handleCreateNewDocument = useStableCallback(() => {
+    void createNewDocument();
+  });
+  const handleOpenDraft = useStableCallback((id: string) => {
+    void openStoredDocument(id);
+  });
+  const handleOpenFileTreePath = useStableCallback((path: string) => {
+    void openFileTreePath(path);
+  });
+  const handleOpenWorkspaceFolder = useStableCallback(() => {
+    void openWorkspaceFolder();
+  });
+  const handleRefreshFileTree = useStableCallback(() => {
+    refreshFileTree();
+  });
+  const handleRenamePath = useStableCallback((path: string, name: string) => {
+    void handleRename(path, name);
+  });
+  const openSettingsFromSidebar = useCallback(() => {
+    setIsSettingsOpen(true);
+  }, []);
+  const toggleThemeFromSidebar = useCallback(() => {
+    setTheme((current) => (current === "dark" ? "light" : "dark"));
+  }, []);
 
   const saveCurrentVersion = useCallback(
     (reason = "Manual snapshot") => {
@@ -1264,9 +1599,10 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
 
     for (const root of fileTreeRoots) {
       void platform.fileTreeStore
-        .watchTree(root, () => {
+        .watchTree(root, (changedPath) => {
           // Don't yank the tree out from under an in-progress inline rename.
           if (fileTreeRef.current?.editingId) return;
+          if (shouldSkipFileTreeRefresh(changedPath)) return;
           void loadFileTree(root);
         })
         .then((unwatch) => {
@@ -1285,7 +1621,12 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
         dispose();
       }
     };
-  }, [fileTreeRoots, loadFileTree, platform.fileTreeStore]);
+  }, [
+    fileTreeRoots,
+    loadFileTree,
+    platform.fileTreeStore,
+    shouldSkipFileTreeRefresh,
+  ]);
 
   useEffect(() => {
     setExpandedFolders((current) => {
@@ -1336,7 +1677,6 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [runCommand, saveNow]);
 
-  /*
   useEffect(() => {
     if (!isDocumentStartStateVisible) return;
 
@@ -1355,7 +1695,6 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
     window.addEventListener("paste", handlePaste);
     return () => window.removeEventListener("paste", handlePaste);
   }, [isDocumentStartStateVisible, pasteMarkdownIntoEmptyDocument]);
-  */
 
   useEffect(() => {
     return window.madinahWriter?.onWriterCommand((payload) => {
@@ -1366,15 +1705,37 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
     });
   }, [runCommand]);
 
-  const sidebarTools = (
-    <WriterSidebarTools
-      wordCount={formatWordCount(metrics.words)}
-      theme={theme}
-      onOpenSettings={() => setIsSettingsOpen(true)}
-      onToggleTheme={() =>
-        setTheme((current) => (current === "dark" ? "light" : "dark"))
-      }
-    />
+  useEffect(() => {
+    if (!window.madinahWriter) return undefined;
+
+    const handleContextMenu = (event: MouseEvent) => {
+      if (event.defaultPrevented) return;
+      if (!shouldOpenFallbackDevContextMenu(event.target)) return;
+
+      event.preventDefault();
+      void platform.windowAdapter.showContextMenu({
+        groups: [],
+        position: {
+          x: event.clientX,
+          y: event.clientY,
+        },
+      });
+    };
+
+    window.addEventListener("contextmenu", handleContextMenu);
+    return () => window.removeEventListener("contextmenu", handleContextMenu);
+  }, [platform.windowAdapter]);
+
+  const sidebarTools = useMemo(
+    () => (
+      <WriterSidebarTools
+        wordCount={formatWordCount(metrics.words)}
+        theme={theme}
+        onOpenSettings={openSettingsFromSidebar}
+        onToggleTheme={toggleThemeFromSidebar}
+      />
+    ),
+    [metrics.words, openSettingsFromSidebar, theme, toggleThemeFromSidebar],
   );
 
   return (
@@ -1449,16 +1810,16 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
                 roots={fileTreeRoots}
                 status={fileTreeStatus}
                 treeRef={fileTreeRef}
-                onAction={(action, node) => void runFileTreeAction(action, node)}
-                onDraftAction={(action, draft) => void runDraftAction(action, draft)}
-                onNewDocument={() => void createNewDocument()}
+                onAction={handleFileTreeAction}
+                onDraftAction={handleDraftAction}
+                onNewDocument={handleCreateNewDocument}
                 onNewFile={handleNewFile}
                 onNewFolder={handleNewFolder}
-                onOpenDraft={(id) => void openStoredDocument(id)}
-                onOpenFile={(path) => void openFileTreePath(path)}
-                onOpenFolder={() => void openWorkspaceFolder()}
-                onRefresh={refreshFileTree}
-                onRename={(path, name) => void handleRename(path, name)}
+                onOpenDraft={handleOpenDraft}
+                onOpenFile={handleOpenFileTreePath}
+                onOpenFolder={handleOpenWorkspaceFolder}
+                onRefresh={handleRefreshFileTree}
+                onRename={handleRenamePath}
                 onToggleDirectory={toggleFileTreeDirectory}
                 footer={sidebarTools}
               />
@@ -1469,7 +1830,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
                 expandedFolders={expandedFolders}
                 showsFileDetails={showsFileDetails}
                 onToggleFolder={toggleFolder}
-                onOpen={(id) => void openStoredDocument(id)}
+                onOpen={handleOpenDraft}
                 footer={sidebarTools}
               />
             )
@@ -1557,55 +1918,23 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
                       <MarkdownEditor
                         key={`${session.document.id}:${editorMode}`}
                         value={documentEditor.body}
-                        document={session.document}
-                        workspace={session.workspace}
-                        editorPlugins={engine.profile.editorPlugins ?? []}
+                        documentId={session.document.id}
+                        documentRef={sessionDocumentRef}
+                        workspaceRef={sessionWorkspaceRef}
+                        valueEpoch={session.contentEpoch}
+                        editorPlugins={
+                          engine.profile.editorPlugins ?? EMPTY_EDITOR_PLUGINS
+                        }
                         editorMode={editorMode}
                         commandRegistry={commandRegistry}
                         imageUploadHandler={imageUploadHandler}
                         autoFocus={
                           !shouldAutoFocusDocumentTitle(documentEditor.title)
                         }
-                        contextMenuItems={[
-                          {
-                            id: "ai-polish",
-                            label: "AI Polish",
-                            commandId: AI_POLISH_COMMAND_ID,
-                          },
-                          {
-                            id: "format-separator",
-                            type: "separator",
-                          },
-                          {
-                            id: "bold",
-                            label: "Bold",
-                            commandId: "editor.format.bold",
-                            requiresSelection: true,
-                          },
-                          {
-                            id: "italic",
-                            label: "Italic",
-                            commandId: "editor.format.italic",
-                            requiresSelection: true,
-                          },
-                          {
-                            id: "link",
-                            label: "Link",
-                            commandId: "editor.format.link",
-                            requiresSelection: true,
-                          },
-                          {
-                            id: "inline-code",
-                            label: "Inline Code",
-                            commandId: "editor.format.inlineCode",
-                            requiresSelection: true,
-                          },
-                        ]}
-                        onEditorReady={(editor) => {
-                          activeEditorRef.current = editor;
-                        }}
-                        onChange={changeDocumentBody}
-                        onError={(error) => setStatus(error)}
+                        contextMenuItems={EDITOR_CONTEXT_MENU_ITEMS}
+                        onEditorReady={handleEditorReady}
+                        onChange={handleEditorBodyChange}
+                        onError={handleEditorError}
                       />
                     </DocumentEditorShell>
                   ) : null}
@@ -1615,8 +1944,8 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
               <WriterEmptyState
                 status={status}
                 canOpenFolder={platform.fileTreeStore.isAvailable}
-                onNewDocument={() => void createNewDocument()}
-                onOpenFolder={() => void openWorkspaceFolder()}
+                onNewDocument={handleCreateNewDocument}
+                onOpenFolder={handleOpenWorkspaceFolder}
               />
             )}
           </section>
@@ -1684,18 +2013,27 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
             isOpen={isSettingsOpen}
             aiAvailable={platform.aiPolish.isAvailable}
             assetUploadAvailable={platform.assetUpload.isAvailable}
+            workspacePluginsAvailable={platform.fileTreeStore.isAvailable}
             profiles={engine.profiles}
             profileId={engine.profile.id}
+            workspace={engine.workspace}
+            workspacePlugins={workspacePlugins}
+            pluginDiagnostics={engine.diagnostics}
             acpSettings={acpSettings}
             assetSettings={assetSettings}
             acpCheckState={acpCheckState}
             assetCheckState={assetCheckState}
+            workspacePluginCheckState={workspacePluginCheckState}
             onClose={closeSettings}
             onSaveProfile={saveProfileSettings}
             onSaveAcp={saveAcpSettings}
             onCheckAcp={(config) => void checkAcpAgent(config)}
             onSaveAssets={(settings) => void saveAssetSettings(settings)}
             onCheckAssets={(settings) => void checkAssetSettings(settings)}
+            onRefreshWorkspacePlugins={() => void refreshWorkspacePlugins()}
+            onSetWorkspacePluginTrust={(plugin, trusted) =>
+              void setWorkspacePluginTrust(plugin, trusted)
+            }
           />
         </Suspense>
       ) : null}
@@ -1703,7 +2041,7 @@ function WriterSurface({ platform }: { platform: PlatformAdapters }) {
   );
 }
 
-function WriterSidebar({
+const WriterSidebar = memo(function WriterSidebar({
   tree,
   activeDocumentId,
   expandedFolders,
@@ -1745,7 +2083,7 @@ function WriterSidebar({
       {footer}
     </aside>
   );
-}
+});
 
 function QuickOpenDialog({
   query,
@@ -2110,19 +2448,6 @@ function getInitialTheme(): WriterTheme {
 }
 
 function DocumentStartState({ onStart }: { onStart: () => void }) {
-  /*
-  const handlePaste = useCallback(
-    (event: ReactClipboardEvent<HTMLDivElement>) => {
-      const markdown = getMarkdownTextFromClipboardData(event.clipboardData);
-      if (!markdown) return;
-
-      event.preventDefault();
-      onPasteMarkdown(markdown);
-    },
-    [onPasteMarkdown],
-  );
-  */
-
   return (
     <div className="document-start-state">
       <div className="document-start-copy">
@@ -2141,7 +2466,6 @@ function DocumentStartState({ onStart }: { onStart: () => void }) {
   );
 }
 
-/*
 function isEditablePasteTarget(element: Element | null): boolean {
   if (!(element instanceof HTMLElement)) return false;
   if (element.isContentEditable) return true;
@@ -2152,7 +2476,6 @@ function isEditablePasteTarget(element: Element | null): boolean {
     element.closest('[contenteditable="true"]') !== null
   );
 }
-*/
 
 function WriterEmptyState({
   canOpenFolder,
@@ -2287,6 +2610,31 @@ function scrollSearchMatchIntoView(query: string, occurrenceIndex: number) {
 
 function clearDocumentSearchHighlight() {
   clearActiveDocumentSearchMatch(document);
+}
+
+function shouldOpenFallbackDevContextMenu(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return true;
+
+  return (
+    target.closest(
+      [
+        "input",
+        "textarea",
+        "select",
+        "a",
+        '[contenteditable="true"]',
+        ".live-mdx-shell",
+        ".writer-sidebar",
+        ".writer-inspector",
+        ".document-search-bar",
+        ".quick-open-dialog",
+        ".writer-settings-dialog",
+        ".editor-context-menu",
+        ".file-tree-context-menu",
+        ".slash-command-menu",
+      ].join(","),
+    ) === null
+  );
 }
 
 function renderTreeNode({

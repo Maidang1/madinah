@@ -83,7 +83,9 @@ const api: MadinahWriterElectronApi = {
     return () => ipcRenderer.removeListener(WRITER_COMMAND_EVENT, listener);
   },
   onFileTreeChanged(callback) {
-    const listener = () => callback();
+    const listener = (_event: IpcRendererEvent, changedPath: unknown) => {
+      callback(typeof changedPath === "string" ? changedPath : undefined);
+    };
     ipcRenderer.on(FILE_TREE_CHANGED_EVENT, listener);
     return () => ipcRenderer.removeListener(FILE_TREE_CHANGED_EVENT, listener);
   },

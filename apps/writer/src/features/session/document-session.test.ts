@@ -140,6 +140,40 @@ describe("document session reducer", () => {
     expect(saved.lastSavedDocument?.body).toBe("# File update");
   });
 
+  it("keeps newer edits when a save persisted a stale snapshot", () => {
+    const opened = documentSessionReducer(createDocumentSession(), {
+      type: "openSucceeded",
+      document: documentFixture,
+      workspace: { root: "/tmp/project", profile: "gfm", plugins: [] },
+      filePath: "/tmp/project/original.md",
+    });
+
+    // Snapshot captured when the async save started.
+    const savedSnapshot = documentSessionReducer(opened, {
+      type: "changeSource",
+      source: "# First edit",
+      timestamp: "2026-06-27T12:00:00.000Z",
+    });
+    // User keeps typing while the write is in flight -> newer document.
+    const newer = documentSessionReducer(savedSnapshot, {
+      type: "changeSource",
+      source: "# First edit, then more",
+      timestamp: "2026-06-27T12:00:01.000Z",
+    });
+
+    const result = documentSessionReducer(newer, {
+      type: "saveSucceeded",
+      document: savedSnapshot.document!,
+      savedFrom: savedSnapshot.document!,
+    });
+
+    // The stale snapshot must not clobber the live editor content, and the
+    // session stays dirty so the newer content gets saved on the next pass.
+    expect(result.document?.body).toBe("# First edit, then more");
+    expect(result.isDirty).toBe(true);
+    expect(result.lastSavedDocument?.body).toBe("# First edit");
+  });
+
   it("clears the session when close is confirmed", () => {
     const opened = documentSessionReducer(createDocumentSession(), {
       type: "openSucceeded",
@@ -149,6 +183,58 @@ describe("document session reducer", () => {
     const closed = documentSessionReducer(opened, { type: "closeConfirmed" });
 
     expect(closed.document).toBeNull();
+  });
+
+  describe("contentEpoch (drives editor resets)", () => {
+    const workspace = { root: "/tmp/project", profile: "gfm", plugins: [] };
+    const opened = documentSessionReducer(createDocumentSession(), {
+      type: "openSucceeded",
+      document: documentFixture,
+      workspace,
+    });
+
+    it("bumps on external content replacement (open / restore / revert)", () => {
+      expect(opened.contentEpoch).toBe(1); // openSucceeded from epoch 0
+
+      const restored = documentSessionReducer(opened, {
+        type: "restoreDocument",
+        document: { ...documentFixture, body: "# Restored" },
+        timestamp: "2026-06-27T12:30:00.000Z",
+      });
+      expect(restored.contentEpoch).toBe(2);
+
+      const reverted = documentSessionReducer(restored, { type: "revert" });
+      expect(reverted.contentEpoch).toBe(3);
+
+      const reopened = documentSessionReducer(reverted, {
+        type: "openSucceeded",
+        document: documentFixture,
+        workspace,
+      });
+      expect(reopened.contentEpoch).toBe(4);
+    });
+
+    it("does NOT bump on user edits or saves (so the editor is not reset)", () => {
+      const changed = documentSessionReducer(opened, {
+        type: "changeSource",
+        source: "# Edited",
+        timestamp: "2026-06-27T12:00:00.000Z",
+      });
+      expect(changed.contentEpoch).toBe(opened.contentEpoch);
+
+      const metadata = documentSessionReducer(changed, {
+        type: "changeMetadata",
+        patch: { title: "New" },
+        timestamp: "2026-06-27T12:00:01.000Z",
+      });
+      expect(metadata.contentEpoch).toBe(opened.contentEpoch);
+
+      const saved = documentSessionReducer(changed, {
+        type: "saveSucceeded",
+        document: changed.document!,
+      });
+      expect(saved.contentEpoch).toBe(opened.contentEpoch);
+    });
   });
 });
 
