@@ -1,6 +1,11 @@
 # Releasing Writer
 
-How to cut a signed, notarized macOS release and publish it so the in-app updater picks it up. This is the process for an agent (or human) running locally on the maintainer's machine — releases are not built in CI.
+How to cut a signed, notarized macOS release and publish it so the in-app updater picks it up.
+
+Writer has two release paths:
+
+- GitHub Actions: `.github/workflows/writer-release.yml` builds a signed macOS draft release from a `v<version>` tag or manual workflow dispatch.
+- Local fallback: `scripts/distribute.sh` builds and publishes the same assets from a maintainer Mac.
 
 ## Pre-flight Checks
 
@@ -22,7 +27,9 @@ The authoritative version lives in `src-tauri/tauri.conf.json`. `scripts/distrib
 
 Use a patch bump for fixes and small improvements, a minor bump for new user-visible features. Major bumps are reserved for breaking changes or 1.0.
 
-Commit with a message like `Bump version to <version>`. Do not bundle other changes into the bump commit — it should be reviewable in isolation. **Do not push or tag manually** — the script does both.
+Commit with a message like `Bump version to <version>`. Do not bundle other changes into the bump commit so it stays reviewable in isolation.
+
+For the GitHub Actions path, push the release commit and then push `v<version>`, or run the workflow manually. For the local fallback path, let `scripts/distribute.sh` push and tag.
 
 ## Step 2 — Draft user-facing release notes
 
@@ -37,7 +44,32 @@ Guidelines for the drafted notes:
 
 The draft is not the final word — you'll review and can edit it directly on GitHub before publishing.
 
-## Step 3 — Run distribute.sh
+## Step 3 — Release
+
+### Option A: GitHub Actions
+
+Required repository secrets:
+
+- `APPLE_CERTIFICATE` — base64-encoded Developer ID Application `.p12`
+- `APPLE_CERTIFICATE_PASSWORD` — password for the `.p12`
+- `KEYCHAIN_PASSWORD` — temporary CI keychain password
+- `APPLE_ID` — Apple ID email
+- `APPLE_PASSWORD` — Apple app-specific password
+- `APPLE_TEAM_ID` — Apple team ID
+- `TAURI_SIGNING_PRIVATE_KEY` — private key for updater signatures
+- `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` — updater key password, empty if the key has none
+- `WRITER_RELEASE_TOKEN` — GitHub token with release write access to the updater endpoint repository when it differs from the workflow repository
+
+Run either:
+
+```sh
+git tag v<version>
+git push origin v<version>
+```
+
+Or trigger **Writer Release** from GitHub Actions and optionally provide short release notes. The workflow reads the updater endpoint in `src-tauri/tauri.conf.json`, publishes a draft GitHub Release to that repository, uploads the DMG, updater archive, signatures, and `latest.json`, then leaves the release in draft state for review.
+
+### Option B: Local fallback
 
 Run from the repo root, passing the notes file:
 
@@ -64,7 +96,7 @@ Expect the whole script to take several minutes — most of it is the cargo rele
 
 ## Step 4 — Review and publish on GitHub
 
-Open the draft URL printed by `distribute.sh`. Confirm:
+Open the draft release URL from the workflow summary or from `distribute.sh`. Confirm:
 
 - Three assets are attached: `Writer_<version>_aarch64.dmg`, `Writer.app.tar.gz`, `latest.json`.
 - The notes read well; edit them inline if needed.
@@ -88,8 +120,9 @@ Before publishing a fork-owned release, replace the updater `pubkey` in `src-tau
 - **You decide not to publish the draft.** Delete the draft on GitHub, then drop the tag: `git tag -d v<version> && git push origin :refs/tags/v<version>`.
 - **You realize mid-release that the version was wrong.** Stop. Revert is risky once the GH release exists. Ask the user before taking any destructive action.
 
-## What this doc deliberately does not cover
+## Current scope
 
-- Cross-platform releases (Windows, Linux, x86_64 macOS). The script and config are arm64-only today.
-- CI-driven releases. There is no GitHub Actions workflow for this — everything runs on the maintainer's machine because of the Apple signing requirement.
-- Rolling back a published release. There is no documented rollback procedure; if you need one, escalate to the user.
+- macOS arm64 is the supported release target.
+- GitHub Actions is the preferred release path when the required signing, notarization, updater, and release-token secrets are configured.
+- `scripts/distribute.sh` remains the local fallback for a maintainer Mac.
+- Rolling back a published release needs a separate written procedure and explicit maintainer approval.
