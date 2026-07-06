@@ -1,0 +1,274 @@
+import { useEffect, useRef, useState } from "react";
+import {
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "cmdk";
+import type { SearchResult } from "@/types/fs";
+import {
+  useCloseCommandPalette,
+  useCommandPaletteIntent,
+  useCommandPaletteSearch,
+  useIsCommandPaletteOpen,
+  useOpenCommandPalette,
+  useSetCommandPaletteSearch,
+} from "@/hooks/use-command-palette";
+import { useSidebar } from "@/hooks/use-sidebar";
+import { useIsCompactFileMode, useWorkspace } from "@/hooks/use-workspace";
+import {
+  useActiveFilePath,
+  useActiveTabId,
+  useCloseActiveTab,
+  useCloseTab,
+  useOpenFile,
+  useOpenSettingsTab,
+  useOpenTabs,
+} from "@/hooks/use-tabs";
+import {
+  useIsDocumentInspectorOpen,
+  useToggleDocumentInspector,
+} from "@/hooks/use-document-inspector";
+import { useTheme } from "@/hooks/use-theme";
+import { useFuzzySearch } from "./use-fuzzy-search";
+import { createCommandPaletteCommands, type CommandPaletteCommand } from "./commands";
+import { useGlobalRecentFiles } from "@/hooks/use-global-recent-files";
+import { openStandaloneFile } from "@/hooks/use-open-drop";
+import { hasMarkdownDocumentExtension } from "@/lib/document-extensions";
+import { getFileName, getFileStem, getParentDir } from "@/lib/paths";
+import * as tauri from "@/lib/tauri";
+import type { RecentFile } from "@/lib/tauri";
+
+function toCreatePath(root: string, rawName: string) {
+  const trimmed = rawName.trim();
+  const fileName = hasMarkdownDocumentExtension(trimmed) ? trimmed : `${trimmed}.md`;
+  return `${root}/${fileName}`;
+}
+
+function matchesSearch(text: string, q: string) {
+  return text.toLowerCase().includes(q.toLowerCase());
+}
+
+function HighlightedPath({ path, indices }: { path: string; indices: number[] }) {
+  const set = new Set(indices);
+  return (
+    <span>
+      {Array.from(path).map((char, i) => (
+        <span key={i} className={set.has(i) ? "text-link font-semibold" : undefined}>
+          {char}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+export function CommandPalette() {
+  const isOpen = useIsCommandPaletteOpen();
+  const close = useCloseCommandPalette();
+  const openCommandPalette = useOpenCommandPalette();
+  const intent = useCommandPaletteIntent();
+  const search = useCommandPaletteSearch();
+  const setSearch = useSetCommandPaletteSearch();
+  const { toggleSidebar } = useSidebar();
+  const { root, isIndexing, openWorkspace, closeWorkspace } = useWorkspace();
+  const openFile = useOpenFile();
+  const closeActiveTab = useCloseActiveTab();
+  const closeTab = useCloseTab();
+  const activeTabId = useActiveTabId();
+  const activeFilePath = useActiveFilePath();
+  const tabs = useOpenTabs();
+  const { toggleTheme } = useTheme();
+  const openSettingsTab = useOpenSettingsTab();
+  const isCompactFileMode = useIsCompactFileMode();
+  const isDocumentInspectorOpen = useIsDocumentInspectorOpen();
+  const toggleDocumentInspector = useToggleDocumentInspector();
+
+  const isCreateIntent = intent === "create-file";
+  const trimmedSearch = search.trim();
+  const fileQuery = isCreateIntent ? "" : search;
+  // Standalone compact windows have no workspace index — search filters the
+  // global recents list client-side instead of hitting fuzzy_search.
+  const results = useFuzzySearch(isCompactFileMode ? "" : fileQuery);
+  const { files: globalRecents } = useGlobalRecentFiles(30, isOpen && isCompactFileMode);
+  // In standalone mode new files are created next to the active file.
+  const createBaseDir = root ?? (activeFilePath ? getParentDir(activeFilePath) : null);
+  const createPath =
+    createBaseDir && trimmedSearch ? toCreatePath(createBaseDir, trimmedSearch) : null;
+
+  function handleSelect(path: string) {
+    void (isCompactFileMode ? openStandaloneFile(path) : openFile(path));
+    close();
+  }
+
+  function handleCreate() {
+    if (!createPath) return;
+
+    close();
+    void (async () => {
+      await tauri.createFile(createPath);
+      if (isCompactFileMode) {
+        await openStandaloneFile(createPath);
+      } else {
+        await openFile(createPath);
+      }
+    })();
+  }
+
+  async function handleOpenWorkspace() {
+    const picked = await tauri.pickWorkspace();
+    if (picked) {
+      // Standalone compact windows stay pure — workspaces open elsewhere.
+      if (isCompactFileMode) {
+        await tauri.openWorkspaceInNewWindow(picked);
+      } else {
+        await openWorkspace(picked);
+      }
+    }
+    close();
+  }
+
+  const commands: CommandPaletteCommand[] = createCommandPaletteCommands({
+    root,
+    isCompactFileMode,
+    activeFilePath,
+    activeTabId,
+    tabs,
+    isDocumentInspectorOpen,
+    toggleSidebar,
+    openCreateFileIntent: () => openCommandPalette("create-file"),
+    openFileInCompactWindow: (path) => {
+      void tauri.openFileInStandaloneWindow(path);
+    },
+    toggleDocumentInspector,
+    closeActiveTab,
+    closeTab,
+    openWorkspace: () => void handleOpenWorkspace(),
+    closeWorkspace,
+    toggleTheme,
+    openSettings: openSettingsTab,
+    closePalette: close,
+  });
+
+  const visibleFiles: SearchResult[] =
+    !isCreateIntent && trimmedSearch && !isCompactFileMode ? results : [];
+  const visibleRecents: RecentFile[] =
+    !isCreateIntent && isCompactFileMode && trimmedSearch
+      ? globalRecents.filter(
+          (entry) =>
+            matchesSearch(entry.title ?? "", trimmedSearch) ||
+            matchesSearch(entry.name, trimmedSearch) ||
+            matchesSearch(entry.path, trimmedSearch),
+        )
+      : [];
+  const visibleCommands = isCreateIntent
+    ? []
+    : trimmedSearch
+      ? commands.filter((c) => matchesSearch(c.label, trimmedSearch))
+      : commands;
+  const firstValue =
+    visibleCommands[0]?.id ?? visibleFiles[0]?.path ?? visibleRecents[0]?.path ?? "";
+
+  const listRef = useRef<HTMLDivElement>(null);
+  const [selectedValue, setSelectedValue] = useState(firstValue);
+
+  // Snap selection + scroll to the first item whenever the search/intent
+  // changes, or when async file results arrive and the first item shifts.
+  // firstValue is a primitive, so this is stable across renders.
+  // selectedValue is also set by cmdk onValueChange (keyboard nav) and this effect also scrolls the list — not pure derived state.
+  /* eslint-disable react-doctor/no-derived-state */
+  useEffect(() => {
+    setSelectedValue(firstValue);
+    listRef.current?.scrollTo({ top: 0 });
+  }, [search, intent, firstValue]);
+  /* eslint-enable react-doctor/no-derived-state */
+
+  const placeholder = isCreateIntent ? "Create a new note..." : "Search...";
+
+  return (
+    <CommandDialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) close();
+      }}
+      label="Command Palette"
+      shouldFilter={false}
+      value={selectedValue}
+      onValueChange={setSelectedValue}
+    >
+      <CommandInput placeholder={placeholder} value={search} onValueChange={setSearch} />
+      <CommandList ref={listRef}>
+        {isCreateIntent ? (
+          <>
+            {!trimmedSearch && <CommandEmpty>Type a note name to create it.</CommandEmpty>}
+            {createPath && (
+              <CommandGroup heading="Create note">
+                <CommandItem value={createPath} onSelect={handleCreate}>
+                  Create: {getFileName(createPath)}
+                </CommandItem>
+              </CommandGroup>
+            )}
+          </>
+        ) : (
+          <>
+            {visibleFiles.length === 0 &&
+              visibleRecents.length === 0 &&
+              visibleCommands.length === 0 && (
+                <CommandEmpty>
+                  {isIndexing && trimmedSearch && !isCompactFileMode
+                    ? "Indexing workspace..."
+                    : "No results found."}
+                </CommandEmpty>
+              )}
+
+            {(visibleFiles.length > 0 ||
+              visibleRecents.length > 0 ||
+              visibleCommands.length > 0) && (
+              <CommandGroup
+                heading={
+                  trimmedSearch ? (isIndexing ? "Results (indexing...)" : "Results") : "Suggested"
+                }
+              >
+                {visibleCommands.map((c) => (
+                  <CommandItem key={c.id} value={c.id} onSelect={c.run}>
+                    <div className="flex flex-col">
+                      <span>{c.label}</span>
+                      <span className="text-[13px] text-text-muted">{c.description}</span>
+                    </div>
+                  </CommandItem>
+                ))}
+
+                {visibleFiles.map((r) => (
+                  <CommandItem key={r.path} value={r.path} onSelect={() => handleSelect(r.path)}>
+                    <div className="flex min-w-0 flex-col">
+                      <span className="truncate">{getFileName(r.path)}</span>
+                      <span className="truncate text-[13px] text-text-muted">
+                        <HighlightedPath path={r.relative_path} indices={r.match_indices} />
+                      </span>
+                    </div>
+                  </CommandItem>
+                ))}
+
+                {visibleRecents.map((entry) => (
+                  <CommandItem
+                    key={entry.path}
+                    value={entry.path}
+                    onSelect={() => handleSelect(entry.path)}
+                  >
+                    <div className="flex min-w-0 flex-col">
+                      <span className="truncate">{entry.title || getFileStem(entry.name)}</span>
+                      <span className="truncate text-[13px] text-text-muted">
+                        {getParentDir(entry.path)}
+                      </span>
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+          </>
+        )}
+      </CommandList>
+    </CommandDialog>
+  );
+}

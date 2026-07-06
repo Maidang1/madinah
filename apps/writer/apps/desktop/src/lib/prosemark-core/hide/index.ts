@@ -1,0 +1,118 @@
+import { Decoration } from "@codemirror/view";
+import { type HidableNodeSpec, hidableNodeFacet, hideInlineDecoration } from "./core";
+import type { InlineContext, MarkdownConfig } from "@lezer/markdown";
+import { markdownTags } from "../markdown/tags";
+import { stateWORDAt } from "../utils";
+
+export { hideExtension } from "./core";
+
+const renderedLinkDecoration = Decoration.mark({
+  class: "cm-rendered-link",
+});
+const inlineCodeDecoration = Decoration.mark({
+  class: "cm-inline-code",
+});
+const emphasisDecoration = Decoration.mark({
+  class: "cm-emphasis",
+});
+const strikethroughDecoration = Decoration.mark({
+  class: "cm-strikethrough",
+});
+
+const defaultHidableSpecs: HidableNodeSpec[] = [
+  {
+    nodeName: (name) => name.startsWith("ATXHeading"),
+    onHide: (_view, node) => {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const headerMark = node.node.firstChild!;
+      return hideInlineDecoration.range(headerMark.from, Math.min(headerMark.to + 1, node.to));
+    },
+  },
+  {
+    nodeName: (name) => name.startsWith("SetextHeading"),
+    subNodeNameToHide: "HeaderMark",
+    block: true,
+  },
+  {
+    // Same shape as the `InlineCode` spec below: a `nodeDecoration` wrapper
+    // on the parent range plus `subNodeNameToHide` for the inner marks. The
+    // wrapper gives the emphasized span a stable inline click target so
+    // position resolution behaves the same way `cm-inline-code` does,
+    // instead of CodeMirror resolving clicks into the zero-width
+    // hidden-mark spans on the bare emphasized text. Bold and italic share
+    // a single combined spec and a single wrapper class so the rendered DOM
+    // (and resulting line-wrap / hanging-indent behavior) is identical for
+    // both.
+    nodeName: ["StrongEmphasis", "Emphasis"],
+    nodeDecoration: emphasisDecoration,
+    subNodeNameToHide: "EmphasisMark",
+    // Replace-based hide so `**`/`*` marks are absent from the visible DOM
+    // instead of `font-size: 0`. The collapsed-rect quirk that `font-size: 0`
+    // triggers in `coordsAtPos` measurements also destabilizes the rects
+    // `drawSelection` computes during pointer-drag selections, producing a
+    // one-frame disappearance of `.cm-selectionBackground` as the drag head
+    // crosses a hidden span — most visible on bullet-list lines where atomic
+    // bullet/spacer skips keep the head near hidden-mark boundaries. See the
+    // 2026-05-18 wrapped-bullet `softIndentExtension` entry for the same
+    // root cause documented from a different angle.
+    removeFromDOM: true,
+  },
+  {
+    nodeName: "InlineCode",
+    nodeDecoration: inlineCodeDecoration,
+    subNodeNameToHide: "CodeMark",
+  },
+  {
+    nodeName: "Link",
+    subNodeNameToHide: ["LinkMark", "URL"],
+    onHide: (_state, node) => {
+      return renderedLinkDecoration.range(node.from, node.to);
+    },
+  },
+  {
+    nodeName: "Strikethrough",
+    nodeDecoration: strikethroughDecoration,
+    subNodeNameToHide: "StrikethroughMark",
+    removeFromDOM: true,
+  },
+  {
+    nodeName: "Escape",
+    subNodeNameToHide: "EscapeMark",
+    unhideZone: (state, node) => {
+      const WORDAt = stateWORDAt(state, node.from);
+      if (WORDAt && WORDAt.to > node.from + 1) return WORDAt;
+      return state.doc.lineAt(node.from);
+    },
+  },
+  {
+    nodeName: "FencedCode",
+    subNodeNameToHide: ["CodeMark", "CodeInfo"],
+    keepSpace: true,
+  },
+  {
+    nodeName: "Blockquote",
+    subNodeNameToHide: "QuoteMark",
+    keepSpace: true,
+  },
+];
+
+export const defaultHideExtensions = defaultHidableSpecs.map((spec) => hidableNodeFacet.of(spec));
+
+export const escapeMarkdownSyntaxExtension: MarkdownConfig = {
+  defineNodes: [
+    {
+      name: "EscapeMark",
+      style: markdownTags.escapeMark,
+    },
+  ],
+  parseInline: [
+    {
+      name: "EscapeMark",
+      parse: (cx: InlineContext, next: number, pos: number): number => {
+        if (next !== 92 /* \ */) return -1;
+        return cx.addElement(cx.elt("Escape", pos, pos + 2, [cx.elt("EscapeMark", pos, pos + 1)]));
+      },
+      before: "Escape",
+    },
+  ],
+};

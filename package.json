@@ -7,15 +7,10 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "writer:dev": "pnpm --filter writer dev",
-    "writer:build": "pnpm --filter writer build",
-    "writer:test": "pnpm --filter writer test",
-    "writer:electron:build": "pnpm --filter writer electron:build",
-    "upload-worker:dev": "pnpm --filter writer-upload-worker dev",
-    "upload-worker:deploy": "pnpm --filter writer-upload-worker deploy",
-    "upload-worker:test": "pnpm --filter writer-upload-worker test",
-    "upload-worker:typecheck": "pnpm --filter writer-upload-worker typecheck",
-    "upload-worker:types": "pnpm --filter writer-upload-worker types"
+    "writer:dev": "pnpm --dir apps/writer dev",
+    "writer:build": "pnpm --dir apps/writer exec vp run desktop#build",
+    "writer:test": "pnpm --dir apps/writer exec vp test",
+    "writer:tauri": "pnpm --dir apps/writer --filter desktop tauri"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^12.6.12",

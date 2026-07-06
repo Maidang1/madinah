@@ -1,0 +1,9 @@
+{
+  "accent": "#FF6A00",
+  "background": "#111111",
+  "foreground": "#FCFCFC",
+  "ui-font": "-apple-system-body, ui-sans-serif, -apple-system, system-ui, \"Segoe UI\", Helvetica, \"Apple Color Emoji\", Arial, sans-serif, \"Segoe UI Emoji\", \"Segoe UI Symbol\"",
+  "editor-font": "-apple-system-body, ui-sans-serif, -apple-system, system-ui, \"Segoe UI\", Helvetica, \"Apple Color Emoji\", Arial, sans-serif, \"Segoe UI Emoji\", \"Segoe UI Symbol\"",
+  "translucent": 20,
+  "contrast": 16
+}

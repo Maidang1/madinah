@@ -1,34 +1,110 @@
-# Repository Guidelines
+---
+title: AGENTS
+---
 
-## Project Structure & Module Organization
+Writer is a Tauri v2 desktop markdown editor: React frontend + Rust backend. It targets writers who use local-first plain-text workflows (Obsidian vaults, docs repos, personal wikis).
 
-This is the Madinah Writer desktop app, built with React, Rsbuild, TypeScript, Tailwind, and Electron. Frontend code lives in `src/`: `App.tsx` composes the workbench, `features/` holds editor, command, session, search, outline, history, file-tree, and AI-polish flows, `domain/` holds shared document and engine types, `platform/` separates browser and Electron adapters, `lib/` contains Markdown/MDX utilities, and `styles/app.css` owns app and preview styling. Electron main and preload code lives in `electron/`, with Node backend tests beside the backend implementation. Builder icons and app resources live in `buildResources/` and `public/`.
+## This File
 
-## Build, Test, and Development Commands
+This is an **agent router**: concise context loaded every session. It routes the agent to relevant docs based on task intent. Deep guidelines, system rules, and review rubrics live in linked docs — not here.
 
-- `pnpm dev`: start the Electron/Rsbuild development shell.
-- `pnpm build`: run `tsc --noEmit` and `electron-rsbuild build`.
-- `pnpm test`: run Vitest once.
-- `pnpm electron:build`: build the macOS app bundle with electron-builder.
+## Architecture (Brief)
 
-When local pnpm policy blocks scripts, use repo-local binaries: `./node_modules/.bin/vitest run`, `./node_modules/.bin/tsc --noEmit`, `./node_modules/.bin/electron-rsbuild build`, and `./node_modules/.bin/electron-builder --mac`.
+Stack: Tauri v2 (React + Rust)
+Frontend: `apps/desktop/src/` — React, Zustand stores, CodeMirror/Prosemark editor
+Backend: `apps/desktop/src-tauri/src/` — Rust IPC commands, file watcher, workspace state
+Toolchain: Vite+ (`vp`) — see [docs/vite-plus.md](./docs/vite-plus.md)
 
-## Coding Style & Naming Conventions
+Rust source structure:
 
-Use strict TypeScript, ES modules, React function components, and 2-space indentation for TS/TSX/CSS/JSON. Electron main and preload outputs are CommonJS because the app package uses `"type": "module"`. Name React components in `PascalCase`, hooks as `useSomething`, tests as `*.test.ts` or `*.test.tsx`, and feature folders by product area, such as `features/session` or `features/file-tree`. Keep command IDs stable and dotted, for example `document.saveAs`.
+- `lib.rs` — app setup, plugin registration, command registration
+- `state.rs` — global app state (workspace root, file index, watcher handle)
+- `error.rs` — error types serialized over IPC
+- `watcher.rs` — file system watcher with debounce and self-write detection
+- `commands/` — Tauri IPC handlers: `fs.rs`, `workspace.rs`, `search.rs`, `images.rs`
 
-## Testing Guidelines
+## Docs Index
 
-Vitest is configured in `vitest.config.ts` with `globals: true` and `environment: "node"`. Place focused tests next to the code they cover in `src/lib`, `src/domain`, `src/styles`, feature folders, or `electron/main`. Add Node backend tests when behavior crosses Electron IPC, filesystem, workspace, assets, or ACP boundaries.
+All docs except CLAUDE.md, AGENTS.md, TODOS.md, and CHANGELOG.md live in `./docs/`. Feature specs live in `./SPECs/`.
 
-## Commit & Pull Request Guidelines
+**Workflow**
 
-Recent history uses short Conventional Commit-style subjects, commonly `feat: ...`, `feat(writer): ...`, and `style: ...`. Keep commits scoped to one behavior or cleanup. Pull requests should include the user-facing change, touched areas, validation commands, linked issue or task, and screenshots for UI or preview changes.
+- [docs/workflows/agent-loop.md](./docs/workflows/agent-loop.md) — repeatable autonomous task execution loop
+- [docs/workflows/agent-review.md](./docs/workflows/agent-review.md) — review personas, findings format, quality checklist, escalation rules
+- [docs/workflows/worktrees.md](./docs/workflows/worktrees.md) — creating and managing parallel worktrees
 
-## Agent-Specific Rendering Rules
+**Guidelines**
 
-Light mode chrome and rendered Markdown/MDX must keep the Madinah blog warm reader palette. Use the blog `reader-*` tokens from `/Users/bytedance/codes/myself/madinah/src/styles/global.css`, preserve the Jinkai font loaded by `index.html`, and keep `src/styles/app.css` as the writer-side alignment point. Before changing preview rendering, compare against the real blog surface under `/Users/bytedance/codes/myself/madinah/src`.
+- [docs/consolidation.md](./docs/consolidation.md) — if adding the next case touches more than one file, the structure is wrong: single source of truth, side-effect ownership, registry over per-case branches, one write path
+- [docs/react-guidelines.md](./docs/react-guidelines.md) — imports, state, side effects, component structure, persistence
+- [docs/zustand.md](./docs/zustand.md) — side effect timing, selectors, bail-out patterns
+- [docs/editor.md](./docs/editor.md) — CodeMirror layout-model APIs, scroll-handler ownership, block-widget patterns (decoration shape, range-select to enter edit mode, posAtDOM boundary handling, button focus race, scrollSnapshot for heightmap shifts)
+- [docs/vite-plus.md](./docs/vite-plus.md) — `vp` CLI usage and common pitfalls
+- [docs/keyboard-shortcuts.md](./docs/keyboard-shortcuts.md) — canonical shortcut map
 
-## Editor Command & Slash Rules
+**Infra**
 
-Editor insertion flows should reuse the ordinary `WriterCommand` surface, especially `editor.insert.*`, so command palette, menus, slash actions, and plugin contributions stay aligned. The editor core is CodeMirror 6 with Writer-owned Markdown decorations; keep Markdown source as the editor truth and expose behavior through the `WriterEditor` adapter. Slash-triggered insertion in rich text should replace the active `/query` range in CodeMirror state while still flowing through `onChange`; DOM `Range`, `execCommand`, and raw rich-text insertion are brittle for Markdown block syntax. Keyboard handling for the slash menu should run on the editor shell capture phase, with ArrowUp, ArrowDown, Enter, and Escape handled before CodeMirror keymaps. Keep document-level AI polish on the editor context menu, while slash remains focused on fast writing inserts and lightweight inline formatting.
+- [docs/releasing.md](./docs/releasing.md) — how to cut a signed, notarized macOS release
+
+**Cross-cutting**
+
+- [TODOS.md](./TODOS.md) — task backlog and work-in-progress tracking
+- [CHANGELOG.md](./CHANGELOG.md) — user-visible changes log
+- [SPECs/](./SPECs/) — human-written feature and bug specs
+
+## Hard Rules
+
+- Check [`TODOS.md`](./TODOS.md) before starting work to see current tasks.
+- Move tasks between sections (Up Next → In Progress → Done) as you work.
+- For non-trivial work, create a spec in [`SPECs/`](./SPECs/) and link it from the task.
+- Update [`CHANGELOG.md`](./CHANGELOG.md) when completing work.
+- Load only docs relevant to the current task and scope.
+- If a behavior or rule changes in practice, update the owning doc in the same task.
+- In autonomous/loop mode, complete exactly one task at a time and commit immediately. Do not batch unless the user explicitly asks.
+- When coding or reviewing, follow the Engineering Guardrails below and the guidelines in linked docs.
+
+## Engineering Guardrails
+
+- Prefer the smallest change that is correct, robust, and easy to reason about.
+- Avoid fragile logic, hidden coupling, edge-case traps, and assumptions about incidental execution order.
+- Keep async flows and shared state race-safe. Use explicit sequencing, cancellation, idempotency, or clear ownership where needed.
+- Do not introduce unnecessary performance regressions. Avoid extra renders, allocations, subscriptions, scans, blocking work, or I/O unless clearly justified.
+- Fail explicitly. Surface invalid states and unexpected errors clearly instead of silently swallowing them or masking them with fallback behavior.
+- Preserve testability. Keep side effects at the boundaries, make dependencies explicit, and structure logic so it can be exercised in isolation when practical.
+- Maintain clear boundaries, but prefer minimal designs. Split functions, hooks, or modules when responsibilities meaningfully diverge, not as a reflex.
+- If a tradeoff is unavoidable, call it out explicitly and choose the option with the lowest long-term correctness and maintenance risk.
+- When a fix doesn't work after one iteration, add a debug log before changing the approach again. Don't iterate on guesses — let the runtime tell you which term in the math is wrong.
+
+## Validation
+
+Frontend:
+
+- `vp check` — format, lint, and TypeScript type checks
+- `vp test` — JavaScript/TypeScript tests
+
+Rust (from `apps/desktop/src-tauri/`):
+
+- `cargo test`
+- `cargo clippy`
+- `cargo fmt --check`
+
+## Session Wrap
+
+Wrap per [agent-loop.md](./docs/workflows/agent-loop.md). One commit per completed task with a clear message. See the existing commit history for style.
+
+<!--VITE PLUS START-->
+
+# Using Vite+, the Unified Toolchain for the Web
+
+This project is using Vite+, a unified toolchain built on top of Vite, Rolldown, Vitest, tsdown, Oxlint, Oxfmt, and Vite Task. Vite+ wraps runtime management, package management, and frontend tooling in a single global CLI called `vp`. Vite+ is distinct from Vite, and it invokes Vite through `vp dev` and `vp build`. Run `vp help` to print a list of commands and `vp <command> --help` for information about a specific command.
+
+Docs are local at `node_modules/vite-plus/docs` or online at https://viteplus.dev/guide/.
+
+## Review Checklist
+
+- [ ] Run `vp install` after pulling remote changes and before getting started.
+- [ ] Run `vp check` and `vp test` to format, lint, type check and test changes.
+- [ ] Check if there are `vite.config.ts` tasks or `package.json` scripts necessary for validation, run via `vp run <script>`.
+- [ ] If setup, runtime, or package-manager behavior looks wrong, run `vp env doctor` and include its output when asking for help.
+
+<!--VITE PLUS END-->
