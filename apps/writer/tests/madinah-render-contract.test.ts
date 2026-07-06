@@ -9,6 +9,7 @@ const prosemarkCss = readFileSync(
   resolve(appRoot, "src/components/editor-area/prosemark-theme.css"),
   "utf8",
 );
+const readerThemeCss = readFileSync(resolve(appRoot, "../../shared/reader-theme.css"), "utf8");
 const settingsSchema = JSON.parse(
   readFileSync(resolve(appRoot, "shared/settings.schema.json"), "utf8"),
 ) as { settings: Array<{ key: string; default: unknown }> };
@@ -23,13 +24,14 @@ function settingDefault(key: string) {
 describe("Madinah render contract", () => {
   test("loads the local Jinkai font bundle used by the reader font stack", () => {
     expect(appCss).toContain('@import "./assets/fonts/jinkai/jinkai.css";');
-    expect(appCss).toMatch(/--reader-font:\s*"TsangerJinKai02"/);
+    expect(appCss).toContain('@import "../../../shared/reader-theme.css";');
+    expect(readerThemeCss).toMatch(/--reader-font:\s*"TsangerJinKai02"/);
     expect(existsSync(resolve(appRoot, "src/assets/fonts/jinkai/jinkai.css"))).toBe(true);
   });
 
   test("keeps the editor column and paragraph rhythm aligned to the Astro post content", () => {
-    expect(appCss).toContain("--reader-content-width: 780px;");
-    expect(appCss).toContain("--reader-page: #f5f4ed;");
+    expect(readerThemeCss).toContain("--reader-content-width: 780px;");
+    expect(readerThemeCss).toContain("--reader-page: rgb(245, 244, 237);");
     expect(appCss).toContain("--writer-editor-max-width: var(--reader-content-width);");
     expect(appCss).toContain("--writer-editor-font-size: var(--reader-content-font-size);");
     expect(appCss).toContain("--writer-editor-line-height: var(--reader-content-line-height);");

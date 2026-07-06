@@ -1,0 +1,40 @@
+:root {
+  --reader-width: 900px;
+  --reader-post-width: 1120px;
+  --reader-content-width: 780px;
+  --reader-toc-width: 148px;
+  --reader-font:
+    "TsangerJinKai02", "STKaiti", "KaiTi", "Kaiti SC", "Songti SC", -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --reader-page: rgb(245, 244, 237);
+  --reader-paper: rgb(255, 255, 255);
+  --reader-ink: rgba(36, 41, 47, 0.9);
+  --reader-muted: rgb(80, 88, 98);
+  --reader-soft: rgb(201, 206, 212);
+  --reader-code: rgb(247, 244, 255);
+  --reader-code-border: rgb(225, 217, 247);
+  --reader-code-text: rgb(93, 70, 168);
+  --reader-code-block: rgb(21, 20, 27);
+  --reader-code-block-text: rgb(237, 236, 238);
+  --reader-content-font-size: 16.15px;
+  --reader-content-line-height: 1.76;
+  --reader-content-letter-spacing: 0.42px;
+  --reader-h1-size: 28.9px;
+  --reader-h2-size: 27.2px;
+  --reader-h3-size: 21.25px;
+  --reader-h4-size: 18.7px;
+  --reader-h5-size: 16.15px;
+  --reader-h6-size: 14.45px;
+}
+
+.dark,
+[data-theme="dark"] {
+  --reader-page: rgb(29, 30, 32);
+  --reader-paper: rgb(46, 46, 51);
+  --reader-ink: rgb(218, 218, 219);
+  --reader-muted: rgb(176, 177, 178);
+  --reader-soft: rgb(87, 88, 92);
+  --reader-code: rgb(55, 56, 62);
+  --reader-code-border: rgb(78, 75, 92);
+  --reader-code-text: rgb(196, 184, 255);
+}

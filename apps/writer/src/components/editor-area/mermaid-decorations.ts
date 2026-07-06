@@ -1,9 +1,12 @@
-import { Decoration, EditorView, ViewPlugin, ViewUpdate, WidgetType } from "@codemirror/view";
-import { syntaxTree } from "@codemirror/language";
-import { foldableSyntaxFacet } from "@/lib/prosemark-core/main";
+import { EditorView, WidgetType } from "@codemirror/view";
 import { renderMermaid } from "./mermaid-renderer";
 import { MERMAID_CANVAS_HEIGHT, MermaidCanvasHandle, mountMermaidCanvas } from "./mermaid-canvas";
 import { openMermaidFullscreen } from "./mermaid-fullscreen";
+import {
+  createFencedCodeRendererExtension,
+  findEnclosingFencedCode,
+  type FencedCodeBlock,
+} from "./fenced-code-renderers";
 import "./mermaid-canvas.css";
 
 // Outer widget padding (top + bottom). `mermaid-canvas.css` splits this
@@ -97,23 +100,6 @@ class MermaidWidget extends WidgetType {
 }
 
 /**
- * Find the FencedCode node enclosing the position of `host` in the document.
- *
- * `posAtDOM` for a Decoration.replace widget that covers `[node.from, node.to]`
- * resolves at the boundary; we try side=-1 first and fall back to side=1.
- */
-function findEnclosingFencedCode(view: EditorView, host: HTMLElement) {
-  const pos = view.posAtDOM(host);
-  const tree = syntaxTree(view.state);
-  for (const side of [-1, 1] as const) {
-    let node = tree.resolveInner(pos, side);
-    while (node.name !== "FencedCode" && node.parent) node = node.parent;
-    if (node.name === "FencedCode") return node;
-  }
-  return null;
-}
-
-/**
  * Dispatch a transaction on the outer view replacing the *entire fence*
  * (opening marker, info string, body, closing marker) with `next`. Position
  * is resolved live from the syntax tree at call time, so it stays correct
@@ -137,85 +123,15 @@ function writeFenceText(view: EditorView, host: HTMLElement, next: string): void
   });
 }
 
-/**
- * Extract info string and code content for a FencedCode node. Lezer's tree:
- *   FencedCode → CodeMark, CodeInfo, CodeText, CodeMark
- * Multiple CodeText children can occur (e.g. blockquoted fences); we
- * concatenate their slices.
- */
-function parseFencedCode(
-  state: { doc: { sliceString(from: number, to: number): string } },
-  node: {
-    node: {
-      firstChild: {
-        name: string;
-        from: number;
-        to: number;
-        nextSibling: typeof node.node.firstChild;
-      } | null;
-    };
+const mermaidRenderer = {
+  matches: (info: string) => info.trim().toLowerCase().startsWith("mermaid"),
+  createWidget: (block: FencedCodeBlock) => {
+    const body = block.source.trim();
+    if (!body) return null;
+    return new MermaidWidget(body, block.fenceText);
   },
-): { info: string; source: string } | undefined {
-  let info = "";
-  let source = "";
-
-  let child = node.node.firstChild;
-  while (child) {
-    if (child.name === "CodeInfo") {
-      info = state.doc.sliceString(child.from, child.to);
-    } else if (child.name === "CodeText") {
-      source += state.doc.sliceString(child.from, child.to);
-    }
-    child = child.nextSibling;
-  }
-
-  if (!info) return undefined;
-  return { info, source };
-}
-
-const mermaidFoldExtension = foldableSyntaxFacet.of({
-  nodePath: "FencedCode",
-  keepDecorationOnUnfold: true,
-  buildDecorations: (state, node) => {
-    const parsed = parseFencedCode(state, node);
-    if (!parsed) return undefined;
-
-    if (!parsed.info.trim().toLowerCase().startsWith("mermaid")) return undefined;
-
-    const body = parsed.source.trim();
-    if (!body) return undefined;
-
-    const fenceText = state.doc.sliceString(node.from, node.to);
-    const widget = new MermaidWidget(body, fenceText);
-    // Always replace the entire fence with the rendered canvas. Editing
-    // happens inside the canvas (a nested editor panel), not by exposing
-    // the underlying markdown via selection — so there's no preview/edit
-    // decoration switch.
-    return Decoration.replace({ widget, block: true, inclusiveStart: true }).range(
-      node.from,
-      node.to,
-    );
-  },
-});
-
-/**
- * Workaround: foldExtension only rebuilds on docChanged/selection, not on syntax
- * tree progression. When the incremental parser finishes after initial load, folds
- * stay stale. This plugin detects tree changes and nudges a rebuild.
- * (Same pattern as table-decorations.ts)
- */
-const foldTreeSync = ViewPlugin.fromClass(
-  class {
-    update(update: ViewUpdate) {
-      if (!update.docChanged && syntaxTree(update.state) !== syntaxTree(update.startState)) {
-        setTimeout(() => {
-          update.view.dispatch({ selection: update.view.state.selection });
-        });
-      }
-    }
-  },
-);
+};
 
 export function mermaidDecorations() {
-  return [mermaidFoldExtension, foldTreeSync];
+  return createFencedCodeRendererExtension([mermaidRenderer]);
 }
