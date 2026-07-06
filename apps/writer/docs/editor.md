@@ -1,6 +1,6 @@
 # Editor Notes
 
-Patterns and gotchas for the CodeMirror editor in `apps/desktop/src/components/editor-area/`. Each rule earned its place by costing real time. Apply them when extending or reviewing editor code.
+Patterns and gotchas for the CodeMirror editor in `src/components/editor-area/`. Each rule earned its place by costing real time. Apply them when extending or reviewing editor code.
 
 ## Use the layout model, not the rendered DOM, for positions
 
@@ -41,7 +41,7 @@ When the scrollable element is an ancestor:
 - Scroll it yourself with `scroller.scrollTo({ top, behavior: "auto" })`. `behavior: "smooth"` is async and gets interrupted by rapid keystrokes (e.g. Cmd+G held down).
 - Account for `clientTop` if the ancestor has a border (Writer's container has a 12px transparent border-top to give the mask gradient room).
 
-Reference: `EditorView.scrollHandler.of((view, range) => …)` in `apps/desktop/src/components/editor-area/use-prosemark-editor.ts`.
+Reference: `EditorView.scrollHandler.of((view, range) => …)` in `src/components/editor-area/use-prosemark-editor.ts`.
 
 ## Block widgets: pick the decoration shape
 

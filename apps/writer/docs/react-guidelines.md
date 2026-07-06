@@ -2,7 +2,7 @@
 
 ## Import Conventions
 
-- Use `@/` absolute imports for cross-directory imports within `apps/desktop/src/`. The alias `@` maps to `apps/desktop/src/`.
+- Use `@/` absolute imports for cross-directory imports within `src/`. The alias `@` maps to `src/`.
   - Example: `import { useEditorStore } from "@/stores/editor-store"`
   - Example: `import * as tauri from "@/lib/tauri"`
 - Keep `./` relative imports for same-directory or downward imports (co-located files).

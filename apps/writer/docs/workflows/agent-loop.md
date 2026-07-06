@@ -26,7 +26,7 @@ Keep it tight. Another agent should be able to retrace your steps by reading the
 2. Run validation to confirm the project is healthy before starting:
    - `vp check` — format, lint, and TypeScript type checks
    - `vp test` — JavaScript/TypeScript tests
-   - `cargo test`, `cargo clippy`, `cargo fmt --check` from `apps/desktop/src-tauri/`
+   - `cargo test`, `cargo clippy`, `cargo fmt --check` from `src-tauri/`
 3. Fix any failures before entering the loop.
 
 ## Step 1: Pick the next task
@@ -121,7 +121,7 @@ Once the queue is exhausted:
 
 1. Run the full validation suite:
    - `vp check` and `vp test`
-   - `cargo test`, `cargo clippy`, `cargo fmt --check` from `apps/desktop/src-tauri/`
+   - `cargo test`, `cargo clippy`, `cargo fmt --check` from `src-tauri/`
 2. Fix any regressions before wrapping up.
 3. Write a session summary:
    - Tasks completed (with commit hashes)

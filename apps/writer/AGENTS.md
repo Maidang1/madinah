@@ -11,8 +11,8 @@ This is an **agent router**: concise context loaded every session. It routes the
 ## Architecture (Brief)
 
 Stack: Tauri v2 (React + Rust)
-Frontend: `apps/desktop/src/` — React, Zustand stores, CodeMirror/Prosemark editor
-Backend: `apps/desktop/src-tauri/src/` — Rust IPC commands, file watcher, workspace state
+Frontend: `src/` — React, Zustand stores, CodeMirror/Prosemark editor
+Backend: `src-tauri/src/` — Rust IPC commands, file watcher, workspace state
 Toolchain: Vite+ (`vp`) — see [docs/vite-plus.md](./docs/vite-plus.md)
 
 Rust source structure:
@@ -82,7 +82,7 @@ Frontend:
 - `vp check` — format, lint, and TypeScript type checks
 - `vp test` — JavaScript/TypeScript tests
 
-Rust (from `apps/desktop/src-tauri/`):
+Rust (from `src-tauri/`):
 
 - `cargo test`
 - `cargo clippy`

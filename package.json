@@ -7,10 +7,10 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "writer:dev": "pnpm --dir apps/writer dev",
-    "writer:build": "pnpm --dir apps/writer exec vp run desktop#build",
-    "writer:test": "pnpm --dir apps/writer exec vp test",
-    "writer:tauri": "pnpm --dir apps/writer --filter desktop tauri"
+    "writer:dev": "pnpm --filter writer dev",
+    "writer:build": "pnpm --filter writer build",
+    "writer:test": "pnpm --filter writer test",
+    "writer:tauri": "pnpm --filter writer exec tauri"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^12.6.12",

@@ -30,9 +30,11 @@ The software is provided without warranty to the extent permitted by GPLv3.
 
 ## Repository
 
-- `apps/desktop/` — Tauri desktop app.
-- `apps/desktop/src/` — React frontend.
-- `apps/desktop/src-tauri/src/` — Rust commands, workspace state, watcher, updater, and CLI integration.
+- `src/` — React frontend.
+- `src-tauri/src/` — Rust commands, workspace state, watcher, updater, and CLI integration.
+- `shared/` — schema and theme contracts consumed by both frontend and backend.
+- `tests/` — frontend unit tests.
+- `e2e/` — local macOS WebDriver smoke tests.
 - `docs/` — project and agent workflow docs.
 - `SPECs/` — feature specs and design notes.
 
@@ -55,7 +57,7 @@ vp test
 Rust validation runs from the Tauri crate:
 
 ```bash
-cd apps/desktop/src-tauri
+cd src-tauri
 cargo test
 cargo clippy
 cargo fmt --check

@@ -1,12 +1,12 @@
 /**
  * Typed registry built from the JSON sources of truth.
  *
- *   - `apps/desktop/shared/settings.schema.json`
+ *   - `shared/settings.schema.json`
  *       The settings *contract*: keys, types, defaults, labels, descriptions,
  *       and CSS-var bindings. Read by Rust (`include_str!` in config.rs) and
  *       imported here statically so TypeScript can derive literal types.
  *
- *   - `apps/desktop/shared/themes/<slug>/{light,dark}.json`
+ *   - `shared/themes/<slug>/{light,dark}.json`
  *       Default theme *values*. Each preset is a folder with one JSON file
  *       per mode, holding just the primary values. Picked up by glob so
  *       dropping a new folder registers a new preset — no TS edits needed.
@@ -47,7 +47,7 @@ export type SettingKey = keyof SettingsMap;
 /** Runtime SettingDef shape exposed to the rest of the app. This is the
  *  generalized form (string-typed `type`, optional fields) — the JSON gives
  *  us tighter literal types via `RawEntry`, but consumers rarely need them.
- *  Mirrors `apps/desktop/src-tauri/src/config.rs::SettingDef`. */
+ *  Mirrors `src-tauri/src/config.rs::SettingDef`. */
 export interface SettingDef {
   key: string;
   label: string;

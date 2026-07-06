@@ -203,7 +203,7 @@ pub fn default_settings() -> HashMap<String, ConfigValue> {
 }
 
 /// The settings schema definition used by the frontend for rendering controls.
-/// Loaded from `apps/desktop/shared/settings.schema.json` — single source of
+/// Loaded from `shared/settings.schema.json` — single source of
 /// truth per `docs/consolidation.md`. Do not declare defaults, labels, or types
 /// anywhere else.
 #[derive(Debug, Clone, Serialize, Deserialize)]

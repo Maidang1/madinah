@@ -2,6 +2,7 @@
 
 ## 2026-07-06
 
+- Flatten the migrated Writer app into a single `apps/writer` package: React now lives in `src/`, Tauri in `src-tauri/`, shared contracts in `shared/`, tests in `tests/`, and macOS E2E smoke tests in `e2e/`. Madinah root now owns the pnpm workspace, catalog, and lockfile for Writer.
 - Replace the Tauri app icon set with the provided illustrated character artwork, regenerated across the configured desktop icon assets and existing platform icon variants.
 - Keep slash menu keyboard navigation visible by scrolling the selected command into view when ArrowUp or ArrowDown changes the highlighted item.
 - Fix slash menu display after typing `/` by rendering it after the editor layout settles, falling back to CodeMirror line geometry when caret coordinates are unavailable, and raising the menu above other app surfaces.

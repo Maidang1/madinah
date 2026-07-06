@@ -1,5 +1,5 @@
 {
-  "$comment": "Settings contract: keys, types, defaults, labels, descriptions, and CSS-var bindings. Read by Rust (apps/desktop/src-tauri/src/config.rs) via include_str! and by the frontend via a static import (lib/settings-schema.ts). Theme preset *values* are not part of the contract — they live in shared/themes/*.json, one file per preset. Per docs/consolidation.md: do not declare defaults, labels, or types anywhere else.",
+  "$comment": "Settings contract: keys, types, defaults, labels, descriptions, and CSS-var bindings. Read by Rust (src-tauri/src/config.rs) via include_str! and by the frontend via a static import (lib/settings-schema.ts). Theme preset *values* are not part of the contract — they live in shared/themes/*.json, one file per preset. Per docs/consolidation.md: do not declare defaults, labels, or types anywhere else.",
   "settings": [
     {
       "key": "editor.font-size",

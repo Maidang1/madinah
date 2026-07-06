@@ -13,12 +13,12 @@ Before bumping anything:
 
 ## Step 1 — Bump the version
 
-The authoritative version lives in `apps/desktop/src-tauri/tauri.conf.json`. `scripts/distribute.sh` reads it from there to derive the tag (`v<version>`) and DMG filename. Three other files must be kept in sync so the crate, npm package, and Tauri config all agree:
+The authoritative version lives in `src-tauri/tauri.conf.json`. `scripts/distribute.sh` reads it from there to derive the tag (`v<version>`) and DMG filename. Three other files must be kept in sync so the crate, npm package, and Tauri config all agree:
 
-1. `apps/desktop/src-tauri/tauri.conf.json` — `version` field
-2. `apps/desktop/src-tauri/Cargo.toml` — `[package].version`
-3. `apps/desktop/package.json` — `version` field
-4. `apps/desktop/src-tauri/Cargo.lock` — refresh with `cargo update -p desktop --offline` from `apps/desktop/src-tauri/`
+1. `src-tauri/tauri.conf.json` — `version` field
+2. `src-tauri/Cargo.toml` — `[package].version`
+3. `package.json` — `version` field
+4. `src-tauri/Cargo.lock` — refresh with `cargo update -p desktop --offline` from `src-tauri/`
 
 Use a patch bump for fixes and small improvements, a minor bump for new user-visible features. Major bumps are reserved for breaking changes or 1.0.
 
@@ -73,10 +73,10 @@ Click **Publish release**. Until you do, the in-app updater won't see the new ve
 
 ## Step 5 — Verify
 
-- Confirm `https://github.com/Maidang1/writer-computer/releases/latest/download/latest.json` resolves to the new version. The in-app updater hits this URL on launch (see `apps/desktop/src-tauri/tauri.conf.json`).
+- Confirm `https://github.com/Maidang1/writer-computer/releases/latest/download/latest.json` resolves to the new version. The in-app updater hits this URL on launch (see `src-tauri/tauri.conf.json`).
 - Existing installs will pick up the update on next launch.
 
-Before publishing a fork-owned release, replace the updater `pubkey` in `apps/desktop/src-tauri/tauri.conf.json` with the public key matching this fork's `TAURI_SIGNING_PRIVATE_KEY`.
+Before publishing a fork-owned release, replace the updater `pubkey` in `src-tauri/tauri.conf.json` with the public key matching this fork's `TAURI_SIGNING_PRIVATE_KEY`.
 
 ## When things go wrong
 

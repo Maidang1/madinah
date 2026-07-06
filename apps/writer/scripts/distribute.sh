@@ -65,7 +65,7 @@ done
 export TAURI_SIGNING_PRIVATE_KEY_PASSWORD="${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}"
 
 # Read version from tauri.conf.json
-TAURI_CONF="$ROOT_DIR/apps/desktop/src-tauri/tauri.conf.json"
+TAURI_CONF="$ROOT_DIR/src-tauri/tauri.conf.json"
 VERSION=$(python3 -c "import json; print(json.load(open('$TAURI_CONF'))['version'])")
 TAG="v$VERSION"
 
@@ -115,10 +115,10 @@ git -C "$ROOT_DIR" push origin master
 echo "Building Writer $TAG..."
 
 # Build signed and notarized DMG + updater artifacts (.app.tar.gz + .sig).
-cd "$ROOT_DIR/apps/desktop"
+cd "$ROOT_DIR"
 vp exec tauri build --bundles app,dmg
 
-BUNDLE_DIR="$ROOT_DIR/apps/desktop/src-tauri/target/release/bundle"
+BUNDLE_DIR="$ROOT_DIR/src-tauri/target/release/bundle"
 DMG_DIR="$BUNDLE_DIR/dmg"
 MACOS_DIR="$BUNDLE_DIR/macos"
 

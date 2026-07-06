@@ -3,17 +3,17 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "vite-plus/test";
 
-const desktopRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
-const appCss = readFileSync(resolve(desktopRoot, "src/App.css"), "utf8");
+const appRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
+const appCss = readFileSync(resolve(appRoot, "src/App.css"), "utf8");
 const prosemarkCss = readFileSync(
-  resolve(desktopRoot, "src/components/editor-area/prosemark-theme.css"),
+  resolve(appRoot, "src/components/editor-area/prosemark-theme.css"),
   "utf8",
 );
 const settingsSchema = JSON.parse(
-  readFileSync(resolve(desktopRoot, "shared/settings.schema.json"), "utf8"),
+  readFileSync(resolve(appRoot, "shared/settings.schema.json"), "utf8"),
 ) as { settings: Array<{ key: string; default: unknown }> };
 const writerLightTheme = JSON.parse(
-  readFileSync(resolve(desktopRoot, "shared/themes/writer/light.json"), "utf8"),
+  readFileSync(resolve(appRoot, "shared/themes/writer/light.json"), "utf8"),
 ) as { background: string };
 
 function settingDefault(key: string) {
@@ -24,7 +24,7 @@ describe("Madinah render contract", () => {
   test("loads the local Jinkai font bundle used by the reader font stack", () => {
     expect(appCss).toContain('@import "./assets/fonts/jinkai/jinkai.css";');
     expect(appCss).toMatch(/--reader-font:\s*"TsangerJinKai02"/);
-    expect(existsSync(resolve(desktopRoot, "src/assets/fonts/jinkai/jinkai.css"))).toBe(true);
+    expect(existsSync(resolve(appRoot, "src/assets/fonts/jinkai/jinkai.css"))).toBe(true);
   });
 
   test("keeps the editor column and paragraph rhythm aligned to the Astro post content", () => {

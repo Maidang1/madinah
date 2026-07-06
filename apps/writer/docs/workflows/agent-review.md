@@ -37,7 +37,7 @@ Activate only the personas relevant to the changed surface area. Each persona ow
   Owned docs: `docs/editor.md`, relevant `SPECs/` for the change.
 
 - **Rust/Tauri Expert**: Tauri IPC command design, async command patterns, `AppState` management, file system watcher correctness, lock contention, error serialization over IPC, `cargo clippy` compliance.
-  Owned docs: `CLAUDE.md` (Architecture section), Rust source in `apps/desktop/src-tauri/src/`.
+  Owned docs: `CLAUDE.md` (Architecture section), Rust source in `src-tauri/src/`.
 
 - **Startup/Workspace Expert**: multi-stage initialization flow, session save/restore, workspace switching race conditions, navigation versioning, pending-open queue ordering.
   Owned docs: `docs/workspace-lifecycle.md` (when created), relevant store files.
@@ -49,7 +49,7 @@ Activate only the personas relevant to the changed surface area. Each persona ow
   Owned docs: `CLAUDE.md` (Engineering Guardrails, Architecture sections).
 
 - **QA Engineer**: coverage quality, regression risk, test adequacy and test selection. Validates that tests are legitimate (no hardcoded expected values, no skipped assertions).
-  Owned docs: test files under `apps/desktop/tests/` and any `apps/desktop/src/**/*.test.{ts,tsx}` colocated tests.
+  Owned docs: test files under `tests/` and any `src/**/*.test.{ts,tsx}` colocated tests.
 
 Each persona should also load any spec or doc directly relevant to the files being changed, even if not listed above.
 

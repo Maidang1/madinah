@@ -24,7 +24,7 @@ vp install
 
 ## Running
 
-From `apps/desktop/e2e/`:
+From `e2e/`:
 
 ```sh
 pnpm run test:e2e
@@ -71,7 +71,7 @@ bundle identifier (see below).
 
 ## Build flavors
 
-- `vp run desktop#dev` and `vp build` are unchanged — no WebDriver server.
+- `pnpm dev` and `pnpm build` are unchanged — no WebDriver server.
 - The e2e build invokes
   `cargo tauri build --features e2e --bundles app --config '{"identifier":"com.maidang1.writer-computer.e2e","bundle":{"createUpdaterArtifacts":false}}'`.
   The overrides:
@@ -94,4 +94,4 @@ bundle identifier (see below).
 - **App binary not found** — run `pnpm run build:app` first (or use
   `pnpm run test:e2e` which chains them).
 - **Test hangs at `waitForDisplayed`** — the WKWebView likely did not load.
-  Sanity-check that `vp run desktop#dev` still launches the app normally.
+  Sanity-check that `pnpm dev` still launches the app normally.
