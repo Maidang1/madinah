@@ -11,6 +11,7 @@ import {
 import { EditorArea } from "./editor-area";
 import { CompactRecentsList } from "./compact-recents-list";
 import { ScrollFade } from "@/components/scroll-fade";
+import { IconButton } from "@/components/ui/icon-button";
 import {
   useActiveFilePath,
   useCanNavigateBack,
@@ -476,17 +477,15 @@ interface CompactNavButtonProps {
 
 function CompactNavButton({ label, glyph, disabled, onClick }: CompactNavButtonProps) {
   return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
+    <IconButton
+      label={label}
       disabled={disabled}
       onMouseDown={(event) => event.preventDefault()}
       onClick={onClick}
       className="flex h-[var(--chrome-control-height)] w-7 items-center justify-center rounded-lg text-base text-[var(--text-icon-muted)] transition-colors enabled:hover:bg-[var(--surface-subtle)] enabled:hover:text-[var(--text-secondary)] disabled:opacity-30"
     >
       {glyph}
-    </button>
+    </IconButton>
   );
 }
 

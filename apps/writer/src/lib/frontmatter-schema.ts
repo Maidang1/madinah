@@ -1,9 +1,10 @@
 import { parse, stringify } from "yaml";
+import { BLOG_POST_STATUS_OPTIONS, type BlogPostStatus } from "@madinah-shared/blog-frontmatter";
 import type { YamlEntry } from "./yaml-entries";
 
-export const FRONTMATTER_STATUS_OPTIONS = ["draft", "published"] as const;
+export const FRONTMATTER_STATUS_OPTIONS = BLOG_POST_STATUS_OPTIONS;
 
-export type FrontmatterStatus = (typeof FRONTMATTER_STATUS_OPTIONS)[number];
+export type FrontmatterStatus = BlogPostStatus;
 
 export interface MadinahFrontmatter {
   title?: string;
@@ -23,7 +24,7 @@ export type FrontmatterControl =
   | { kind: "select"; options: readonly string[] };
 
 export interface FrontmatterFieldDefinition {
-  key: keyof MadinahFrontmatter | string;
+  key: string;
   control: FrontmatterControl;
 }
 

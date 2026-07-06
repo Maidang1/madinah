@@ -19,8 +19,12 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "paths": { "@/*": ["./src/*"], "@shared/*": ["./shared/*"] }
+    "paths": {
+      "@/*": ["./src/*"],
+      "@shared/*": ["./shared/*"],
+      "@madinah-shared/*": ["../../shared/*"]
+    }
   },
-  "include": ["src", "shared"],
+  "include": ["src", "shared", "../../shared"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

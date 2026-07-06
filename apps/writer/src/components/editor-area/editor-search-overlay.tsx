@@ -14,6 +14,7 @@ import {
   useEditorSearchStore,
 } from "./editor-search-store";
 import { SurfaceCard } from "@/components/surface-card";
+import { IconButton } from "@/components/ui/icon-button";
 
 interface MatchInfo {
   current: number;
@@ -179,10 +180,18 @@ export function EditorSearchOverlay() {
             </span>
           )}
         </div>
-        <IconButton label="Previous match" onClick={actions.prev}>
+        <IconButton
+          label="Previous match"
+          onClick={actions.prev}
+          className="rounded-md text-[var(--text-muted)] hover:bg-[var(--surface-subtle)] hover:text-[var(--text-secondary)] h-[var(--chrome-control-height)] w-[var(--chrome-control-height)]"
+        >
           <HugeiconsIcon icon={ArrowUp01Icon} size={14} color="currentColor" strokeWidth={2} />
         </IconButton>
-        <IconButton label="Next match" onClick={actions.next}>
+        <IconButton
+          label="Next match"
+          onClick={actions.next}
+          className="rounded-md text-[var(--text-muted)] hover:bg-[var(--surface-subtle)] hover:text-[var(--text-secondary)] h-[var(--chrome-control-height)] w-[var(--chrome-control-height)]"
+        >
           <HugeiconsIcon icon={ArrowDown01Icon} size={14} color="currentColor" strokeWidth={2} />
         </IconButton>
         <button
@@ -198,7 +207,11 @@ export function EditorSearchOverlay() {
         >
           Replace
         </button>
-        <IconButton label="Close" onClick={actions.doClose}>
+        <IconButton
+          label="Close"
+          onClick={actions.doClose}
+          className="rounded-md text-[var(--text-muted)] hover:bg-[var(--surface-subtle)] hover:text-[var(--text-secondary)] h-[var(--chrome-control-height)] w-[var(--chrome-control-height)]"
+        >
           <HugeiconsIcon icon={Cancel01Icon} size={14} color="currentColor" strokeWidth={2} />
         </IconButton>
       </div>
@@ -231,25 +244,5 @@ export function EditorSearchOverlay() {
         </div>
       )}
     </SurfaceCard>
-  );
-}
-
-interface IconButtonProps {
-  label: string;
-  onClick: () => void;
-  children: React.ReactNode;
-}
-
-function IconButton({ label, onClick, children }: IconButtonProps) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      title={label}
-      className="flex shrink-0 items-center justify-center rounded-md text-[var(--text-muted)] hover:bg-[var(--surface-subtle)] hover:text-[var(--text-secondary)] h-[var(--chrome-control-height)] w-[var(--chrome-control-height)]"
-    >
-      {children}
-    </button>
   );
 }

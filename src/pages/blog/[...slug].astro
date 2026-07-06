@@ -1,13 +1,14 @@
 ---
-import { getCollection, render } from "astro:content";
+import { render } from "astro:content";
 import { components } from "../../components/mdx";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import LicenseNotice from "../../components/LicenseNotice.astro";
 import Time from "../../components/Time.astro";
 import { calculateReadingTime } from "../../utils/reading-time";
+import { getPostBody, getPublishedPosts } from "../../utils/posts";
 
 export async function getStaticPaths() {
-    const posts = await getCollection("blog");
+    const posts = await getPublishedPosts();
     return posts.map((post) => ({
         params: { slug: post.id },
         props: { post },
@@ -16,8 +17,9 @@ export async function getStaticPaths() {
 
 const { post } = Astro.props;
 const { Content } = await render(post);
-const readingTime = calculateReadingTime(post.body);
-const tocItems = Array.from(post.body.matchAll(/^(#{1,3})\s+(.+)$/gm))
+const postBody = getPostBody(post);
+const readingTime = calculateReadingTime(postBody);
+const tocItems = Array.from(postBody.matchAll(/^(#{1,3})\s+(.+)$/gm))
     .map((match) => {
         const depth = match[1].length;
         const text = match[2]

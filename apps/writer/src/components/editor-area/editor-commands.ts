@@ -23,6 +23,16 @@ import { getOpenFile, updateFrontmatter } from "@/hooks/editor-api";
 import { getWorkspaceRoot } from "@/hooks/workspace-api";
 
 export type EditorCommandSurface = "context" | "slash";
+export type EditorContextMenuGroup = "AI" | "Format" | "Paragraph" | "Insert";
+
+export interface EditorCommandContextMenuItem {
+  group: EditorContextMenuGroup;
+  itemId: string;
+  label?: string;
+  accelerator?: string;
+  order: number;
+  separatorBefore?: boolean;
+}
 
 export interface EditorCommand {
   id: string;
@@ -33,6 +43,7 @@ export interface EditorCommand {
   shortcut?: string;
   priority: number;
   surfaces: EditorCommandSurface[];
+  contextMenu?: EditorCommandContextMenuItem[];
   run: (view: EditorView, filePath: string) => void | Promise<void>;
 }
 
@@ -74,6 +85,134 @@ const FORMAT_COMMAND_GROUPS: Partial<Record<keyof typeof formattingCommands, str
   "format.blockquote": "Paragraph",
 };
 
+const FORMAT_CONTEXT_MENU_ITEMS: Partial<
+  Record<keyof typeof formattingCommands, EditorCommandContextMenuItem[]>
+> = {
+  "format.bold": [{ group: "Format", itemId: "fmt.bold", accelerator: "CmdOrCtrl+B", order: 10 }],
+  "format.italic": [
+    { group: "Format", itemId: "fmt.italic", accelerator: "CmdOrCtrl+I", order: 20 },
+  ],
+  "format.strikethrough": [
+    {
+      group: "Format",
+      itemId: "fmt.strikethrough",
+      accelerator: "CmdOrCtrl+Shift+X",
+      order: 30,
+    },
+  ],
+  "format.code": [{ group: "Format", itemId: "fmt.code", accelerator: "CmdOrCtrl+E", order: 40 }],
+  "format.link": [
+    {
+      group: "Format",
+      itemId: "fmt.link",
+      label: "Insert link...",
+      accelerator: "CmdOrCtrl+K",
+      order: 50,
+      separatorBefore: true,
+    },
+    {
+      group: "Insert",
+      itemId: "ins.link",
+      label: "Link...",
+      accelerator: "CmdOrCtrl+K",
+      order: 10,
+    },
+  ],
+  "format.heading1": [
+    {
+      group: "Paragraph",
+      itemId: "para.h1",
+      accelerator: "CmdOrCtrl+Alt+1",
+      order: 10,
+    },
+  ],
+  "format.heading2": [
+    {
+      group: "Paragraph",
+      itemId: "para.h2",
+      accelerator: "CmdOrCtrl+Alt+2",
+      order: 20,
+    },
+  ],
+  "format.heading3": [
+    {
+      group: "Paragraph",
+      itemId: "para.h3",
+      accelerator: "CmdOrCtrl+Alt+3",
+      order: 30,
+    },
+  ],
+  "format.heading4": [
+    {
+      group: "Paragraph",
+      itemId: "para.h4",
+      accelerator: "CmdOrCtrl+Alt+4",
+      order: 40,
+    },
+  ],
+  "format.heading5": [
+    {
+      group: "Paragraph",
+      itemId: "para.h5",
+      accelerator: "CmdOrCtrl+Alt+5",
+      order: 50,
+    },
+  ],
+  "format.heading6": [
+    {
+      group: "Paragraph",
+      itemId: "para.h6",
+      accelerator: "CmdOrCtrl+Alt+6",
+      order: 60,
+    },
+  ],
+  "format.paragraph": [
+    {
+      group: "Paragraph",
+      itemId: "para.paragraph",
+      accelerator: "CmdOrCtrl+Alt+0",
+      order: 70,
+    },
+  ],
+  "format.bulletList": [
+    {
+      group: "Paragraph",
+      itemId: "para.bullet",
+      label: "Bullet list",
+      accelerator: "CmdOrCtrl+Shift+8",
+      order: 80,
+      separatorBefore: true,
+    },
+  ],
+  "format.numberedList": [
+    {
+      group: "Paragraph",
+      itemId: "para.numbered",
+      label: "Numbered list",
+      accelerator: "CmdOrCtrl+Shift+7",
+      order: 90,
+    },
+  ],
+  "format.taskList": [
+    {
+      group: "Paragraph",
+      itemId: "para.task",
+      label: "Task list",
+      accelerator: "CmdOrCtrl+Shift+Enter",
+      order: 100,
+    },
+  ],
+  "format.blockquote": [
+    {
+      group: "Paragraph",
+      itemId: "para.blockquote",
+      accelerator: "CmdOrCtrl+Shift+.",
+      order: 110,
+      separatorBefore: true,
+    },
+  ],
+};
+
 const EXTRA_COMMANDS: Array<
   Omit<EditorCommand, "run"> & {
     command: StateCommand;
@@ -87,6 +226,14 @@ const EXTRA_COMMANDS: Array<
     keywords: ["clear", "format"],
     priority: 30,
     surfaces: ["context", "slash"],
+    contextMenu: [
+      {
+        group: "Format",
+        itemId: "fmt.clear",
+        order: 60,
+        separatorBefore: true,
+      },
+    ],
     command: clearInlineFormatting,
   },
   {
@@ -97,6 +244,13 @@ const EXTRA_COMMANDS: Array<
     keywords: ["code", "fence"],
     priority: 68,
     surfaces: ["context", "slash"],
+    contextMenu: [
+      {
+        group: "Paragraph",
+        itemId: "para.codeblock",
+        order: 120,
+      },
+    ],
     command: toggleFencedCodeBlock,
   },
   {
@@ -107,6 +261,7 @@ const EXTRA_COMMANDS: Array<
     keywords: ["image", "img", "media", "picture", "markdown"],
     priority: 78,
     surfaces: ["context", "slash"],
+    contextMenu: [{ group: "Insert", itemId: "ins.image", order: 20 }],
     command: insertImage,
   },
   {
@@ -117,6 +272,7 @@ const EXTRA_COMMANDS: Array<
     keywords: ["table", "grid"],
     priority: 76,
     surfaces: ["context", "slash"],
+    contextMenu: [{ group: "Insert", itemId: "ins.table", order: 30 }],
     command: insertTable,
   },
   {
@@ -127,6 +283,7 @@ const EXTRA_COMMANDS: Array<
     keywords: ["callout", "admonition", "note", "quote", "markdown"],
     priority: 74,
     surfaces: ["context", "slash"],
+    contextMenu: [{ group: "Insert", itemId: "ins.callout", order: 40 }],
     command: insertCallout,
   },
   {
@@ -137,6 +294,7 @@ const EXTRA_COMMANDS: Array<
     keywords: ["math", "latex", "formula", "equation", "markdown"],
     priority: 72,
     surfaces: ["context", "slash"],
+    contextMenu: [{ group: "Insert", itemId: "ins.math", order: 50 }],
     command: insertMathBlock,
   },
   {
@@ -147,6 +305,7 @@ const EXTRA_COMMANDS: Array<
     keywords: ["footnote", "reference", "note", "markdown"],
     priority: 70,
     surfaces: ["context", "slash"],
+    contextMenu: [{ group: "Insert", itemId: "ins.footnote", order: 60 }],
     command: insertFootnote,
   },
   {
@@ -157,6 +316,7 @@ const EXTRA_COMMANDS: Array<
     keywords: ["divider", "rule", "hr"],
     priority: 60,
     surfaces: ["context", "slash"],
+    contextMenu: [{ group: "Insert", itemId: "ins.hr", label: "Horizontal rule", order: 70 }],
     command: insertHorizontalRule,
   },
   {
@@ -167,6 +327,14 @@ const EXTRA_COMMANDS: Array<
     keywords: ["comment", "html", "note", "hidden", "markdown"],
     priority: 58,
     surfaces: ["context", "slash"],
+    contextMenu: [
+      {
+        group: "Insert",
+        itemId: "ins.comment",
+        order: 80,
+        separatorBefore: true,
+      },
+    ],
     command: insertHtmlComment,
   },
   {
@@ -177,6 +345,7 @@ const EXTRA_COMMANDS: Array<
     keywords: ["frontmatter", "yaml", "metadata", "title", "markdown"],
     priority: 56,
     surfaces: ["context", "slash"],
+    contextMenu: [{ group: "Insert", itemId: "ins.frontmatter", order: 90 }],
     command: insertFrontmatter,
   },
   {
@@ -187,6 +356,15 @@ const EXTRA_COMMANDS: Array<
     keywords: ["date", "today"],
     priority: 45,
     surfaces: ["context", "slash"],
+    contextMenu: [
+      {
+        group: "Insert",
+        itemId: "ins.date",
+        label: "Current date",
+        order: 100,
+        separatorBefore: true,
+      },
+    ],
     command: insertToday,
   },
   {
@@ -197,6 +375,7 @@ const EXTRA_COMMANDS: Array<
     keywords: ["time", "now"],
     priority: 44,
     surfaces: ["context", "slash"],
+    contextMenu: [{ group: "Insert", itemId: "ins.time", label: "Current time", order: 110 }],
     command: insertNow,
   },
 ];
@@ -218,6 +397,7 @@ export const EDITOR_COMMANDS: EditorCommand[] = [
       shortcut: command.chord,
       priority: 100 - index,
       surfaces: ["context", "slash"],
+      contextMenu: FORMAT_CONTEXT_MENU_ITEMS[typedId],
       run: (view) => {
         runStateCommand(view, command.run);
       },
@@ -239,6 +419,7 @@ export const EDITOR_COMMANDS: EditorCommand[] = [
     keywords: ["ai", "rewrite", "polish", "selection"],
     priority: 88,
     surfaces: ["context", "slash"],
+    contextMenu: [{ group: "AI", itemId: AI_REWRITE_SELECTION_COMMAND_ID, order: 10 }],
     run: (view, filePath) => rewriteSelectionWithAi(view, filePath),
   },
   {
@@ -249,6 +430,7 @@ export const EDITOR_COMMANDS: EditorCommand[] = [
     keywords: ["ai", "metadata", "frontmatter", "title", "description", "tags", "slug"],
     priority: 86,
     surfaces: ["context", "slash"],
+    contextMenu: [{ group: "AI", itemId: AI_GENERATE_METADATA_COMMAND_ID, order: 20 }],
     run: (view, filePath) => generateMetadataWithAi(view, filePath),
   },
   {
@@ -259,6 +441,7 @@ export const EDITOR_COMMANDS: EditorCommand[] = [
     keywords: ["ai", "polish", "document", "rewrite"],
     priority: 84,
     surfaces: ["context", "slash"],
+    contextMenu: [{ group: "AI", itemId: AI_POLISH_DOCUMENT_COMMAND_ID, order: 30 }],
     run: (view, filePath) => polishDocumentWithAi(view, filePath),
   },
   {
@@ -269,6 +452,7 @@ export const EDITOR_COMMANDS: EditorCommand[] = [
     keywords: ["ai", "review", "issues", "structure", "clarity"],
     priority: 82,
     surfaces: ["context", "slash"],
+    contextMenu: [{ group: "AI", itemId: AI_REVIEW_DOCUMENT_COMMAND_ID, order: 40 }],
     run: (view, filePath) => reviewDocumentWithAi(view, filePath),
   },
 ];
@@ -283,6 +467,60 @@ export function getEditorCommandsForSurface(surface: EditorCommandSurface): Edit
   return EDITOR_COMMANDS.filter((command) => command.surfaces.includes(surface)).sort(
     (left, right) => right.priority - left.priority,
   );
+}
+
+export interface EditorContextMenuCommandItem {
+  commandId: string;
+  itemId: string;
+  label: string;
+  accelerator?: string;
+  separatorBefore?: boolean;
+}
+
+export interface EditorContextMenuCommandGroup {
+  group: EditorContextMenuGroup;
+  items: EditorContextMenuCommandItem[];
+}
+
+type OrderedEditorContextMenuCommandItem = EditorContextMenuCommandItem & { order: number };
+
+const CONTEXT_MENU_GROUP_ORDER: EditorContextMenuGroup[] = ["AI", "Format", "Paragraph", "Insert"];
+
+export function getEditorContextMenuCommandGroups(): EditorContextMenuCommandGroup[] {
+  const groups: EditorContextMenuCommandGroup[] = [];
+
+  for (const group of CONTEXT_MENU_GROUP_ORDER) {
+    const items: OrderedEditorContextMenuCommandItem[] = [];
+
+    for (const command of EDITOR_COMMANDS) {
+      if (!command.surfaces.includes("context")) continue;
+
+      for (const placement of command.contextMenu ?? []) {
+        if (placement.group !== group) continue;
+
+        const item: OrderedEditorContextMenuCommandItem = {
+          commandId: command.id,
+          itemId: placement.itemId,
+          label: placement.label ?? command.label,
+          order: placement.order,
+        };
+        if (placement.accelerator) item.accelerator = placement.accelerator;
+        if (placement.separatorBefore) item.separatorBefore = true;
+        items.push(item);
+      }
+    }
+
+    if (items.length > 0) {
+      groups.push({
+        group,
+        items: items
+          .sort((left, right) => left.order - right.order)
+          .map(({ order: _order, ...item }) => item),
+      });
+    }
+  }
+
+  return groups;
 }
 
 export function runEditorCommand(id: string, view: EditorView, filePath: string): boolean {

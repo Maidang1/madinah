@@ -1,13 +1,8 @@
 import { create } from "zustand";
 import type { FileContent } from "@/types/fs";
 import * as tauri from "@/lib/tauri";
-import {
-  getFrontmatterDisplayDate,
-  inferTitle,
-  parseDocument,
-  type TitleSource,
-} from "@/lib/frontmatter";
-import { getDocumentStats, type DocumentStats } from "@/lib/document-stats";
+import { inferTitle, parseDocument, type TitleSource } from "@/lib/frontmatter";
+import type { DocumentStats } from "@/lib/document-stats";
 import { cancelSave, scheduleSave, registerSaveStore } from "@/lib/save";
 import {
   locationBehavior,
@@ -17,6 +12,12 @@ import {
   type Location,
   type SerializedLocation,
 } from "@/components/editor-area/page-kinds";
+import {
+  EMPTY_DOCUMENT_STATS,
+  withDerived,
+  withDerivedDate,
+  withDerivedStats,
+} from "./editor-derived";
 
 export interface OpenFile {
   path: string;
@@ -124,8 +125,6 @@ export function createSettingsTab(id = createTabId()): Tab {
   return { id, location: { kind: "settings" }, back: [], forward: [] };
 }
 
-const EMPTY_STATS: DocumentStats = { words: 0, characters: 0, paragraphs: 0 };
-
 function createLoadingFile(path: string): OpenFile {
   return {
     path,
@@ -141,23 +140,7 @@ function createLoadingFile(path: string): OpenFile {
     scrollPos: 0,
     cursorPos: 0,
     displayDate: null,
-    stats: EMPTY_STATS,
-  };
-}
-
-function withDerivedDate<T extends { frontmatter: string | null }>(file: T) {
-  return { ...file, displayDate: getFrontmatterDisplayDate(file.frontmatter) };
-}
-
-function withDerivedStats<T extends { content: string }>(file: T) {
-  return { ...file, stats: getDocumentStats(file.content) };
-}
-
-function withDerived<T extends { frontmatter: string | null; content: string }>(file: T) {
-  return {
-    ...file,
-    displayDate: getFrontmatterDisplayDate(file.frontmatter),
-    stats: getDocumentStats(file.content),
+    stats: EMPTY_DOCUMENT_STATS,
   };
 }
 

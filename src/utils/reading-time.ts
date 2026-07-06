@@ -11,17 +11,18 @@ export interface ReadingTime {
 
 const WORDS_PER_MINUTE = 200;
 
-export function calculateReadingTime(content: string): ReadingTime {
+export function calculateReadingTime(content: string | null | undefined): ReadingTime {
   // Remove HTML tags and MDX syntax
-  const plainText = content
+  const plainText = (content ?? "")
     .replace(/<[^>]*>/g, '')
     .replace(/```[\s\S]*?```/g, '')
     .replace(/`[^`]*`/g, '')
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
 
   // Count words (split by whitespace)
-  const words = plainText.trim().split(/\s+/).length;
-  
+  const trimmedText = plainText.trim();
+  const words = trimmedText ? trimmedText.split(/\s+/).length : 0;
+
   // Calculate reading time
   const minutes = words / WORDS_PER_MINUTE;
   const timeMs = Math.ceil(minutes * 60 * 1000); // in milliseconds

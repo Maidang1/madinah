@@ -8,6 +8,7 @@ import {
   revealLabelForPlatform,
   type Platform,
 } from "@/components/sidebar/context-menu-utils";
+import { getEditorContextMenuCommandGroups } from "./editor-commands";
 
 // -- Editor body menu --
 
@@ -45,226 +46,22 @@ export function buildEditorBodyMenuItemsSpec(
   if (handlers.onRunCommand) {
     const run = handlers.onRunCommand;
     items.push({ kind: "separator" });
-    items.push({
-      kind: "submenu",
-      text: "AI",
-      items: [
-        {
-          kind: "item",
-          id: "ai.rewriteSelection",
-          text: "Rewrite selection",
-          action: () => run("ai.rewriteSelection"),
-        },
-        {
-          kind: "item",
-          id: "ai.generateMetadata",
-          text: "Generate metadata",
-          action: () => run("ai.generateMetadata"),
-        },
-        {
-          kind: "item",
-          id: "ai.polishDocument",
-          text: "Polish document",
-          action: () => run("ai.polishDocument"),
-        },
-        {
-          kind: "item",
-          id: "ai.reviewDocument",
-          text: "Review document",
-          action: () => run("ai.reviewDocument"),
-        },
-      ],
-    });
-    items.push({
-      kind: "submenu",
-      text: "Format",
-      items: [
-        {
-          kind: "item",
-          id: "fmt.bold",
-          text: "Bold",
-          accelerator: "CmdOrCtrl+B",
-          action: () => run("format.bold"),
-        },
-        {
-          kind: "item",
-          id: "fmt.italic",
-          text: "Italic",
-          accelerator: "CmdOrCtrl+I",
-          action: () => run("format.italic"),
-        },
-        {
-          kind: "item",
-          id: "fmt.strikethrough",
-          text: "Strikethrough",
-          accelerator: "CmdOrCtrl+Shift+X",
-          action: () => run("format.strikethrough"),
-        },
-        {
-          kind: "item",
-          id: "fmt.code",
-          text: "Inline code",
-          accelerator: "CmdOrCtrl+E",
-          action: () => run("format.code"),
-        },
-        { kind: "separator" },
-        {
-          kind: "item",
-          id: "fmt.link",
-          text: "Insert link\u2026",
-          accelerator: "CmdOrCtrl+K",
-          action: () => run("format.link"),
-        },
-        { kind: "separator" },
-        {
-          kind: "item",
-          id: "fmt.clear",
-          text: "Clear formatting",
-          action: () => run("clearInlineFormatting"),
-        },
-      ],
-    });
-    items.push({
-      kind: "submenu",
-      text: "Paragraph",
-      items: [
-        {
-          kind: "item",
-          id: "para.h1",
-          text: "Heading 1",
-          accelerator: "CmdOrCtrl+Alt+1",
-          action: () => run("format.heading1"),
-        },
-        {
-          kind: "item",
-          id: "para.h2",
-          text: "Heading 2",
-          accelerator: "CmdOrCtrl+Alt+2",
-          action: () => run("format.heading2"),
-        },
-        {
-          kind: "item",
-          id: "para.h3",
-          text: "Heading 3",
-          accelerator: "CmdOrCtrl+Alt+3",
-          action: () => run("format.heading3"),
-        },
-        {
-          kind: "item",
-          id: "para.h4",
-          text: "Heading 4",
-          accelerator: "CmdOrCtrl+Alt+4",
-          action: () => run("format.heading4"),
-        },
-        {
-          kind: "item",
-          id: "para.h5",
-          text: "Heading 5",
-          accelerator: "CmdOrCtrl+Alt+5",
-          action: () => run("format.heading5"),
-        },
-        {
-          kind: "item",
-          id: "para.h6",
-          text: "Heading 6",
-          accelerator: "CmdOrCtrl+Alt+6",
-          action: () => run("format.heading6"),
-        },
-        {
-          kind: "item",
-          id: "para.paragraph",
-          text: "Paragraph",
-          accelerator: "CmdOrCtrl+Alt+0",
-          action: () => run("format.paragraph"),
-        },
-        { kind: "separator" },
-        {
-          kind: "item",
-          id: "para.bullet",
-          text: "Bullet list",
-          accelerator: "CmdOrCtrl+Shift+8",
-          action: () => run("format.bulletList"),
-        },
-        {
-          kind: "item",
-          id: "para.numbered",
-          text: "Numbered list",
-          accelerator: "CmdOrCtrl+Shift+7",
-          action: () => run("format.numberedList"),
-        },
-        {
-          kind: "item",
-          id: "para.task",
-          text: "Task list",
-          accelerator: "CmdOrCtrl+Shift+Enter",
-          action: () => run("format.taskList"),
-        },
-        { kind: "separator" },
-        {
-          kind: "item",
-          id: "para.blockquote",
-          text: "Blockquote",
-          accelerator: "CmdOrCtrl+Shift+.",
-          action: () => run("format.blockquote"),
-        },
-        {
-          kind: "item",
-          id: "para.codeblock",
-          text: "Code block",
-          action: () => run("toggleFencedCodeBlock"),
-        },
-      ],
-    });
-    items.push({
-      kind: "submenu",
-      text: "Insert",
-      items: [
-        {
-          kind: "item",
-          id: "ins.link",
-          text: "Link\u2026",
-          accelerator: "CmdOrCtrl+K",
-          action: () => run("format.link"),
-        },
-        { kind: "item", id: "ins.image", text: "Image", action: () => run("insertImage") },
-        { kind: "item", id: "ins.table", text: "Table", action: () => run("insertTable") },
-        { kind: "item", id: "ins.callout", text: "Callout", action: () => run("insertCallout") },
-        {
-          kind: "item",
-          id: "ins.math",
-          text: "Math block",
-          action: () => run("insertMathBlock"),
-        },
-        {
-          kind: "item",
-          id: "ins.footnote",
-          text: "Footnote",
-          action: () => run("insertFootnote"),
-        },
-        {
-          kind: "item",
-          id: "ins.hr",
-          text: "Horizontal rule",
-          action: () => run("insertHorizontalRule"),
-        },
-        { kind: "separator" },
-        {
-          kind: "item",
-          id: "ins.comment",
-          text: "HTML comment",
-          action: () => run("insertHtmlComment"),
-        },
-        {
-          kind: "item",
-          id: "ins.frontmatter",
-          text: "YAML frontmatter",
-          action: () => run("insertFrontmatter"),
-        },
-        { kind: "separator" },
-        { kind: "item", id: "ins.date", text: "Current date", action: () => run("insertToday") },
-        { kind: "item", id: "ins.time", text: "Current time", action: () => run("insertNow") },
-      ],
-    });
+    for (const group of getEditorContextMenuCommandGroups()) {
+      items.push({
+        kind: "submenu",
+        text: group.group,
+        items: group.items.flatMap((item): MenuItemSpec[] => [
+          ...(item.separatorBefore ? [{ kind: "separator" } satisfies MenuItemSpec] : []),
+          {
+            kind: "item",
+            id: item.itemId,
+            text: item.label,
+            action: () => run(item.commandId),
+            ...(item.accelerator ? { accelerator: item.accelerator } : {}),
+          },
+        ]),
+      });
+    }
   }
 
   items.push({ kind: "separator" });

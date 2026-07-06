@@ -23,6 +23,8 @@ describe("frontmatter field schema", () => {
     if (definition.control.kind === "select") {
       expect(definition.control.options).toEqual(FRONTMATTER_STATUS_OPTIONS);
       expect(definition.control.options).toContain("published");
+      expect(definition.control.options).toContain("archived");
+      expect(definition.control.options).toContain("WIP");
     }
   });
 
@@ -54,10 +56,12 @@ describe("frontmatter field schema", () => {
   });
 
   test("preserves unknown select values in the option list", () => {
-    expect(getSelectOptionsWithCurrentValue(FRONTMATTER_STATUS_OPTIONS, "archived")).toEqual([
-      "archived",
+    expect(getSelectOptionsWithCurrentValue(FRONTMATTER_STATUS_OPTIONS, "scheduled")).toEqual([
+      "scheduled",
       "draft",
       "published",
+      "archived",
+      "WIP",
     ]);
   });
 });

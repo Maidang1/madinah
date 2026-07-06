@@ -4,7 +4,7 @@ import { cn } from '../../utils/cn';
 
 interface Props extends HTMLAttributes<'a'> {}
 
-const { class: className, href, children, ...props } = Astro.props;
+const { class: className, href, ...props } = Astro.props;
 const isExternal = href?.startsWith('http') || href?.startsWith('//');
 ---
 

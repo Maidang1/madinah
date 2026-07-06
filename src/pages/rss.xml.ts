@@ -1,15 +1,9 @@
 import rss from "@astrojs/rss";
-import { getCollection } from "astro:content";
 import type { APIContext } from "astro";
+import { getPostBody, getPublishedPosts } from "../utils/posts";
 
 export async function GET(context: APIContext) {
-  const posts = await getCollection("blog");
-
-  // Filter WIP posts and sort by date
-  const publishedPosts = posts
-    .filter((post) => post.data.status !== "WIP")
-    .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
-    .slice(0, 10);
+  const publishedPosts = (await getPublishedPosts()).slice(0, 10);
 
   return rss({
     title: "Madinah",
@@ -20,7 +14,7 @@ export async function GET(context: APIContext) {
       pubDate: post.data.pubDate,
       description: post.data.description || "",
       link: `/blog/${post.id}/`,
-      content: post.body,
+      content: getPostBody(post),
     })),
     customData: `<language>en-us</language>`,
   });
