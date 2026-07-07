@@ -1,4 +1,5 @@
 import { useWorkspace } from "@/hooks/use-workspace";
+import { openFile as openFileFromApi } from "@/hooks/editor-api";
 import * as tauri from "@/lib/tauri";
 import { getParentDir } from "@/lib/paths";
 
@@ -17,7 +18,7 @@ export function WelcomeScreen() {
     if (!picked) return;
     const dir = getParentDir(picked);
     await openWorkspace(dir);
-    await import("@/stores/editor-store").then((m) => m.useEditorStore.getState().openFile(picked));
+    await openFileFromApi(picked);
   }
 
   return (

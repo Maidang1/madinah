@@ -7,6 +7,7 @@
 
 ## Done
 
+- Architecture boundary convergence: [`SPECs/architecture-boundary-convergence-spec.md`](SPECs/architecture-boundary-convergence-spec.md) — extract document-session domain logic, funnel startup/watcher store writes through owner actions, split the frontend Tauri bridge, and add static boundary tests.
 - App root flattening: [`SPECs/app-root-flattening-spec.md`](SPECs/app-root-flattening-spec.md) — collapse the migrated desktop app from `apps/writer/apps/desktop` into a single `apps/writer` package managed by the Madinah root workspace.
 - Tauri app icon replacement: [`SPECs/tauri-app-icon-replacement-spec.md`](SPECs/tauri-app-icon-replacement-spec.md) — use the provided illustrated character image as the regenerated Tauri app icon set.
 - Slash Markdown insertions: [`SPECs/slash-markdown-insertions-spec.md`](SPECs/slash-markdown-insertions-spec.md) — extend the editor slash menu and Insert context menu with image, callout, math block, footnote, HTML comment, and YAML frontmatter snippets.

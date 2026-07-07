@@ -36,13 +36,7 @@ export function useFileWatcher() {
     });
 
     const unlistenIndexComplete = listen<number>("index:complete", (event) => {
-      if (useWorkspaceStore.getState().root) {
-        useWorkspaceStore.setState((state) => ({
-          fileCount: event.payload,
-          isIndexing: false,
-          sidebarMetadataVersion: state.sidebarMetadataVersion + 1,
-        }));
-      }
+      useWorkspaceStore.getState().completeIndexing(event.payload);
     });
 
     const unlistenSidebarMetadata = listen("sidebar:metadata-changed", () => {
@@ -56,28 +50,7 @@ export function useFileWatcher() {
     const unlistenDir = listen<FileChangePayload>("fs:directory-changed", (event) => {
       const { path } = event.payload;
       if (WATCHER_DEBUG) console.debug("[watcher] fs:directory-changed", path);
-      const { root, expandedDirs, invalidatePath, refreshDirectory, bumpSidebarMetadataVersion } =
-        useWorkspaceStore.getState();
-      bumpSidebarMetadataVersion();
-
-      // For visible directories (expanded or root), refresh in-place so the
-      // old entries stay visible until new data arrives.  Calling
-      // invalidatePath first would delete the cache, causing the tree to
-      // flash empty while the async refresh is in flight.
-      if (expandedDirs.has(path) || path === root) {
-        void refreshDirectory(path);
-      } else {
-        invalidatePath(path);
-      }
-
-      const parent = path.substring(0, path.lastIndexOf("/"));
-      if (parent) {
-        if (expandedDirs.has(parent) || parent === root) {
-          void refreshDirectory(parent);
-        } else {
-          invalidatePath(parent);
-        }
-      }
+      useWorkspaceStore.getState().handleDirectoryChanged(path);
     });
 
     return () => {

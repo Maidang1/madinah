@@ -1,17 +1,29 @@
 import { create } from "zustand";
 import type { FileContent } from "@/types/fs";
 import * as tauri from "@/lib/tauri";
-import { inferTitle, parseDocument, type TitleSource } from "@/lib/frontmatter";
-import type { DocumentStats } from "@/lib/document-stats";
+import { inferTitle, parseDocument } from "@/lib/frontmatter";
 import { cancelSave, scheduleSave, registerSaveStore } from "@/lib/save";
 import {
-  locationBehavior,
-  serializeLocation,
-  deserializeLocation,
   type FileLocation,
   type Location,
-  type SerializedLocation,
-} from "@/components/editor-area/page-kinds";
+  type OpenFile,
+  type SessionTab,
+  type Tab,
+  applyRewriteToTab,
+  cloneTab,
+  collectReferencedPaths,
+  createFileTab,
+  createLauncherTab,
+  deriveActiveFilePath,
+  getActiveTab,
+  getTabIndex,
+  locationPaths,
+  locationPrimaryPath,
+  removeFromLocation,
+  restoreSessionTabs,
+  rewriteLocation,
+  tabPaths,
+} from "@/domain/editor-session";
 import {
   EMPTY_DOCUMENT_STATS,
   withDerived,
@@ -19,37 +31,8 @@ import {
   withDerivedStats,
 } from "./editor-derived";
 
-export interface OpenFile {
-  path: string;
-  frontmatter: string | null;
-  content: string;
-  title: string;
-  titleSource: TitleSource;
-  diskContent: string;
-  isDirty: boolean;
-  isLoading: boolean;
-  saveError: string | null;
-  reloadVersion: number;
-  scrollPos: number;
-  cursorPos: number;
-  displayDate: string | null;
-  stats: DocumentStats;
-}
-
-export interface Tab {
-  id: string;
-  location: Location;
-  back: Location[];
-  forward: Location[];
-}
-
-export type { Location, FileLocation } from "@/components/editor-area/page-kinds";
-
-export interface SessionTab {
-  location: SerializedLocation;
-  back: SerializedLocation[];
-  forward: SerializedLocation[];
-}
+export type { FileLocation, Location, OpenFile, SessionTab, Tab } from "@/domain/editor-session";
+export { createSettingsTab, getEditorSessionSnapshot } from "@/domain/editor-session";
 
 interface EditorState {
   openFiles: Map<string, OpenFile>;
@@ -57,6 +40,7 @@ interface EditorState {
   activeTabId: string | null;
   activeFilePath: string | null;
 
+  resetSession: () => void;
   openFile: (path: string) => Promise<void>;
   openCompactFile: (path: string, prefetched?: FileContent | null) => Promise<void>;
   openFileInNewTab: (path: string) => Promise<void>;
@@ -66,6 +50,8 @@ interface EditorState {
   replaceTabWithFile: (tabId: string, path: string) => Promise<void>;
   closeFile: (path: string) => void;
   closeTab: (tabId: string) => void;
+  closeOtherTabs: (tabId: string) => void;
+  closeAllTabs: () => void;
   closeActiveTab: () => void;
   setActiveFile: (path: string) => void;
   setActiveTab: (tabId: string) => void;
@@ -106,25 +92,6 @@ const pendingNavigationVersionByTabId = new Map<string, number>();
 // imperceptible, so fast disk reads never flash the spinner.
 const OPEN_FILE_GRACE_MS = 40;
 
-let tabSequence = 0;
-
-function createTabId() {
-  tabSequence += 1;
-  return `tab-${tabSequence}`;
-}
-
-export function createLauncherTab(id = createTabId()): Tab {
-  return { id, location: { kind: "launcher" }, back: [], forward: [] };
-}
-
-export function createFileTab(path: string, id = createTabId()): Tab {
-  return { id, location: { kind: "file", path }, back: [], forward: [] };
-}
-
-export function createSettingsTab(id = createTabId()): Tab {
-  return { id, location: { kind: "settings" }, back: [], forward: [] };
-}
-
 function createLoadingFile(path: string): OpenFile {
   return {
     path,
@@ -142,41 +109,6 @@ function createLoadingFile(path: string): OpenFile {
     displayDate: null,
     stats: EMPTY_DOCUMENT_STATS,
   };
-}
-
-function cloneTab(tab: Tab): Tab {
-  return { ...tab, back: [...tab.back], forward: [...tab.forward] };
-}
-
-function locationPaths(location: Location): string[] {
-  return locationBehavior(location).paths(location);
-}
-
-function locationPrimaryPath(location: Location): string | null {
-  return locationBehavior(location).primaryPath(location);
-}
-
-function deriveActiveFilePath(tabs: Tab[], activeTabId: string | null): string | null {
-  const activeTab = tabs.find((tab) => tab.id === activeTabId);
-  return activeTab ? locationPrimaryPath(activeTab.location) : null;
-}
-
-function getTabIndex(tabs: Tab[], tabId: string) {
-  return tabs.findIndex((tab) => tab.id === tabId);
-}
-
-function getActiveTab(state: Pick<EditorState, "tabs" | "activeTabId">) {
-  return state.tabs.find((tab) => tab.id === state.activeTabId) ?? null;
-}
-
-function collectReferencedPaths(tabs: Tab[]) {
-  const paths = new Set<string>();
-  for (const tab of tabs) {
-    for (const p of locationPaths(tab.location)) paths.add(p);
-    for (const loc of tab.back) for (const p of locationPaths(loc)) paths.add(p);
-    for (const loc of tab.forward) for (const p of locationPaths(loc)) paths.add(p);
-  }
-  return paths;
 }
 
 function maybePruneFiles(
@@ -199,14 +131,6 @@ function maybePruneFiles(
   return files;
 }
 
-function tabPaths(tab: Tab): string[] {
-  const paths = new Set<string>();
-  for (const p of locationPaths(tab.location)) paths.add(p);
-  for (const loc of tab.back) for (const p of locationPaths(loc)) paths.add(p);
-  for (const loc of tab.forward) for (const p of locationPaths(loc)) paths.add(p);
-  return [...paths];
-}
-
 function startNavigation(tabId: string) {
   const nextVersion = (pendingNavigationVersionByTabId.get(tabId) ?? 0) + 1;
   pendingNavigationVersionByTabId.set(tabId, nextVersion);
@@ -215,22 +139,6 @@ function startNavigation(tabId: string) {
 
 function isNavigationCurrent(tabId: string, version: number) {
   return pendingNavigationVersionByTabId.get(tabId) === version;
-}
-
-function rewriteLocation(location: Location, from: string, to: string): Location | null {
-  return locationBehavior(location).rewritePath(location as never, from, to) as Location | null;
-}
-
-function removeFromLocation(location: Location, path: string): Location | null {
-  return locationBehavior(location).removePath(location as never, path) as Location | null;
-}
-
-function applyRewriteToTab(tab: Tab, rewrite: (loc: Location) => Location | null): Tab | null {
-  const newLocation = rewrite(tab.location);
-  if (!newLocation) return null;
-  const back = tab.back.map(rewrite).filter((l): l is Location => l !== null);
-  const forward = tab.forward.map(rewrite).filter((l): l is Location => l !== null);
-  return { ...tab, location: newLocation, back, forward };
 }
 
 async function ensureFileLoaded(path: string, set: EditorStateSetter, get: () => EditorState) {
@@ -299,6 +207,17 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   tabs: [],
   activeTabId: null,
   activeFilePath: null,
+
+  resetSession: () => {
+    pendingLoads.clear();
+    pendingNavigationVersionByTabId.clear();
+    set({
+      openFiles: new Map(),
+      tabs: [],
+      activeTabId: null,
+      activeFilePath: null,
+    });
+  },
 
   openFile: async (path: string) => {
     const state = get();
@@ -583,6 +502,22 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     });
 
     pendingNavigationVersionByTabId.delete(tabId);
+  },
+
+  closeOtherTabs: (tabId: string) => {
+    const ids = get()
+      .tabs.filter((tab) => tab.id !== tabId)
+      .map((tab) => tab.id);
+    for (const id of ids) {
+      get().closeTab(id);
+    }
+  },
+
+  closeAllTabs: () => {
+    const ids = get().tabs.map((tab) => tab.id);
+    for (const id of ids) {
+      get().closeTab(id);
+    }
   },
 
   closeActiveTab: () => {
@@ -942,31 +877,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     activeIndex: number | null,
     prefetchedActiveFile: FileContent | null = null,
   ) => {
-    const restoredTabs: Tab[] = [];
-    for (const sessionTab of tabs) {
-      const location = deserializeLocation(sessionTab.location);
-      if (!location) continue;
-      const back = sessionTab.back
-        .map((l) => deserializeLocation(l))
-        .filter((l): l is Location => l !== null);
-      const forward = sessionTab.forward
-        .map((l) => deserializeLocation(l))
-        .filter((l): l is Location => l !== null);
-      restoredTabs.push({
-        id: createTabId(),
-        location,
-        back,
-        forward,
-      });
-    }
+    const restoredTabs = restoreSessionTabs(tabs);
 
     if (restoredTabs.length === 0) {
-      set({
-        openFiles: new Map(),
-        tabs: [],
-        activeTabId: null,
-        activeFilePath: null,
-      });
+      get().resetSession();
       get().ensureLauncherTab();
       return;
     }
@@ -1200,24 +1114,3 @@ registerSaveStore({
     useEditorStore.getState().markSaved(path, diskContent, hasNewerChanges),
   setSaveError: (path, error) => useEditorStore.getState().setSaveError(path, error),
 });
-
-export function getEditorSessionSnapshot(state: Pick<EditorState, "tabs" | "activeTabId">) {
-  const tabs: SessionTab[] = [];
-  let activeIndex: number | null = null;
-  state.tabs.forEach((tab) => {
-    const location = serializeLocation(tab.location);
-    if (!location) return;
-    const back = tab.back
-      .map((l) => serializeLocation(l))
-      .filter((l): l is SerializedLocation => l !== null);
-    const forward = tab.forward
-      .map((l) => serializeLocation(l))
-      .filter((l): l is SerializedLocation => l !== null);
-    const index = tabs.length;
-    tabs.push({ location, back, forward });
-    if (state.activeTabId && tab.id === state.activeTabId) {
-      activeIndex = index;
-    }
-  });
-  return { tabs, activeIndex };
-}

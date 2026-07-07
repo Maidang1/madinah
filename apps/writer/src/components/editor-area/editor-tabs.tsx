@@ -4,6 +4,8 @@ import {
   useActiveTabId,
   useCanNavigateBack,
   useCanNavigateForward,
+  useCloseAllTabs,
+  useCloseOtherTabs,
   useCloseTab,
   useFileSaveError,
   useIsFileLoading,
@@ -17,7 +19,6 @@ import {
 } from "@/hooks/use-tabs";
 import { ScrollFade } from "@/components/scroll-fade";
 import { useScrollActiveTabIntoView } from "@/hooks/use-scroll-active-tab-into-view";
-import { useEditorStore } from "@/stores/editor-store";
 import { getRelativePath } from "@/lib/paths";
 import { pageKind } from "./page-kinds";
 import { buildTabMenuItemsSpec, showNativeContextMenu } from "./editor-context-menu";
@@ -106,6 +107,8 @@ export function EditorTabs() {
   const activeTabId = useActiveTabId();
   const setActiveTab = useSetActiveTab();
   const closeTab = useCloseTab();
+  const closeOtherTabs = useCloseOtherTabs();
+  const closeAllTabs = useCloseAllTabs();
   const canNavigateBack = useCanNavigateBack();
   const canNavigateForward = useCanNavigateForward();
   const navigateBack = useNavigateBack();
@@ -127,16 +130,10 @@ export function EditorTabs() {
         buildTabMenuItemsSpec({
           onClose: () => closeTab(tab.id),
           onCloseOthers: () => {
-            const state = useEditorStore.getState();
-            for (const t of state.tabs) {
-              if (t.id !== tab.id) closeTab(t.id);
-            }
+            closeOtherTabs(tab.id);
           },
           onCloseAll: () => {
-            const ids = useEditorStore.getState().tabs.map((t) => t.id);
-            for (const id of ids) {
-              closeTab(id);
-            }
+            closeAllTabs();
           },
           onRevealInSidebar: () => {
             setActiveTab(tab.id);
@@ -148,7 +145,7 @@ export function EditorTabs() {
         }),
       );
     },
-    [closeTab, setActiveTab, workspaceRoot],
+    [closeAllTabs, closeOtherTabs, closeTab, setActiveTab, workspaceRoot],
   );
 
   return (

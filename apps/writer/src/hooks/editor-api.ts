@@ -1,5 +1,5 @@
 import { useEditorStore } from "@/stores/editor-store";
-export type { OpenFile, Tab, SessionTab } from "@/stores/editor-store";
+export type { OpenFile, Tab, SessionTab } from "@/domain/editor-session";
 
 export function getOpenFile(path: string) {
   return useEditorStore.getState().openFiles.get(path) ?? null;
@@ -11,6 +11,10 @@ export function getOpenFiles() {
 
 export function getActiveFilePath() {
   return useEditorStore.getState().activeFilePath;
+}
+
+export function openFile(path: string) {
+  return useEditorStore.getState().openFile(path);
 }
 
 export function closeFile(path: string) {

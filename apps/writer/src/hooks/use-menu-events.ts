@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
-import { createSettingsTab, useEditorStore } from "@/stores/editor-store";
+import { createSettingsTab } from "@/domain/editor-session";
+import { useEditorStore } from "@/stores/editor-store";
 import { useWorkspaceStore } from "@/stores/workspace-store";
 import { getWorkspaceChromeMode } from "@/lib/compact-mode";
 

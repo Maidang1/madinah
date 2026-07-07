@@ -1,7 +1,8 @@
-import { createSettingsTab, useEditorStore } from "@/stores/editor-store";
+import { createSettingsTab } from "@/domain/editor-session";
+import { useEditorStore } from "@/stores/editor-store";
 import type { DocumentStats } from "@/lib/document-stats";
 
-export type { OpenFile, Tab, Location, FileLocation, SessionTab } from "@/stores/editor-store";
+export type { OpenFile, Tab, Location, FileLocation, SessionTab } from "@/domain/editor-session";
 
 const EMPTY_STATS: DocumentStats = { words: 0, characters: 0, paragraphs: 0 };
 
@@ -47,6 +48,14 @@ export function useOpenNewTab() {
 
 export function useCloseTab() {
   return useEditorStore((s) => s.closeTab);
+}
+
+export function useCloseOtherTabs() {
+  return useEditorStore((s) => s.closeOtherTabs);
+}
+
+export function useCloseAllTabs() {
+  return useEditorStore((s) => s.closeAllTabs);
 }
 
 export function useCloseActiveTab() {

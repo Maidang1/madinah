@@ -36,6 +36,9 @@ interface WorkspaceState {
   removePinnedFile: (path: string) => void;
   removePinnedFilesWithPrefix: (prefix: string) => void;
   rewritePinnedPath: (oldPath: string, newPath: string) => void;
+  hydrateRecentWorkspaces: (paths: string[]) => void;
+  completeIndexing: (fileCount: number) => void;
+  handleDirectoryChanged: (path: string) => void;
   bumpSidebarMetadataVersion: () => void;
   removeRecentWorkspace: (path: string) => Promise<void>;
 }
@@ -102,13 +105,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       return;
     }
 
-    // Clear editor state before switching
-    useEditorStore.setState({
-      openFiles: new Map(),
-      tabs: [],
-      activeTabId: null,
-      activeFilePath: null,
-    });
+    useEditorStore.getState().resetSession();
 
     const info = await tauri.openWorkspace(path);
     // Read the directory and load the session under the canonical root that
@@ -146,12 +143,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     if (!root) return;
     const snapshot = getEditorSessionSnapshot(useEditorStore.getState());
     void saveSession(root, snapshot.tabs, snapshot.activeIndex);
-    useEditorStore.setState({
-      openFiles: new Map(),
-      tabs: [],
-      activeTabId: null,
-      activeFilePath: null,
-    });
+    useEditorStore.getState().resetSession();
     set({
       root: null,
       chromeMode: "workspace",
@@ -165,13 +157,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   },
 
   restoreFromBundle: async (bundle) => {
-    // Clear editor state in case anything was hydrated by a parallel hook.
-    useEditorStore.setState({
-      openFiles: new Map(),
-      tabs: [],
-      activeTabId: null,
-      activeFilePath: null,
-    });
+    useEditorStore.getState().resetSession();
 
     set({
       root: bundle.workspace.root,
@@ -370,6 +356,41 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       return { pinnedFiles: updated };
     });
     if (next) persistPinnedFiles(root, next);
+  },
+
+  hydrateRecentWorkspaces: (paths: string[]) => {
+    set({ recentWorkspaces: paths });
+  },
+
+  completeIndexing: (fileCount: number) => {
+    set((state) => {
+      if (!state.root) return state;
+      return {
+        fileCount,
+        isIndexing: false,
+        sidebarMetadataVersion: state.sidebarMetadataVersion + 1,
+      };
+    });
+  },
+
+  handleDirectoryChanged: (path: string) => {
+    const { root, expandedDirs, invalidatePath, refreshDirectory, bumpSidebarMetadataVersion } =
+      get();
+    bumpSidebarMetadataVersion();
+
+    if (expandedDirs.has(path) || path === root) {
+      void refreshDirectory(path);
+    } else {
+      invalidatePath(path);
+    }
+
+    const parent = path.substring(0, path.lastIndexOf("/"));
+    if (!parent) return;
+    if (expandedDirs.has(parent) || parent === root) {
+      void refreshDirectory(parent);
+    } else {
+      invalidatePath(parent);
+    }
   },
 
   bumpSidebarMetadataVersion: () => {

@@ -124,9 +124,7 @@ async function resolveStartup() {
       settings: startup.settings,
     });
 
-    useWorkspaceStore.setState({
-      recentWorkspaces: startup.recent_workspaces,
-    });
+    useWorkspaceStore.getState().hydrateRecentWorkspaces(startup.recent_workspaces);
 
     if (startup.standalone_file) {
       await openStandaloneFile(startup.standalone_file.path, startup.standalone_file);

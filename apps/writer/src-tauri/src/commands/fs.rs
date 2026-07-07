@@ -1,3 +1,4 @@
+use super::fs_support::{dir_contains_markdown, extract_title};
 use crate::document::is_supported_document_path;
 use crate::error::AppError;
 use crate::ignore::WorkspaceIgnore;
@@ -5,6 +6,7 @@ use crate::state::{AppState, WorkspaceState};
 use serde::Serialize;
 use std::fs;
 use std::path::{Path, PathBuf};
+#[cfg(test)]
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use tauri::{Emitter, Manager};
@@ -42,70 +44,6 @@ async fn blocking<T: Send + 'static>(
         .map_err(|e| AppError::Io(e.to_string()))?
 }
 
-/// Extract a document title from a Markdown-family file by reading its first few KB.
-/// Priority: YAML frontmatter `title:` field, then leading `# ` heading.
-fn extract_title(path: &Path) -> Option<String> {
-    use std::io::Read;
-
-    let mut file = fs::File::open(path).ok()?;
-    let mut buf = vec![0u8; 4096];
-    let n = file.read(&mut buf).ok()?;
-    let text = std::str::from_utf8(&buf[..n]).ok()?;
-
-    // Check for YAML frontmatter (--- delimited)
-    if let Some(rest) = text
-        .strip_prefix("---\n")
-        .or_else(|| text.strip_prefix("---\r\n"))
-    {
-        // Find the closing ---
-        if let Some(end_pos) = rest.find("\n---\n").or_else(|| rest.find("\n---\r\n")) {
-            let yaml_block = &rest[..end_pos];
-            // Look for title: in the YAML
-            for line in yaml_block.lines() {
-                let trimmed = line.trim();
-                if let Some(value) = trimmed.strip_prefix("title:") {
-                    let value = value.trim();
-                    // Strip surrounding quotes
-                    let title = value
-                        .strip_prefix('"')
-                        .and_then(|v| v.strip_suffix('"'))
-                        .or_else(|| value.strip_prefix('\'').and_then(|v| v.strip_suffix('\'')))
-                        .unwrap_or(value);
-                    if !title.is_empty() {
-                        return Some(title.to_string());
-                    }
-                }
-            }
-            // No frontmatter title — check for H1 in the body after frontmatter
-            let body_start = end_pos + "\n---\n".len();
-            return extract_leading_h1(&rest[body_start..]);
-        }
-    }
-
-    // No frontmatter — check for H1 heading
-    extract_leading_h1(text)
-}
-
-/// Extract a title from the first `# ` heading, which must be the first
-/// non-blank line in the text.
-fn extract_leading_h1(text: &str) -> Option<String> {
-    for line in text.lines() {
-        let trimmed = line.trim();
-        if trimmed.is_empty() {
-            continue;
-        }
-        if let Some(heading) = trimmed.strip_prefix("# ") {
-            let title = heading.trim();
-            if !title.is_empty() {
-                return Some(title.to_string());
-            }
-        }
-        // First non-blank line is not an H1
-        return None;
-    }
-    None
-}
-
 pub(crate) fn modified_time(path: &std::path::Path) -> u64 {
     fs::metadata(path)
         .and_then(|m| m.modified())
@@ -115,53 +53,6 @@ pub(crate) fn modified_time(path: &std::path::Path) -> u64 {
                 .as_secs()
         })
         .unwrap_or(0)
-}
-
-/// Recursively checks if a directory contains at least one visible document file.
-/// Used as fallback before the index is ready. Skips paths matched by the
-/// workspace ignore matcher so ignored directories don't resurrect their
-/// parent in the sidebar.
-fn dir_contains_markdown_recursive(path: &Path, ignore: Option<&WorkspaceIgnore>) -> bool {
-    let Ok(entries) = fs::read_dir(path) else {
-        return false;
-    };
-    for entry in entries.flatten() {
-        let ft = entry.file_type();
-        let Ok(ft) = ft else { continue };
-        let entry_path = entry.path();
-
-        if let Some(ignore) = ignore {
-            if ignore.is_ignored(&entry_path, ft.is_dir()) {
-                continue;
-            }
-        }
-
-        if ft.is_file() {
-            if is_supported_document_path(&entry_path) {
-                return true;
-            }
-        } else if ft.is_dir() && dir_contains_markdown_recursive(&entry_path, ignore) {
-            return true;
-        }
-    }
-    false
-}
-
-/// O(1) check via the pre-built set, with recursive fallback during initial indexing.
-fn dir_contains_markdown(path: &Path, state: Option<&WorkspaceState>) -> bool {
-    if let Some(state) = state {
-        if state.index_ready.load(Ordering::Relaxed) {
-            return state.dirs_with_markdown.read().contains(path);
-        }
-        // Snapshot the `Arc<WorkspaceIgnore>` under a brief read lock and
-        // release immediately — the recursive fallback below does file I/O
-        // and must not hold the RwLock across syscalls (it would block a
-        // concurrent workspace switch's `workspace_ignore.write()`).
-        let ignore_arc: Option<Arc<WorkspaceIgnore>> =
-            state.workspace_ignore.read().as_ref().map(Arc::clone);
-        return dir_contains_markdown_recursive(path, ignore_arc.as_deref());
-    }
-    dir_contains_markdown_recursive(path, None)
 }
 
 pub fn read_directory_impl(
