@@ -1,6 +1,5 @@
 import { getCollection } from "astro:content";
-import { isPublishedBlogPostStatus } from "../../shared/blog-frontmatter";
-import { calculateReadingTime } from "./reading-time";
+import { calculateReadingTime, isPublishedBlogPostStatus } from "@madinah/content-core";
 
 export function getPostBody(post: { body?: string | null }) {
   return post.body ?? "";

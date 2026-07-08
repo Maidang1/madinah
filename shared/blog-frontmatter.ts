@@ -1,9 +1,7 @@
-export const BLOG_POST_STATUS_OPTIONS = ["draft", "published", "archived", "WIP"] as const;
+export {
+  BLOG_POST_STATUS_OPTIONS,
+  PUBLISHED_BLOG_POST_STATUS,
+  isPublishedBlogPostStatus,
+} from "@madinah/content-core";
 
-export type BlogPostStatus = (typeof BLOG_POST_STATUS_OPTIONS)[number];
-
-export const PUBLISHED_BLOG_POST_STATUS = "published" satisfies BlogPostStatus;
-
-export function isPublishedBlogPostStatus(status: BlogPostStatus): boolean {
-  return status === PUBLISHED_BLOG_POST_STATUS;
-}
+export type { BlogPostStatus } from "@madinah/content-core";

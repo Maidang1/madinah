@@ -13,6 +13,7 @@
     "writer:tauri": "pnpm --filter writer exec tauri"
   },
   "dependencies": {
+    "@madinah/content-core": "workspace:*",
     "@astrojs/cloudflare": "^12.6.12",
     "@astrojs/mdx": "^4.3.13",
     "@astrojs/partytown": "^2.1.4",

@@ -1,5 +1,5 @@
 import { parse, stringify } from "yaml";
-import { BLOG_POST_STATUS_OPTIONS, type BlogPostStatus } from "@madinah-shared/blog-frontmatter";
+import { BLOG_POST_STATUS_OPTIONS, type BlogPostStatus } from "@madinah/content-core";
 import type { YamlEntry } from "./yaml-entries";
 
 export const FRONTMATTER_STATUS_OPTIONS = BLOG_POST_STATUS_OPTIONS;

@@ -1,7 +1,7 @@
 import { defineCollection } from "astro:content";
 import { glob } from "astro/loaders";
 import { z } from "astro/zod";
-import { BLOG_POST_STATUS_OPTIONS } from "../shared/blog-frontmatter";
+import { BLOG_POST_STATUS_OPTIONS } from "@madinah/content-core";
 
 const nullableString = z.preprocess((value) => value ?? "", z.string());
 const nullableStringArray = z.preprocess(

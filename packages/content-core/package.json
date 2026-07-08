@@ -1,0 +1,22 @@
+{
+  "name": "@madinah/content-core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "types": "./src/index.ts",
+  "scripts": {
+    "check": "tsc --noEmit",
+    "test": "vp test"
+  },
+  "dependencies": {
+    "yaml": "catalog:"
+  },
+  "devDependencies": {
+    "typescript": "~5.8.3",
+    "vite": "catalog:",
+    "vite-plus": "catalog:"
+  }
+}

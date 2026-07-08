@@ -107,6 +107,9 @@ importers:
       '@astrojs/rss':
         specifier: ^4.0.15
         version: 4.0.19
+      '@madinah/content-core':
+        specifier: workspace:*
+        version: link:packages/content-core
       '@tailwindcss/vite':
         specifier: ^4.1.18
         version: 4.3.2(vite@6.4.3(@types/node@26.1.0)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.0)(yaml@2.9.0))
@@ -192,6 +195,9 @@ importers:
       '@lezer/yaml':
         specifier: 'catalog:'
         version: 1.0.4
+      '@madinah/content-core':
+        specifier: workspace:*
+        version: link:../../packages/content-core
       '@tailwindcss/vite':
         specifier: 'catalog:'
         version: 4.3.2(@voidzero-dev/vite-plus-core@0.2.2(@types/node@26.1.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.0)(typescript@5.8.3)(yaml@2.9.0))
@@ -280,6 +286,22 @@ importers:
       webdriverio:
         specifier: ^9.6.0
         version: 9.29.1
+
+  packages/content-core:
+    dependencies:
+      yaml:
+        specifier: 'catalog:'
+        version: 2.9.0
+    devDependencies:
+      typescript:
+        specifier: ~5.8.3
+        version: 5.8.3
+      vite:
+        specifier: 'catalog:'
+        version: '@voidzero-dev/vite-plus-core@0.2.2(@types/node@26.1.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.0)(typescript@5.8.3)(yaml@2.9.0)'
+      vite-plus:
+        specifier: 'catalog:'
+        version: 0.1.24(@types/node@26.1.0)(@voidzero-dev/vite-plus-core@0.2.2(@types/node@26.1.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.0)(typescript@5.8.3)(yaml@2.9.0))(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.0)(typescript@5.8.3)(yaml@2.9.0)
 
 packages:
 

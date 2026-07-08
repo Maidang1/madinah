@@ -4,7 +4,7 @@ import { components } from "../../components/mdx";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import LicenseNotice from "../../components/LicenseNotice.astro";
 import Time from "../../components/Time.astro";
-import { calculateReadingTime } from "../../utils/reading-time";
+import { calculateReadingTime } from "@madinah/content-core";
 import { getPostBody, getPublishedPosts } from "../../utils/posts";
 
 export async function getStaticPaths() {

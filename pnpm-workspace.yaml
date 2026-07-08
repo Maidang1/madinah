@@ -2,6 +2,7 @@ packages:
   - "."
   - "apps/*"
   - "apps/writer/e2e"
+  - "packages/*"
 allowBuilds:
   edgedriver: true
   esbuild: true
