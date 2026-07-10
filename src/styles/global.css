@@ -588,9 +588,18 @@
     max-height: calc(100dvh - 68px);
     padding: 4px 0 4px 18px;
     border-inline-start: 1px solid color-mix(in srgb, var(--reader-soft) 48%, transparent);
-    overflow: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
     color: var(--reader-muted);
     font-family: var(--reader-font);
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .toc-rail::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
   }
 
   .toc-rail h2 {
