@@ -30,11 +30,23 @@ catalog:
   "@tauri-apps/plugin-clipboard-manager": ^2.3.2
   "@tauri-apps/plugin-dialog": ^2.6.0
   "@tauri-apps/plugin-store": ^2.4.2
+  "@tiptap/extension-image": ^2.11.5
+  "@tiptap/extension-link": ^2.11.5
+  "@tiptap/extension-placeholder": ^2.11.5
+  "@tiptap/extension-task-item": ^2.11.5
+  "@tiptap/extension-task-list": ^2.11.5
+  "@tiptap/extension-typography": ^2.11.5
+  "@tiptap/pm": ^2.11.5
+  "@tiptap/react": ^2.11.5
+  "@tiptap/starter-kit": ^2.11.5
   beautiful-mermaid: ^1.1.3
   cmdk: ^1.1.1
   dompurify: ^3.4.7
   node-emoji: ^2.2.0
+  react-markdown: ^9.0.1
+  remark-gfm: ^4.0.0
   tailwindcss: ^4.2.2
+  tiptap-markdown: ^0.8.10
   vite: npm:@voidzero-dev/vite-plus-core@latest
   vite-plus: ^0.1.22
   vitest: npm:@voidzero-dev/vite-plus-test@latest
