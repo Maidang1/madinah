@@ -2,15 +2,59 @@ use crate::commands::ai::{AiDocumentReview, AiDocumentReviewIssue, AiMetadataSug
 use crate::error::AppError;
 use serde_json::Value;
 
-pub(crate) const ACP_RESULT_START: &str = "MADINAH_WRITER_RESULT_START";
-pub(crate) const ACP_RESULT_END: &str = "MADINAH_WRITER_RESULT_END";
 pub(crate) const DEFAULT_POLISH_INSTRUCTION: &str = "Polish the Markdown body for clarity, fluency, and natural expression. Preserve the original meaning, facts, Markdown structure, links, code fences, and MDX/JSX components. Return only the polished Markdown body.";
 
-pub(crate) fn build_acp_action_prompt(kind: &str, content: &str, instruction: &str) -> String {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum AiActionKind {
+    PolishDocument,
+    RewriteSelection,
+    ShortenSelection,
+    ExpandSelection,
+    TranslateSelection,
+    ContinueWriting,
+    GenerateOutline,
+    GenerateMetadata,
+    ReviewDocument,
+}
+
+impl AiActionKind {
+    pub(crate) fn parse(value: &str) -> Option<Self> {
+        match value {
+            "polish-document" => Some(Self::PolishDocument),
+            "rewrite-selection" => Some(Self::RewriteSelection),
+            "shorten-selection" => Some(Self::ShortenSelection),
+            "expand-selection" => Some(Self::ExpandSelection),
+            "translate-selection" => Some(Self::TranslateSelection),
+            "continue-writing" => Some(Self::ContinueWriting),
+            "generate-outline" => Some(Self::GenerateOutline),
+            "generate-metadata" => Some(Self::GenerateMetadata),
+            "review-document" => Some(Self::ReviewDocument),
+            _ => None,
+        }
+    }
+
+    pub(crate) const fn as_str(self) -> &'static str {
+        match self {
+            Self::PolishDocument => "polish-document",
+            Self::RewriteSelection => "rewrite-selection",
+            Self::ShortenSelection => "shorten-selection",
+            Self::ExpandSelection => "expand-selection",
+            Self::TranslateSelection => "translate-selection",
+            Self::ContinueWriting => "continue-writing",
+            Self::GenerateOutline => "generate-outline",
+            Self::GenerateMetadata => "generate-metadata",
+            Self::ReviewDocument => "review-document",
+        }
+    }
+}
+
+pub(crate) fn build_ai_action_prompt(
+    kind: AiActionKind,
+    content: &str,
+    instruction: &str,
+) -> String {
     let content = content.trim();
-    let trimmed_instruction = if (kind == "generate-metadata" || kind == "review-document")
-        && instruction.trim() == DEFAULT_POLISH_INSTRUCTION
-    {
+    let trimmed_instruction = if instruction.trim() == DEFAULT_POLISH_INSTRUCTION {
         ""
     } else {
         instruction.trim()
@@ -21,98 +65,69 @@ pub(crate) fn build_acp_action_prompt(kind: &str, content: &str, instruction: &s
         format!("\n\nAdditional writing instruction:\n{trimmed_instruction}")
     };
 
-    if kind == "rewrite-selection" {
-        return format!(
-            "Rewrite the selected Markdown for clarity, fluency, and natural expression.{extra_instruction}\n\nRules:\n- Return only the rewritten selected Markdown.\n- Preserve factual meaning, Markdown structure, links, code fences, and MDX/JSX components.\n- Do not add commentary or wrap the result in a code fence.\n{}\n\nSelected Markdown:\n<<<MADINAH_WRITER_SELECTION\n{content}\nMADINAH_WRITER_SELECTION",
-            build_acp_result_envelope_instruction(),
-        );
-    }
-
-    if kind == "generate-metadata" {
-        return format!(
-            "Generate publication metadata for the Markdown body.{extra_instruction}\n\nReturn only valid JSON with this exact shape:\n{{\n  \"title\": \"string\",\n  \"description\": \"string\",\n  \"tags\": [\"string\"],\n  \"slug\": \"string\"\n}}\n\nRules:\n- Keep the title concise and specific.\n- Keep description under 180 characters.\n- Return 3 to 6 lowercase tags when possible.\n- Use a URL-safe kebab-case slug.\n- Do not include Markdown fences or explanatory text.\n{}\n\nMarkdown body:\n<<<MADINAH_WRITER_BODY\n{content}\nMADINAH_WRITER_BODY",
-            build_acp_result_envelope_instruction(),
-        );
-    }
-
-    if kind == "review-document" {
-        return format!(
-            "Review the Markdown document for structure, clarity, and publishing readiness.{extra_instruction}\n\nReturn only valid JSON with this exact shape:\n{{\n  \"summary\": \"string\",\n  \"issues\": [\n    {{\n      \"severity\": \"info | warning | critical\",\n      \"title\": \"string\",\n      \"detail\": \"string\",\n      \"suggestion\": \"string\"\n    }}\n  ]\n}}\n\nRules:\n- Prefer concrete issues over generic advice.\n- Use \"critical\" only for issues that block publication or make the article misleading.\n- Keep every field concise.\n- Do not include Markdown fences or explanatory text.\n{}\n\nMarkdown body:\n<<<MADINAH_WRITER_BODY\n{content}\nMADINAH_WRITER_BODY",
-            build_acp_result_envelope_instruction(),
-        );
-    }
-
-    let final_instruction = if trimmed_instruction.is_empty() {
-        "Polish the Markdown body for clarity, fluency, and natural expression."
-    } else {
-        trimmed_instruction
-    };
-
-    format!(
-        "{final_instruction}\n\nRules:\n- Return only the polished Markdown body.\n- Preserve Markdown structure, links, code fences, MDX/JSX components, and factual meaning.\n- Keep frontmatter out of the output.\n{}\n\nMarkdown body:\n<<<MADINAH_WRITER_BODY\n{content}\nMADINAH_WRITER_BODY",
-        build_acp_result_envelope_instruction(),
-    )
-}
-
-fn build_acp_result_envelope_instruction() -> String {
-    format!(
-        "- Put the final payload between {ACP_RESULT_START} and {ACP_RESULT_END}.\n- Do not put warnings, notes, or explanations outside those markers."
-    )
-}
-
-pub(crate) fn normalize_acp_action_text(value: &str) -> String {
-    let without_diagnostics = strip_acp_diagnostic_output(value);
-    let enveloped = extract_acp_result_envelope(&without_diagnostics);
-    let trimmed = enveloped.as_deref().unwrap_or(&without_diagnostics).trim();
-    strip_markdown_fence(trimmed).trim().to_string()
-}
-
-fn strip_acp_diagnostic_output(value: &str) -> String {
-    value
-        .lines()
-        .filter(|line| !is_acp_diagnostic_line(line))
-        .collect::<Vec<_>>()
-        .join("\n")
-        .trim()
-        .to_string()
-}
-
-fn is_acp_diagnostic_line(line: &str) -> bool {
-    let normalized = strip_ansi_codes(line).trim().to_string();
-    normalized.starts_with("Warning: Skill descriptions were shortened to fit the ")
-        && normalized.ends_with("% skills context budget.")
-}
-
-fn strip_ansi_codes(value: &str) -> String {
-    let mut result = String::with_capacity(value.len());
-    let mut chars = value.chars().peekable();
-    while let Some(ch) = chars.next() {
-        if ch == '\u{1b}' && chars.peek() == Some(&'[') {
-            chars.next();
-            for next in chars.by_ref() {
-                if next.is_ascii_alphabetic() {
-                    break;
-                }
-            }
-            continue;
+    match kind {
+        AiActionKind::RewriteSelection => build_selection_prompt(
+            "Rewrite the selected Markdown for clarity, fluency, and natural expression.",
+            "- Preserve the original length unless clarity requires a change.",
+            &extra_instruction,
+            content,
+        ),
+        AiActionKind::ShortenSelection => build_selection_prompt(
+            "Shorten the selected Markdown while preserving its essential meaning.",
+            "- Reduce length by roughly 30 to 50 percent when the material allows it.\n- Remove repetition, filler, and weak transitions before removing useful facts.",
+            &extra_instruction,
+            content,
+        ),
+        AiActionKind::ExpandSelection => build_selection_prompt(
+            "Expand the selected Markdown with useful detail, clearer reasoning, and natural transitions.",
+            "- Add depth while staying within the facts provided.\n- Do not invent names, numbers, sources, quotations, or events.",
+            &extra_instruction,
+            content,
+        ),
+        AiActionKind::TranslateSelection => build_selection_prompt(
+            "Translate the selected Markdown. Translate predominantly Chinese prose into natural English; translate other prose into Simplified Chinese.",
+            "- Translate prose, headings, labels, and image alt text.\n- Preserve URLs, code, inline code, code fences, MDX/JSX syntax, and Markdown structure.\n- Keep established technical names in their conventional form.",
+            &extra_instruction,
+            content,
+        ),
+        AiActionKind::ContinueWriting => format!(
+            "Continue the Markdown document at the exact cursor marker.{extra_instruction}\n\nRules:\n- Return only the new Markdown to insert at the cursor.\n- Match the document's primary language, voice, tense, structure, and formatting.\n- Use both preceding and following text to create a natural continuation.\n- Add one to three focused paragraphs or the structurally appropriate equivalent.\n- Do not repeat existing text, mention the cursor marker, add commentary, or wrap the result in a code fence.\n- Preserve factual boundaries and do not invent names, numbers, sources, quotations, or events.\n\nMarkdown document with insertion point:\n<<<MADINAH_WRITER_DOCUMENT\n{content}\nMADINAH_WRITER_DOCUMENT",
+        ),
+        AiActionKind::GenerateOutline => format!(
+            "Generate a concise writing outline for the Markdown document.{extra_instruction}\n\nRules:\n- Return only the outline in the document's primary language.\n- Start with `## 大纲` for a Chinese document or `## Outline` for an English document.\n- Use nested Markdown bullet lists for sections and supporting points.\n- Reflect the document's actual argument and facts; include missing structural opportunities only when clearly useful.\n- Do not add anchor links, commentary, frontmatter, or a code fence.\n\nMarkdown body:\n<<<MADINAH_WRITER_BODY\n{content}\nMADINAH_WRITER_BODY",
+        ),
+        AiActionKind::GenerateMetadata => format!(
+            "Generate publication metadata for the Markdown body.{extra_instruction}\n\nReturn only valid JSON with this exact shape:\n{{\n  \"title\": \"string\",\n  \"description\": \"string\",\n  \"tags\": [\"string\"],\n  \"slug\": \"string\"\n}}\n\nRules:\n- Keep the title concise and specific.\n- Keep description under 180 characters.\n- Return 3 to 6 lowercase tags when possible.\n- Use a URL-safe kebab-case slug.\n- Do not include Markdown fences or explanatory text.\n\nMarkdown body:\n<<<MADINAH_WRITER_BODY\n{content}\nMADINAH_WRITER_BODY",
+        ),
+        AiActionKind::ReviewDocument => format!(
+            "Review the Markdown document for structure, clarity, and publishing readiness.{extra_instruction}\n\nReturn only valid JSON with this exact shape:\n{{\n  \"summary\": \"string\",\n  \"issues\": [\n    {{\n      \"severity\": \"info | warning | critical\",\n      \"title\": \"string\",\n      \"detail\": \"string\",\n      \"suggestion\": \"string\"\n    }}\n  ]\n}}\n\nRules:\n- Prefer concrete issues over generic advice.\n- Use \"critical\" only for issues that block publication or make the article misleading.\n- Keep every field concise.\n- Do not include Markdown fences or explanatory text.\n\nMarkdown body:\n<<<MADINAH_WRITER_BODY\n{content}\nMADINAH_WRITER_BODY",
+        ),
+        AiActionKind::PolishDocument => {
+            let final_instruction = if trimmed_instruction.is_empty() {
+                DEFAULT_POLISH_INSTRUCTION
+            } else {
+                trimmed_instruction
+            };
+            format!(
+                "{final_instruction}\n\nRules:\n- Return only the polished Markdown body.\n- Preserve Markdown structure, links, code fences, MDX/JSX components, and factual meaning.\n- Keep frontmatter out of the output.\n\nMarkdown body:\n<<<MADINAH_WRITER_BODY\n{content}\nMADINAH_WRITER_BODY",
+            )
         }
-        result.push(ch);
     }
-    result
 }
 
-fn extract_acp_result_envelope(value: &str) -> Option<String> {
-    let mut rest = value;
-    let mut last = None;
-    while let Some(start_index) = rest.find(ACP_RESULT_START) {
-        let after_start = &rest[start_index + ACP_RESULT_START.len()..];
-        let Some(end_index) = after_start.find(ACP_RESULT_END) else {
-            break;
-        };
-        last = Some(after_start[..end_index].trim().to_string());
-        rest = &after_start[end_index + ACP_RESULT_END.len()..];
-    }
-    last
+fn build_selection_prompt(
+    request: &str,
+    action_rules: &str,
+    extra_instruction: &str,
+    content: &str,
+) -> String {
+    format!(
+        "{request}{extra_instruction}\n\nRules:\n- Return only the transformed selected Markdown.\n- Preserve factual meaning, Markdown structure, links, code fences, and MDX/JSX components.\n- Do not add commentary or wrap the result in a code fence.\n{action_rules}\n\nSelected Markdown:\n<<<MADINAH_WRITER_SELECTION\n{content}\nMADINAH_WRITER_SELECTION",
+    )
+}
+
+pub(crate) fn normalize_ai_action_text(value: &str) -> String {
+    strip_markdown_fence(value.trim()).trim().to_string()
 }
 
 fn strip_markdown_fence(value: &str) -> &str {
@@ -135,7 +150,7 @@ fn strip_markdown_fence(value: &str) -> &str {
 }
 
 pub(crate) fn parse_ai_metadata_suggestion(value: &str) -> Result<AiMetadataSuggestion, AppError> {
-    let parsed = parse_acp_json_object(value, "metadata suggestion")?;
+    let parsed = parse_ai_json_object(value, "metadata suggestion")?;
     let title = string_field(&parsed, "title", true, "metadata")?;
     let description = string_field(&parsed, "description", true, "metadata")?;
     let tags = parsed
@@ -168,7 +183,7 @@ pub(crate) fn parse_ai_metadata_suggestion(value: &str) -> Result<AiMetadataSugg
 }
 
 pub(crate) fn parse_ai_document_review(value: &str) -> Result<AiDocumentReview, AppError> {
-    let parsed = parse_acp_json_object(value, "document review")?;
+    let parsed = parse_ai_json_object(value, "document review")?;
     let summary = string_field(&parsed, "summary", true, "review")?;
     let issues = parsed
         .get("issues")
@@ -202,11 +217,11 @@ pub(crate) fn parse_ai_document_review(value: &str) -> Result<AiDocumentReview, 
     Ok(AiDocumentReview { summary, issues })
 }
 
-fn parse_acp_json_object(
+fn parse_ai_json_object(
     value: &str,
     label: &str,
 ) -> Result<serde_json::Map<String, Value>, AppError> {
-    let normalized = normalize_acp_action_text(value);
+    let normalized = normalize_ai_action_text(value);
     match serde_json::from_str::<Value>(&normalized) {
         Ok(Value::Object(object)) => Ok(object),
         _ => Err(AppError::Invalid(format!(

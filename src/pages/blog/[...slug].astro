@@ -41,16 +41,27 @@ const tocItems = headings
         <header class="post-header">
           <h1 class="post-title">{post.data.title}</h1>
 
-          <div class="post-meta">
-            <Time time={post.data.pubDate} />
-            <span>/</span>
-            <span>{readingTime.minutes} 分钟</span>
-            {post.data.author && (
-              <>
-                <span>/</span>
-                <span>{post.data.author}</span>
-              </>
-            )}
+          <div class="post-meta-row">
+            <div class="post-meta">
+              <Time time={post.data.pubDate} />
+              <span>/</span>
+              <span>{readingTime.minutes} 分钟</span>
+              {post.data.author && (
+                <>
+                  <span>/</span>
+                  <span>{post.data.author}</span>
+                </>
+              )}
+            </div>
+            <div class="post-share">
+              <button type="button" data-share-article aria-label="分享文章" title="分享文章">
+                <svg aria-hidden="true" viewBox="0 0 24 24" width="15" height="15">
+                  <path d="M8.7 12.9 15.4 17M15.4 7 8.7 11.1M19 20a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm13-5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" />
+                </svg>
+                <span>分享</span>
+              </button>
+              <span data-share-feedback aria-live="polite"></span>
+            </div>
           </div>
         </header>
 
@@ -104,6 +115,49 @@ const tocItems = headings
   </article>
 
   <script>
+    function initArticleShare() {
+      const button = document.querySelector<HTMLButtonElement>("[data-share-article]");
+      const feedback = document.querySelector<HTMLElement>("[data-share-feedback]");
+      if (!button || !feedback || button.dataset.bound === "true") return;
+      button.dataset.bound = "true";
+
+      const copyCurrentUrl = async () => {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(window.location.href);
+          return;
+        }
+        const input = document.createElement("textarea");
+        input.value = window.location.href;
+        input.style.position = "fixed";
+        input.style.opacity = "0";
+        document.body.append(input);
+        input.select();
+        document.execCommand("copy");
+        input.remove();
+      };
+
+      button.addEventListener("click", async () => {
+        try {
+          if (navigator.share) {
+            await navigator.share({
+              title: document.title,
+              url: window.location.href,
+            });
+            feedback.textContent = "已分享";
+          } else {
+            await copyCurrentUrl();
+            feedback.textContent = "链接已复制";
+          }
+          window.setTimeout(() => {
+            feedback.textContent = "";
+          }, 2200);
+        } catch (error) {
+          if (error instanceof DOMException && error.name === "AbortError") return;
+          feedback.textContent = "分享失败";
+        }
+      });
+    }
+
     function initToc() {
       const rail = document.querySelector<HTMLElement>(".toc-rail");
       if (!rail) return;
@@ -169,11 +223,18 @@ const tocItems = headings
     }
 
     if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", initToc, { once: true });
+      document.addEventListener("DOMContentLoaded", () => {
+        initArticleShare();
+        initToc();
+      }, { once: true });
     } else {
+      initArticleShare();
       initToc();
     }
     // Astro view transitions: re-init after swaps.
-    document.addEventListener("astro:page-load", initToc);
+    document.addEventListener("astro:page-load", () => {
+      initArticleShare();
+      initToc();
+    });
   </script>
 </BaseLayout>

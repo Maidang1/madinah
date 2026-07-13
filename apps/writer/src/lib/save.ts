@@ -37,6 +37,11 @@ interface SaveController {
   timer: ReturnType<typeof setTimeout> | null;
   inFlight: boolean;
   pending: boolean;
+  flushRequested: boolean;
+  waiters: Array<{
+    resolve: () => void;
+    reject: (error: Error) => void;
+  }>;
 }
 
 const saveControllers = new Map<string, SaveController>();
@@ -49,6 +54,8 @@ function getSaveController(path: string): SaveController {
       timer: null,
       inFlight: false,
       pending: false,
+      flushRequested: false,
+      waiters: [],
     };
     saveControllers.set(path, controller);
   }
@@ -62,8 +69,22 @@ function clearSaveTimer(controller: SaveController) {
 }
 
 function cleanupSaveController(path: string, controller: SaveController) {
-  if (controller.inFlight || controller.pending || controller.timer) return;
+  if (
+    controller.inFlight ||
+    controller.pending ||
+    controller.timer ||
+    controller.waiters.length > 0
+  )
+    return;
   saveControllers.delete(path);
+}
+
+function settleSaveWaiters(controller: SaveController, error?: Error) {
+  const waiters = controller.waiters.splice(0);
+  for (const waiter of waiters) {
+    if (error) waiter.reject(error);
+    else waiter.resolve();
+  }
 }
 
 export function scheduleSave(path: string) {
@@ -81,8 +102,27 @@ export function cancelSave(path: string) {
   if (!controller) return;
 
   controller.pending = false;
+  controller.flushRequested = false;
   clearSaveTimer(controller);
+  settleSaveWaiters(controller, new Error(`Save cancelled for ${path}`));
   cleanupSaveController(path, controller);
+}
+
+/** Persist the latest document snapshot immediately and resolve only after all
+ * edits observed during the write have reached disk. Publication uses this as
+ * its durability boundary before invoking Git. */
+export function flushSave(path: string): Promise<void> {
+  const controller = getSaveController(path);
+  controller.pending = true;
+  controller.flushRequested = true;
+
+  const completion = new Promise<void>((resolve, reject) => {
+    controller.waiters.push({ resolve, reject });
+  });
+
+  clearSaveTimer(controller);
+  if (!controller.inFlight) void performSave(path, controller);
+  return completion;
 }
 
 function queueSave(path: string, controller: SaveController) {
@@ -133,6 +173,7 @@ async function performSave(path: string, controller = getSaveController(path)) {
   const file = store.getOpenFile(path);
   if (!file || !file.isDirty) {
     controller.pending = false;
+    settleSaveWaiters(controller);
     cleanupSaveController(path, controller);
     return;
   }
@@ -143,6 +184,7 @@ async function performSave(path: string, controller = getSaveController(path)) {
 
   const full = serializeForSave(file);
   let shouldReschedule = false;
+  let terminalError: Error | undefined;
 
   try {
     await tauri.writeFile(path, full);
@@ -156,13 +198,17 @@ async function performSave(path: string, controller = getSaveController(path)) {
     console.error(`[save] Failed to save ${path}:`, err);
     const message = err instanceof Error ? err.message : String(err);
     store.setSaveError(path, message);
+    terminalError = err instanceof Error ? err : new Error(message);
   } finally {
     controller.inFlight = false;
 
     const needsFollowUpSave = controller.pending || shouldReschedule;
     if (needsFollowUpSave) {
-      queueSave(path, controller);
+      if (controller.flushRequested) void performSave(path, controller);
+      else queueSave(path, controller);
     } else {
+      controller.flushRequested = false;
+      settleSaveWaiters(controller, terminalError);
       cleanupSaveController(path, controller);
     }
   }

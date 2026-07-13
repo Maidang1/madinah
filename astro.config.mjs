@@ -4,6 +4,7 @@ import tailwindcss from "@tailwindcss/vite";
 import partytown from "@astrojs/partytown";
 import mdx from "@astrojs/mdx";
 import cloudflare from "@astrojs/cloudflare";
+import { MADINAH_SITE_URL } from "@madinah/content-core";
 
 // MDX plugins
 import rehypeSlug from "rehype-slug";
@@ -14,7 +15,7 @@ import remarkGfm from "remark-gfm";
 
 // https://astro.build/config
 export default defineConfig({
-  site: "https://madinah.felixwliu.cn",
+  site: MADINAH_SITE_URL,
   vite: {
     plugins: [
       tailwindcss({

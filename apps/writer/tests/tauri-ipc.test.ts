@@ -106,12 +106,11 @@ describe("filesystem IPC wrappers", () => {
 describe("AI IPC wrappers", () => {
   test("loadAiSettings calls correct command", async () => {
     mockedInvoke.mockResolvedValue({
-      schemaVersion: 1,
-      provider: "codex",
-      agents: {
-        codex: { command: "codex", env: [], instruction: "x", timeoutSeconds: 120 },
-        claude: { command: "claude", env: [], instruction: "x", timeoutSeconds: 120 },
-      },
+      schemaVersion: 2,
+      codexPath: "",
+      model: "",
+      instruction: "x",
+      timeoutSeconds: 120,
     });
     await ipc.loadAiSettings();
     expect(mockedInvoke).toHaveBeenCalledWith("load_ai_settings");
@@ -119,12 +118,11 @@ describe("AI IPC wrappers", () => {
 
   test("saveAiSettings calls correct command", async () => {
     const settings: ipc.AiSettings = {
-      schemaVersion: 1,
-      provider: "codex",
-      agents: {
-        codex: { command: "codex", env: [], instruction: "x", timeoutSeconds: 120 },
-        claude: { command: "claude", env: [], instruction: "x", timeoutSeconds: 120 },
-      },
+      schemaVersion: 2,
+      codexPath: "",
+      model: "",
+      instruction: "x",
+      timeoutSeconds: 120,
     };
     mockedInvoke.mockResolvedValue(settings);
     await ipc.saveAiSettings(settings);
@@ -133,12 +131,11 @@ describe("AI IPC wrappers", () => {
 
   test("checkAiSettings calls correct command", async () => {
     const settings: ipc.AiSettings = {
-      schemaVersion: 1,
-      provider: "codex",
-      agents: {
-        codex: { command: "codex", env: [], instruction: "x", timeoutSeconds: 120 },
-        claude: { command: "claude", env: [], instruction: "x", timeoutSeconds: 120 },
-      },
+      schemaVersion: 2,
+      codexPath: "",
+      model: "",
+      instruction: "x",
+      timeoutSeconds: 120,
     };
     mockedInvoke.mockResolvedValue({ ok: true, message: "Connected" });
     await ipc.checkAiSettings(settings);

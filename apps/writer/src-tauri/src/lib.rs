@@ -565,6 +565,7 @@ pub fn run() {
             commands::search::index_workspace,
             commands::search::fuzzy_search,
             commands::images::save_clipboard_image,
+            commands::publish::publish_document,
             commands::asset_upload::load_asset_upload_settings,
             commands::asset_upload::save_asset_upload_settings,
             commands::asset_upload::check_asset_upload_settings,

@@ -3,16 +3,21 @@ import {
   BLOG_POST_STATUS_OPTIONS,
   calculateReadingTime,
   getBlogPostRouteId,
+  getBlogPostStatus,
+  getBlogPostUrl,
   getBlogPostUrlPath,
   getFrontmatterDisplayDate,
   inferTitle,
   isBlogPostStatus,
+  isBlogPostContentPath,
   isPublishedBlogPostStatus,
   isSupportedBlogPostPath,
   parseDocument,
   parseFrontmatter,
+  prepareBlogPostForPublish,
   serializeDocument,
   serializeFile,
+  validateBlogPostForPublish,
 } from "../src";
 
 describe("blog post status", () => {
@@ -22,6 +27,8 @@ describe("blog post status", () => {
     expect(isPublishedBlogPostStatus("draft")).toBe(false);
     expect(isBlogPostStatus("archived")).toBe(true);
     expect(isBlogPostStatus("scheduled")).toBe(false);
+    expect(getBlogPostStatus("status: published")).toBe("published");
+    expect(getBlogPostStatus("status: scheduled")).toBeNull();
   });
 });
 
@@ -33,12 +40,60 @@ describe("blog file identity", () => {
     );
     expect(getBlogPostRouteId("notes/hello.md")).toBe("notes/hello");
     expect(getBlogPostUrlPath("hello-world.mdx")).toBe("/blog/hello-world");
+    expect(getBlogPostUrl("src/blogs/hello-world.mdx")).toBe(
+      "https://madinah.felixwliu.cn/blog/hello-world",
+    );
   });
 
   test("recognizes supported markdown file paths", () => {
     expect(isSupportedBlogPostPath("hello.mdx")).toBe(true);
     expect(isSupportedBlogPostPath("nested/hello.md")).toBe(true);
     expect(isSupportedBlogPostPath("hello.txt")).toBe(false);
+    expect(isBlogPostContentPath("/Users/me/project/src/blogs/hello.mdx")).toBe(true);
+    expect(isBlogPostContentPath("/Users/me/project/notes/hello.mdx")).toBe(false);
+  });
+});
+
+describe("blog publication", () => {
+  test("prepares draft metadata and infers a missing title", () => {
+    const result = prepareBlogPostForPublish({
+      filePath: "/project/src/blogs/hello.mdx",
+      frontmatter: "description: Intro\nstatus: draft",
+      body: "# Hello world\n\nBody",
+      publishedAt: new Date("2026-07-12T08:00:00.000Z"),
+    });
+
+    expect(result.frontmatter).toContain("title: Hello world");
+    expect(result.frontmatter).toContain("status: published");
+    expect(result.frontmatter).toContain("pubDate: 2026-07-12T08:00:00.000Z");
+    expect(result.url).toBe("https://madinah.felixwliu.cn/blog/hello");
+    expect(
+      validateBlogPostForPublish({
+        filePath: "/project/src/blogs/hello.mdx",
+        frontmatter: result.frontmatter,
+        body: "# Hello world\n\nBody",
+      }),
+    ).toEqual([]);
+  });
+
+  test("reports publication blockers", () => {
+    expect(
+      validateBlogPostForPublish({
+        filePath: "/project/notes/hello.txt",
+        frontmatter: "status: draft",
+        body: "",
+      }).map((issue) => issue.field),
+    ).toEqual(["path", "title", "pubDate", "status", "body"]);
+  });
+
+  test("rejects malformed frontmatter before publication", () => {
+    expect(() =>
+      prepareBlogPostForPublish({
+        filePath: "/project/src/blogs/hello.md",
+        frontmatter: "title: [",
+        body: "Body",
+      }),
+    ).toThrow("Frontmatter is invalid YAML");
   });
 });
 

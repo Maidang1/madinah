@@ -53,6 +53,23 @@ describe("slash commands", () => {
     );
   });
 
+  test("shows insertion actions and keeps selection actions contextual", () => {
+    const items = createSlashCommandItems(getEditorCommandsForSurface("slash"));
+
+    expect(searchSlashCommandItems(items, "continue").map((item) => item.id)).toContain(
+      "ai.continueWriting",
+    );
+    expect(searchSlashCommandItems(items, "outline").map((item) => item.id)).toContain(
+      "ai.generateOutline",
+    );
+    expect(searchSlashCommandItems(items, "shorten").map((item) => item.id)).not.toContain(
+      "ai.shortenSelection",
+    );
+    expect(searchSlashCommandItems(items, "translate").map((item) => item.id)).not.toContain(
+      "ai.translateSelection",
+    );
+  });
+
   test("matches slash triggers at line start and after whitespace", () => {
     expect(matchSlashCommandTriggerText("/")).toEqual({
       query: "",

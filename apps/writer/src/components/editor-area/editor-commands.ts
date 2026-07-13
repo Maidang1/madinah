@@ -382,8 +382,166 @@ const EXTRA_COMMANDS: Array<
 
 export const AI_POLISH_DOCUMENT_COMMAND_ID = "ai.polishDocument";
 export const AI_REWRITE_SELECTION_COMMAND_ID = "ai.rewriteSelection";
+export const AI_SHORTEN_SELECTION_COMMAND_ID = "ai.shortenSelection";
+export const AI_EXPAND_SELECTION_COMMAND_ID = "ai.expandSelection";
+export const AI_TRANSLATE_SELECTION_COMMAND_ID = "ai.translateSelection";
+export const AI_CONTINUE_WRITING_COMMAND_ID = "ai.continueWriting";
+export const AI_GENERATE_OUTLINE_COMMAND_ID = "ai.generateOutline";
 export const AI_GENERATE_METADATA_COMMAND_ID = "ai.generateMetadata";
 export const AI_REVIEW_DOCUMENT_COMMAND_ID = "ai.reviewDocument";
+
+type AiTextInputMode = "selection" | "document" | "cursor-context";
+type AiTextOutputMode = "replace-selection" | "replace-document" | "insert-block";
+
+interface AiTextActionDefinition {
+  commandId: string;
+  actionKind: tauri.AiActionKind;
+  label: string;
+  description: string;
+  keywords: string[];
+  priority: number;
+  surfaces: EditorCommandSurface[];
+  contextOrder: number;
+  separatorBefore?: boolean;
+  inputMode: AiTextInputMode;
+  outputMode: AiTextOutputMode;
+  emptyError: string;
+  runningLabel: string;
+  runningDetail: string;
+  successLabel: string;
+  successDetail: string;
+  userEvent: string;
+}
+
+const AI_TEXT_ACTIONS: AiTextActionDefinition[] = [
+  {
+    commandId: AI_REWRITE_SELECTION_COMMAND_ID,
+    actionKind: "rewrite-selection",
+    label: "Rewrite selection",
+    description: "Improve the selected Markdown",
+    keywords: ["ai", "rewrite", "polish", "selection"],
+    priority: 88,
+    surfaces: ["context"],
+    contextOrder: 10,
+    inputMode: "selection",
+    outputMode: "replace-selection",
+    emptyError: "Select text to rewrite",
+    runningLabel: "Rewriting selection",
+    runningDetail: "AI is improving the selected Markdown",
+    successLabel: "Selection rewritten",
+    successDetail: "applied the rewritten selection",
+    userEvent: "input.ai.rewriteSelection",
+  },
+  {
+    commandId: AI_SHORTEN_SELECTION_COMMAND_ID,
+    actionKind: "shorten-selection",
+    label: "Shorten selection",
+    description: "Make the selected Markdown concise",
+    keywords: ["ai", "shorten", "concise", "trim", "selection"],
+    priority: 87,
+    surfaces: ["context"],
+    contextOrder: 20,
+    inputMode: "selection",
+    outputMode: "replace-selection",
+    emptyError: "Select text to shorten",
+    runningLabel: "Shortening selection",
+    runningDetail: "AI is removing repetition and filler",
+    successLabel: "Selection shortened",
+    successDetail: "applied the shorter version",
+    userEvent: "input.ai.shortenSelection",
+  },
+  {
+    commandId: AI_EXPAND_SELECTION_COMMAND_ID,
+    actionKind: "expand-selection",
+    label: "Expand selection",
+    description: "Add useful detail to the selected Markdown",
+    keywords: ["ai", "expand", "detail", "develop", "selection"],
+    priority: 86,
+    surfaces: ["context"],
+    contextOrder: 30,
+    inputMode: "selection",
+    outputMode: "replace-selection",
+    emptyError: "Select text to expand",
+    runningLabel: "Expanding selection",
+    runningDetail: "AI is adding detail and transitions",
+    successLabel: "Selection expanded",
+    successDetail: "applied the expanded version",
+    userEvent: "input.ai.expandSelection",
+  },
+  {
+    commandId: AI_TRANSLATE_SELECTION_COMMAND_ID,
+    actionKind: "translate-selection",
+    label: "Translate selection",
+    description: "Translate between Chinese and English",
+    keywords: ["ai", "translate", "translation", "chinese", "english", "selection"],
+    priority: 85,
+    surfaces: ["context"],
+    contextOrder: 40,
+    inputMode: "selection",
+    outputMode: "replace-selection",
+    emptyError: "Select text to translate",
+    runningLabel: "Translating selection",
+    runningDetail: "AI is translating the selected Markdown",
+    successLabel: "Selection translated",
+    successDetail: "applied the translation",
+    userEvent: "input.ai.translateSelection",
+  },
+  {
+    commandId: AI_CONTINUE_WRITING_COMMAND_ID,
+    actionKind: "continue-writing",
+    label: "Continue writing",
+    description: "Continue the document at the cursor",
+    keywords: ["ai", "continue", "write", "complete", "cursor"],
+    priority: 84,
+    surfaces: ["context", "slash"],
+    contextOrder: 50,
+    separatorBefore: true,
+    inputMode: "cursor-context",
+    outputMode: "insert-block",
+    emptyError: "Write some context before continuing",
+    runningLabel: "Continuing document",
+    runningDetail: "AI is writing the next passage",
+    successLabel: "Continuation inserted",
+    successDetail: "inserted new Markdown at the cursor",
+    userEvent: "input.ai.continueWriting",
+  },
+  {
+    commandId: AI_GENERATE_OUTLINE_COMMAND_ID,
+    actionKind: "generate-outline",
+    label: "Generate outline",
+    description: "Create a structured outline from the document",
+    keywords: ["ai", "outline", "structure", "plan", "sections"],
+    priority: 83,
+    surfaces: ["context", "slash"],
+    contextOrder: 60,
+    inputMode: "document",
+    outputMode: "insert-block",
+    emptyError: "Write some content before generating an outline",
+    runningLabel: "Generating outline",
+    runningDetail: "AI is organizing the current document",
+    successLabel: "Outline inserted",
+    successDetail: "inserted the outline at the cursor",
+    userEvent: "input.ai.generateOutline",
+  },
+  {
+    commandId: AI_POLISH_DOCUMENT_COMMAND_ID,
+    actionKind: "polish-document",
+    label: "Polish document",
+    description: "Polish the full Markdown document",
+    keywords: ["ai", "polish", "document", "rewrite"],
+    priority: 81,
+    surfaces: ["context", "slash"],
+    contextOrder: 80,
+    inputMode: "document",
+    outputMode: "replace-document",
+    emptyError: "Nothing to polish",
+    runningLabel: "Polishing document",
+    runningDetail: "AI is rewriting the current document",
+    successLabel: "Document polished",
+    successDetail: "replaced the document body",
+    userEvent: "input.ai.polishDocument",
+  },
+];
 
 export const EDITOR_COMMANDS: EditorCommand[] = [
   ...Object.entries(formattingCommands).map(([id, command], index): EditorCommand => {
@@ -411,38 +569,24 @@ export const EDITOR_COMMANDS: EditorCommand[] = [
       },
     }),
   ),
-  {
-    id: AI_REWRITE_SELECTION_COMMAND_ID,
-    label: "Rewrite selection",
-    group: "AI",
-    description: "Improve the selected Markdown",
-    keywords: ["ai", "rewrite", "polish", "selection"],
-    priority: 88,
-    surfaces: ["context", "slash"],
-    contextMenu: [{ group: "AI", itemId: AI_REWRITE_SELECTION_COMMAND_ID, order: 10 }],
-    run: (view, filePath) => rewriteSelectionWithAi(view, filePath),
-  },
+  ...AI_TEXT_ACTIONS.map(createAiTextEditorCommand),
   {
     id: AI_GENERATE_METADATA_COMMAND_ID,
     label: "Generate metadata",
     group: "AI",
     description: "Generate Madinah blog frontmatter",
     keywords: ["ai", "metadata", "frontmatter", "title", "description", "tags", "slug"],
-    priority: 86,
+    priority: 82,
     surfaces: ["context", "slash"],
-    contextMenu: [{ group: "AI", itemId: AI_GENERATE_METADATA_COMMAND_ID, order: 20 }],
+    contextMenu: [
+      {
+        group: "AI",
+        itemId: AI_GENERATE_METADATA_COMMAND_ID,
+        order: 70,
+        separatorBefore: true,
+      },
+    ],
     run: (view, filePath) => generateMetadataWithAi(view, filePath),
-  },
-  {
-    id: AI_POLISH_DOCUMENT_COMMAND_ID,
-    label: "Polish document",
-    group: "AI",
-    description: "Polish the full Markdown document",
-    keywords: ["ai", "polish", "document", "rewrite"],
-    priority: 84,
-    surfaces: ["context", "slash"],
-    contextMenu: [{ group: "AI", itemId: AI_POLISH_DOCUMENT_COMMAND_ID, order: 30 }],
-    run: (view, filePath) => polishDocumentWithAi(view, filePath),
   },
   {
     id: AI_REVIEW_DOCUMENT_COMMAND_ID,
@@ -450,9 +594,9 @@ export const EDITOR_COMMANDS: EditorCommand[] = [
     group: "AI",
     description: "Review structure and clarity",
     keywords: ["ai", "review", "issues", "structure", "clarity"],
-    priority: 82,
+    priority: 80,
     surfaces: ["context", "slash"],
-    contextMenu: [{ group: "AI", itemId: AI_REVIEW_DOCUMENT_COMMAND_ID, order: 40 }],
+    contextMenu: [{ group: "AI", itemId: AI_REVIEW_DOCUMENT_COMMAND_ID, order: 90 }],
     run: (view, filePath) => reviewDocumentWithAi(view, filePath),
   },
 ];
@@ -544,78 +688,163 @@ function runStateCommand(view: EditorView, command: StateCommand): boolean {
   return command({ state: view.state, dispatch: (tr) => view.dispatch(tr) });
 }
 
-async function polishDocumentWithAi(view: EditorView, filePath: string) {
-  const content = view.state.doc.toString();
-  if (!content.trim()) {
-    throw new Error("Nothing to polish");
-  }
+function createAiTextEditorCommand(definition: AiTextActionDefinition): EditorCommand {
+  return {
+    id: definition.commandId,
+    label: definition.label,
+    group: "AI",
+    description: definition.description,
+    keywords: definition.keywords,
+    priority: definition.priority,
+    surfaces: definition.surfaces,
+    contextMenu: [
+      {
+        group: "AI",
+        itemId: definition.commandId,
+        order: definition.contextOrder,
+        separatorBefore: definition.separatorBefore,
+      },
+    ],
+    run: (view) => runAiTextAction(view, definition),
+  };
+}
+
+interface AiTextActionCapture {
+  originalDocument: string;
+  content: string;
+  selectionFrom: number;
+  selectionTo: number;
+  insertionPosition: number;
+}
+
+async function runAiTextAction(view: EditorView, definition: AiTextActionDefinition) {
+  const capture = captureAiTextAction(view, definition);
 
   setAiOperation({
     status: "running",
-    label: "Polishing document",
-    detail: "AI is rewriting the current document",
+    label: definition.runningLabel,
+    detail: definition.runningDetail,
   });
 
   const result = await tauri.runAiAction({
-    kind: "polish-document",
-    content,
+    kind: definition.actionKind,
+    content: capture.content,
     workspaceRoot: getWorkspaceRoot(),
   });
-
   const next = result.content.trim();
   if (!next) throw new Error("AI returned empty content");
+  if (view.state.doc.toString() !== capture.originalDocument) {
+    throw new Error("Document changed while AI was running; run the action again");
+  }
 
-  view.dispatch({
-    changes: { from: 0, to: view.state.doc.length, insert: next },
-    selection: { anchor: 0 },
-    userEvent: "input.ai.polishDocument",
-  });
+  applyAiTextResult(view, definition, capture, next);
   view.focus();
-
   setAiOperation({
     status: "success",
-    label: "Document polished",
-    detail: `${providerLabel(result.provider)} replaced ${filePath.split("/").pop() ?? "document"}`,
+    label: definition.successLabel,
+    detail: `${providerLabel(result.provider)} ${definition.successDetail}`,
   });
 }
 
-async function rewriteSelectionWithAi(view: EditorView, _filePath: string) {
+function captureAiTextAction(
+  view: EditorView,
+  definition: AiTextActionDefinition,
+): AiTextActionCapture {
+  const originalDocument = view.state.doc.toString();
   const selection = view.state.selection.main;
-  if (selection.empty) {
-    throw new Error("Select text to rewrite");
-  }
-  const content = view.state.sliceDoc(selection.from, selection.to);
-  if (!content.trim()) {
-    throw new Error("Select text to rewrite");
+  let content = originalDocument;
+
+  if (definition.inputMode === "selection") {
+    if (selection.empty) throw new Error(definition.emptyError);
+    content = view.state.sliceDoc(selection.from, selection.to);
+  } else if (definition.inputMode === "cursor-context") {
+    if (!selection.empty) throw new Error("Place the cursor where AI should continue writing");
+    content = createAiCursorContext(originalDocument, selection.head);
   }
 
-  setAiOperation({
-    status: "running",
-    label: "Rewriting selection",
-    detail: "AI is improving the selected Markdown",
-  });
+  if (!content.replace("<<<MADINAH_WRITER_CURSOR>>>", "").trim()) {
+    throw new Error(definition.emptyError);
+  }
 
-  const result = await tauri.runAiAction({
-    kind: "rewrite-selection",
+  return {
+    originalDocument,
     content,
-    workspaceRoot: getWorkspaceRoot(),
-  });
+    selectionFrom: selection.from,
+    selectionTo: selection.to,
+    insertionPosition: selection.head,
+  };
+}
 
-  const next = result.content.trim();
-  if (!next) throw new Error("AI returned empty content");
+function applyAiTextResult(
+  view: EditorView,
+  definition: AiTextActionDefinition,
+  capture: AiTextActionCapture,
+  content: string,
+) {
+  if (definition.outputMode === "replace-selection") {
+    view.dispatch({
+      changes: { from: capture.selectionFrom, to: capture.selectionTo, insert: content },
+      selection: {
+        anchor: capture.selectionFrom,
+        head: capture.selectionFrom + content.length,
+      },
+      userEvent: definition.userEvent,
+    });
+    return;
+  }
 
+  if (definition.outputMode === "replace-document") {
+    view.dispatch({
+      changes: { from: 0, to: view.state.doc.length, insert: content },
+      selection: { anchor: 0 },
+      userEvent: definition.userEvent,
+    });
+    return;
+  }
+
+  const insertion = createMarkdownBlockInsertion(
+    capture.originalDocument,
+    capture.insertionPosition,
+    content,
+  );
   view.dispatch({
-    changes: { from: selection.from, to: selection.to, insert: next },
-    selection: { anchor: selection.from, head: selection.from + next.length },
-    userEvent: "input.ai.rewriteSelection",
+    changes: {
+      from: capture.insertionPosition,
+      to: capture.insertionPosition,
+      insert: insertion.text,
+    },
+    selection: { anchor: insertion.contentFrom, head: insertion.contentTo },
+    userEvent: definition.userEvent,
   });
-  view.focus();
+}
 
-  setAiOperation({
-    status: "success",
-    label: "Selection rewritten",
-    detail: `Applied ${providerLabel(result.provider)} result`,
-  });
+export function createAiCursorContext(document: string, position: number): string {
+  return [
+    document.slice(0, position),
+    "<<<MADINAH_WRITER_CURSOR>>>",
+    document.slice(position),
+  ].join("\n");
+}
+
+export function createMarkdownBlockInsertion(
+  document: string,
+  position: number,
+  content: string,
+): { text: string; contentFrom: number; contentTo: number } {
+  const before = document.slice(0, position);
+  const after = document.slice(position);
+  const leading =
+    before.length === 0 || before.endsWith("\n\n") ? "" : before.endsWith("\n") ? "\n" : "\n\n";
+  const trailing =
+    after.length === 0 || after.startsWith("\n\n") ? "" : after.startsWith("\n") ? "\n" : "\n\n";
+  const normalizedContent = content.trim();
+  const text = `${leading}${normalizedContent}${trailing}`;
+  const contentFrom = position + leading.length;
+  return {
+    text,
+    contentFrom,
+    contentTo: contentFrom + normalizedContent.length,
+  };
 }
 
 async function generateMetadataWithAi(view: EditorView, filePath: string) {
@@ -711,6 +940,6 @@ async function reviewDocumentWithAi(view: EditorView, filePath: string) {
   }
 }
 
-function providerLabel(provider: tauri.AiAgentProvider): string {
-  return provider === "claude" ? "Claude Code" : "Codex";
+function providerLabel(_provider: "codex"): string {
+  return "Codex";
 }

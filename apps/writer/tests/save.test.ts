@@ -11,6 +11,7 @@ vi.mock("@/lib/theme", () => ({
 import { invoke } from "@tauri-apps/api/core";
 import { useEditorStore } from "../src/stores/editor-store";
 import { useSettingsStore } from "../src/stores/settings-store";
+import { flushSave } from "../src/lib/save";
 
 const mockedInvoke = vi.mocked(invoke);
 
@@ -105,5 +106,29 @@ describe("autosave", () => {
     expect(saved?.content).toBe("second draft");
     expect(saved?.diskContent).toBe("second draft");
     expect(saved?.isDirty).toBe(false);
+  });
+
+  test("flushes a throttled edit before publication continues", async () => {
+    const writes: string[] = [];
+    mockedInvoke.mockImplementation((command, payload) => {
+      if (command === "read_file") {
+        return Promise.resolve({ path: "/article.md", content: "initial", modified_at: 1 });
+      }
+      if (command === "write_file") {
+        writes.push((payload as { content: string }).content);
+        return Promise.resolve({ path: "/article.md", modified_at: 2 });
+      }
+      return Promise.resolve(null);
+    });
+
+    await useEditorStore.getState().openFile("/article.md");
+    useEditorStore.getState().updateContent("/article.md", "first");
+    await flushMicrotasks();
+    useEditorStore.getState().updateContent("/article.md", "publish me");
+
+    await flushSave("/article.md");
+
+    expect(writes.at(-1)).toBe("publish me");
+    expect(useEditorStore.getState().openFiles.get("/article.md")?.isDirty).toBe(false);
   });
 });

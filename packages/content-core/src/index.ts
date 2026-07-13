@@ -1,4 +1,4 @@
-import { parse } from "yaml";
+import { parse, stringify } from "yaml";
 
 const FRONTMATTER_RE = /^---\n([\s\S]*?\n)?---(?:\n|$)/;
 const WORDS_PER_MINUTE = 200;
@@ -12,6 +12,8 @@ export const PUBLISHED_BLOG_POST_STATUS = "published" satisfies BlogPostStatus;
 export const SUPPORTED_BLOG_FILE_EXTENSIONS = [".md", ".mdx"] as const;
 
 export const MADINAH_BLOG_CONTENT_DIR = "src/blogs";
+
+export const MADINAH_SITE_URL = "https://madinah.felixwliu.cn";
 
 export type SupportedBlogFileExtension = (typeof SUPPORTED_BLOG_FILE_EXTENSIONS)[number];
 
@@ -38,12 +40,37 @@ export interface BlogPostRouteOptions {
   contentDir?: string;
 }
 
+export interface BlogPostPublishInput {
+  filePath: string;
+  frontmatter: string | null;
+  body: string;
+}
+
+export interface PrepareBlogPostForPublishInput extends BlogPostPublishInput {
+  publishedAt?: Date;
+}
+
+export interface PreparedBlogPost {
+  frontmatter: string;
+  url: string;
+}
+
+export interface BlogPostPublishIssue {
+  field: "path" | "frontmatter" | "title" | "pubDate" | "status" | "body";
+  message: string;
+}
+
 export function isPublishedBlogPostStatus(status: BlogPostStatus): boolean {
   return status === PUBLISHED_BLOG_POST_STATUS;
 }
 
 export function isBlogPostStatus(value: string): value is BlogPostStatus {
   return BLOG_POST_STATUS_OPTIONS.includes(value as BlogPostStatus);
+}
+
+export function getBlogPostStatus(frontmatter: string | null): BlogPostStatus | null {
+  const status = parseFrontmatterObject(frontmatter)?.status;
+  return typeof status === "string" && isBlogPostStatus(status) ? status : null;
 }
 
 export function isSupportedBlogPostPath(filePath: string): boolean {
@@ -65,6 +92,100 @@ export function getBlogPostRouteId(filePath: string, options: BlogPostRouteOptio
 
 export function getBlogPostUrlPath(filePath: string, options: BlogPostRouteOptions = {}): string {
   return `/blog/${getBlogPostRouteId(filePath, options)}`;
+}
+
+export function getBlogPostUrl(
+  filePath: string,
+  siteUrl = MADINAH_SITE_URL,
+  options: BlogPostRouteOptions = {},
+): string {
+  return new URL(getBlogPostUrlPath(filePath, options), ensureTrailingSlash(siteUrl)).toString();
+}
+
+export function isBlogPostContentPath(
+  filePath: string,
+  options: BlogPostRouteOptions = {},
+): boolean {
+  if (!isSupportedBlogPostPath(filePath)) return false;
+
+  const normalized = trimSlashes(normalizePath(filePath));
+  const contentDir = trimSlashes(normalizePath(options.contentDir ?? MADINAH_BLOG_CONTENT_DIR));
+  return normalized.startsWith(`${contentDir}/`) || normalized.includes(`/${contentDir}/`);
+}
+
+export function prepareBlogPostForPublish({
+  filePath,
+  frontmatter,
+  body,
+  publishedAt = new Date(),
+}: PrepareBlogPostForPublishInput): PreparedBlogPost {
+  const metadata = parseMutableFrontmatter(frontmatter);
+  const inferredTitle = inferTitle(body, frontmatter).title;
+
+  if (typeof metadata.title !== "string" || metadata.title.trim() === "") {
+    if (inferredTitle !== "") metadata.title = inferredTitle;
+  }
+
+  if (!hasUsableDate(metadata.pubDate)) {
+    metadata.pubDate = publishedAt.toISOString();
+  }
+  metadata.status = PUBLISHED_BLOG_POST_STATUS;
+
+  const preparedFrontmatter = stringify(metadata, { lineWidth: 0 }).trim();
+  const issues = validateBlogPostForPublish({
+    filePath,
+    frontmatter: preparedFrontmatter,
+    body,
+  });
+  if (issues.length > 0) {
+    throw new Error(issues.map((issue) => issue.message).join(" "));
+  }
+
+  return {
+    frontmatter: preparedFrontmatter,
+    url: getBlogPostUrl(filePath),
+  };
+}
+
+export function validateBlogPostForPublish({
+  filePath,
+  frontmatter,
+  body,
+}: BlogPostPublishInput): BlogPostPublishIssue[] {
+  const issues: BlogPostPublishIssue[] = [];
+
+  if (!isBlogPostContentPath(filePath)) {
+    issues.push({
+      field: "path",
+      message: `Article must be inside ${MADINAH_BLOG_CONTENT_DIR}.`,
+    });
+  }
+
+  let metadata: Record<string, unknown>;
+  try {
+    metadata = parseMutableFrontmatter(frontmatter);
+  } catch (error) {
+    issues.push({
+      field: "frontmatter",
+      message: error instanceof Error ? error.message : String(error),
+    });
+    return issues;
+  }
+
+  if (typeof metadata.title !== "string" || metadata.title.trim() === "") {
+    issues.push({ field: "title", message: "Article title is required." });
+  }
+  if (!hasUsableDate(metadata.pubDate)) {
+    issues.push({ field: "pubDate", message: "Publication date must be valid." });
+  }
+  if (metadata.status !== PUBLISHED_BLOG_POST_STATUS) {
+    issues.push({ field: "status", message: "Article status must be published." });
+  }
+  if (body.trim() === "") {
+    issues.push({ field: "body", message: "Article body is required." });
+  }
+
+  return issues;
 }
 
 export function parseFrontmatter(raw: string): ParsedFile {
@@ -173,6 +294,31 @@ function parseFrontmatterObject(frontmatter: string | null): Record<string, unkn
   return parsed as Record<string, unknown>;
 }
 
+function parseMutableFrontmatter(frontmatter: string | null): Record<string, unknown> {
+  if (frontmatter === null || frontmatter.trim() === "") return {};
+
+  let parsed: unknown;
+  try {
+    parsed = parse(frontmatter);
+  } catch (error) {
+    throw new Error(
+      `Frontmatter is invalid YAML: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+
+  if (parsed === null || parsed === undefined) return {};
+  if (typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("Frontmatter must be a YAML object.");
+  }
+  return { ...(parsed as Record<string, unknown>) };
+}
+
+function hasUsableDate(value: unknown): boolean {
+  if (value instanceof Date) return !Number.isNaN(value.valueOf());
+  if (typeof value !== "string" && typeof value !== "number") return false;
+  return !Number.isNaN(Date.parse(String(value)));
+}
+
 function getFrontmatterTitle(frontmatter: string | null): string | null {
   const parsed = parseFrontmatterObject(frontmatter);
   if (parsed === null) return null;
@@ -241,4 +387,8 @@ function stripContentDir(filePath: string, contentDir: string): string {
   return nestedIndex >= 0
     ? normalizedFilePath.slice(nestedIndex + nestedPrefix.length)
     : normalizedFilePath;
+}
+
+function ensureTrailingSlash(value: string): string {
+  return value.endsWith("/") ? value : `${value}/`;
 }

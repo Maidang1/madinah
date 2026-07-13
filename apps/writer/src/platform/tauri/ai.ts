@@ -1,23 +1,11 @@
 import { invoke } from "@tauri-apps/api/core";
 
-export type AiAgentProvider = "codex" | "claude";
-
-export interface AiEnvVar {
-  name: string;
-  value: string;
-}
-
-export interface AiAgentSettings {
-  command: string;
-  env: AiEnvVar[];
+export interface AiSettings {
+  schemaVersion: 2;
+  codexPath: string;
+  model: string;
   instruction: string;
   timeoutSeconds: number;
-}
-
-export interface AiSettings {
-  schemaVersion: 1;
-  provider: AiAgentProvider;
-  agents: Record<AiAgentProvider, AiAgentSettings>;
 }
 
 export interface AiCheckResult {
@@ -46,8 +34,22 @@ export interface AiDocumentReview {
   issues: AiDocumentReviewIssue[];
 }
 
+export const AI_ACTION_KINDS = [
+  "polish-document",
+  "rewrite-selection",
+  "shorten-selection",
+  "expand-selection",
+  "translate-selection",
+  "continue-writing",
+  "generate-outline",
+  "generate-metadata",
+  "review-document",
+] as const;
+
+export type AiActionKind = (typeof AI_ACTION_KINDS)[number];
+
 export interface AiActionInput {
-  kind: "polish-document" | "rewrite-selection" | "generate-metadata" | "review-document";
+  kind: AiActionKind;
   content: string;
   workspaceRoot?: string | null;
 }
@@ -55,7 +57,7 @@ export interface AiActionInput {
 export interface AiActionResult {
   kind: AiActionInput["kind"];
   content: string;
-  provider: AiAgentProvider;
+  provider: "codex";
   metadata?: AiMetadataSuggestion;
   review?: AiDocumentReview;
 }

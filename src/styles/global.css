@@ -515,6 +515,55 @@
     line-height: 1.6;
   }
 
+  .post-meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 18px;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .post-share {
+    display: flex;
+    min-height: 28px;
+    align-items: center;
+    gap: 8px;
+    color: var(--reader-muted);
+    font-family: var(--reader-font);
+    font-size: 12.5px;
+  }
+
+  .post-share button {
+    display: inline-flex;
+    min-height: 28px;
+    align-items: center;
+    gap: 5px;
+    padding: 0 9px;
+    border: 1px solid color-mix(in srgb, var(--reader-soft) 42%, transparent);
+    border-radius: var(--radius);
+    background: color-mix(in srgb, var(--reader-page) 64%, transparent);
+    color: var(--reader-muted);
+    font: inherit;
+    cursor: pointer;
+    transition:
+      border-color var(--transition-fast),
+      color var(--transition-fast),
+      transform var(--transition-fast);
+  }
+
+  .post-share button:hover {
+    border-color: color-mix(in srgb, var(--reader-ink) 38%, transparent);
+    color: var(--reader-ink);
+  }
+
+  .post-share button:active {
+    transform: scale(0.97);
+  }
+
+  .post-share [data-share-feedback]:empty {
+    display: none;
+  }
+
   .toc {
     margin: 0 0 34px;
     padding: 7px 12px;

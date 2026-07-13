@@ -15,6 +15,10 @@ import {
   type TabMenuHandlers,
   type TitleMenuHandlers,
 } from "../src/components/editor-area/editor-context-menu";
+import {
+  createAiCursorContext,
+  createMarkdownBlockInsertion,
+} from "../src/components/editor-area/editor-commands";
 
 function makeBodyHandlers(): EditorBodyMenuHandlers & { calls: string[] } {
   const calls: string[] = [];
@@ -138,7 +142,7 @@ describe("buildEditorBodyMenuItemsSpec", () => {
     expect(items).toContain("fmt.clear");
   });
 
-  test("AI submenu contains metadata and review commands", () => {
+  test("AI submenu contains writing, metadata, and review commands", () => {
     const handlers = makeBodyHandlers();
     handlers.onRunCommand = () => {};
     const spec = buildEditorBodyMenuItemsSpec(handlers, false);
@@ -148,6 +152,11 @@ describe("buildEditorBodyMenuItemsSpec", () => {
     const items = aiSubmenu.items.filter((e) => e.kind === "item").map((e) => e.id);
     expect(items).toEqual([
       "ai.rewriteSelection",
+      "ai.shortenSelection",
+      "ai.expandSelection",
+      "ai.translateSelection",
+      "ai.continueWriting",
+      "ai.generateOutline",
       "ai.generateMetadata",
       "ai.polishDocument",
       "ai.reviewDocument",
@@ -212,6 +221,35 @@ describe("buildEditorBodyMenuItemsSpec", () => {
     const bold = formatSubmenu.items.find((e) => e.kind === "item" && e.id === "fmt.bold");
     if (bold?.kind === "item") bold.action();
     expect(calls).toEqual(["format.bold"]);
+  });
+});
+
+describe("createMarkdownBlockInsertion", () => {
+  test("marks the exact continuation position", () => {
+    expect(createAiCursorContext("BeforeAfter", 6)).toBe(
+      "Before\n<<<MADINAH_WRITER_CURSOR>>>\nAfter",
+    );
+  });
+
+  test("inserts into an empty document without padding", () => {
+    expect(createMarkdownBlockInsertion("", 0, "  ## Outline  ")).toEqual({
+      text: "## Outline",
+      contentFrom: 0,
+      contentTo: 10,
+    });
+  });
+
+  test("separates generated Markdown from surrounding content", () => {
+    expect(createMarkdownBlockInsertion("# Draft", 7, "Next paragraph")).toEqual({
+      text: "\n\nNext paragraph",
+      contentFrom: 9,
+      contentTo: 23,
+    });
+    expect(createMarkdownBlockInsertion("Intro\nBody", 6, "Outline")).toEqual({
+      text: "\nOutline\n\n",
+      contentFrom: 7,
+      contentTo: 14,
+    });
   });
 });
 

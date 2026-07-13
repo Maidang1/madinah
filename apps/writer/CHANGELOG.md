@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-07-12
+
+- Expand the Codex SDK writing toolkit with selection shortening, expansion, and Chinese/English translation, plus cursor-aware continuation and Markdown outline generation. Text actions now share one editor executor, remain undoable as single transactions, and reject stale AI results when the document changes during generation.
+- Replace the editor's Codex/Claude ACP bridge with the Rust `codex-client-sdk`. AI settings now use Codex CLI discovery, optional executable/model overrides, custom instruction, and timeout; metadata and review turns use SDK-enforced JSON schemas under a read-only sandbox.
+- Add a one-click Madinah article publication flow that prepares shared frontmatter, waits for the latest save, commits only the active article, pushes its configured upstream, and links to the live article.
+- Share the canonical site URL, article URL construction, publication validation, and publication metadata preparation between Writer and Astro.
+- Add native article sharing on the Web post page with a copy-link fallback and visible result feedback.
+- Discover the Git repository above the open Writer workspace so an article can be published while `src/blogs` itself is open as the workspace.
+
 ## 2026-07-06
 
 - Tighten Writer's architecture boundaries by extracting document-session domain helpers, routing startup and watcher mutations through store-owned actions, and splitting the frontend Tauri bridge into command-group modules while preserving the existing compatibility export.

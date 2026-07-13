@@ -63,6 +63,18 @@ cargo clippy
 cargo fmt --check
 ```
 
+## Publishing Madinah Articles
+
+Open the Madinah repository or its `src/blogs` directory as the Writer workspace, then open a Markdown or MDX article. Writer discovers the Git repository root automatically. The document actions expose **Publish** for drafts and **Publish update** for published articles.
+
+The action validates and prepares frontmatter, flushes the latest editor state to disk, commits only the active article, and pushes the current branch to its configured upstream. Other staged and unstaged files remain outside the article commit. A successful publication exposes **View online** using the same URL contract as the Astro site.
+
+Git author identity and an upstream branch must already be configured. A failed push leaves the publication commit locally and reports its short commit ID.
+
+## Editor AI
+
+Writer integrates Codex through the Rust `codex-client-sdk`. Install and authenticate the Codex CLI before using rewrite, polish, metadata, or review actions. Preferences can auto-detect the CLI or use an explicit executable path and model override. AI turns run with a read-only workspace sandbox, disabled web search, and no approval escalation.
+
 ## Releases
 
 macOS releases are cut locally with `scripts/distribute.sh`. See `docs/releasing.md` for the signed, notarized release workflow and updater publishing details.

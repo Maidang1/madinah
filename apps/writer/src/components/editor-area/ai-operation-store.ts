@@ -28,12 +28,12 @@ export const useAiOperationStore = create<AiOperationStore>((set, get) => ({
   operation: IDLE_OPERATION,
   setOperation: (operation) => {
     if (dismissTimer !== null) {
-      window.clearTimeout(dismissTimer);
+      globalThis.clearTimeout(dismissTimer);
       dismissTimer = null;
     }
     set({ operation });
     if (operation.status === "success" || operation.status === "error") {
-      dismissTimer = window.setTimeout(() => {
+      dismissTimer = globalThis.setTimeout(() => {
         dismissTimer = null;
         get().clearOperation();
       }, DISMISS_AFTER_MS);
@@ -41,7 +41,7 @@ export const useAiOperationStore = create<AiOperationStore>((set, get) => ({
   },
   clearOperation: () => {
     if (dismissTimer !== null) {
-      window.clearTimeout(dismissTimer);
+      globalThis.clearTimeout(dismissTimer);
       dismissTimer = null;
     }
     set({ operation: IDLE_OPERATION });

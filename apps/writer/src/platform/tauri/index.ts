@@ -2,6 +2,7 @@ export * from "./ai";
 export * from "./asset-upload";
 export * from "./fs";
 export * from "./images";
+export * from "./publish";
 export * from "./search";
 export * from "./settings";
 export * from "./startup";

@@ -7,6 +7,9 @@
 
 ## Done
 
+- AI writing toolkit: [`SPECs/ai-writing-toolkit-spec.md`](SPECs/ai-writing-toolkit-spec.md) — add continue, shorten, expand, translate, and outline actions on the Codex SDK path through shared editor executors and backend action definitions.
+- Codex SDK migration: [`SPECs/codex-sdk-migration-spec.md`](SPECs/codex-sdk-migration-spec.md) — replace the Codex/Claude ACP process bridge with the Rust `codex-client-sdk`, retain the four editor AI actions, and reduce settings to Codex-owned configuration.
+- Madinah one-click publish: [`SPECs/madinah-one-click-publish-spec.md`](SPECs/madinah-one-click-publish-spec.md) — share publication metadata and URL rules with Astro, publish the active article through an isolated Git commit/push flow, and add live-link/share interactions across Writer and Web.
 - Architecture boundary convergence: [`SPECs/architecture-boundary-convergence-spec.md`](SPECs/architecture-boundary-convergence-spec.md) — extract document-session domain logic, funnel startup/watcher store writes through owner actions, split the frontend Tauri bridge, and add static boundary tests.
 - App root flattening: [`SPECs/app-root-flattening-spec.md`](SPECs/app-root-flattening-spec.md) — collapse the migrated desktop app from `apps/writer/apps/desktop` into a single `apps/writer` package managed by the Madinah root workspace.
 - Tauri app icon replacement: [`SPECs/tauri-app-icon-replacement-spec.md`](SPECs/tauri-app-icon-replacement-spec.md) — use the provided illustrated character image as the regenerated Tauri app icon set.
