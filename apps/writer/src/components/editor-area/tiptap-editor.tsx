@@ -11,12 +11,13 @@ import Typography from "@tiptap/extension-typography";
 import type { Editor } from "@tiptap/react";
 import * as editorApi from "@/hooks/editor-api";
 import { useReloadVersion } from "@/hooks/use-tabs";
+import type { OverlayScrollbarRef } from "@/components/overlay-scrollbar";
 import "./tiptap-editor.css";
 
 interface TiptapEditorProps {
   filePath: string;
   autoFocus?: boolean;
-  scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
+  scrollContainerRef?: React.MutableRefObject<OverlayScrollbarRef | null>;
 }
 
 // Re-export so callers that previously depended on a CodeMirror EditorView
@@ -64,7 +65,7 @@ function buildExtensions() {
 export function useTiptapEditor(
   filePath: string,
   autoFocus = false,
-  scrollContainerRef?: React.RefObject<HTMLDivElement | null>,
+  scrollContainerRef?: React.MutableRefObject<OverlayScrollbarRef | null>,
 ) {
   const filePathRef = useRef(filePath);
   const autoFocusRef = useRef(autoFocus);
@@ -136,7 +137,9 @@ export function useTiptapEditor(
 
   // Track scroll position per file.
   useEffect(() => {
-    const scroller = scrollContainerRef?.current;
+    const osRef = scrollContainerRef?.current;
+    if (!osRef) return;
+    const scroller = osRef.getElement();
     if (!scroller) return;
     let frame = 0;
     const handleScroll = () => {

@@ -1,6 +1,8 @@
 import { useCallback, useRef, useState, type ReactNode } from "react";
 import { useEditorViewModeStore, type EditorViewMode } from "./editor-view-mode-store";
 import { EDITOR_SPLIT_RATIO_BOUNDS } from "./editor-view-mode-store";
+import { OverlayScrollbar } from "@/components/overlay-scrollbar";
+import type { OverlayScrollbarRef } from "@/components/overlay-scrollbar";
 
 interface PaneProps {
   children: ReactNode;
@@ -50,7 +52,7 @@ function ViewModeButton({ mode, active, onSelect, label }: ViewModeButtonProps) 
 interface EditorSplitViewProps {
   writePane: ReactNode;
   previewPane: ReactNode;
-  writeScrollRef: React.RefObject<HTMLDivElement | null>;
+  writeScrollRef: React.MutableRefObject<OverlayScrollbarRef | null>;
 }
 
 export function EditorSplitView({ writePane, previewPane, writeScrollRef }: EditorSplitViewProps) {
@@ -137,12 +139,9 @@ export function EditorSplitView({ writePane, previewPane, writeScrollRef }: Edit
     <div className="relative flex h-full min-h-0 flex-col">
       <div className="flex h-full min-h-0 flex-1">
         <Pane visible={showWrite} flexBasis={writeBasis} ariaLabel="Editor">
-          <div
-            ref={writeScrollRef}
-            className="h-full overflow-y-auto [scrollbar-gutter:stable_both-edges]"
-          >
+          <OverlayScrollbar ref={writeScrollRef} className="h-full">
             {writePane}
-          </div>
+          </OverlayScrollbar>
         </Pane>
 
         {isSplit && (

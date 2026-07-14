@@ -51,6 +51,8 @@
     "cmdk": "catalog:",
     "dompurify": "catalog:",
     "node-emoji": "catalog:",
+    "overlayscrollbars": "catalog:",
+    "overlayscrollbars-react": "catalog:",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-markdown": "catalog:",

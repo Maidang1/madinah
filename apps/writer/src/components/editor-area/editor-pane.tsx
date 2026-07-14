@@ -8,6 +8,7 @@ import { useCloseEditorSearchWhenInactive } from "./use-close-editor-search-when
 import { useEditorSettingsRef } from "./use-editor-settings";
 import { useIsFileLoading } from "@/hooks/use-tabs";
 import { memo, useEffect, useRef, useState } from "react";
+import type { OverlayScrollbarRef } from "@/components/overlay-scrollbar";
 
 const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
@@ -28,7 +29,7 @@ interface EditorPaneProps {
 export const EditorPane = memo(function EditorPane({ path, isActive }: EditorPaneProps) {
   const isLoading = useIsFileLoading(path);
   const editorSettingsRef = useEditorSettingsRef();
-  const writeScrollRef = useRef<HTMLDivElement | null>(null);
+  const writeScrollRef = useRef<OverlayScrollbarRef | null>(null);
   useCloseEditorSearchWhenInactive(isActive);
 
   if (isLoading) {

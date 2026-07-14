@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ComponentType } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useFileContent } from "@/hooks/use-tabs";
+import { OverlayScrollbar } from "@/components/overlay-scrollbar";
 import "./preview-content.css";
 
 // Debounce window for re-rendering the preview after content changes. Typing
@@ -47,13 +48,13 @@ export const DocumentPreview = (() => {
     const remarkPlugins = useMemo(() => [remarkGfm], []);
 
     return (
-      <div className="writer-preview h-full overflow-y-auto">
+      <OverlayScrollbar className="writer-preview h-full">
         <div className="mx-auto w-full" style={{ maxWidth: "var(--reader-content-width)" }}>
           <ReactMarkdown remarkPlugins={remarkPlugins} components={{ a: previewLink }}>
             {debounced}
           </ReactMarkdown>
         </div>
-      </div>
+      </OverlayScrollbar>
     );
   };
   return Memoized;
