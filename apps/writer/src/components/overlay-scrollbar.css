@@ -1,0 +1,56 @@
+/* OverlayScrollbars 自定义主题 — 与项目现有视觉风格保持一致 */
+
+.os-theme-writer {
+  --os-size: 10px;
+  --os-padding-perpendicular: 4px;
+  --os-padding-axis: 4px;
+  --os-track-border-radius: 10px;
+  --os-track-bg: transparent;
+  --os-track-bg-hover: transparent;
+  --os-track-bg-active: transparent;
+  --os-handle-bg: transparent;
+  --os-handle-bg-hover: var(--scrollbar-thumb);
+  --os-handle-bg-active: var(--scrollbar-thumb);
+  --os-handle-border-radius: 10px;
+  --os-handle-min-size: 33%;
+  --os-handle-max-size: calc(100% - var(--os-padding-axis) * 2);
+}
+
+.os-theme-writer .os-scrollbar {
+  padding: var(--os-padding-perpendicular);
+}
+
+.os-theme-writer .os-scrollbar-track {
+  background: var(--os-track-bg);
+}
+
+.os-theme-writer .os-scrollbar-handle {
+  background: var(--os-handle-bg);
+  border-radius: var(--os-handle-border-radius);
+  min-height: var(--os-handle-min-size);
+  max-height: var(--os-handle-max-size);
+  transition: background 120ms ease-out;
+}
+
+.os-theme-writer.os-host-hoverable:hover .os-scrollbar-handle,
+.os-theme-writer .os-scrollbar:hover .os-scrollbar-handle,
+.os-theme-writer .os-scrollbar-active .os-scrollbar-handle {
+  background: var(--os-handle-bg-hover);
+}
+
+.os-theme-writer .os-scrollbar-vertical {
+  right: 0;
+}
+
+.os-theme-writer .os-scrollbar-horizontal {
+  bottom: 0;
+}
+
+/* 隐藏原生滚动条 */
+.os-theme-writer .os-native-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.os-theme-writer .os-native-scrollbar {
+  scrollbar-width: none;
+}

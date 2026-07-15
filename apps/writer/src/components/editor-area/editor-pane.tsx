@@ -1,16 +1,14 @@
-import type { EditorView } from "@codemirror/view";
-import { ProseMarkEditor } from "./prosemark-editor";
-import { EditorScrollContainer } from "./editor-scroll-container";
-import { EditorSearchOverview } from "./editor-search-overview";
-import { SectionRail } from "./section-rail";
+import { TiptapEditor } from "./tiptap-editor";
+import { DocumentPreview } from "./document-preview";
+import { EditorSplitView } from "./editor-split-view";
 import { AiOperationBanner } from "./ai-operation-banner";
 import { AiReviewPanel } from "./ai-review-panel";
 import { DocumentInspector } from "./document-inspector";
 import { useCloseEditorSearchWhenInactive } from "./use-close-editor-search-when-inactive";
 import { useEditorSettingsRef } from "./use-editor-settings";
-import { useIsDocumentInspectorOpen } from "@/hooks/use-document-inspector";
 import { useIsFileLoading } from "@/hooks/use-tabs";
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
+import type { OverlayScrollbarRef } from "@/components/overlay-scrollbar";
 
 const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
@@ -31,12 +29,8 @@ interface EditorPaneProps {
 export const EditorPane = memo(function EditorPane({ path, isActive }: EditorPaneProps) {
   const isLoading = useIsFileLoading(path);
   const editorSettingsRef = useEditorSettingsRef();
-  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
-  const [editorView, setEditorView] = useState<EditorView | null>(null);
-  const isDocumentInspectorOpen = useIsDocumentInspectorOpen();
+  const writeScrollRef = useRef<OverlayScrollbarRef | null>(null);
   useCloseEditorSearchWhenInactive(isActive);
-
-  const getScrollContainer = useCallback(() => scrollContainerRef.current, []);
 
   if (isLoading) {
     return (
@@ -61,23 +55,22 @@ export const EditorPane = memo(function EditorPane({ path, isActive }: EditorPan
           : "absolute inset-0 invisible pointer-events-none"
       }
     >
-      <EditorScrollContainer ref={scrollContainerRef}>
-        <div ref={editorSettingsRef}>
-          <ProseMarkEditor
-            filePath={path}
-            getScrollContainer={getScrollContainer}
-            autoFocus={isActive}
-            onViewChange={setEditorView}
-          />
-        </div>
-      </EditorScrollContainer>
-      {!isDocumentInspectorOpen && (
-        <SectionRail filePath={path} view={editorView} scrollContainerRef={scrollContainerRef} />
-      )}
+      <EditorSplitView
+        writePane={
+          <div ref={editorSettingsRef} className="min-h-full">
+            <TiptapEditor
+              filePath={path}
+              autoFocus={isActive}
+              scrollContainerRef={writeScrollRef}
+            />
+          </div>
+        }
+        previewPane={<DocumentPreview filePath={path} />}
+        writeScrollRef={writeScrollRef}
+      />
       {isActive && <DocumentInspector filePath={path} />}
       {isActive && <AiOperationBanner />}
       {isActive && <AiReviewPanel filePath={path} />}
-      {isActive && <EditorSearchOverview scrollContainerRef={scrollContainerRef} />}
     </div>
   );
 });

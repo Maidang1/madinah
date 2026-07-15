@@ -1,0 +1,213 @@
+/* TipTap (ProseMirror) editor surface. Reuses --reader-* tokens so the
+   writing pane harmonizes with the reader/preview theme without duplicating
+   the web's full `.post-content` styles (this is an editor, not a render). */
+
+.tiptap-editor-host {
+  position: relative;
+}
+
+.tiptap-editor-host .ProseMirror {
+  min-height: 100%;
+  padding: var(--writer-editor-top-padding) var(--writer-editor-side-padding)
+    calc(var(--chrome-drag-height) + 32px);
+  color: var(--reader-ink);
+  font-family: var(--reader-font);
+  font-size: var(--reader-content-font-size);
+  letter-spacing: var(--reader-content-letter-spacing);
+  line-height: var(--reader-content-line-height);
+  text-autospace: ideograph-alpha ideograph-numeric;
+  outline: none;
+  caret-color: var(--reader-ink);
+  word-break: break-word;
+}
+
+.tiptap-editor-host .ProseMirror.tiptap-is-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: var(--text-muted);
+  pointer-events: none;
+  height: 0;
+}
+
+/* Headings */
+.tiptap-editor-host .ProseMirror h1 {
+  margin: 30px 0 16px;
+  font-size: var(--reader-h1-size);
+  font-weight: 800;
+  line-height: 1.3;
+  text-wrap: balance;
+}
+.tiptap-editor-host .ProseMirror h2 {
+  margin: 36px 0 16px;
+  font-size: var(--reader-h2-size);
+  font-weight: 800;
+  line-height: 1.32;
+  text-wrap: balance;
+}
+.tiptap-editor-host .ProseMirror h3 {
+  margin: 24px 0 14px;
+  font-size: var(--reader-h3-size);
+  font-weight: 800;
+  line-height: 1.35;
+}
+.tiptap-editor-host .ProseMirror h4,
+.tiptap-editor-host .ProseMirror h5,
+.tiptap-editor-host .ProseMirror h6 {
+  margin: 24px 0 14px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+.tiptap-editor-host .ProseMirror h4 {
+  font-size: var(--reader-h4-size);
+}
+.tiptap-editor-host .ProseMirror h5 {
+  font-size: var(--reader-h5-size);
+}
+.tiptap-editor-host .ProseMirror h6 {
+  font-size: var(--reader-h6-size);
+  color: var(--reader-muted);
+}
+
+.tiptap-editor-host .ProseMirror > h1:first-child,
+.tiptap-editor-host .ProseMirror > h2:first-child {
+  margin-top: 0;
+}
+
+/* Paragraphs + lists */
+.tiptap-editor-host .ProseMirror p {
+  margin: 0 0 20px;
+}
+
+.tiptap-editor-host .ProseMirror ul,
+.tiptap-editor-host .ProseMirror ol {
+  padding-inline-start: 25px;
+  margin: 0 0 20px;
+}
+.tiptap-editor-host .ProseMirror ul {
+  list-style-type: disc;
+}
+.tiptap-editor-host .ProseMirror ol {
+  list-style-type: decimal;
+}
+.tiptap-editor-host .ProseMirror li {
+  margin-top: 5px;
+  line-height: 1.72;
+}
+.tiptap-editor-host .ProseMirror li p {
+  margin: 0;
+}
+
+/* Task lists */
+.tiptap-editor-host .ProseMirror ul[data-type="taskList"] {
+  list-style: none;
+  padding-inline-start: 0;
+}
+.tiptap-editor-host .ProseMirror ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5em;
+}
+.tiptap-editor-host .ProseMirror ul[data-type="taskList"] li > label {
+  flex: 0 0 auto;
+  margin-top: 0.45em;
+  user-select: none;
+}
+.tiptap-editor-host .ProseMirror ul[data-type="taskList"] li > div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Blockquote */
+.tiptap-editor-host .ProseMirror blockquote {
+  margin: 22px 0;
+  padding-inline-start: 16px;
+  border-inline-start: 4px solid var(--reader-soft);
+  color: var(--reader-muted);
+}
+.tiptap-editor-host .ProseMirror blockquote p {
+  color: inherit;
+}
+
+/* Horizontal rule */
+.tiptap-editor-host .ProseMirror hr {
+  height: 1px;
+  margin: 34px 0;
+  border: 0;
+  background: color-mix(in srgb, var(--reader-soft) 55%, transparent);
+}
+
+/* Inline code */
+.tiptap-editor-host .ProseMirror code {
+  direction: ltr;
+  margin: 0 2px;
+  padding: 0.08em 0.42em;
+  border: 1px solid var(--reader-code-border);
+  border-radius: 4px;
+  background: var(--reader-code);
+  color: var(--reader-code-text);
+  font-family:
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 0.92em;
+}
+
+/* Code block */
+.tiptap-editor-host .ProseMirror pre {
+  margin: 12px auto 20px;
+  padding: 14px 18px;
+  border-radius: var(--radius);
+  background: var(--reader-code-block);
+  color: var(--reader-code-block-text);
+  font-family:
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  line-height: 1.75;
+  overflow-x: auto;
+}
+.tiptap-editor-host .ProseMirror pre code {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: inherit;
+}
+
+/* Links */
+.tiptap-editor-host .ProseMirror .tiptap-link,
+.tiptap-editor-host .ProseMirror a {
+  color: inherit;
+  border-bottom: 1px dotted var(--reader-soft);
+  text-decoration: none;
+}
+
+/* Images */
+.tiptap-editor-host .ProseMirror img,
+.tiptap-editor-host .ProseMirror .tiptap-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 24px 0;
+  border-radius: 6px;
+}
+
+/* Selection */
+.tiptap-editor-host .ProseMirror ::selection {
+  background: var(--editor-selection-bg);
+}
+
+/* Placeholder for empty headings */
+.tiptap-editor-host .ProseMirror h1.is-empty::before,
+.tiptap-editor-host .ProseMirror h2.is-empty::before,
+.tiptap-editor-host .ProseMirror h3.is-empty::before {
+  content: attr(data-placeholder);
+  color: var(--text-muted);
+  pointer-events: none;
+  float: left;
+  height: 0;
+}
+
+/* Constrain the editor column width for comfortable reading/writing */
+.tiptap-editor-content {
+  max-width: var(--writer-editor-max-width);
+  margin: 0 auto;
+}

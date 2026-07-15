@@ -8,6 +8,7 @@ import {
   useIsDocumentInspectorOpen,
   useToggleDocumentInspector,
 } from "@/hooks/use-document-inspector";
+import { OverlayScrollbar } from "@/components/overlay-scrollbar";
 
 interface DocumentInspectorProps {
   filePath: string;
@@ -146,9 +147,9 @@ export function DocumentInspector({ filePath }: DocumentInspectorProps) {
                 </div>
               </div>
               {publicationStatus ? <div className="px-5 pb-3">{publicationStatus}</div> : null}
-              <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-6">
+              <OverlayScrollbar className="min-h-0 flex-1 px-5 pb-6">
                 <FrontmatterPanel filePath={filePath} variant="inspector" />
-              </div>
+              </OverlayScrollbar>
             </div>
           </aside>
         </>
