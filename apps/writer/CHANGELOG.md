@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-07-16
+
+- Remove the editor preview and Split controls so Writer always uses the focused single-column writing surface.
+
 ## 2026-07-12
 
 - Expand the Codex SDK writing toolkit with selection shortening, expansion, and Chinese/English translation, plus cursor-aware continuation and Markdown outline generation. Text actions now share one editor executor, remain undoable as single transactions, and reject stale AI results when the document changes during generation.

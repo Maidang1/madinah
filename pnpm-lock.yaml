@@ -108,12 +108,6 @@ catalogs:
     overlayscrollbars-react:
       specifier: ^0.5.6
       version: 0.5.6
-    react-markdown:
-      specifier: ^9.0.1
-      version: 9.1.0
-    remark-gfm:
-      specifier: ^4.0.0
-      version: 4.0.1
     tailwindcss:
       specifier: ^4.2.2
       version: 4.3.2
@@ -309,12 +303,6 @@ importers:
       react-dom:
         specifier: ^19.1.0
         version: 19.2.7(react@19.2.7)
-      react-markdown:
-        specifier: 'catalog:'
-        version: 9.1.0(@types/react@19.2.17)(react@19.2.7)
-      remark-gfm:
-        specifier: 'catalog:'
-        version: 4.0.1
       tailwindcss:
         specifier: 'catalog:'
         version: 4.3.2
@@ -4012,9 +4000,6 @@ packages:
   html-escaper@3.0.3:
     resolution: {integrity: sha512-RuMffC89BOWQoY0WKGpIhn5gX3iI54O6nRA0yC124NYVtzjmFWBIiFd8M0x+ZdX0P9R4lADg1mgP8C7PxGOWuQ==}
 
-  html-url-attributes@3.0.1:
-    resolution: {integrity: sha512-ol6UPyBWqsrO6EJySPz2O7ZSr856WDrEzM5zMqp+FJJLGMW35cLYmmZnl0vztAZxRUoNZJFTCohfjuIJ8I4QBQ==}
-
   html-void-elements@3.0.0:
     resolution: {integrity: sha512-bEqo66MRXsUGxWHV5IP0PUiAWwoEjba4VCzg0LjFJBpchPaTfyfCKTG6bc5F8ucKec3q5y6qOdGyYTSBEvhCrg==}
 
@@ -4983,12 +4968,6 @@ packages:
 
   react-is@19.2.7:
     resolution: {integrity: sha512-kZFnouyVv7eP/Phmrlo9FK+zcAdriZJvzxXHF1Sl1P377WSGe2G/JxVolhTrB/jeV47lKImhNUsijjHAAbcl/A==}
-
-  react-markdown@9.1.0:
-    resolution: {integrity: sha512-xaijuJB0kzGiUdG7nc2MOMDUDBWPyGAjZtUrow9XxUeua8IqeP+VlIfAZ3bphpcLTnSZXz6z9jcVC/TCwbfgdw==}
-    peerDependencies:
-      '@types/react': '>=18'
-      react: '>=18'
 
   react-refresh@0.17.0:
     resolution: {integrity: sha512-z6F7K9bV85EfseRCp2bzrpyQ0Gkw1uLoCel9XBVWPg/TjRj94SkJzUTGfOa4bs7iJvBWtQG0Wq7wnI0syw3EBQ==}
@@ -9627,8 +9606,6 @@ snapshots:
 
   html-escaper@3.0.3: {}
 
-  html-url-attributes@3.0.1: {}
-
   html-void-elements@3.0.0: {}
 
   htmlfy@0.8.1: {}
@@ -10934,24 +10911,6 @@ snapshots:
   react-is@18.3.1: {}
 
   react-is@19.2.7: {}
-
-  react-markdown@9.1.0(@types/react@19.2.17)(react@19.2.7):
-    dependencies:
-      '@types/hast': 3.0.4
-      '@types/mdast': 4.0.4
-      '@types/react': 19.2.17
-      devlop: 1.1.0
-      hast-util-to-jsx-runtime: 2.3.6
-      html-url-attributes: 3.0.1
-      mdast-util-to-hast: 13.2.1
-      react: 19.2.7
-      remark-parse: 11.0.0
-      remark-rehype: 11.1.2
-      unified: 11.0.5
-      unist-util-visit: 5.1.0
-      vfile: 6.0.3
-    transitivePeerDependencies:
-      - supports-color
 
   react-refresh@0.17.0: {}
 

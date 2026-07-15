@@ -55,8 +55,6 @@
     "overlayscrollbars-react": "catalog:",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react-markdown": "catalog:",
-    "remark-gfm": "catalog:",
     "tailwindcss": "catalog:",
     "tiptap-markdown": "catalog:",
     "yaml": "catalog:",

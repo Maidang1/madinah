@@ -7,6 +7,7 @@
 
 ## Done
 
+- Editor preview removal — remove the preview renderer, Split controls, and persisted view-mode state so Writer always uses the focused single-column writing surface.
 - AI writing toolkit: [`SPECs/ai-writing-toolkit-spec.md`](SPECs/ai-writing-toolkit-spec.md) — add continue, shorten, expand, translate, and outline actions on the Codex SDK path through shared editor executors and backend action definitions.
 - Codex SDK migration: [`SPECs/codex-sdk-migration-spec.md`](SPECs/codex-sdk-migration-spec.md) — replace the Codex/Claude ACP process bridge with the Rust `codex-client-sdk`, retain the four editor AI actions, and reduce settings to Codex-owned configuration.
 - Madinah one-click publish: [`SPECs/madinah-one-click-publish-spec.md`](SPECs/madinah-one-click-publish-spec.md) — share publication metadata and URL rules with Astro, publish the active article through an isolated Git commit/push flow, and add live-link/share interactions across Writer and Web.

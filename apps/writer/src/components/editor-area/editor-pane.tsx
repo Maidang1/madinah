@@ -1,6 +1,4 @@
 import { TiptapEditor } from "./tiptap-editor";
-import { DocumentPreview } from "./document-preview";
-import { EditorSplitView } from "./editor-split-view";
 import { AiOperationBanner } from "./ai-operation-banner";
 import { AiReviewPanel } from "./ai-review-panel";
 import { DocumentInspector } from "./document-inspector";
@@ -8,6 +6,7 @@ import { useCloseEditorSearchWhenInactive } from "./use-close-editor-search-when
 import { useEditorSettingsRef } from "./use-editor-settings";
 import { useIsFileLoading } from "@/hooks/use-tabs";
 import { memo, useEffect, useRef, useState } from "react";
+import { OverlayScrollbar } from "@/components/overlay-scrollbar";
 import type { OverlayScrollbarRef } from "@/components/overlay-scrollbar";
 
 const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
@@ -55,19 +54,11 @@ export const EditorPane = memo(function EditorPane({ path, isActive }: EditorPan
           : "absolute inset-0 invisible pointer-events-none"
       }
     >
-      <EditorSplitView
-        writePane={
-          <div ref={editorSettingsRef} className="min-h-full">
-            <TiptapEditor
-              filePath={path}
-              autoFocus={isActive}
-              scrollContainerRef={writeScrollRef}
-            />
-          </div>
-        }
-        previewPane={<DocumentPreview filePath={path} />}
-        writeScrollRef={writeScrollRef}
-      />
+      <OverlayScrollbar ref={writeScrollRef} className="h-full">
+        <div ref={editorSettingsRef} className="min-h-full">
+          <TiptapEditor filePath={path} autoFocus={isActive} scrollContainerRef={writeScrollRef} />
+        </div>
+      </OverlayScrollbar>
       {isActive && <DocumentInspector filePath={path} />}
       {isActive && <AiOperationBanner />}
       {isActive && <AiReviewPanel filePath={path} />}

@@ -8,6 +8,7 @@ tags:
 pubDate: 2024-10-19 16:42:00
 status: draft
 ---
+## How to build a farmfe plugin ci
 
 I recently worked on a repository that ships both JavaScript plugins and Rust plugins. Both plugin types need CI builds and npm publishing, but Rust adds one extra requirement: each native binding has to be built for several platforms before publishing.
 
@@ -301,5 +302,6 @@ The JavaScript release workflow uses the same trigger strategy as the Rust relea
 
 ### Summary
 
-* Use `pnpm --filter "{xx}[HEAD~1]"` to build and publish only changed packages.
-* Use `contains(github.event.head_commit.message, ...)` to route commits into the Rust, JavaScript, or full release workflow.
+- Use `pnpm --filter "{xx}[HEAD~1]"` to build and publish only changed packages.
+
+Use `contains(github.event.head_commit.message, ...)` to route commits into the Rust, JavaScript, or full release workflow.
