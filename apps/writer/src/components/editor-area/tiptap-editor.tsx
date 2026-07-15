@@ -12,7 +12,9 @@ import type { Editor } from "@tiptap/react";
 import * as editorApi from "@/hooks/editor-api";
 import { useReloadVersion } from "@/hooks/use-tabs";
 import type { OverlayScrollbarRef } from "@/components/overlay-scrollbar";
+import { TiptapSlashMenu } from "./tiptap-slash-menu";
 import "./tiptap-editor.css";
+import "./slash-command-menu.css";
 
 interface TiptapEditorProps {
   filePath: string;
@@ -187,5 +189,10 @@ export function useTiptapEditor(
 
 export function TiptapEditor({ filePath, autoFocus, scrollContainerRef }: TiptapEditorProps) {
   const editor = useTiptapEditor(filePath, autoFocus, scrollContainerRef);
-  return <EditorContent editor={editor} className="tiptap-editor-host" />;
+  return (
+    <>
+      <EditorContent editor={editor} className="tiptap-editor-host" />
+      {editor ? <TiptapSlashMenu editor={editor} /> : null}
+    </>
+  );
 }

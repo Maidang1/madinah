@@ -2,6 +2,7 @@
 
 ## 2026-07-16
 
+- Mount the Notion-style `/` menu on the active TipTap editor, execute supported paragraph, heading, list, quote, code-block, and divider commands through TipTap chains, and give the popup an opaque theme-aware background.
 - Upgrade the editor `/` menu into a Notion-style block command surface with categorized results, visual command marks, useful descriptions, multi-word filtering, keyboard hints, and Home/End navigation while preserving the shared editor command registry.
 - Remove the editor preview and Split controls so Writer always uses the focused single-column writing surface.
 

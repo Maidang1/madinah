@@ -1,6 +1,7 @@
 import type { EditorView } from "@codemirror/view";
 import { useProsemarkEditor } from "./use-prosemark-editor";
 import "./prosemark-theme.css";
+import "./slash-command-menu.css";
 
 interface ProseMarkEditorProps {
   filePath: string;
