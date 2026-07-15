@@ -2,11 +2,13 @@
 
 ## In Progress
 
+- Writer release CI hardening: [`SPECs/writer-release-ci-hardening-spec.md`](SPECs/writer-release-ci-hardening-spec.md) — validate cross-repository release metadata and credentials before building, serialize signed releases safely, verify updater assets, and keep the local fallback aligned.
 - MDX file rendering support: [`SPECs/mdx-file-rendering-support-spec.md`](SPECs/mdx-file-rendering-support-spec.md) — treat `.mdx` files as first-class Markdown documents across open, sidebar, search, recents, watcher, links, and safe editor rendering.
 - Reveal-in-sidebar + residual external-watcher misses: [`SPECs/reveal-in-sidebar-and-external-watcher-spec.md`](SPECs/reveal-in-sidebar-and-external-watcher-spec.md) — keep the explicit tab-context-menu "Reveal in sidebar" action working, leave ordinary file opens from expanding the Everything tree, and characterize the remaining external-file-watcher miss cases through a logging + manual-repro pass before patching further.
 
 ## Done
 
+- CodeMirror removal: [`SPECs/codemirror-removal-spec.md`](SPECs/codemirror-removal-spec.md) — delete the inactive ProseMark editor stack and its dependencies while keeping the active TipTap slash commands self-contained.
 - Notion-style slash menu TipTap port: [`SPECs/notion-style-slash-menu-spec.md`](SPECs/notion-style-slash-menu-spec.md) — mount the slash menu on the active TipTap editor, execute block commands through TipTap chains, and render the popup on an opaque theme-aware background.
 - Editor preview removal — remove the preview renderer, Split controls, and persisted view-mode state so Writer always uses the focused single-column writing surface.
 - AI writing toolkit: [`SPECs/ai-writing-toolkit-spec.md`](SPECs/ai-writing-toolkit-spec.md) — add continue, shorten, expand, translate, and outline actions on the Codex SDK path through shared editor executors and backend action definitions.

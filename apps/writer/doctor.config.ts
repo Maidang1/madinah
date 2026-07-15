@@ -8,12 +8,10 @@
 // react-doctor/<rule>` comments at the call site, not global config.
 export default {
   rules: {
-    // Heavy-library / code-splitting rule. The flagged imports are CodeMirror
-    // and @lezer extensions composed *synchronously* into the editor's
-    // EditorState — they are not React components, so React.lazy/dynamic import
-    // does not apply, and a desktop app loads its one local bundle up front
-    // anyway (no network bundle to defer). Lazy-loading the editor engine of an
-    // editor would only add a Suspense flash on startup.
+    // Heavy-library / code-splitting rule. TipTap extensions are composed
+    // synchronously into the editor instance, and a desktop app loads its one
+    // local bundle up front. Lazy-loading the editor engine would only add a
+    // Suspense flash on startup.
     "react-doctor/prefer-dynamic-import": "off",
 
     // The async-parallelism rules optimize for network round-trip latency. In

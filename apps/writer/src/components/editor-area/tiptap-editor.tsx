@@ -22,9 +22,6 @@ interface TiptapEditorProps {
   scrollContainerRef?: React.MutableRefObject<OverlayScrollbarRef | null>;
 }
 
-// Re-export so callers that previously depended on a CodeMirror EditorView
-// can keep a stable handle shape. TipTap's Editor exposes the underlying
-// ProseMirror view via `editor.view` when needed by future ports.
 export type { Editor };
 
 function buildExtensions() {

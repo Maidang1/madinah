@@ -1,7 +1,6 @@
 import { useActiveTab, useActiveTabId, useOpenTabs } from "@/hooks/use-tabs";
 import { pageKind } from "./page-kinds";
 import { pageKindView } from "./page-kinds/views";
-import { EditorSearchOverlay } from "./editor-search-overlay";
 import { AnchorWarningBanner } from "./anchor-warning-banner";
 import { useCloseDocumentInspectorOnFileChange } from "@/hooks/use-document-inspector";
 
@@ -33,7 +32,6 @@ function EditorArea({ showFooter = true }: EditorAreaProps) {
       {showFooter && activeTab
         ? pageKindView(activeTab.location).renderFooter?.(activeTab.location)
         : null}
-      <EditorSearchOverlay />
       <AnchorWarningBanner />
     </div>
   );

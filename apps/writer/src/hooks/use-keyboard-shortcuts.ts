@@ -9,9 +9,7 @@ function isEditableTargetFocused(): boolean {
   const active = document.activeElement;
   if (!active) return false;
   if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement) return true;
-  if ((active as HTMLElement).isContentEditable) return true;
-  // CodeMirror editors render a contenteditable inside .cm-editor
-  return active.closest(".cm-editor") !== null;
+  return (active as HTMLElement).isContentEditable;
 }
 
 export function useKeyboardShortcuts() {
@@ -34,7 +32,7 @@ export function useKeyboardShortcuts() {
       const isCompactFileMode = getWorkspaceChromeMode(root, chromeMode) === "compact-file";
 
       // Alt+Arrow: history navigation when no editable target is focused;
-      // inside the editor, let CodeMirror handle word-wise cursor motion.
+      // inside the editor, let ProseMirror handle word-wise cursor motion.
       if (e.altKey && !e.shiftKey && e.key === "ArrowLeft" && !isEditableTargetFocused()) {
         e.preventDefault();
         void navigateBack();

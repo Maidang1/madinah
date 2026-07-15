@@ -1,93 +1,33 @@
 import { describe, expect, test } from "vite-plus/test";
-import { EditorState } from "@codemirror/state";
-import type { EditorView } from "@codemirror/view";
-import type { EditorCommand } from "../src/components/editor-area/editor-commands";
-import { getEditorCommandsForSurface } from "../src/components/editor-area/editor-commands";
-import { __testSlashCommandExtension } from "../src/components/editor-area/slash-command-extension";
 import {
   createSlashCommandItems,
   getSlashCommandPosition,
   groupSlashCommandItems,
   matchSlashCommandTriggerText,
   searchSlashCommandItems,
+  type SlashCommandDescriptor,
 } from "../src/components/editor-area/slash-commands";
 
-describe("slash commands", () => {
-  test("builds and sorts slash items by priority", () => {
+describe("slash command utilities", () => {
+  test("sorts, searches, and groups command descriptors", () => {
     const items = createSlashCommandItems([
-      command("document.save", "Save", 99, []),
-      command("insertTable", "Table", 50, ["slash"]),
-      command("ai.polishDocument", "Polish document", 80, ["slash"]),
+      command("insert.image", "Image", "Media & inserts", 70, ["media"]),
+      command("format.heading2", "Heading 2", "Basic blocks", 80, ["subtitle"]),
+      command("format.paragraph", "Paragraph", "Basic blocks", 90, ["text"]),
     ]);
 
-    expect(items.map((item) => item.id)).toEqual(["ai.polishDocument", "insertTable"]);
-  });
-
-  test("searches label, group, keywords, and command id", () => {
-    const items = createSlashCommandItems([
-      command("format.heading2", "Heading 2", 80, ["slash"], ["subtitle"]),
-      command("insertTable", "Table", 70, ["slash"], ["grid"]),
-      command("ai.rewriteSelection", "Rewrite selection", 90, ["slash"], ["polish"]),
-    ]);
-
-    expect(searchSlashCommandItems(items, "head").map((item) => item.id)).toEqual([
+    expect(items.map((item) => item.id)).toEqual([
+      "format.paragraph",
       "format.heading2",
+      "insert.image",
     ]);
-    expect(searchSlashCommandItems(items, "grid").map((item) => item.id)).toEqual(["insertTable"]);
-    expect(searchSlashCommandItems(items, "rewrite").map((item) => item.id)).toEqual([
-      "ai.rewriteSelection",
-    ]);
-  });
-
-  test("adds Notion-style visual metadata and groups commands for scanning", () => {
-    const items = createSlashCommandItems([
-      command("insertImage", "Image", 70, ["slash"], ["media"]),
-      command("format.heading2", "Heading 2", 80, ["slash"], ["subtitle"]),
-      command("ai.polishDocument", "Polish document", 90, ["slash"], ["polish"]),
-    ]);
-
-    expect(items.map(({ id, icon, description }) => ({ id, icon, description }))).toEqual([
-      { id: "ai.polishDocument", icon: "✦", description: "Polish document" },
-      { id: "format.heading2", icon: "H₂", description: "Heading 2" },
-      { id: "insertImage", icon: "▧", description: "Image" },
+    expect(searchSlashCommandItems(items, "subtitle").map((item) => item.id)).toEqual([
+      "format.heading2",
     ]);
     expect(groupSlashCommandItems(items).map((group) => group.section)).toEqual([
       "Basic blocks",
       "Media & inserts",
-      "AI writing",
     ]);
-  });
-
-  test("finds Markdown snippet insertions from the slash surface", () => {
-    const items = createSlashCommandItems(getEditorCommandsForSurface("slash"));
-
-    expect(searchSlashCommandItems(items, "image").map((item) => item.id)).toContain("insertImage");
-    expect(searchSlashCommandItems(items, "callout").map((item) => item.id)).toContain(
-      "insertCallout",
-    );
-    expect(searchSlashCommandItems(items, "latex").map((item) => item.id)).toContain(
-      "insertMathBlock",
-    );
-    expect(searchSlashCommandItems(items, "frontmatter").map((item) => item.id)).toContain(
-      "insertFrontmatter",
-    );
-  });
-
-  test("shows insertion actions and keeps selection actions contextual", () => {
-    const items = createSlashCommandItems(getEditorCommandsForSurface("slash"));
-
-    expect(searchSlashCommandItems(items, "continue").map((item) => item.id)).toContain(
-      "ai.continueWriting",
-    );
-    expect(searchSlashCommandItems(items, "outline").map((item) => item.id)).toContain(
-      "ai.generateOutline",
-    );
-    expect(searchSlashCommandItems(items, "shorten").map((item) => item.id)).not.toContain(
-      "ai.shortenSelection",
-    );
-    expect(searchSlashCommandItems(items, "translate").map((item) => item.id)).not.toContain(
-      "ai.translateSelection",
-    );
   });
 
   test("matches slash triggers at line start and after whitespace", () => {
@@ -96,22 +36,12 @@ describe("slash commands", () => {
       slashOffset: 0,
       atLineStart: true,
     });
-    expect(matchSlashCommandTriggerText("  /table")).toEqual({
-      query: "table",
-      slashOffset: 2,
-      atLineStart: true,
-    });
-    expect(matchSlashCommandTriggerText("hello /ai")).toEqual({
-      query: "ai",
+    expect(matchSlashCommandTriggerText("hello /heading 2")).toEqual({
+      query: "heading 2",
       slashOffset: 6,
       atLineStart: false,
     });
-    expect(matchSlashCommandTriggerText("a/b")).toBeNull();
-    expect(matchSlashCommandTriggerText("/heading 2")).toEqual({
-      query: "heading 2",
-      slashOffset: 0,
-      atLineStart: true,
-    });
+    expect(matchSlashCommandTriggerText("path/to")).toBeNull();
   });
 
   test("keeps the menu inside the viewport", () => {
@@ -121,70 +51,25 @@ describe("slash commands", () => {
         { width: 280, height: 340 },
         { width: 800, height: 600 },
       ),
-    ).toEqual({
-      x: 512,
-      y: 212,
-    });
-  });
-
-  test("falls back to line geometry when caret coords are unavailable", () => {
-    const state = EditorState.create({ doc: "/" });
-    const view = {
-      state,
-      documentTop: 100,
-      coordsAtPos: (pos: number) =>
-        pos === 0 ? { left: 120, top: 0, bottom: 20, right: 120 } : null,
-      lineBlockAt: () => ({ top: 40, bottom: 64 }),
-      dom: {
-        getBoundingClientRect: () => ({ left: 24 }),
-      },
-    } as unknown as EditorView;
-
-    expect(__testSlashCommandExtension.getSlashAnchorRect(view, 1)).toEqual({
-      left: 120,
-      top: 140,
-      bottom: 164,
-    });
-  });
-
-  test("scrolls the selected item into view after rendering", () => {
-    const calls: unknown[] = [];
-    const menu = {
-      querySelector: (selector: string) =>
-        selector === "button.is-selected"
-          ? {
-              scrollIntoView: (options: unknown) => calls.push(options),
-            }
-          : null,
-    } as unknown as HTMLElement;
-
-    __testSlashCommandExtension.scrollSelectedSlashItem(menu);
-
-    expect(calls).toEqual([{ block: "nearest" }]);
+    ).toEqual({ x: 512, y: 212 });
   });
 });
 
 function command(
   id: string,
   label: string,
+  section: SlashCommandDescriptor["section"],
   priority: number,
-  surfaces: Array<"context" | "slash">,
-  keywords: string[] = [],
-): EditorCommand {
-  const slashMenu = id.startsWith("ai.")
-    ? { section: "AI writing" as const, icon: "✦" }
-    : id === "format.heading2"
-      ? { section: "Basic blocks" as const, icon: "H₂" }
-      : { section: "Media & inserts" as const, icon: "▧" };
+  keywords: string[],
+): SlashCommandDescriptor {
   return {
     id,
     label,
-    group: id.startsWith("ai.") ? "AI" : id.startsWith("format.") ? "Paragraph" : "Insert",
+    group: section,
+    section,
     description: label,
+    icon: "+",
     keywords,
     priority,
-    surfaces,
-    slashMenu,
-    run: () => {},
   };
 }

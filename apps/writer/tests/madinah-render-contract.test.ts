@@ -5,8 +5,8 @@ import { describe, expect, test } from "vite-plus/test";
 
 const appRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const appCss = readFileSync(resolve(appRoot, "src/App.css"), "utf8");
-const prosemarkCss = readFileSync(
-  resolve(appRoot, "src/components/editor-area/prosemark-theme.css"),
+const tiptapCss = readFileSync(
+  resolve(appRoot, "src/components/editor-area/tiptap-editor.css"),
   "utf8",
 );
 const readerThemeCss = readFileSync(resolve(appRoot, "../../shared/reader-theme.css"), "utf8");
@@ -43,23 +43,15 @@ describe("Madinah render contract", () => {
     expect(writerLightTheme.background).toBe("#F5F4ED");
   });
 
-  test("maps ProseMark core Markdown blocks to Astro post-content values", () => {
-    expect(prosemarkCss).toContain(".cm-editor .cm-heading-line-1");
-    expect(prosemarkCss).toContain("font-size: var(--reader-h1-size);");
-    expect(prosemarkCss).toContain(".cm-editor .cm-inline-code");
-    expect(prosemarkCss).toContain("background: var(--reader-code) !important;");
-    expect(prosemarkCss).toContain(".cm-editor .cm-fenced-code-line");
-    expect(prosemarkCss).toContain("background: var(--reader-code-block) !important;");
-    expect(prosemarkCss).toContain(
-      ".cm-editor .cm-activeLine {\n  background: transparent !important;\n}",
-    );
-    expect(prosemarkCss).toContain("font-size: var(--writer-code-block-font-size, 14px);");
-    expect(prosemarkCss).toContain("line-height: var(--writer-code-block-line-height, 1.75);");
-    expect(prosemarkCss).toContain(".cm-editor .cm-table-widget th,");
-    expect(prosemarkCss).toContain(
-      "border: 1px solid color-mix(in srgb, var(--reader-soft) 35%, transparent) !important;",
-    );
-    expect(prosemarkCss).toContain(".cm-editor .cm-image img");
-    expect(prosemarkCss).toContain("border-radius: 6px;");
+  test("maps TipTap Markdown blocks to Astro post-content values", () => {
+    expect(tiptapCss).toContain(".tiptap-editor-host .ProseMirror h1");
+    expect(tiptapCss).toContain("font-size: var(--reader-h1-size);");
+    expect(tiptapCss).toContain(".tiptap-editor-host .ProseMirror code");
+    expect(tiptapCss).toContain("background: var(--reader-code);");
+    expect(tiptapCss).toContain(".tiptap-editor-host .ProseMirror pre");
+    expect(tiptapCss).toContain("background: var(--reader-code-block);");
+    expect(tiptapCss).toContain("line-height: 1.75;");
+    expect(tiptapCss).toContain(".tiptap-editor-host .ProseMirror img,");
+    expect(tiptapCss).toContain("border-radius: 6px;");
   });
 });

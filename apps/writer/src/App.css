@@ -144,9 +144,8 @@
   outline-offset: -2px;
 }
 
-/* Remove focus-visible on CodeMirror — it manages its own cursor */
-.cm-editor:focus-visible,
 /* Remove focus-visible on editor inputs that manage their own styles */
+[contenteditable="true"]:focus-visible,
 [data-document-header] textarea:focus-visible,
 [data-frontmatter] input:focus-visible,
 [data-frontmatter] select:focus-visible,
@@ -154,9 +153,7 @@
 [data-document-inspector] button:focus-visible,
 [data-settings-panel] input:focus-visible,
 [data-settings-panel] select:focus-visible,
-[data-settings-panel] button:focus-visible,
-[data-search-overlay] input:focus-visible,
-[data-search-overlay] button:focus-visible {
+[data-settings-panel] button:focus-visible {
   outline: none;
 }
 
@@ -169,13 +166,13 @@ body,
 }
 
 /* Prevent text selection everywhere except editor and form inputs */
-*:not(.cm-editor):not(.cm-content):not(.cm-line):not(textarea):not(input):not(select) {
+*:not(.ProseMirror):not(.ProseMirror *):not(textarea):not(input):not(select) {
   -webkit-user-select: none;
   user-select: none;
 }
 
-.cm-editor,
-.cm-editor *,
+.ProseMirror,
+.ProseMirror *,
 textarea,
 input,
 select {
@@ -238,8 +235,8 @@ body.tree-dragging [data-tree-path] {
   z-index: 100;
 }
 
-/* Floating card surface — shared by `<SurfaceCard>` (section-rail popover,
-   editor search overlay) and cmdk's library-rendered `[cmdk-dialog]`. The
+/* Floating card surface — shared by `<SurfaceCard>` and cmdk's
+   library-rendered `[cmdk-dialog]`. The
    `::before` layer paints `--bg-base` at 55% so the card reads opaque enough
    while the backdrop-blur still picks up editor content behind. Establish a
    stacking context (`isolation: isolate`) so the under-layer stays inside. */
@@ -366,36 +363,6 @@ body.tree-dragging [data-tree-path] {
   opacity: 1;
   transform: translate3d(0, 0, 0);
   transition-delay: 45ms;
-}
-
-/* CodeMirror autocomplete tooltip (wiki-link suggestions). Mirrors the
-   surface-card chrome but can't share the rule directly because
-   `--surface-card` is set to `transparent` in light mode (so settings-panel
-   static cards stay flat). The blur depends on the wiki-link extension
-   appending the tooltip to `document.body` via `tooltips({ parent:
-   document.body })`, otherwise `EditorScrollContainer`'s `mask-image`
-   ancestor neutralizes `backdrop-filter`. `!important` is required on
-   background/border/radius because `@codemirror/view`'s baseTheme injects
-   `&light .cm-tooltip { backgroundColor: #f5f5f5; border: 1px solid #bbb }`
-   after our stylesheet with higher specificity. */
-.cm-tooltip.cm-tooltip-autocomplete {
-  background: transparent !important;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--line-subtler) !important;
-  border-radius: 16px !important;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.32);
-  isolation: isolate;
-}
-
-.cm-tooltip.cm-tooltip-autocomplete::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: color-mix(in srgb, var(--bg-base) 70%, transparent);
-  z-index: -1;
-  pointer-events: none;
 }
 
 [cmdk-dialog] {

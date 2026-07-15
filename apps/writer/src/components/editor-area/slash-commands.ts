@@ -1,4 +1,16 @@
-import type { EditorCommand, EditorCommandSlashSection } from "./editor-commands";
+export type SlashCommandSection = "Basic blocks" | "Media & inserts";
+
+export interface SlashCommandDescriptor {
+  id: string;
+  label: string;
+  group: string;
+  section: SlashCommandSection;
+  description: string;
+  icon: string;
+  keywords: string[];
+  shortcut?: string;
+  priority: number;
+}
 
 export interface SlashCommandItem {
   id: string;
@@ -10,11 +22,8 @@ export interface SlashCommandItem {
   keywords: string[];
   shortcut: string;
   priority: number;
-  command: EditorCommand;
   order: number;
 }
-
-export type SlashCommandSection = EditorCommandSlashSection;
 
 export interface SlashCommandGroup {
   section: SlashCommandSection;
@@ -43,31 +52,25 @@ interface Size {
   height: number;
 }
 
-const SECTION_ORDER: SlashCommandSection[] = [
-  "Basic blocks",
-  "Inline",
-  "Media & inserts",
-  "AI writing",
-];
+const SECTION_ORDER: SlashCommandSection[] = ["Basic blocks", "Media & inserts"];
 
-export function createSlashCommandItems(commands: EditorCommand[]): SlashCommandItem[] {
+export function createSlashCommandItems(commands: SlashCommandDescriptor[]): SlashCommandItem[] {
   const seen = new Set<string>();
   const items: SlashCommandItem[] = [];
 
   for (const command of commands) {
-    if (!command.surfaces.includes("slash") || seen.has(command.id)) continue;
+    if (seen.has(command.id)) continue;
     seen.add(command.id);
     items.push({
       id: command.id,
       label: command.label,
       group: command.group,
-      section: command.slashMenu?.section ?? "Media & inserts",
+      section: command.section,
       description: command.description,
-      icon: command.slashMenu?.icon ?? "+",
+      icon: command.icon,
       keywords: command.keywords,
       shortcut: command.shortcut ?? "",
       priority: command.priority,
-      command,
       order: items.length,
     });
   }

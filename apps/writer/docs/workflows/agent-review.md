@@ -33,8 +33,8 @@ Activate only the personas relevant to the changed surface area. Each persona ow
 - **Zustand/State Expert**: store design, selector patterns, bail-out optimizations, side-effect timing relative to `set()`, Map/Set reference semantics, cross-store subscriptions.
   Owned docs: `docs/zustand.md`.
 
-- **Editor Expert**: CodeMirror/Prosemark extension patterns, `reloadVersion` and instance-key semantics, widget decorations, scroll container detection, paste handling, context menu integration with native Tauri menus.
-  Owned docs: `docs/editor.md`, relevant `SPECs/` for the change.
+- **Editor Expert**: TipTap/ProseMirror extension patterns, `reloadVersion` semantics, Markdown serialization, scroll-container ownership, paste handling, and editor command integration.
+  Owned docs: relevant `SPECs/` for the change.
 
 - **Rust/Tauri Expert**: Tauri IPC command design, async command patterns, `AppState` management, file system watcher correctness, lock contention, error serialization over IPC, `cargo clippy` compliance.
   Owned docs: `CLAUDE.md` (Architecture section), Rust source in `src-tauri/src/`.
@@ -57,7 +57,7 @@ Each persona should also load any spec or doc directly relevant to the files bei
 
 - Touching UI components or interaction flows → include UX.
 - Touching Zustand stores → include Zustand/State.
-- Touching CodeMirror extensions or editor panes → include Editor.
+- Touching TipTap extensions or editor panes → include Editor.
 - Touching Rust commands or `src-tauri/` → include Rust/Tauri.
 - Touching startup flow or workspace switching → include Startup/Workspace.
 - Touching state ownership or cross-layer boundaries → include Systems Architect.

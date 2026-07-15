@@ -31,8 +31,8 @@ function seedOrParse(frontmatter: string | null): YamlEntry[] {
 function focusActiveEditor() {
   requestAnimationFrame(() => {
     const active =
-      document.querySelector<HTMLElement>(".cm-editor.cm-focused .cm-content") ??
-      document.querySelector<HTMLElement>(".cm-editor .cm-content");
+      document.querySelector<HTMLElement>(".tiptap-editor-host .ProseMirror-focused") ??
+      document.querySelector<HTMLElement>(".tiptap-editor-host .ProseMirror");
     active?.focus();
   });
 }

@@ -41,7 +41,7 @@ Not all hooks belong in `hooks/`. The `hooks/` directory is the app's **domain A
   - Imperative API modules: `editorApi`
   - Import with `@/hooks/...`
 
-- **Co-located with the component (implementation hooks)** — Hooks that encapsulate internal wiring no other component would use: DOM setup, third-party library instances (CodeMirror, a canvas, a map), component-specific data fetching or transformation.
+- **Co-located with the component (implementation hooks)** — Hooks that encapsulate internal wiring no other component would use: DOM setup, third-party library instances (TipTap, a canvas, a map), component-specific data fetching or transformation.
   - Examples: `use-editor-view.ts` in `components/editor-area/`, `use-fuzzy-search.ts` in `components/command-palette/`
   - Import with `./` (relative, same directory)
 
