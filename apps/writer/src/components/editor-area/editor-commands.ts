@@ -24,6 +24,11 @@ import { getWorkspaceRoot } from "@/hooks/workspace-api";
 
 export type EditorCommandSurface = "context" | "slash";
 export type EditorContextMenuGroup = "AI" | "Format" | "Paragraph" | "Insert";
+export type EditorCommandSlashSection =
+  | "Basic blocks"
+  | "Inline"
+  | "Media & inserts"
+  | "AI writing";
 
 export interface EditorCommandContextMenuItem {
   group: EditorContextMenuGroup;
@@ -43,6 +48,10 @@ export interface EditorCommand {
   shortcut?: string;
   priority: number;
   surfaces: EditorCommandSurface[];
+  slashMenu?: {
+    section: EditorCommandSlashSection;
+    icon: string;
+  };
   contextMenu?: EditorCommandContextMenuItem[];
   run: (view: EditorView, filePath: string) => void | Promise<void>;
 }
@@ -64,6 +73,47 @@ const FORMAT_COMMAND_LABELS: Record<keyof typeof formattingCommands, string> = {
   "format.heading5": "Heading 5",
   "format.heading6": "Heading 6",
   "format.paragraph": "Paragraph",
+};
+
+const FORMAT_COMMAND_DESCRIPTIONS: Record<keyof typeof formattingCommands, string> = {
+  "format.bold": "Emphasize the selected text",
+  "format.italic": "Add subtle emphasis to selected text",
+  "format.link": "Create a Markdown link",
+  "format.code": "Format selected text as inline code",
+  "format.strikethrough": "Strike through the selected text",
+  "format.bulletList": "Start a bulleted list",
+  "format.numberedList": "Start a numbered list",
+  "format.blockquote": "Capture a quote or highlighted passage",
+  "format.taskList": "Track an item with a checkbox",
+  "format.heading1": "Large section heading",
+  "format.heading2": "Medium section heading",
+  "format.heading3": "Small section heading",
+  "format.heading4": "Fourth-level section heading",
+  "format.heading5": "Fifth-level section heading",
+  "format.heading6": "Sixth-level section heading",
+  "format.paragraph": "Write a plain text block",
+};
+
+const FORMAT_SLASH_MENU: Record<
+  keyof typeof formattingCommands,
+  NonNullable<EditorCommand["slashMenu"]>
+> = {
+  "format.bold": { section: "Inline", icon: "B" },
+  "format.italic": { section: "Inline", icon: "I" },
+  "format.link": { section: "Media & inserts", icon: "↗" },
+  "format.code": { section: "Inline", icon: "<>" },
+  "format.strikethrough": { section: "Inline", icon: "S̶" },
+  "format.bulletList": { section: "Basic blocks", icon: "•" },
+  "format.numberedList": { section: "Basic blocks", icon: "1." },
+  "format.blockquote": { section: "Basic blocks", icon: "❞" },
+  "format.taskList": { section: "Basic blocks", icon: "☑" },
+  "format.heading1": { section: "Basic blocks", icon: "H₁" },
+  "format.heading2": { section: "Basic blocks", icon: "H₂" },
+  "format.heading3": { section: "Basic blocks", icon: "H₃" },
+  "format.heading4": { section: "Basic blocks", icon: "H₄" },
+  "format.heading5": { section: "Basic blocks", icon: "H₅" },
+  "format.heading6": { section: "Basic blocks", icon: "H₆" },
+  "format.paragraph": { section: "Basic blocks", icon: "T" },
 };
 
 const FORMAT_COMMAND_GROUPS: Partial<Record<keyof typeof formattingCommands, string>> = {
@@ -226,6 +276,7 @@ const EXTRA_COMMANDS: Array<
     keywords: ["clear", "format"],
     priority: 30,
     surfaces: ["context", "slash"],
+    slashMenu: { section: "Inline", icon: "T×" },
     contextMenu: [
       {
         group: "Format",
@@ -244,6 +295,7 @@ const EXTRA_COMMANDS: Array<
     keywords: ["code", "fence"],
     priority: 68,
     surfaces: ["context", "slash"],
+    slashMenu: { section: "Basic blocks", icon: "{}" },
     contextMenu: [
       {
         group: "Paragraph",
@@ -261,6 +313,7 @@ const EXTRA_COMMANDS: Array<
     keywords: ["image", "img", "media", "picture", "markdown"],
     priority: 78,
     surfaces: ["context", "slash"],
+    slashMenu: { section: "Media & inserts", icon: "▧" },
     contextMenu: [{ group: "Insert", itemId: "ins.image", order: 20 }],
     command: insertImage,
   },
@@ -272,6 +325,7 @@ const EXTRA_COMMANDS: Array<
     keywords: ["table", "grid"],
     priority: 76,
     surfaces: ["context", "slash"],
+    slashMenu: { section: "Media & inserts", icon: "▦" },
     contextMenu: [{ group: "Insert", itemId: "ins.table", order: 30 }],
     command: insertTable,
   },
@@ -283,6 +337,7 @@ const EXTRA_COMMANDS: Array<
     keywords: ["callout", "admonition", "note", "quote", "markdown"],
     priority: 74,
     surfaces: ["context", "slash"],
+    slashMenu: { section: "Media & inserts", icon: "!" },
     contextMenu: [{ group: "Insert", itemId: "ins.callout", order: 40 }],
     command: insertCallout,
   },
@@ -294,6 +349,7 @@ const EXTRA_COMMANDS: Array<
     keywords: ["math", "latex", "formula", "equation", "markdown"],
     priority: 72,
     surfaces: ["context", "slash"],
+    slashMenu: { section: "Media & inserts", icon: "∑" },
     contextMenu: [{ group: "Insert", itemId: "ins.math", order: 50 }],
     command: insertMathBlock,
   },
@@ -305,6 +361,7 @@ const EXTRA_COMMANDS: Array<
     keywords: ["footnote", "reference", "note", "markdown"],
     priority: 70,
     surfaces: ["context", "slash"],
+    slashMenu: { section: "Media & inserts", icon: "¹" },
     contextMenu: [{ group: "Insert", itemId: "ins.footnote", order: 60 }],
     command: insertFootnote,
   },
@@ -316,6 +373,7 @@ const EXTRA_COMMANDS: Array<
     keywords: ["divider", "rule", "hr"],
     priority: 60,
     surfaces: ["context", "slash"],
+    slashMenu: { section: "Media & inserts", icon: "—" },
     contextMenu: [{ group: "Insert", itemId: "ins.hr", label: "Horizontal rule", order: 70 }],
     command: insertHorizontalRule,
   },
@@ -327,6 +385,7 @@ const EXTRA_COMMANDS: Array<
     keywords: ["comment", "html", "note", "hidden", "markdown"],
     priority: 58,
     surfaces: ["context", "slash"],
+    slashMenu: { section: "Media & inserts", icon: "</>" },
     contextMenu: [
       {
         group: "Insert",
@@ -345,6 +404,7 @@ const EXTRA_COMMANDS: Array<
     keywords: ["frontmatter", "yaml", "metadata", "title", "markdown"],
     priority: 56,
     surfaces: ["context", "slash"],
+    slashMenu: { section: "Media & inserts", icon: "Y" },
     contextMenu: [{ group: "Insert", itemId: "ins.frontmatter", order: 90 }],
     command: insertFrontmatter,
   },
@@ -356,6 +416,7 @@ const EXTRA_COMMANDS: Array<
     keywords: ["date", "today"],
     priority: 45,
     surfaces: ["context", "slash"],
+    slashMenu: { section: "Media & inserts", icon: "17" },
     contextMenu: [
       {
         group: "Insert",
@@ -375,6 +436,7 @@ const EXTRA_COMMANDS: Array<
     keywords: ["time", "now"],
     priority: 44,
     surfaces: ["context", "slash"],
+    slashMenu: { section: "Media & inserts", icon: "◷" },
     contextMenu: [{ group: "Insert", itemId: "ins.time", label: "Current time", order: 110 }],
     command: insertNow,
   },
@@ -550,11 +612,12 @@ export const EDITOR_COMMANDS: EditorCommand[] = [
       id,
       label: FORMAT_COMMAND_LABELS[typedId],
       group: FORMAT_COMMAND_GROUPS[typedId] ?? "Format",
-      description: "Markdown command",
+      description: FORMAT_COMMAND_DESCRIPTIONS[typedId],
       keywords: [FORMAT_COMMAND_LABELS[typedId], id],
       shortcut: command.chord,
       priority: 100 - index,
       surfaces: ["context", "slash"],
+      slashMenu: FORMAT_SLASH_MENU[typedId],
       contextMenu: FORMAT_CONTEXT_MENU_ITEMS[typedId],
       run: (view) => {
         runStateCommand(view, command.run);
@@ -578,6 +641,7 @@ export const EDITOR_COMMANDS: EditorCommand[] = [
     keywords: ["ai", "metadata", "frontmatter", "title", "description", "tags", "slug"],
     priority: 82,
     surfaces: ["context", "slash"],
+    slashMenu: { section: "AI writing", icon: "✦" },
     contextMenu: [
       {
         group: "AI",
@@ -596,6 +660,7 @@ export const EDITOR_COMMANDS: EditorCommand[] = [
     keywords: ["ai", "review", "issues", "structure", "clarity"],
     priority: 80,
     surfaces: ["context", "slash"],
+    slashMenu: { section: "AI writing", icon: "✦" },
     contextMenu: [{ group: "AI", itemId: AI_REVIEW_DOCUMENT_COMMAND_ID, order: 90 }],
     run: (view, filePath) => reviewDocumentWithAi(view, filePath),
   },
@@ -697,6 +762,7 @@ function createAiTextEditorCommand(definition: AiTextActionDefinition): EditorCo
     keywords: definition.keywords,
     priority: definition.priority,
     surfaces: definition.surfaces,
+    slashMenu: { section: "AI writing", icon: "✦" },
     contextMenu: [
       {
         group: "AI",

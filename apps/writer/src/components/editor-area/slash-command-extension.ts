@@ -4,6 +4,7 @@ import { getEditorCommandsForSurface } from "./editor-commands";
 import {
   createSlashCommandItems,
   getSlashCommandPosition,
+  groupSlashCommandItems,
   matchSlashCommandTriggerText,
   searchSlashCommandItems,
   type SlashCommandItem,
@@ -16,7 +17,7 @@ interface ActiveSlashTrigger {
   atLineStart: boolean;
 }
 
-const MENU_SIZE = { width: 280, height: 340 };
+const MENU_SIZE = { width: 330, height: 390 };
 
 export function slashCommandExtension(getFilePath: () => string): Extension {
   const slashPlugin = ViewPlugin.fromClass(
@@ -72,6 +73,20 @@ export function slashCommandExtension(getFilePath: () => string): Extension {
           return true;
         }
 
+        if (event.key === "Home") {
+          event.preventDefault();
+          this.selectedIndex = 0;
+          this.render();
+          return true;
+        }
+
+        if (event.key === "End") {
+          event.preventDefault();
+          this.selectedIndex = Math.max(0, this.items.length - 1);
+          this.render();
+          return true;
+        }
+
         if (event.key === "Enter" || event.key === "Tab") {
           const item = this.items[this.selectedIndex];
           if (!item) return false;
@@ -97,7 +112,8 @@ export function slashCommandExtension(getFilePath: () => string): Extension {
           this.trigger.to !== trigger.to;
         this.trigger = trigger;
         const slashItems = createSlashCommandItems(getEditorCommandsForSurface("slash"));
-        this.items = searchSlashCommandItems(slashItems, trigger.query);
+        const matchingItems = searchSlashCommandItems(slashItems, trigger.query);
+        this.items = groupSlashCommandItems(matchingItems).flatMap((group) => group.items);
         this.selectedIndex = queryChanged
           ? 0
           : Math.min(this.selectedIndex, Math.max(0, this.items.length - 1));
@@ -109,7 +125,8 @@ export function slashCommandExtension(getFilePath: () => string): Extension {
         if (this.menu) return;
         this.menu = document.createElement("div");
         this.menu.className = "slash-command-menu";
-        this.menu.setAttribute("role", "listbox");
+        this.menu.setAttribute("role", "dialog");
+        this.menu.setAttribute("aria-label", "Insert block or run command");
         document.body.appendChild(this.menu);
       }
 
@@ -149,43 +166,79 @@ export function slashCommandExtension(getFilePath: () => string): Extension {
         this.menu.style.top = `${position.y}px`;
 
         this.menu.replaceChildren();
+
+        const results = document.createElement("div");
+        results.className = "slash-command-results";
+        results.setAttribute("role", "listbox");
+        results.setAttribute("aria-label", "Commands");
         if (this.items.length === 0) {
           const empty = document.createElement("div");
           empty.className = "slash-command-empty";
           empty.textContent = this.trigger.query
             ? `No command for /${this.trigger.query}`
             : "No commands";
-          this.menu.appendChild(empty);
+          results.appendChild(empty);
+          this.menu.append(results, createSlashCommandFooter());
           return;
         }
 
-        this.items.forEach((item, index) => {
-          const button = document.createElement("button");
-          button.type = "button";
-          button.setAttribute("role", "option");
-          button.setAttribute("aria-selected", String(index === this.selectedIndex));
-          if (index === this.selectedIndex) button.classList.add("is-selected");
-          button.addEventListener("mousedown", (event) => {
-            event.preventDefault();
-            void this.run(item);
-          });
+        let itemIndex = 0;
+        for (const group of groupSlashCommandItems(this.items)) {
+          const section = document.createElement("section");
+          section.className = "slash-command-section";
+          section.setAttribute("role", "group");
 
-          const text = document.createElement("span");
-          const label = document.createElement("strong");
-          label.textContent = item.label;
-          const detail = document.createElement("small");
-          detail.textContent = item.group;
-          text.append(label, detail);
-          button.appendChild(text);
+          const heading = document.createElement("div");
+          const headingId = `slash-command-section-${group.section.replace(/[^a-z0-9_-]/gi, "-")}`;
+          heading.id = headingId;
+          heading.className = "slash-command-section-heading";
+          heading.textContent = group.section;
+          section.setAttribute("aria-labelledby", headingId);
+          section.appendChild(heading);
 
-          if (item.shortcut) {
-            const shortcut = document.createElement("kbd");
-            shortcut.textContent = item.shortcut.replace("Mod", "⌘");
-            button.appendChild(shortcut);
+          for (const item of group.items) {
+            const index = itemIndex++;
+            const button = document.createElement("button");
+            const optionId = `slash-command-${item.id.replace(/[^a-z0-9_-]/gi, "-")}`;
+            button.id = optionId;
+            button.type = "button";
+            button.setAttribute("role", "option");
+            button.setAttribute("aria-selected", String(index === this.selectedIndex));
+            if (index === this.selectedIndex) {
+              button.classList.add("is-selected");
+              results.setAttribute("aria-activedescendant", optionId);
+            }
+            button.addEventListener("mousedown", (event) => {
+              event.preventDefault();
+              void this.run(item);
+            });
+
+            const icon = document.createElement("span");
+            icon.className = "slash-command-icon";
+            icon.setAttribute("aria-hidden", "true");
+            icon.textContent = item.icon;
+
+            const text = document.createElement("span");
+            text.className = "slash-command-text";
+            const label = document.createElement("strong");
+            label.textContent = item.label;
+            const detail = document.createElement("small");
+            detail.textContent = item.description;
+            text.append(label, detail);
+            button.append(icon, text);
+
+            if (item.shortcut) {
+              const shortcut = document.createElement("kbd");
+              shortcut.textContent = item.shortcut.replace("Mod", "⌘");
+              button.appendChild(shortcut);
+            }
+
+            section.appendChild(button);
           }
 
-          this.menu!.appendChild(button);
-        });
+          results.appendChild(section);
+        }
+        this.menu.append(results, createSlashCommandFooter());
         scrollSelectedSlashItem(this.menu);
       }
 
@@ -251,6 +304,25 @@ export const __testSlashCommandExtension = {
 function scrollSelectedSlashItem(menu: HTMLElement): void {
   const selected = menu.querySelector<HTMLButtonElement>("button.is-selected");
   selected?.scrollIntoView({ block: "nearest" });
+}
+
+function createSlashCommandFooter(): HTMLDivElement {
+  const footer = document.createElement("div");
+  footer.className = "slash-command-footer";
+  footer.append(
+    createKeyboardHint("↑↓", "Navigate"),
+    createKeyboardHint("↵", "Select"),
+    createKeyboardHint("Esc", "Close"),
+  );
+  return footer;
+}
+
+function createKeyboardHint(key: string, label: string): HTMLSpanElement {
+  const hint = document.createElement("span");
+  const keyboard = document.createElement("kbd");
+  keyboard.textContent = key;
+  hint.append(keyboard, ` ${label}`);
+  return hint;
 }
 
 function activeSlashTrigger(view: EditorView): ActiveSlashTrigger | null {

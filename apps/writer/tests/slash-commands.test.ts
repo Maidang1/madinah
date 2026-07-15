@@ -7,6 +7,7 @@ import { __testSlashCommandExtension } from "../src/components/editor-area/slash
 import {
   createSlashCommandItems,
   getSlashCommandPosition,
+  groupSlashCommandItems,
   matchSlashCommandTriggerText,
   searchSlashCommandItems,
 } from "../src/components/editor-area/slash-commands";
@@ -35,6 +36,25 @@ describe("slash commands", () => {
     expect(searchSlashCommandItems(items, "grid").map((item) => item.id)).toEqual(["insertTable"]);
     expect(searchSlashCommandItems(items, "rewrite").map((item) => item.id)).toEqual([
       "ai.rewriteSelection",
+    ]);
+  });
+
+  test("adds Notion-style visual metadata and groups commands for scanning", () => {
+    const items = createSlashCommandItems([
+      command("insertImage", "Image", 70, ["slash"], ["media"]),
+      command("format.heading2", "Heading 2", 80, ["slash"], ["subtitle"]),
+      command("ai.polishDocument", "Polish document", 90, ["slash"], ["polish"]),
+    ]);
+
+    expect(items.map(({ id, icon, description }) => ({ id, icon, description }))).toEqual([
+      { id: "ai.polishDocument", icon: "✦", description: "Polish document" },
+      { id: "format.heading2", icon: "H₂", description: "Heading 2" },
+      { id: "insertImage", icon: "▧", description: "Image" },
+    ]);
+    expect(groupSlashCommandItems(items).map((group) => group.section)).toEqual([
+      "Basic blocks",
+      "Media & inserts",
+      "AI writing",
     ]);
   });
 
@@ -87,7 +107,11 @@ describe("slash commands", () => {
       atLineStart: false,
     });
     expect(matchSlashCommandTriggerText("a/b")).toBeNull();
-    expect(matchSlashCommandTriggerText("/two words")).toBeNull();
+    expect(matchSlashCommandTriggerText("/heading 2")).toEqual({
+      query: "heading 2",
+      slashOffset: 0,
+      atLineStart: true,
+    });
   });
 
   test("keeps the menu inside the viewport", () => {
@@ -147,14 +171,20 @@ function command(
   surfaces: Array<"context" | "slash">,
   keywords: string[] = [],
 ): EditorCommand {
+  const slashMenu = id.startsWith("ai.")
+    ? { section: "AI writing" as const, icon: "✦" }
+    : id === "format.heading2"
+      ? { section: "Basic blocks" as const, icon: "H₂" }
+      : { section: "Media & inserts" as const, icon: "▧" };
   return {
     id,
     label,
-    group: id.startsWith("ai.") ? "AI" : "Insert",
+    group: id.startsWith("ai.") ? "AI" : id.startsWith("format.") ? "Paragraph" : "Insert",
     description: label,
     keywords,
     priority,
     surfaces,
+    slashMenu,
     run: () => {},
   };
 }

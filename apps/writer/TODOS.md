@@ -7,6 +7,7 @@
 
 ## Done
 
+- Notion-style slash menu: [`SPECs/notion-style-slash-menu-spec.md`](SPECs/notion-style-slash-menu-spec.md) — group editor commands into scannable block categories, show visual command cues and descriptions, and complete keyboard navigation without creating a second command pipeline.
 - Editor preview removal — remove the preview renderer, Split controls, and persisted view-mode state so Writer always uses the focused single-column writing surface.
 - AI writing toolkit: [`SPECs/ai-writing-toolkit-spec.md`](SPECs/ai-writing-toolkit-spec.md) — add continue, shorten, expand, translate, and outline actions on the Codex SDK path through shared editor executors and backend action definitions.
 - Codex SDK migration: [`SPECs/codex-sdk-migration-spec.md`](SPECs/codex-sdk-migration-spec.md) — replace the Codex/Claude ACP process bridge with the Rust `codex-client-sdk`, retain the four editor AI actions, and reduce settings to Codex-owned configuration.

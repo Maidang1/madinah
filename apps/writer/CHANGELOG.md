@@ -2,6 +2,7 @@
 
 ## 2026-07-16
 
+- Upgrade the editor `/` menu into a Notion-style block command surface with categorized results, visual command marks, useful descriptions, multi-word filtering, keyboard hints, and Home/End navigation while preserving the shared editor command registry.
 - Remove the editor preview and Split controls so Writer always uses the focused single-column writing surface.
 
 ## 2026-07-12

@@ -418,14 +418,14 @@
   position: fixed;
   z-index: 110;
   display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
   box-sizing: border-box;
-  width: 280px;
+  width: 330px;
   max-width: calc(100vw - 24px);
-  max-height: min(340px, calc(100dvh - 24px));
-  overflow: auto;
-  padding: 6px;
+  max-height: min(390px, calc(100dvh - 24px));
+  overflow: hidden;
   border: 1px solid var(--line-subtler);
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--surface-card);
   color: var(--text-primary);
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.2);
@@ -434,13 +434,34 @@
   font-family: var(--ui-font);
 }
 
+.slash-command-results {
+  min-height: 0;
+  overflow: auto;
+  padding: 6px;
+}
+
+.slash-command-section + .slash-command-section {
+  margin-top: 4px;
+}
+
+.slash-command-section-heading {
+  padding: 7px 8px 5px;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.055em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
 .slash-command-menu button {
   display: grid;
-  min-height: 38px;
-  grid-template-columns: minmax(0, 1fr) auto;
+  width: 100%;
+  min-height: 48px;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
-  padding: 6px 8px;
+  padding: 5px 7px;
   border: 0;
   border-radius: 6px;
   background: transparent;
@@ -457,10 +478,26 @@
   outline: none;
 }
 
-.slash-command-menu button span {
+.slash-command-text {
   display: grid;
   min-width: 0;
   gap: 3px;
+}
+
+.slash-command-icon {
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line-subtler);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--text-primary) 4%, transparent);
+  color: var(--text-primary);
+  font-family: var(--ui-font);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1;
 }
 
 .slash-command-menu strong,
@@ -501,4 +538,26 @@
 
 .slash-command-empty {
   padding: 10px 9px;
+}
+
+.slash-command-footer {
+  display: flex;
+  gap: 12px;
+  padding: 7px 10px;
+  border-top: 1px solid var(--line-subtler);
+  color: var(--text-muted);
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.slash-command-footer span {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.slash-command-footer kbd {
+  min-width: auto;
+  margin-right: 2px;
+  padding: 2px 4px;
 }

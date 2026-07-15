@@ -1,14 +1,24 @@
-import type { EditorCommand } from "./editor-commands";
+import type { EditorCommand, EditorCommandSlashSection } from "./editor-commands";
 
 export interface SlashCommandItem {
   id: string;
   label: string;
   group: string;
+  section: SlashCommandSection;
+  description: string;
+  icon: string;
   keywords: string[];
   shortcut: string;
   priority: number;
   command: EditorCommand;
   order: number;
+}
+
+export type SlashCommandSection = EditorCommandSlashSection;
+
+export interface SlashCommandGroup {
+  section: SlashCommandSection;
+  items: SlashCommandItem[];
 }
 
 export interface SlashCommandTriggerMatch {
@@ -33,6 +43,13 @@ interface Size {
   height: number;
 }
 
+const SECTION_ORDER: SlashCommandSection[] = [
+  "Basic blocks",
+  "Inline",
+  "Media & inserts",
+  "AI writing",
+];
+
 export function createSlashCommandItems(commands: EditorCommand[]): SlashCommandItem[] {
   const seen = new Set<string>();
   const items: SlashCommandItem[] = [];
@@ -44,6 +61,9 @@ export function createSlashCommandItems(commands: EditorCommand[]): SlashCommand
       id: command.id,
       label: command.label,
       group: command.group,
+      section: command.slashMenu?.section ?? "Media & inserts",
+      description: command.description,
+      icon: command.slashMenu?.icon ?? "+",
       keywords: command.keywords,
       shortcut: command.shortcut ?? "",
       priority: command.priority,
@@ -53,6 +73,13 @@ export function createSlashCommandItems(commands: EditorCommand[]): SlashCommand
   }
 
   return items.sort(compareSlashCommandItems);
+}
+
+export function groupSlashCommandItems(items: SlashCommandItem[]): SlashCommandGroup[] {
+  return SECTION_ORDER.map((section) => ({
+    section,
+    items: items.filter((item) => item.section === section),
+  })).filter((group) => group.items.length > 0);
 }
 
 export function searchSlashCommandItems(
@@ -77,7 +104,7 @@ export function searchSlashCommandItems(
 export function matchSlashCommandTriggerText(
   textBeforeCaret: string,
 ): SlashCommandTriggerMatch | null {
-  const match = textBeforeCaret.match(/(^|[\s\u200b])\/([^\s/]*)$/u);
+  const match = textBeforeCaret.match(/(^|[\s\u200b])\/([^/\n]*)$/u);
   if (!match) return null;
 
   const slashOffset = textBeforeCaret.lastIndexOf("/");
