@@ -3,8 +3,8 @@
 //! The running Writer binary is itself the CLI: `main.rs` dispatches to CLI
 //! mode when argv[0]'s basename is `writer`, so "install" is just a symlink
 //! from `/usr/local/bin/writer` to `Writer.app/Contents/MacOS/Writer`.
-//! When `Writer.app` is replaced in place by the updater, the symlink still
-//! points at the new binary because we link through the bundle path.
+//! When `Writer.app` is replaced in place during a manual upgrade, the symlink
+//! still points at the new binary because we link through the bundle path.
 //!
 //! macOS only for v1. Windows/Linux parity is deferred.
 

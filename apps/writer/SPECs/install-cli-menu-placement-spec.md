@@ -25,8 +25,6 @@ The Writer app menu currently looks like this on macOS:
 Writer
   About Writer
   ─────
-  Check for Updates…
-  ─────
   Shell Command: Install 'writer' Command in PATH
   ─────
   Services
@@ -60,8 +58,6 @@ Keep the CLI install action in the Writer app menu. Add a conventional macOS Pre
 Writer
   About Writer
   ─────
-  Check for Updates…
-  ─────
   Preferences…                                   ⌘,
   Install 'writer' Command Line Tool…
   ─────
@@ -78,7 +74,7 @@ Notes:
 
 - **`Preferences…`** with the standard `⌘,` accelerator. Opens the existing Settings tab.
 - **`Install 'writer' Command Line Tool…`** — drops the `Shell Command:` prefix and the `in PATH` postfix. Trailing ellipsis indicates the action prompts the user (admin authorization). When the symlink already exists the label flips to `Uninstall 'writer' Command Line Tool…`, matching the existing toggle behavior.
-- Both items live in the same group between `Check for Updates…` and `Services`. This is the conventional macOS slot for app-level preferences and optional integrations, and it gives the CLI item company instead of leaving it as the only oddity.
+- Both items live in the same group between `About Writer` and `Services`. This is the conventional macOS slot for app-level preferences and optional integrations, and it gives the CLI item company instead of leaving it as the only oddity.
 
 ### Wiring Preferences from Rust → React
 
@@ -148,7 +144,7 @@ Docs:
 
 ## Acceptance Criteria
 
-- The Writer app menu on macOS contains, in order: `About Writer`, separator, `Check for Updates…`, separator, `Preferences…` (`⌘,`), `Install 'writer' Command Line Tool…`, separator, `Services`, …, `Quit Writer`.
+- The Writer app menu on macOS contains, in order: `About Writer`, separator, `Preferences…` (`⌘,`), `Install 'writer' Command Line Tool…`, separator, `Services`, …, `Quit Writer`.
 - `Preferences…` opens the existing Settings tab in the focused window. The keyboard shortcut `⌘,` does the same.
 - The CLI item's label is `Install 'writer' Command Line Tool…` when the symlink is missing, and `Uninstall 'writer' Command Line Tool…` when it is installed. Toggling continues to refresh the label correctly.
 - Clicking the CLI item runs the same install/uninstall flow as today, including the elevation prompt and success/error dialogs.

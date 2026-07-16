@@ -2,12 +2,12 @@
 
 ## Goal
 
-Make this fork's public documentation, release flow, updater endpoint, app identity, and marketing website point at the fork repository instead of the upstream maintainer's repository.
+Make this fork's public documentation, release flow, app identity, and marketing website point at the fork repository instead of the upstream maintainer's repository.
 
 ## Scope
 
 - Keep the upstream attribution link in `README.md`.
-- Point release and updater metadata at `Maidang1/writer-computer`.
+- Point release metadata at the fork-owned repository.
 - Use a fork-owned Tauri bundle identifier.
 - Move the website download, GitHub, and updates links to the fork repository.
 - Rename the default Cloudflare Worker service away from the upstream-oriented `writer-website` name.
@@ -16,7 +16,6 @@ Make this fork's public documentation, release flow, updater endpoint, app ident
 ## Decisions
 
 - Keep the product display name as `Writer` until there is a chosen replacement brand.
-- Keep the existing updater public key field in place, but document that a fork-owned updater key must replace it before publishing signed releases.
 - Use GitHub Releases as the website "Updates" destination so the website has a stable fork-owned update surface.
 - Approve only the currently required install-time binary helpers: `edgedriver`, `esbuild`, and `geckodriver`.
 

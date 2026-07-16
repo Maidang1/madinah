@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build:app": "cd .. && ./node_modules/.bin/tauri build --features e2e --bundles app --config '{\"identifier\":\"com.maidang1.writer-computer.e2e\",\"bundle\":{\"createUpdaterArtifacts\":false}}'",
+    "build:app": "cd .. && ./node_modules/.bin/tauri build --features e2e --bundles app --config '{\"identifier\":\"com.maidang1.writer-computer.e2e\"}'",
     "test:wdio": "wdio run ./wdio.conf.js",
     "test:e2e": "pnpm run build:app && pnpm run test:wdio"
   },

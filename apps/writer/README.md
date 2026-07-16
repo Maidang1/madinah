@@ -12,7 +12,7 @@ This repository is a customized fork of [Writer Computer](https://github.com/joe
 
 The original project copyright belongs to its original authors. This fork contains modifications by the maintainers of this repository beginning on 2026-07-05.
 
-This fork is independently maintained. Issues, releases, binaries, signatures, updater metadata, and support for this fork are handled by this repository's maintainers.
+This fork is independently maintained. Issues, releases, binaries, and support for this fork are handled by this repository's maintainers.
 
 ## Changes From Upstream
 
@@ -31,7 +31,7 @@ The software is provided without warranty to the extent permitted by GPLv3.
 ## Repository
 
 - `src/` — React frontend.
-- `src-tauri/src/` — Rust commands, workspace state, watcher, updater, and CLI integration.
+- `src-tauri/src/` — Rust commands, workspace state, watcher, and CLI integration.
 - `shared/` — schema and theme contracts consumed by both frontend and backend.
 - `tests/` — frontend unit tests.
 - `e2e/` — local macOS WebDriver smoke tests.
@@ -77,4 +77,4 @@ Writer integrates Codex through the Rust `codex-client-sdk`. Install and authent
 
 ## Releases
 
-macOS releases are built with ad-hoc signing by the Writer Release GitHub Actions workflow when a version tag is pushed. See `docs/releasing.md` for the short release checklist and updater-signing secrets.
+macOS releases are built with ad-hoc signing by the Writer Release GitHub Actions workflow when a version tag is pushed. Writer does not update itself; install newer versions manually from GitHub Releases. See `docs/releasing.md` for the short release checklist.

@@ -50,8 +50,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APPLE_SIGNING_IDENTITY: "-"
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: apps/writer
           tauriScript: pnpm tauri
@@ -60,4 +58,5 @@ jobs:
           releaseBody: Download the macOS build from the assets below.
           releaseDraft: true
           prerelease: false
-          args: --target aarch64-apple-darwin --bundles app,dmg
+          uploadUpdaterJson: false
+          args: --target aarch64-apple-darwin --bundles dmg

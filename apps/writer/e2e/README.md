@@ -73,11 +73,9 @@ bundle identifier (see below).
 
 - `pnpm dev` and `pnpm build` are unchanged — no WebDriver server.
 - The e2e build invokes
-  `cargo tauri build --features e2e --bundles app --config '{"identifier":"com.maidang1.writer-computer.e2e","bundle":{"createUpdaterArtifacts":false}}'`.
+  `cargo tauri build --features e2e --bundles app --config '{"identifier":"com.maidang1.writer-computer.e2e"}'`.
   The overrides:
   - `--bundles app` skips DMG creation.
-  - `createUpdaterArtifacts: false` skips updater artifact signing (which
-    would otherwise demand `TAURI_SIGNING_PRIVATE_KEY`).
   - `identifier: "com.maidang1.writer-computer.e2e"` gives the e2e build its own
     `tauri-plugin-single-instance` namespace and its own app data dir
     (`~/Library/Application Support/com.maidang1.writer-computer.e2e/`). Without this,

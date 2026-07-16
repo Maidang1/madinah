@@ -1,21 +1,13 @@
 # Releasing Writer
 
 Writer has one release path: push a version tag and let GitHub Actions build an
-ad-hoc-signed Apple Silicon app. The workflow creates a draft Release in
+ad-hoc-signed Apple Silicon DMG. The workflow creates a draft Release in
 `Maidang1/madinah`; a maintainer reviews the result and publishes it.
 
-## Repository secrets
-
-- `TAURI_SIGNING_PRIVATE_KEY`: private key used to sign updater artifacts
-- `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`: updater key password, or an empty value
-
-The workflow uses the repository-provided `GITHUB_TOKEN`; no personal release token or
-second release repository is involved. The updater private key must match the public key
-configured in `src-tauri/tauri.conf.json`.
-
-The macOS app uses Tauri's `APPLE_SIGNING_IDENTITY="-"` ad-hoc signature. It does not
-need an Apple certificate or notarization credentials, but macOS may require users to
-allow the downloaded app manually in **System Settings → Privacy & Security**.
+The workflow uses the repository-provided `GITHUB_TOKEN`. It needs no custom Secrets,
+Apple certificate, notarization account, or updater key. Because the app is not
+notarized, macOS may require users to allow it manually in
+**System Settings → Privacy & Security**.
 
 ## Release
 
@@ -30,17 +22,17 @@ allow the downloaded app manually in **System Settings → Privacy & Security**.
    ```
 
 4. Wait for **Writer Release** to finish. Open its draft Release, edit the notes if
-   needed, confirm the DMG and updater assets are present, then click **Publish release**.
-5. Confirm
-   `https://github.com/Maidang1/madinah/releases/latest/download/latest.json` returns the
-   new version.
+   needed, confirm the DMG is present, then click **Publish release**.
+
+Writer does not check for or install updates. Users download newer DMGs from GitHub
+Releases and replace the installed app manually.
 
 The Tauri version is the release authority. `package.json` and `Cargo.toml` package
-versions do not participate in the release tag or updater version.
+versions do not participate in the release tag.
 
 ## Failure behavior
 
 - A tag that does not equal `v<tauri version>` stops before the build.
 - A failed build leaves the release unpublished. Fix the cause and rerun the failed
   workflow; do not create a second tag for the same version.
-- Never publish a draft without the DMG, updater archive, signature, and `latest.json`.
+- Never publish a draft without a non-empty DMG.
