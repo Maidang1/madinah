@@ -3,7 +3,7 @@
 ## 2026-07-16
 
 - Remove the inactive CodeMirror/ProseMark editor stack, tests, styles, and dependencies left behind by the TipTap migration, and keep the active TipTap slash-command catalog self-contained.
-- Simplify Writer releases to one version-tag-triggered GitHub Actions job that builds a signed macOS draft in the source repository, removing the cross-repository coordinator and local fallback publisher.
+- Simplify Writer releases to one version-tag-triggered GitHub Actions job that builds an ad-hoc-signed macOS draft in the source repository, removing Apple certificate/notarization requirements, the cross-repository coordinator, and the local fallback publisher.
 - Mount the Notion-style `/` menu on the active TipTap editor, execute supported paragraph, heading, list, quote, code-block, and divider commands through TipTap chains, and give the popup an opaque theme-aware background.
 - Upgrade the editor `/` menu into a Notion-style block command surface with categorized results, visual command marks, useful descriptions, multi-word filtering, keyboard hints, and Home/End navigation while preserving the shared editor command registry.
 - Remove the editor preview and Split controls so Writer always uses the focused single-column writing surface.

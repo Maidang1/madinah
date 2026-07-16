@@ -4,7 +4,7 @@ Fast and lightweight app for your workspace's Markdown and MDX files
 
 ![Writer](./assets/screenshot.png)
 
-It is built with Tauri v2, React, Zustand, TipTap, and Rust. The app keeps documents on disk, respects workspace `.gitignore` rules, supports multiple windows, and ships with a signed macOS release flow.
+It is built with Tauri v2, React, Zustand, TipTap, and Rust. The app keeps documents on disk, respects workspace `.gitignore` rules, supports multiple windows, and ships through an ad-hoc-signed macOS release flow.
 
 ## Fork Notice
 
@@ -77,4 +77,4 @@ Writer integrates Codex through the Rust `codex-client-sdk`. Install and authent
 
 ## Releases
 
-macOS releases are built by the Writer Release GitHub Actions workflow when a version tag is pushed. See `docs/releasing.md` for the short release checklist and required signing secrets.
+macOS releases are built with ad-hoc signing by the Writer Release GitHub Actions workflow when a version tag is pushed. See `docs/releasing.md` for the short release checklist and updater-signing secrets.
