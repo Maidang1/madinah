@@ -19,7 +19,7 @@ Turn the current local-first workflow into a safe one-click publication path and
 - Git stages and commits only the active article path, preserving unrelated staged and unstaged changes.
 - Git pushes the current branch to its configured upstream and returns the commit, branch, and live URL.
 - Re-publishing an unchanged article is idempotent and returns an unchanged result.
-- The Writer surface exposes Publish/Publish update and View online actions with visible running, success, and error feedback.
+- The Writer surface does not expose Publish/Publish update actions; published articles retain the View online action and its error feedback.
 - The Astro article page exposes a Share action with clipboard fallback.
 
 ## Failure Semantics
@@ -31,6 +31,6 @@ Turn the current local-first workflow into a safe one-click publication path and
 ## Validation
 
 - Shared contract unit tests cover preparation, validation, paths, and URLs.
-- Writer tests cover save flushing and publish UI/API contracts.
+- Writer tests cover save flushing, the publication API contract, and the absence of the Publish button.
 - Rust tests cover repository/path validation and isolated publication in a temporary bare-remote setup.
 - `vp check`, `vp test`, `cargo test`, `cargo clippy`, and the Astro production build pass.

@@ -2,6 +2,7 @@
 
 ## 2026-07-16
 
+- Remove the Publish/Publish update button from the document toolbar and Properties inspector while keeping the online article link available for published posts.
 - Remove the inactive CodeMirror/ProseMark editor stack, tests, styles, and dependencies left behind by the TipTap migration, and keep the active TipTap slash-command catalog self-contained.
 - Simplify Writer releases to one version-tag-triggered GitHub Actions job that builds an ad-hoc-signed macOS DMG draft in the source repository, removing Apple certificate/notarization requirements, updater signing and artifacts, the cross-repository coordinator, and the local fallback publisher.
 - Remove automatic updates, including background checks, the Check for Updates menu item, updater dialogs, and in-app installation. New versions are installed manually from GitHub Releases.

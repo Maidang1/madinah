@@ -1,5 +1,5 @@
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Cancel01Icon, FileSlidersIcon, Upload01Icon, ViewIcon } from "@hugeicons/core-free-icons";
+import { Cancel01Icon, FileSlidersIcon, ViewIcon } from "@hugeicons/core-free-icons";
 import { FrontmatterPanel } from "./frontmatter-panel";
 import { useEscKey } from "./use-esc-key";
 import { useDocumentPublish } from "@/hooks/use-document-publish";
@@ -20,24 +20,6 @@ export function DocumentInspector({ filePath }: DocumentInspectorProps) {
   const close = useCloseDocumentInspector();
   const publication = useDocumentPublish(filePath);
   useEscKey(isOpen, close);
-
-  const publishButton = publication.isAvailable ? (
-    <button
-      type="button"
-      disabled={publication.status === "running"}
-      aria-label={publication.isPublished ? "Publish article update" : "Publish article"}
-      title={publication.isPublished ? "Publish article update" : "Publish article"}
-      onClick={() => void publication.publish()}
-      className="flex h-8 shrink-0 items-center gap-1.5 rounded-md bg-[var(--text-primary)] px-2.5 text-[12px] font-medium text-[var(--bg-base)] transition-opacity hover:opacity-85 disabled:cursor-wait disabled:opacity-50"
-    >
-      <HugeiconsIcon icon={Upload01Icon} size={14} color="currentColor" strokeWidth={2} />
-      {publication.status === "running"
-        ? "Publishing…"
-        : publication.isPublished
-          ? "Publish update"
-          : "Publish"}
-    </button>
-  ) : null;
 
   const onlineButton =
     publication.isAvailable && publication.isPublished ? (
@@ -73,7 +55,6 @@ export function DocumentInspector({ filePath }: DocumentInspectorProps) {
         <div className="pointer-events-auto absolute right-6 top-24 z-30 flex max-w-[min(420px,calc(100vw-48px))] flex-col items-end gap-2">
           <div className="flex items-center gap-1 rounded-lg bg-[color-mix(in_srgb,var(--reader-page)_82%,transparent)] p-1 backdrop-blur-sm">
             {onlineButton}
-            {publishButton}
             <button
               type="button"
               data-document-inspector-toggle
@@ -130,7 +111,6 @@ export function DocumentInspector({ filePath }: DocumentInspectorProps) {
                 </div>
                 <div className="flex items-center gap-1">
                   {onlineButton}
-                  {publishButton}
                   <button
                     type="button"
                     aria-label="Close properties"

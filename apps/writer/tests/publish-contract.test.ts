@@ -18,12 +18,13 @@ describe("Madinah publication contract", () => {
     expect(publishIndex).toBeGreaterThan(flushIndex);
   });
 
-  test("keeps publication controls next to document properties", () => {
+  test("keeps the online link and properties control without a publish button", () => {
     const source = readFileSync(
       resolve(appRoot, "src/components/editor-area/document-inspector.tsx"),
       "utf8",
     );
-    expect(source).toContain("Publish update");
+    expect(source).not.toContain("Publish article");
+    expect(source).not.toContain("publication.publish()");
     expect(source).toContain("View online");
     expect(source).toContain("data-document-inspector-toggle");
   });
