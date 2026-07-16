@@ -66,9 +66,7 @@
   "plugins": {
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IENENEUyMDZFQjU0REVERTIKUldUaTdVMjFiaUJPelgxa29VQmgvbGN5TXFjQU5DTFFxQXR5S0hCYVJzY2hvRHJraFh2cXh2bFcK",
-      "endpoints": [
-        "https://github.com/Maidang1/writer-computer/releases/latest/download/latest.json"
-      ]
+      "endpoints": ["https://github.com/Maidang1/madinah/releases/latest/download/latest.json"]
     }
   }
 }

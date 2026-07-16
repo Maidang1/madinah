@@ -77,4 +77,4 @@ Writer integrates Codex through the Rust `codex-client-sdk`. Install and authent
 
 ## Releases
 
-macOS releases are built and verified by the Writer Release GitHub Actions workflow, with `scripts/distribute.sh` retained as a create-only maintainer fallback. See `docs/releasing.md` for signing, notarization, updater publishing, required secrets, and recovery rules.
+macOS releases are built by the Writer Release GitHub Actions workflow when a version tag is pushed. See `docs/releasing.md` for the short release checklist and required signing secrets.
