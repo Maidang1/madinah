@@ -7,6 +7,7 @@
 
 ## Done
 
+- Properties inspector visual polish: [`SPECs/properties-inspector-polish-spec.md`](SPECs/properties-inspector-polish-spec.md) — replace the oversized full-height metadata drawer with a responsive floating card and improve field hierarchy, multiline editing, keyboard focus, and control affordance.
 - Publish button removal — remove the Publish/Publish update action from the document toolbar and Properties inspector while preserving the online article link.
 - Writer release workflow simplification: [`SPECs/writer-release-workflow-spec.md`](SPECs/writer-release-workflow-spec.md) — use one version tag, one GitHub Actions job, and one same-repository DMG draft with no custom release orchestrator, local fallback, or automatic updater.
 - CodeMirror removal: [`SPECs/codemirror-removal-spec.md`](SPECs/codemirror-removal-spec.md) — delete the inactive ProseMark editor stack and its dependencies while keeping the active TipTap slash commands self-contained.

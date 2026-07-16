@@ -1,0 +1,96 @@
+[data-document-inspector] {
+  container-name: document-inspector;
+  container-type: inline-size;
+}
+
+.frontmatter-inspector-row {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr) 28px;
+  align-items: center;
+  column-gap: 8px;
+  min-width: 0;
+  padding-block: 3px;
+}
+
+.frontmatter-inspector-row[data-control-kind="textarea"] {
+  grid-template-columns: minmax(0, 1fr) 28px;
+  align-items: start;
+  row-gap: 6px;
+}
+
+.frontmatter-inspector-row[data-control-kind="textarea"] .document-inspector-key {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.frontmatter-inspector-row[data-control-kind="textarea"] .document-inspector-value {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+
+.frontmatter-inspector-row[data-control-kind="textarea"] .document-inspector-remove {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.document-inspector-control {
+  border: 1px solid transparent;
+  border-radius: 7px;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    color 140ms ease;
+}
+
+.document-inspector-key:hover,
+.document-inspector-key:focus-visible {
+  background: color-mix(in srgb, var(--surface-subtle) 72%, transparent);
+}
+
+.document-inspector-value {
+  border-color: color-mix(in srgb, var(--line-subtler) 72%, transparent);
+  background: color-mix(in srgb, var(--surface-subtle) 68%, transparent);
+}
+
+.document-inspector-value:hover {
+  border-color: var(--line-subtler);
+  background: color-mix(in srgb, var(--surface-subtle) 92%, transparent);
+}
+
+.document-inspector-control:focus-visible {
+  border-color: color-mix(in srgb, var(--text-primary) 34%, transparent);
+  background: color-mix(in srgb, var(--surface-subtle) 96%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--text-primary) 10%, transparent);
+  outline: none;
+}
+
+.document-inspector-button:focus-visible {
+  background: var(--surface-subtle);
+  color: var(--text-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--text-primary) 16%, transparent);
+  outline: none;
+}
+
+@container document-inspector (max-width: 340px) {
+  .frontmatter-inspector-row {
+    grid-template-columns: minmax(0, 1fr) 28px;
+    align-items: start;
+    row-gap: 6px;
+  }
+
+  .frontmatter-inspector-row .document-inspector-key {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .frontmatter-inspector-row .document-inspector-value {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .frontmatter-inspector-row .document-inspector-remove {
+    grid-column: 2;
+    grid-row: 1;
+  }
+}
