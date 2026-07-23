@@ -1,0 +1,183 @@
+---
+title: 手写批注如何进入 MDX：mdx-handwritten 的设计
+author: Madinah
+description: 从可达性、确定性与包边界出发，介绍 mdx-handwritten 如何用固定手势与 recipe-first 场景，把手写批注编译进 MDX。
+tags:
+  - MDX
+  - design
+  - open-source
+pubDate: 2026-07-23 12:00:00
+---
+
+:hw-text[技术文章里，人味儿的边注不该依赖 Canvas 或客户端测量。]{tone="muted" size="lg" rotate="-1"}
+
+::hw-note[:hw-mark[语义先于样式]{kind="underline" tone="success" strength="strong"}：先保证可读，再谈手写感。]{appearance="line" tone="success" icon="check" density="compact"}
+
+[MDX Handwritten](https://maidang1.github.io/mdx-handwritten/) 是一套给 MDX 用的手写批注语言。它把固定的八种 Annotation gesture，以及由 Annotation recipe 驱动的 Annotation scene，编译成语义化 React 组件或普通 HTML，再用 CSS 与装饰性 SVG 叠上手写外观。
+
+::hw-note[没有浏览器 layout 测量，也没有把关键文案藏进 `::before` / Canvas。]{appearance="tape" tone="info" icon="spark" rotate="-1"}
+
+## 为什么要单独设计一门「手写批注语言」
+
+编辑型文档常需要：边注、下划线、任务说明、草稿水印、括号归组。常见实现路径往往是：
+
+- 在浏览器里测量 DOM，再画箭头；
+- 用伪元素或图片塞文案；
+- 让客户端 JS 决定「这句话在指什么」。
+
+这些路径在 SSR、打印、窄屏、强制色、无 CSS / 无 JS 时会碎。mdx-handwritten 的立场相反：
+
+:::hw-brace[设计底线]{side="inline-end" align="center" tone="accent" rotate="-2" distance="normal"}
+
+- 有意义的词都在真实 DOM 里
+- 编译期确定性，不依赖运行时猜义
+- 缺 CSS / 字体 / JS 时仍可读
+- 手写感只是 Visual style，不改变语义
+
+:::
+
+:hw-annotate[Annotation gesture]{label="编辑意图" placement="block-start" tone="info" mark="highlight" arrow="curved"} 表达的是「作者想强调什么」，而不是「用哪套手写字体」。:hw-annotate[Annotation scene]{label="成组说明" placement="inline-end" tone="accent" mark="underline" arrow="straight" distance="tight"} 则把正文与若干批注收成一个表达单元——作者写意图与关系，系统尽量接管呈现细节。
+
+## 分层：scene 纯编译，remark 管语法，adapter 只渲染
+
+包拓扑刻意保持单向依赖：
+
+```text
+@madinah/mdx-handwritten-scene     ← 纯函数 Scene plan
+        ↑                 ↑
+   remark Adapter     React Adapter
+        │
+@madinah/mdx-handwritten-theme     ← 只认稳定 data-hw* DOM
+```
+
+| 包 | 职责 |
+| --- | --- |
+| `scene` | 从紧凑作者输入派生版本化 Scene plan |
+| `remark` | 校验 directive，输出 component / element / strip |
+| `react` | 无 hooks、可 SSR/RSC 的 Hand\* 组件 |
+| `theme` | token、自托管字体、响应式与打印样式 |
+
+:::hw-margin[framework-neutral]{side="inline-start" align="start" tone="muted" icon="arrow-toward" rotate="-2" distance="tight"}
+
+`scene` 不知道 remark、React、DOM、CSS、网络或模型。渲染器只能消费已物化的 plan，不能再推导新语义。
+
+:::
+
+这对应一条明确 ADR：**Scene compilation 保持框架中立，通过 adapter 渲染**。根接口只有同步、纯函数的 `createScenePlan`；remark 负责作者语法与输出策略；theme 只是可选 Visual style。
+
+本站按 [Setup](https://maidang1.github.io/mdx-handwritten/#setup) 接入时，因为 Astro 没有 React 组件映射，选择了：
+
+```ts
+remarkPlugins: [
+  remarkDirective,
+  [remarkMdxHandwritten, {
+    output: 'element',   // 语义 HTML + data-hw*
+    diagnostics: 'strict'
+  }]
+]
+```
+
+`output: 'component'` 适合注入 `mdxHandwrittenComponents` 的 React/Next 宿主；`strip` 则去掉装饰、只留可读内容。三种模式共享同一套校验与 Scene plan，只是最后一公里不同。
+
+## 八种手势是故意冻结的语言面
+
+低层 directive 固定为八个，不靠「再加一个手势」扩展表达力：
+
+| 形态 | 语法 | 用途 |
+| --- | --- | --- |
+| text | `:hw-text[...]{...}` | 手写语气 |
+| link | `:hw-link[...]{href=...}` | 手绘行动点 |
+| mark | `:hw-mark[...]{kind=...}` | 高亮 / 下划 |
+| annotate | `:hw-annotate[...]{label=...}` | 指一个目标 |
+| note | `::hw-note[...]{appearance=...}` | 状态行 / 胶带 / 面板 |
+| brace | `:::hw-brace[label]` | 归组相关内容 |
+| margin | `:::hw-margin[label]` | 宽屏边注 |
+| watermark | `:::hw-watermark[label]` | 纯装饰戳记 |
+
+:hw-text[手写语气可以轻一点。]{tone="muted" rotate="-2"}  
+也可以 :hw-mark[很用力地标出来]{kind="highlight" tone="warning" strength="strong"}。  
+:hw-link[官方 playground]{href="https://maidang1.github.io/mdx-handwritten/" target="blank" tone="info" underline="subtle" icon="external"} 里每一行都是真实编译结果。
+
+嵌套容器有唯一规范顺序：
+
+```text
+hw-watermark → hw-margin → hw-brace → content
+```
+
+同名容器不可递归嵌套；未知 `hw-*`、动态属性、不安全 URL、错误枚举在 `diagnostics: 'strict'` 下直接 fail build。这不是「提示一下」，而是把批注当成 :hw-mark[编译期契约]{kind="underline" tone="danger" strength="strong"}。
+
+## Recipe-first：让任务自己解释自己
+
+八种手势之上，Annotation recipe 负责「认出结构化源文本 → 生成 targets / labels / relationships」。作者只写读者本该看到的源，不写坐标、不选手动碰撞修复。
+
+典型 `task-explainer`：
+
+:::hw-scene{recipe="task-explainer" locale="zh-CN"}
+[ ] DOC-042 写清 mdx-handwritten 设计 #docs !high @blocked_by:DOC-041
+用手写批注语法说明分层、手势与 Scene plan
+:::
+
+Scene plan 记录的是：
+
+- 规范化后的 canonical source 与指纹
+- 带 recipe 作用域的 Annotation target（不是 DOM 选择器）
+- 标签、Annotation relationship、legend 文案
+- 有界的 Plan provenance
+
+:hw-annotate[刻意不包含]{label="坐标 / 路径 / 断点" placement="block-start-inline-end" tone="warning" mark="underline" arrow="curved"} 任何几何布局结果。渲染器在 Rich-layout envelope 内可以做空间增强；一旦窄屏、打印、forced-colors 或容量超限，整场场景退回「源文本 + 完整图例」的线性阅读顺序。
+
+::hw-note[线性可读是通用保证；富布局只是 recipe 拥有的确定性增强。]{appearance="panel" tone="info" icon="spark" size="sm" density="compact"}
+
+### Reviewed plan：AI 可以提案，构建绝不偷偷改义
+
+可选 AI 留在 **author-invoked 工具** 一侧：披露范围 → 生成 untrusted Scene proposal → 人审通过 → 物化为 Reviewed plan artifact。源里只出现不透明绑定：
+
+```mdx
+:::hw-scene{recipe="task-explainer" plan="rp1_…"}
+…canonical source…
+:::
+```
+
+普通 build 只做本地重校验：缺文件、过期指纹、不兼容 schema 在 strict 下失败，**从不**回落到另一套推断语义，也**从不**在 CI 里再调模型。Stale Scene plan 只能被显式重审，不能被静默「修位置」。
+
+## 安全与可达性写进同一条约束
+
+MDX 本身可执行 JS，宿主必须把作者源当作可信代码。transformer 额外拒绝：
+
+- 表达式属性与 spread
+- 事件处理器
+- 任意 class / style / id
+- 未知属性与不安全链接协议
+
+若作者不可信：只收纯 Markdown，`output: 'element'`，再接 `rehype-sanitize` 白名单。
+
+可达性上：
+
+- 标签与批注是真实文本节点
+- 链接是原生 `<a>`，有可见 focus ring
+- 装饰性箭头 / 图标对 AT 隐藏
+- 逻辑 placement 支持 RTL；短 label 用 `dir="auto"`
+- watermark 永远装饰；有信息量的词请用 note / margin
+
+:::hw-watermark[design]{placement="block-end-inline-end" tone="muted" size="lg" weight="semibold" rotate="3" strength="faint"}
+
+水印可以消失；正文与图例必须还在。
+
+:::
+
+## 小结：设计在约束里长出来
+
+mdx-handwritten 不是「再做一个好看的手写 CSS 库」，而是：
+
+1. **语言面冻结** — 八种 gesture + recipe 扩展，避免手势爆炸  
+2. **语义与呈现分离** — Scene plan 关关系，renderer 关几何  
+3. **编译期闭环** — 严格校验、可重现、可 strip  
+4. **降级优先** — 无 CSS / 无 JS / 打印 / 窄屏仍成立  
+5. **AI 在上游** — 审过的 artifact 可绑定，build 不代审
+
+:hw-text[手写感是结果，不是架构的中心。]{tone="accent" size="lg" rotate="-1"}
+
+想动手接进自己的 MDX 流水线，从官方 :hw-link[Setup]{href="https://maidang1.github.io/mdx-handwritten/#setup" tone="accent" underline="strong" icon="arrow-forward"} 开始；源码与 ADR 在 :hw-link[GitHub]{href="https://github.com/Maidang1/mdx-handwritten" target="blank" tone="info" underline="subtle" icon="external"}。
+
+本文本身就是用 `hw-*` 语法写成的——你看到的批注，就是这套编译管线在 Astro `output: 'element'` 下的真实输出。
+`)

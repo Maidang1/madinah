@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "../../shared/reader-theme.css";
+@import "@madinah/mdx-handwritten-theme/styles.css";
 @custom-variant dark (&:is(.dark *));
 @config "../../tailwind.config.js";
 
@@ -722,6 +723,23 @@
     letter-spacing: var(--reader-content-letter-spacing);
     line-height: var(--reader-content-line-height);
     text-autospace: ideograph-alpha ideograph-numeric;
+  }
+
+  /* Bridge site dark mode into mdx-handwritten theme tokens. */
+  html.dark .post-content.hw-scope,
+  html.dark .mdx-content.hw-scope {
+    color-scheme: dark;
+  }
+
+  html.dark .post-content.hw-scope,
+  html.dark .mdx-content.hw-scope {
+    --hw-color-muted: #aaa49e;
+    --hw-color-info: #80aee7;
+    --hw-color-success: #70c495;
+    --hw-color-warning: #e7a45f;
+    --hw-color-danger: #e88a75;
+    --hw-color-accent: #bb91ea;
+    --hw-panel-shadow: 0 0.45rem 1.25rem rgb(0 0 0 / 28%);
   }
 
   .post-content h1,

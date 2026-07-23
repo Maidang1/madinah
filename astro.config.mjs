@@ -12,6 +12,8 @@ import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import rehypeRaw from "rehype-raw";
 import remarkFrontmatter from "remark-frontmatter";
 import remarkGfm from "remark-gfm";
+import remarkDirective from "remark-directive";
+import remarkMdxHandwritten from "@madinah/mdx-handwritten-remark";
 
 // https://astro.build/config
 export default defineConfig({
@@ -40,6 +42,16 @@ export default defineConfig({
       remarkPlugins: [
         remarkFrontmatter,
         remarkGfm,
+        // remark-directive must run before the handwritten transformer.
+        remarkDirective,
+        [
+          remarkMdxHandwritten,
+          {
+            // Astro has no React component map; emit semantic HTML + data-hw*.
+            output: "element",
+            diagnostics: "strict",
+          },
+        ],
       ],
       rehypePlugins: [
         rehypeRaw,
