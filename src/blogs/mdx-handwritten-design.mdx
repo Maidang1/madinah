@@ -1,183 +1,881 @@
 ---
 title: 手写批注如何进入 MDX：mdx-handwritten 的设计
 author: Madinah
-description: 从可达性、确定性与包边界出发，介绍 mdx-handwritten 如何用固定手势与 recipe-first 场景，把手写批注编译进 MDX。
+description: 沿着一条真实编译链，拆解 mdx-handwritten 如何解析 directive、执行闭集校验、物化 Scene plan，并输出可降级的语义 HTML 与 React 组件。
 tags:
   - MDX
   - design
   - open-source
+status: published
 pubDate: 2026-07-23 12:00:00
 ---
 
-:hw-text[技术文章里，人味儿的边注不该依赖 Canvas 或客户端测量。]{tone="muted" size="lg" rotate="-1"}
+:hw-text[手写可以有随机感，语义不能靠随机数。]{tone="accent" size="lg" weight="medium" rotate="-1"}
 
-::hw-note[:hw-mark[语义先于样式]{kind="underline" tone="success" strength="strong"}：先保证可读，再谈手写感。]{appearance="line" tone="success" icon="check" density="compact"}
+::hw-note[:hw-mark[这不是一套把字体换成手写体的 CSS]{kind="underline" tone="success" strength="strong"}，而是一条从作者语法到语义 DOM 的编译链。]{appearance="line" tone="success" icon="check" density="compact"}
 
-[MDX Handwritten](https://maidang1.github.io/mdx-handwritten/) 是一套给 MDX 用的手写批注语言。它把固定的八种 Annotation gesture，以及由 Annotation recipe 驱动的 Annotation scene，编译成语义化 React 组件或普通 HTML，再用 CSS 与装饰性 SVG 叠上手写外观。
+:hw-link[MDX Handwritten]{href="https://maidang1.github.io/mdx-handwritten/" target="blank" tone="accent" underline="strong" icon="external"} 给 MDX 增加了一组 :hw-mark[手写批注语法]{kind="highlight" tone="accent" strength="normal"}：行内的下划线、圈画和箭头，块级的便签、边注与括号，以及能从结构化文本派生整组解释的 Annotation scene。
 
-::hw-note[没有浏览器 layout 测量，也没有把关键文案藏进 `::before` / Canvas。]{appearance="tape" tone="info" icon="spark" rotate="-1"}
+这些效果看起来很视觉化，真正困难的部分却不在「怎么画」。当页面要同时支持 SSR、React Server Components、无客户端 JavaScript、窄屏、打印、强制色和复制粘贴时，系统必须先回答几个更基础的问题：
 
-## 为什么要单独设计一门「手写批注语言」
+- 哪些文字是正文，哪些只是装饰？
+- 箭头指向的目标由作者、编译器还是浏览器决定？
+- 样式丢失以后，标签和关系是否还在？
+- 同一份 MDX 在不同机器上构建，结果是否一致？
+- 一段批注写错以后，应该继续猜，还是 :hw-mark[让构建失败]{kind="circle" tone="danger" strength="strong"}？
 
-编辑型文档常需要：边注、下划线、任务说明、草稿水印、括号归组。常见实现路径往往是：
+本文沿着仓库当前发布的 `0.2.0` 实现回答这些问题，源码基线固定在 [commit `8d615963`](https://github.com/Maidang1/mdx-handwritten/tree/8d6159638c0f1b49f5149eff074ce9fa1e6418b3)。文中的「已实现」以这个提交的源码和测试为准；ADR 或 spec 中尚未进入生产 renderer 的能力会单独说明。
 
-- 在浏览器里测量 DOM，再画箭头；
-- 用伪元素或图片塞文案；
-- 让客户端 JS 决定「这句话在指什么」。
+## 问题不是画一条线，而是决定这条线属于谁
 
-这些路径在 SSR、打印、窄屏、强制色、无 CSS / 无 JS 时会碎。mdx-handwritten 的立场相反：
+最直接的手写批注实现通常是：浏览器拿到 DOM，测量目标矩形，再用 Canvas 或绝对定位 SVG 画一条线。它很适合交互式白板，却会 :hw-mark[把文档语义绑在一次具体 layout 上]{kind="wavy" tone="warning" strength="strong"}：
 
-:::hw-brace[设计底线]{side="inline-end" align="center" tone="accent" rotate="-2" distance="normal"}
+1. 服务端渲染时没有最终几何信息；
+2. 字体、容器宽度或语言变化会让坐标失效；
+3. Canvas、背景图和伪元素里的文字不一定进入阅读顺序；
+4. 打印、forced-colors 或 CSS 加载失败后，图形可能消失；
+5. 客户端若重新判断「箭头应该指谁」，构建产物就不再是唯一真相。
 
-- 有意义的词都在真实 DOM 里
-- 编译期确定性，不依赖运行时猜义
-- 缺 CSS / 字体 / JS 时仍可读
-- 手写感只是 Visual style，不改变语义
+mdx-handwritten 选择了相反的顺序：先把作者意图编译成 :hw-annotate[真实文本、语义元素和稳定关系]{label="CSS 只增强，不负责补语义" placement="block-start-inline-end" tone="success" mark="underline" arrow="curved" distance="normal"}，再让 CSS 与装饰性 SVG 提供手写外观。
+
+:::hw-brace[四条底线]{side="inline-end" align="center" tone="accent" rotate="-2" distance="normal"}
+
+- 有意义的文字进入真实 DOM
+- 目标和关系在编译阶段确定
+- renderer 不需要测量浏览器布局
+- 视觉失效时仍保留线性阅读顺序
 
 :::
 
-:hw-annotate[Annotation gesture]{label="编辑意图" placement="block-start" tone="info" mark="highlight" arrow="curved"} 表达的是「作者想强调什么」，而不是「用哪套手写字体」。:hw-annotate[Annotation scene]{label="成组说明" placement="inline-end" tone="accent" mark="underline" arrow="straight" distance="tight"} 则把正文与若干批注收成一个表达单元——作者写意图与关系，系统尽量接管呈现细节。
+这里有两个容易混淆的概念：
 
-## 分层：scene 纯编译，remark 管语法，adapter 只渲染
+- **Annotation gesture** 是一次低层编辑动作，例如给现有文字加下划线、在旁边写标签、用括号归组。
+- **Annotation scene** 是一个完整的解释单元：它包含原始内容、若干目标、标签、目标之间的关系，以及如何表达这些关系的 gesture。
 
-包拓扑刻意保持单向依赖：
+:hw-annotate[gesture]{label="一次局部编辑动作" placement="block-start" tone="info" mark="bracket" arrow="curved"} 的语言面刻意很小；:hw-annotate[scene]{label="一组可审查的语义关系" placement="block-start-inline-end" tone="accent" mark="underline" arrow="straight"} 则把复杂度收进一个版本化的数据模型。
 
-```text
-@madinah/mdx-handwritten-scene     ← 纯函数 Scene plan
-        ↑                 ↑
-   remark Adapter     React Adapter
-        │
-@madinah/mdx-handwritten-theme     ← 只认稳定 data-hw* DOM
+## 从一行 MDX 到页面：完整编译链
+
+先看一行真实语法：
+
+```mdx
+:hw-annotate[`CLI-042`]{
+  label="stable ID"
+  placement="block-start-inline-end"
+  mark="bracket"
+  arrow="straight"
+  shift-inline="1"
+}
 ```
 
-| 包 | 职责 |
-| --- | --- |
-| `scene` | 从紧凑作者输入派生版本化 Scene plan |
-| `remark` | 校验 directive，输出 component / element / strip |
-| `react` | 无 hooks、可 SSR/RSC 的 Hand\* 组件 |
-| `theme` | token、自托管字体、响应式与打印样式 |
+mdx-handwritten 自己并不解析冒号语法。宿主先运行 `remark-directive`，把源码变成 mdast directive：
 
-:::hw-margin[framework-neutral]{side="inline-start" align="start" tone="muted" icon="arrow-toward" rotate="-2" distance="tight"}
+```ts
+{
+  type: 'textDirective',
+  name: 'hw-annotate',
+  attributes: {
+    label: 'stable ID',
+    placement: 'block-start-inline-end',
+    mark: 'bracket',
+    arrow: 'straight',
+    'shift-inline': '1'
+  },
+  children: [{type: 'inlineCode', value: 'CLI-042'}]
+}
+```
 
-`scene` 不知道 remark、React、DOM、CSS、网络或模型。渲染器只能消费已物化的 plan，不能再推导新语义。
+随后 `remarkMdxHandwritten` 才接手。它不会立即生成 JSX，而是先完成 schema、嵌套、安全 URL、静态属性和数量限制检查，把通过校验的结果放进 per-file metadata；最后再根据 `output` 选择 lowering 目标。插件入口的顺序是明确的：`validateTree → validateConfiguration → strict error gate → transformChildren → optional auto-import`。[源码](https://github.com/Maidang1/mdx-handwritten/blob/8d6159638c0f1b49f5149eff074ce9fa1e6418b3/packages/remark/src/index.ts#L2000-L2043)
 
-:::
+::hw-note[:hw-mark[strict error gate 在 transform 之前]{kind="underline" tone="danger" strength="strong"}：错误 directive 不会先生成 JSX，再把问题拖到运行时。]{appearance="line" tone="warning" icon="warning" density="compact"}
 
-这对应一条明确 ADR：**Scene compilation 保持框架中立，通过 adapter 渲染**。根接口只有同步、纯函数的 `createScenePlan`；remark 负责作者语法与输出策略；theme 只是可选 Visual style。
+```text
+MDX source
+  │
+  ├─ remark-directive
+  │    └─ textDirective / leafDirective / containerDirective
+  │
+  ├─ remarkMdxHandwritten
+  │    ├─ validate kind / attributes / nesting / URL / limits
+  │    ├─ fill defaults and compute stable visual variant
+  │    └─ component / element / strip lowering
+  │
+  ├─ MDX or Markdown renderer
+  │    └─ React component tree or semantic HTML
+  │
+  └─ @madinah/mdx-handwritten-theme
+       └─ data-hw* selectors, font, color and decorative geometry
+```
 
-本站按 [Setup](https://maidang1.github.io/mdx-handwritten/#setup) 接入时，因为 Astro 没有 React 组件映射，选择了：
+四个发布包沿着这条链分工：
+
+| 包 | 输入 | 输出 | 不负责的事情 |
+| --- | --- | --- | --- |
+| `@madinah/mdx-handwritten-scene` | recipe、source 或 reviewed candidate | 版本化 `ScenePlanV1` | MDX、React、DOM、CSS、网络 |
+| `@madinah/mdx-handwritten-remark` | directive mdast | component、element 或 strip AST | 浏览器布局与主题样式 |
+| `@madinah/mdx-handwritten-react` | Hand\* props 或 Scene plan | 可 SSR 的 React 元素 | hooks、hydration、DOM 测量 |
+| `@madinah/mdx-handwritten-theme` | 稳定的 `data-hw*` DOM | CSS 外观 | 目标识别与语义推导 |
+
+仓库的 workspace 和构建顺序也反映了这条依赖方向：scene 先构建，remark 与 React 分别依赖它，theme 保持为纯 CSS 入口。[源码](https://github.com/Maidang1/mdx-handwritten/blob/8d6159638c0f1b49f5149eff074ce9fa1e6418b3/package.json#L7-L27)
+
+:hw-text[scene 定义意义，remark 选择 AST，theme 只负责画。]{tone="info" size="md" weight="medium" rotate="1"}
+
+本站没有为 MDX 注入 React component map，因此直接采用语义 HTML：
 
 ```ts
 remarkPlugins: [
+  remarkFrontmatter,
+  remarkGfm,
   remarkDirective,
   [remarkMdxHandwritten, {
-    output: 'element',   // 语义 HTML + data-hw*
+    output: 'element',
     diagnostics: 'strict'
   }]
 ]
 ```
 
-`output: 'component'` 适合注入 `mdxHandwrittenComponents` 的 React/Next 宿主；`strip` 则去掉装饰、只留可读内容。三种模式共享同一套校验与 Scene plan，只是最后一公里不同。
+这篇文章里的 `hw-*` 不是截图或手写的 HTML。你看到的每个批注都经过了这条 `element + strict` 管线。
 
-## 八种手势是故意冻结的语言面
+## 八种 gesture：小而封闭的作者语言
 
-低层 directive 固定为八个，不靠「再加一个手势」扩展表达力：
+低层语言固定为八个 directive，`hw-scene` 是它们之上的 recipe 容器，:hw-mark[不算第九个 gesture]{kind="circle" tone="info" strength="normal"}。
 
-| 形态 | 语法 | 用途 |
+| 名称 | directive 形态 | 核心语义 |
 | --- | --- | --- |
-| text | `:hw-text[...]{...}` | 手写语气 |
-| link | `:hw-link[...]{href=...}` | 手绘行动点 |
-| mark | `:hw-mark[...]{kind=...}` | 高亮 / 下划 |
-| annotate | `:hw-annotate[...]{label=...}` | 指一个目标 |
-| note | `::hw-note[...]{appearance=...}` | 状态行 / 胶带 / 面板 |
-| brace | `:::hw-brace[label]` | 归组相关内容 |
-| margin | `:::hw-margin[label]` | 宽屏边注 |
-| watermark | `:::hw-watermark[label]` | 纯装饰戳记 |
+| `hw-text` | `:hw-text[...]` | 给一段文字增加手写编辑语气 |
+| `hw-link` | `:hw-link[...]` | 保持原生链接语义的手绘行动点 |
+| `hw-mark` | `:hw-mark[...]` | 给现有文字应用闭集 Mark treatment |
+| `hw-annotate` | `:hw-annotate[...]` | 目标文字、真实标签与装饰 connector |
+| `hw-note` | `::hw-note[...]` | 一行状态、胶带或面板式说明 |
+| `hw-brace` | `:::hw-brace[label]` | 用 caption 归组一段内容 |
+| `hw-margin` | `:::hw-margin[label]` | 带真实 `aside` 标签的边注 |
+| `hw-watermark` | `:::hw-watermark[label]` | 明确为装饰的水印 |
 
-:hw-text[手写语气可以轻一点。]{tone="muted" rotate="-2"}  
-也可以 :hw-mark[很用力地标出来]{kind="highlight" tone="warning" strength="strong"}。  
-:hw-link[官方 playground]{href="https://maidang1.github.io/mdx-handwritten/" target="blank" tone="info" underline="subtle" icon="external"} 里每一行都是真实编译结果。
-
-嵌套容器有唯一规范顺序：
-
-```text
-hw-watermark → hw-margin → hw-brace → content
-```
-
-同名容器不可递归嵌套；未知 `hw-*`、动态属性、不安全 URL、错误枚举在 `diagnostics: 'strict'` 下直接 fail build。这不是「提示一下」，而是把批注当成 :hw-mark[编译期契约]{kind="underline" tone="danger" strength="strong"}。
-
-## Recipe-first：让任务自己解释自己
-
-八种手势之上，Annotation recipe 负责「认出结构化源文本 → 生成 targets / labels / relationships」。作者只写读者本该看到的源，不写坐标、不选手动碰撞修复。
-
-典型 `task-explainer`：
-
-:::hw-scene{recipe="task-explainer" locale="zh-CN"}
-[ ] DOC-042 写清 mdx-handwritten 设计 #docs !high @blocked_by:DOC-041
-用手写批注语法说明分层、手势与 Scene plan
-:::
-
-Scene plan 记录的是：
-
-- 规范化后的 canonical source 与指纹
-- 带 recipe 作用域的 Annotation target（不是 DOM 选择器）
-- 标签、Annotation relationship、legend 文案
-- 有界的 Plan provenance
-
-:hw-annotate[刻意不包含]{label="坐标 / 路径 / 断点" placement="block-start-inline-end" tone="warning" mark="underline" arrow="curved"} 任何几何布局结果。渲染器在 Rich-layout envelope 内可以做空间增强；一旦窄屏、打印、forced-colors 或容量超限，整场场景退回「源文本 + 完整图例」的线性阅读顺序。
-
-::hw-note[线性可读是通用保证；富布局只是 recipe 拥有的确定性增强。]{appearance="panel" tone="info" icon="spark" size="sm" density="compact"}
-
-### Reviewed plan：AI 可以提案，构建绝不偷偷改义
-
-可选 AI 留在 **author-invoked 工具** 一侧：披露范围 → 生成 untrusted Scene proposal → 人审通过 → 物化为 Reviewed plan artifact。源里只出现不透明绑定：
+三种冒号数量不是排版偏好，而是 AST kind：
 
 ```mdx
-:::hw-scene{recipe="task-explainer" plan="rp1_…"}
-…canonical source…
+:hw-mark[inline target]{kind="underline"}
+
+::hw-note[one flow-level note]{appearance="line"}
+
+:::hw-brace[group label]
+Content grouped by the brace.
 :::
 ```
 
-普通 build 只做本地重校验：缺文件、过期指纹、不兼容 schema 在 strict 下失败，**从不**回落到另一套推断语义，也**从不**在 CI 里再调模型。Stale Scene plan 只能被显式重审，不能被静默「修位置」。
+- 单冒号生成 `textDirective`，可以进入段落的 phrasing content；
+- 双冒号生成 `leafDirective`，自身占据一个 flow 位置但没有容器 body；
+- 三冒号生成 `containerDirective`，方括号是纯文本 label，围栏内部才是 body。
 
-## 安全与可达性写进同一条约束
+这种区分让编译器能在进入 React 前就拒绝错误形态。例如把 `hw-note` 写成单冒号，不会得到一个「勉强能用」的行内 note，而会触发 `directive-wrong-kind`。
 
-MDX 本身可执行 JS，宿主必须把作者源当作可信代码。transformer 额外拒绝：
+### Mark treatment 是视觉闭集，不是新 gesture
 
-- 表达式属性与 spread
-- 事件处理器
-- 任意 class / style / id
-- 未知属性与不安全链接协议
+`hw-mark.kind` 与 `hw-annotate.mark` 共享七种 treatment。它们不是只存在于属性表里，下面七个短语就是实际渲染结果：
 
-若作者不可信：只收纯 Markdown，`output: 'element'`，再接 `rehype-sanitize` 白名单。
+:hw-mark[稳定主张]{kind="underline" tone="success" strength="strong"}、:hw-mark[关键结论]{kind="highlight" tone="accent" strength="normal"}、:hw-mark[关注对象]{kind="circle" tone="info" strength="normal"}、:hw-mark[被否决方案]{kind="strike" tone="danger" strength="normal"}。
 
-可达性上：
+:hw-mark[封闭边界]{kind="box" tone="info" strength="subtle"}、:hw-mark[仍待确认]{kind="wavy" tone="warning" strength="strong"}、:hw-mark[结构标识]{kind="bracket" tone="muted" strength="normal"}。
 
-- 标签与批注是真实文本节点
-- 链接是原生 `<a>`，有可见 focus ring
-- 装饰性箭头 / 图标对 AT 隐藏
-- 逻辑 placement 支持 RTL；短 label 用 `dir="auto"`
-- watermark 永远装饰；有信息量的词请用 note / margin
+`hw-annotate` 还可以使用 `mark="none"`，只画关系而不处理 target；`strength` 则只属于 `hw-mark`。
 
-:::hw-watermark[design]{placement="block-end-inline-end" tone="muted" size="lg" weight="semibold" rotate="3" strength="faint"}
+这是一项刻意的设计约束：circle、wavy 或 bracket 只改变已有文字的画法，不引入新的读者文案，因此 CSS 消失后可以退化成普通 phrasing content。:hw-mark[想补充一句话]{kind="wavy" tone="warning" strength="strong"} 时，应使用 annotate label、note 或 margin，而不是让伪元素生成文字。
 
-水印可以消失；正文与图例必须还在。
+::hw-note[视觉 treatment 可以增加；低层语义动作不必随之膨胀。]{appearance="tape" tone="info" icon="spark" rotate="-1"}
+
+完整 schema 不是散落在组件 props 中，而是集中定义了每个 directive 的 AST kind、属性白名单、枚举、默认值、必填项和 label 上限。[源码](https://github.com/Maidang1/mdx-handwritten/blob/8d6159638c0f1b49f5149eff074ce9fa1e6418b3/packages/remark/src/schema.ts#L47-L216) 文末附录给出了全部属性。
+
+## remark 编译器：先验证，再 lowering
+
+`remarkMdxHandwritten` 的 public options 看起来不多，但每一项都对应一条编译边界：
+
+```ts
+interface HandwrittenOptions {
+  output?: 'component' | 'element' | 'strip'
+  imports?: {mode: 'manual'} | {mode: 'auto'; source: string}
+  components?: Partial<HandwrittenComponentNames>
+  variant?: {
+    count?: 1 | 2 | 3 | 4
+    seed?: string
+    projectRoot?: string
+  }
+  diagnostics?: 'strict' | 'warn'
+  limits?: {maxDirectivesPerFile?: number}
+  reviewedPlans?: {projectRoot: string}
+  sceneCompiler?: ConfiguredSceneCompiler
+  recordUsage?: boolean
+}
+```
+
+默认值是：
+
+| 选项 | 默认值 | 含义 |
+| --- | --- | --- |
+| `output` | `component` | 输出 Hand\* MDX components |
+| `imports` | `manual` | 由宿主提供 component map |
+| `variant.count` | `4` | 每种视觉有四个稳定变体 |
+| `variant.seed` | `mdx-handwritten` | 项目级变体盐值 |
+| `diagnostics` | `strict` | 作者错误终止构建 |
+| `limits.maxDirectivesPerFile` | `500` | 防止异常 directive-heavy 输入 |
+| `recordUsage` | `false` | 是否记录到 `file.data.mdxHandwritten` |
+
+默认值和 scene compiler bridge 都在插件初始化阶段解析，而不是在每个 React component 内反复判断。[源码](https://github.com/Maidang1/mdx-handwritten/blob/8d6159638c0f1b49f5149eff074ce9fa1e6418b3/packages/remark/src/index.ts#L83-L158)
+
+### 为什么还要回读原始源码
+
+`remark-directive` 解析以后，某些作者写法会被统一成相似的 AST。如果只看 `node.attributes`，编译器不一定能区分下面几种情况：
+
+```mdx
+:hw-text[x]{tone="muted"}  <!-- 合法 -->
+:hw-text[x]{tone=muted}    <!-- 未加引号 -->
+:hw-text[x]{tone}          <!-- 没有静态值 -->
+:hw-text[x]{tone="muted" tone="danger"} <!-- 重复 -->
+```
+
+所以 transformer 会根据 `node.position` 从 VFile 中 :hw-annotate[切回原始源码]{label="找回 AST 丢失的引号与重复属性" placement="block-end-inline-end" tone="info" mark="bracket" arrow="straight" distance="tight"}，扫描最后一个 attribute block，保留「是否加引号」与「是否重复」这类 AST 之外的信息。随后再进行第二层 schema 校验：
+
+1. 属性必须是带引号的静态字符串；
+2. 未知属性和重复属性失败；
+3. 枚举值必须属于闭集；
+4. 必填字段不能为空；
+5. annotate 与 container label 受字符数限制；
+6. `hw-link` 额外校验 URL。
+
+合法链接可以是相对 URL，或 `http`、`https`、`mailto`、`tel`。协议相对 URL、ASCII C0 控制字符与 DEL、反斜杠和其他 scheme 会被拒绝。React 的 `HandLink` 对直接 JSX 调用还会再做一次防御：不安全时不输出 `href`。
+
+::hw-note[URL 校验有两道边界：remark 在构建期拒绝危险输入；直接 JSX 的 `HandLink` 仍会拒绝输出不安全的 `href`。]{appearance="tape" tone="info" icon="check" size="sm" density="compact" rotate="-1"}
+
+### 嵌套也是语法的一部分
+
+手写元素并不能任意互相包含。当前规则可以压缩成下面这张图：
+
+```text
+hw-text  ─┐
+          ├─ may contain: hw-mark only
+hw-note  ─┘
+
+hw-link / hw-mark / hw-annotate
+  └─ may contain: no handwritten directive
+
+layout containers:
+  hw-watermark → hw-margin → hw-brace → content
+```
+
+同类容器不能递归嵌套，顺序也不能逆转。`hw-link` 与 `hw-annotate` 不能放进 Markdown link 或交互 JSX；`hw-link`、`hw-mark`、`hw-annotate` 的 target 也不能再包含链接、控件或带事件属性的交互 JSX。
+
+容器 label 还有一条容易忽略的规则：它必须是 parser 生成的第一个 directive-label paragraph，而且只能包含纯文本。label 不会混入 body，而会单独变成 `figcaption`、`aside` 或装饰水印。
+
+下面不是容器顺序的伪代码，而是一段正在本文中运行的三层嵌套。四冒号外层让内部的三冒号围栏可以安全闭合：
+
+::::hw-watermark[外层 watermark]{placement="block-end-inline-end" tone="muted" size="lg" weight="semibold" rotate="3" strength="ghost"}
+
+:::hw-margin[中层 margin]{side="inline-start" align="start" tone="info" size="sm" icon="arrow-toward" distance="tight"}
+
+:::hw-brace[内层 brace]{side="inline-end" align="center" tone="accent" rotate="-1" distance="normal"}
+
+正文始终在最内层：watermark 只做装饰，margin 提供旁注，brace 负责归组；任何一层失去样式，这句话仍在正常阅读顺序里。
 
 :::
 
-## 小结：设计在约束里长出来
+:::
 
-mdx-handwritten 不是「再做一个好看的手写 CSS 库」，而是：
+::::
 
-1. **语言面冻结** — 八种 gesture + recipe 扩展，避免手势爆炸  
-2. **语义与呈现分离** — Scene plan 关关系，renderer 关几何  
-3. **编译期闭环** — 严格校验、可重现、可 strip  
-4. **降级优先** — 无 CSS / 无 JS / 打印 / 窄屏仍成立  
-5. **AI 在上游** — 审过的 artifact 可绑定，build 不代审
+### 手写感不是运行时随机数
 
-:hw-text[手写感是结果，不是架构的中心。]{tone="accent" size="lg" rotate="-1"}
+完全相同的 underline 如果每次构建都画得一模一样，会显得机械；如果在浏览器里调用 :hw-annotate[`Math.random()`]{label="SSR 与 hydration 可能不一致" placement="block-start-inline-end" tone="danger" mark="wavy" arrow="curved" distance="tight"}，又会失去服务端与客户端的一致性。
 
-想动手接进自己的 MDX 流水线，从官方 :hw-link[Setup]{href="https://maidang1.github.io/mdx-handwritten/#setup" tone="accent" underline="strong" icon="arrow-forward"} 开始；源码与 ADR 在 :hw-link[GitHub]{href="https://github.com/Maidang1/mdx-handwritten" target="blank" tone="info" underline="subtle" icon="external"}。
+插件采用稳定变体：
 
-本文本身就是用 `hw-*` 语法写成的——你看到的批注，就是这套编译管线在 Astro `output: 'element'` 下的真实输出。
-`)
+```ts
+const input = [
+  variant.seed,
+  relativeVFilePath,
+  String(directiveOrdinal),
+  textContent(node).normalize('NFC')
+].join('\0')
+
+const variant = (fnv1a(input) % variant.count) + 1
+```
+
+结果写进 :hw-annotate[`data-hw-variant="1"` 到 `"4"`]{label="稳定输入，而非运行时随机数" placement="block-start-inline-end" tone="accent" mark="bracket" arrow="none" distance="normal"}。路径、顺序、文字和 seed 不变，构建结果就不变；作者移动或修改批注时，变体可以自然变化。[源码](https://github.com/Maidang1/mdx-handwritten/blob/8d6159638c0f1b49f5149eff074ce9fa1e6418b3/packages/remark/src/index.ts#L573-L581)
+
+### strict 与 warn 的差别是失败策略
+
+`diagnostics: 'strict'` 会把作者错误写成带 source、ruleId 和 position 的 VFile message，并在 transform 前抛出第一条错误。因此 invalid directive 不会先变成 JSX，再把问题拖到运行时。
+
+`warn` :hw-mark[不是「宽松接受」]{kind="box" tone="warning" strength="strong"}。它仍记录诊断，只是不终止构建，并把 invalid gesture strip 成可读 fallback：
+
+```mdx
+:hw-text[visible copy]{tone=muted}
+```
+
+这段在 strict 下失败；在 warn 下，手写 wrapper 会消失，但 `visible copy` 仍留下。迁移旧内容时这很实用，生产构建则通常更适合 strict。
+
+:hw-text[warn 保留可读内容；strict 拒绝含糊的发布输入。]{tone="warning" size="md" weight="medium" rotate="-1"}
+
+## component、element、strip：三种 AST 目标
+
+三个 output mode 共用同一套 validation 和 metadata，差别发生在最后的 `transformChildren` 分流点。[源码](https://github.com/Maidang1/mdx-handwritten/blob/8d6159638c0f1b49f5149eff074ce9fa1e6418b3/packages/remark/src/index.ts#L1939-L1984)
+
+| 模式 | 编译结果 | 适合的宿主 |
+| --- | --- | --- |
+| `component` | `HandText`、`HandAnnotate`、`HandScene` 等 MDX JSX | React、Next.js、带 component map 的 MDX |
+| `element` | 原生语义元素与 `data-hw-*` properties | Astro、framework-free HTML、sanitize pipeline |
+| `strip` | Markdown/HTML 可读 fallback，无 Hand\* contract | 纯文本导出、RSS-like 处理、迁移与降级 |
+
+:hw-text[同一套语义，三种 AST 目的地。]{tone="muted" size="md" weight="medium" rotate="1"}
+
+仍以开头的 annotate 为例，component mode 会生成类似：
+
+```tsx
+<HandAnnotate
+  label="stable ID"
+  placement="block-start-inline-end"
+  mark="bracket"
+  arrow="straight"
+  shiftInline="1"
+  data-hw-variant="…"
+>
+  <code>CLI-042</code>
+</HandAnnotate>
+```
+
+注意 `shift-inline` 已经转成 React prop `shiftInline`；如果启用 auto import，插件只导入当前文档真正使用到的组件，并检查与现有 binding 是否冲突。
+
+element mode 不经过 React SSR，而是在 mdast 节点的 `data.hName` 与 `data.hProperties` 上直接声明 HTML：
+
+```html
+<span
+  data-hw="annotate"
+  data-hw-placement="block-start-inline-end"
+  data-hw-mark="bracket"
+  data-hw-arrow="straight"
+>
+  <span data-hw-target><code>CLI-042</code></span>
+  <span data-hw-label dir="auto">stable ID</span>
+  <svg aria-hidden="true">…</svg>
+</span>
+```
+
+strip mode 则保留为：
+
+```text
+CLI-042 (stable ID)
+```
+
+同样的原则也用于其他 gesture：
+
+- link 保留原生 `<a>`，新窗口链接补上 `noopener noreferrer`；
+- highlight 使用 `<mark>`，strike 使用 `<s>`，其他 mark 使用 `<em>`；
+- brace 使用 `<figure>` 与 `<figcaption>`；
+- margin 的 label 使用 `<aside>`；
+- watermark label 因为永远装饰而设置 `aria-hidden`，strip 时完全删除 label。
+
+测试不是只比较字符串里有没有 `data-hw`。element 测试会验证真实文字、语义标签、装饰 SVG 的 `aria-hidden`，以及 scene 的 source 出现在 ordered legend 之前。[测试](https://github.com/Maidang1/mdx-handwritten/blob/8d6159638c0f1b49f5149eff074ce9fa1e6418b3/packages/remark/test/index.test.ts#L509-L567)
+
+## Scene：把结构化源文本编译成封闭语义图
+
+八种 gesture 适合作者明确知道「这里要画什么」的场景。面对一条结构稳定的任务记录，如果每次都手写六个 annotate，作者既重复，又容易让 label 和 target 失配。
+
+Annotation recipe 解决的是另一类问题：识别一份可读的结构化 source，产出 targets、labels、relationships 和 gestures。当前源码实际注册的 built-in recipe 只有 `task-explainer`。
+
+:hw-text[一份 source，一张可审查的关系图。]{tone="accent" size="md" weight="semibold" rotate="-1"}
+
+下面不是示意 HTML，而是本文构建时真实执行的 scene：
+
+:::hw-scene{recipe="task-explainer" locale="zh-CN"}
+[ ] CLI-042 增加导出命令 #cli !high @blocked_by:CLI-041
+让脚本和 Agent 都能读取 JSON 格式的任务结果
+:::
+
+它识别：
+
+- state：`[ ]`
+- stable ID：`CLI-042`
+- description：首行标题与第二行详情
+- tag：`#cli`
+- priority：`!high`
+- field：`@blocked_by:CLI-041`
+
+这里的 target ID 来自 :hw-mark[语法槽位与结构化 key]{kind="bracket" tone="info" strength="normal"}，例如 `stable-id`、`tag:cli`、`field:blocked_by`；它不是匹配文本、DOM selector、AST path 或第几个相同字符串。
+
+### ScenePlanV1 里有什么
+
+scene package 的核心输出可以精简成：
+
+```ts
+interface ScenePlanV1 {
+  schema: 'mdx-handwritten/scene-plan'
+  schemaVersion: 1
+  recipe: {name: string; version: number}
+  localization: {
+    locale: string
+    catalog: {id: string; version: number}
+  }
+  title: string
+  source: {
+    text: string
+    identity: {
+      normalization: 'trim-lf-v1'
+      algorithm: 'sha256'
+      digest: string
+    }
+  }
+  targets: AnnotationTargetV1[]
+  labels: AnnotationLabelV1[]
+  relationships: AnnotationRelationshipV1[]
+  gestures: AnnotationGestureV1[]
+  provenance: ScenePlanProvenanceV1
+}
+```
+
+这是一个 :hw-mark[闭合的纯 JSON 语义图]{kind="box" tone="info" strength="strong"}。[源码](https://github.com/Maidang1/mdx-handwritten/blob/8d6159638c0f1b49f5149eff074ce9fa1e6418b3/packages/scene/src/core.ts#L79-L147) 它刻意不包含：
+
+- DOM、CSS selector 或 React element；
+- x/y 坐标、connector path、breakpoint 或碰撞结果；
+- renderer 配置、className、任意扩展字段；
+- prompt、模型回复、provider metadata；
+- 可执行 markup 或回调函数。
+
+每个 target 带有一个或多个 source range：
+
+```ts
+interface SourceRangeV1 {
+  start: number
+  end: number
+  exactText: string
+}
+```
+
+range 是规范化 source 上的 :hw-annotate[UTF-16 code unit 半开区间]{label="不按字形坐标定位" placement="block-end-inline-end" tone="accent" mark="highlight" arrow="straight" distance="normal"} `[start, end)`。验证器会拒绝越界、重叠、切开 surrogate pair，或 `source.slice(start, end) !== exactText` 的计划。重复 tag 或 field 可以让同一个语义 target 拥有多个有序 ranges，而不需要伪造多个身份。
+
+### canonical source 与 freshness fingerprint
+
+当前 canonicalization 非常克制：
+
+```ts
+source.replace(/\r\n?/gu, '\n').trim()
+```
+
+它只统一换行并清理首尾空白，不做 NFC/NFKC、大小写折叠、语言检测或 fuzzy matching。
+
+规范化结果会以 UTF-8 计算 SHA-256 digest。这个 digest 是 freshness identity：它证明 plan 对应哪一份 source，但不是数字签名，也不能证明「某个人真的审核过」。任何改变 canonical source 的变化都会让旧计划 stale；仅改变 CRLF/LF 或首尾空白则不会。系统也不会因为原字符串还能在别处找到，就自动迁移 range。
+
+::hw-note[:hw-mark[Digest 是 freshness fingerprint]{kind="underline" tone="warning" strength="strong"}，不是签名，也不替代人的审核。]{appearance="tape" tone="warning" icon="warning" density="compact" rotate="-1"}
+
+### createScenePlan 返回完整结果或完整失败
+
+根入口有两种互斥输入：
+
+```ts
+type CreateScenePlanInput =
+  | {
+      source: string
+      recipe: string
+      locale?: string
+      corrections?: readonly SemanticCorrectionV1[]
+      candidateJson?: never
+    }
+  | {
+      source: string
+      candidateJson: string
+      recipe?: never
+      locale?: never
+      corrections?: never
+    }
+```
+
+返回值也是判别联合：
+
+```ts
+type ScenePlanResult =
+  | {ok: true; plan: ScenePlanV1; diagnostics: []}
+  | {ok: false; plan: null; diagnostics: NonEmpty<SceneDiagnosticV1>}
+```
+
+没有「带错误的半份 plan」。内建 deterministic 路径依次执行 input、source、locale、correction 校验，解析 task，创建 targets 与 graph，生成 fingerprint，应用 correction，最后再验证整个集合。[源码](https://github.com/Maidang1/mdx-handwritten/blob/8d6159638c0f1b49f5149eff074ce9fa1e6418b3/packages/scene/src/core.ts#L640-L758)
+
+::hw-note[要么得到一份完整且通过闭集校验的 plan，要么得到 `plan: null + diagnostics`。]{appearance="line" tone="success" icon="check" density="compact"}
+
+V1 还给输入和图结构设置了实现拥有的硬上限，例如 source 最多 4,096 个 UTF-16 code units、candidate JSON 最多 65,536 bytes、targets/labels/relationships/gestures 各最多 64 个。上限不是用来截断内容：source 超限触发 `scene-source-too-long`；candidate JSON 或 plan 集合超限触发 `scene-plan-limit-exceeded`；两者都返回 `plan: null`。
+
+## deterministic、reviewed 与第三方 recipe
+
+同一个 `ScenePlanV1` 可以从不同的可信路径进入 renderer，但信任边界不同。
+
+### 1. 内建 deterministic recipe
+
+```ts
+const result = createScenePlan({
+  recipe: 'task-explainer',
+  locale: 'zh-CN',
+  source: `[ ] CLI-042 增加导出命令 #cli !high @blocked_by:CLI-041
+让脚本和 Agent 都能读取 JSON 格式的任务结果`
+})
+```
+
+内建 recipe 与 scene finalizer 一起随 package 固定。普通 MDX 构建 :hw-mark[不访问网络，也不调用模型]{kind="underline" tone="success" strength="strong"}。
+
+### 2. Reviewed plan artifact
+
+可选的上游 authoring tool 可以生成一个 untrusted proposal，作者审核后把完整 plan 物化成 sidecar。MDX 只保存 opaque binding：
+
+```mdx
+:::hw-scene{recipe="task-explainer" locale="zh-CN" plan="rp1_01k4m6h8q2w9c5x7t3v0n8s6dy"}
+[ ] CLI-042 增加导出命令 #cli !high
+:::
+```
+
+宿主必须显式配置绝对 project root：
+
+```ts
+[remarkMdxHandwritten, {
+  diagnostics: 'strict',
+  reviewedPlans: {projectRoot: process.cwd()}
+}]
+```
+
+resolver 只会读取：
+
+```text
+.mdx-handwritten/plans/<binding>.json
+```
+
+binding 不是 path、URL 或 glob。读取层限制 64 KiB，拒绝 symlink、目录逃逸、无效 UTF-8、缺失和不可读文件；随后仍把 candidate JSON 交给 :hw-annotate[scene finalizer]{label="artifact 不是信任豁免" placement="inline-start" tone="danger" mark="none" arrow="curved" distance="loose"} 做 closed-shape、版本、引用、range、source 与 digest 校验。
+
+strict 下，缺失、malformed 或 stale artifact 会让构建失败。warn 下只保留 canonical source，:hw-mark[不会退回 deterministic recipe 重新猜意思]{kind="bracket" tone="danger" strength="strong"}。普通 build 也不会调用 AI、读取私有 review store，或把 provenance 当作审核的密码学证明。
+
+### 3. 显式安装的第三方 Recipe package
+
+第三方 recipe 通过标准 ESM npm 依赖进入构建：
+
+```ts
+import acmeRecipes from '@acme/mdx-handwritten-recipes'
+import {createSceneCompiler} from '@madinah/mdx-handwritten-scene/recipes'
+
+const sceneCompiler = createSceneCompiler({
+  recipePackages: [{
+    packageName: '@acme/mdx-handwritten-recipes',
+    definition: acmeRecipes
+  }]
+})
+
+const result = sceneCompiler.createScenePlan({
+  recipe: '@acme/mdx-handwritten-recipes/task-summary',
+  source: '[ ] CLI-042 Add export command #cli !high',
+  locale: 'zh-CN'
+})
+```
+
+再把 `sceneCompiler` 注入 remark：
+
+```ts
+[remarkMdxHandwritten, {sceneCompiler}]
+```
+
+这里没有目录扫描、远程 registry、source 驱动的 dynamic import、浏览器 loader 或全局可变 registry。host 的 `import` 就是一次明确的 :hw-annotate[build-time trust grant]{label="explicit import 不等于 sandbox" placement="block-start-inline-end" tone="danger" mark="bracket" arrow="straight" distance="tight"}。
+
+这种扩展也不是 sandbox。第三方 JavaScript 与其他 npm 构建依赖拥有相同进程权限；scene core 保护的是**输出边界**：package 的 `compile` 只能返回 bounded semantic draft，normalization、localization、correction、graph validation、limits、provenance 和最终 plan 仍由 core 决定。配置级错误在 `createSceneCompiler` 构造时抛出 `SceneCompilerConfigurationError`，单个 scene 的作者错误则继续返回 `plan: null + diagnostics`。
+
+::hw-note[第三方 recipe 获得的是构建期执行权，不是绕过 `ScenePlanV1` 闭集验证的权利。]{appearance="panel" tone="danger" icon="cross" size="sm" density="compact"}
+
+## renderer：把 plan 映射为 source-first DOM
+
+React 的场景接口清楚表达了两条入口：
+
+```ts
+type HandSceneProps =
+  | {
+      plan: ScenePlanV1
+      recipe?: never
+      source?: never
+      locale?: never
+    }
+  | {
+      plan?: never
+      recipe: string
+      source: string
+      locale?: string
+    }
+```
+
+remark 的 component 路径在编译时已经 materialize plan，并把它编码成 inert JSON ESTree expression：
+
+```tsx
+<HandScene plan={/* complete ScenePlanV1 */} />
+```
+
+它不会把 `recipe + source` 交给 React 再推导一次，因此 reviewed plan 与 Semantic correction 不会在 adapter 边界丢失。[源码](https://github.com/Maidang1/mdx-handwritten/blob/8d6159638c0f1b49f5149eff074ce9fa1e6418b3/packages/remark/src/index.ts#L1249-L1319)
+
+直接写 React 时仍可以使用便利形式：
+
+```tsx
+<HandScene
+  recipe="task-explainer"
+  source="[ ] CLI-042 Add export command #cli !high"
+  locale="en"
+/>
+```
+
+这个分支会在 React render 中同步调用 `createScenePlan`。因此准确的边界是：**remark 生产路径先物化 plan；React public API 额外保留 direct-source convenience form**，而不是笼统地说「所有 renderer 都只能消费 plan」。
+
+成功的 `HandScene` 始终输出：
+
+```text
+figure
+├─ figcaption       generated title
+├─ pre > code       canonical source, targets become span/mark
+└─ ol               complete relationship legend
+```
+
+:hw-annotate[source 在 legend 之前]{label="DOM 顺序本身就是 fallback" placement="block-start-inline-end" tone="success" mark="underline" arrow="curved" distance="normal"}，且两者从一开始就在 DOM 中；CSS 不是等窄屏以后才「补」出 fallback。失败的 direct-source scene 则只输出包含原 source 的 `<pre><code>`。[React 源码](https://github.com/Maidang1/mdx-handwritten/blob/8d6159638c0f1b49f5149eff074ce9fa1e6418b3/packages/react/src/scene.tsx#L84-L176)
+
+普通 gesture 也遵循同样的 semantic-first 做法。`HandAnnotate` 的核心结构近似：
+
+```tsx
+<span data-hw="annotate" data-hw-placement={placement}>
+  <span data-hw-target>{children}</span>
+  <span data-hw-label dir="auto">{label}</span>
+  {arrow === 'none'
+    ? null
+    : <HandConnector kind={arrow} placement={placement} />}
+</span>
+```
+
+:hw-mark[label 是真实文字]{kind="highlight" tone="success" strength="normal"}；:hw-mark[connector 是装饰 SVG]{kind="underline" tone="muted" strength="subtle"}，设置 `aria-hidden`、`focusable="false"`，并带固定 `viewBox` 和尺寸，避免无 CSS 时膨胀成巨型图形。
+
+component renderer 与 element renderer 是两套实现，不承诺 DOM 字节级一致。它们共享的契约是 source-first、完整 legend 和稳定的 `data-hw*` 语义。当前 element scene 还会生成稳定 target/annotation ID，并用 `aria-describedby` 把 target 指向 legend；文章或测试不应把这一实现细节无条件外推到所有 renderer。
+
+## theme：CSS 只负责画，不负责解释
+
+theme 的选择器只认识公开的 `data-hw*`：
+
+```css
+:where([data-hw="mark"][data-hw-kind="underline"]) { /* ... */ }
+:where([data-hw="annotate"][data-hw-placement="inline-end"]) { /* ... */ }
+:where([data-hw-scene-source]) { /* ... */ }
+:where([data-hw-scene-legend]) { /* ... */ }
+```
+
+它可以改变字体、颜色、旋转、间距、connector 和 mark treatment，却不能：
+
+- 创建读者必须听见的文案；
+- 重新选择 target；
+- 改写 relationship；
+- 让一个 invalid plan 变成 valid；
+- :hw-mark[根据浏览器测量生成另一份语义]{kind="box" tone="danger" strength="strong"}。
+
+:::hw-margin[CSS 是 progressive enhancement]{side="inline-start" align="start" tone="muted" size="sm" icon="arrow-toward" rotate="-2" distance="tight"}
+
+Source、label 和 legend 先存在，手写字体、绝对定位和 SVG 才有资格增强它们。
+
+:::
+
+### 窄屏、RTL、强制色与打印
+
+主题使用 :hw-annotate[logical properties 和逻辑 placement]{label="方向来自 writing mode" placement="inline-end" tone="info" mark="bracket" arrow="straight" distance="tight"}，而不是把 left/right 写进作者语法。短 label 带 `dir="auto"`；RTL 下需要改变方向的 glyph 由 CSS 翻转。
+
+当容器或 viewport 变窄时：
+
+- annotate label 回到行内，connector 隐藏；
+- brace caption 和 margin note 回到文档流；
+- watermark label 隐藏；
+- scene source 和 legend 保持原来的 DOM 顺序。
+
+forced-colors 下，颜色回到 `CanvasText` 等系统色，阴影、scene legend connector 与 watermark label 被移除；普通 annotate connector 仍可保留。打印时 annotate 线性化，annotate connector、brace glyph、margin glyph、scene legend connector 与 watermark label 隐藏；note/link 的辅助 glyph 不在这份隐藏列表里。
+
+```css
+@media (forced-colors: active) {
+  :where([data-hw]) {
+    --hw-color: CanvasText;
+    box-shadow: none !important;
+  }
+  :where(
+    [data-hw-scene-legend] [data-hw-connector],
+    [data-hw="watermark"] > [data-hw-label]
+  ) {
+    display: none;
+  }
+}
+
+@media print {
+  :where([data-hw="annotate"]) {
+    display: inline;
+  }
+  :where(
+    [data-hw="annotate"] > [data-hw-connector],
+    [data-hw="brace"] > [data-hw-brace],
+    [data-hw="margin"] > [data-hw-label] > [data-hw-glyph],
+    [data-hw="watermark"] > [data-hw-label],
+    [data-hw-scene-legend] [data-hw-connector]
+  ) {
+    display: none;
+  }
+}
+```
+
+默认主题通过 Fontsource 打包 Shantell Sans 的 Latin、Latin Extended、Cyrillic、Cyrillic Extended 与 Vietnamese 五个 variable-weight subsets；:hw-mark[没有打包 CJK webfont]{kind="circle" tone="warning" strength="strong"}。中文 label 走系统手写/楷体 fallback，打印再切换到 system-only stack。这既控制默认字体体积，也避免把字体选择写进 Scene plan。
+
+### Rich-layout envelope 是设计边界，不是现有碰撞引擎
+
+项目 ADR 描述过 recipe-owned Rich-layout envelope：只有 recipe 能证明内容处于有限、无碰撞的布局范围时，renderer 才可以增加空间化 label rail；超出范围应保持线性形式。
+
+当前 `0.2.0` 的生产 React/theme 实现已经有 source-first DOM、普通 scene grid、响应式单列与打印/forced-colors 降级，但没有 recipe-specific capacity evaluator、全局 packing、障碍路由或浏览器测量，也没有完整实现 spec 里的 rich rail/numbered marker 方案。
+
+::hw-note[设计允许未来增加有界空间增强；当前实现不能被描述成一台已经交付的自动避碰布局引擎。]{appearance="panel" tone="warning" icon="warning" size="sm" density="compact"}
+
+## 安全边界：关闭自己的语言，不冒充全篇 sanitizer
+
+:::hw-brace[两层作者信任模型]{side="inline-end" align="start" tone="danger" rotate="-1" distance="loose"}
+
+MDX 可以执行 JavaScript。mdx-handwritten 的作者模型因此分成两层：
+
+1. **对可信 MDX**：transformer 仍把每个 `hw-*` directive 的属性关闭在 schema 内，拒绝 expression、spread、未知属性、任意 `class/style/id` 注入和不安全 URL。
+2. **对不可信作者**：不要接收 MDX；只接收纯 Markdown，以 `output: 'element'` 编译，再由宿主配置 `rehype-sanitize` allow-list。
+
+第一层只约束 handwritten directive 自己，:hw-mark[不会遍历整篇 MDX]{kind="box" tone="danger" strength="strong"} 并删除所有 JSX 的 `className`、`style`、`onClick`。交互 JSX 只在 nesting 校验需要判断 link/annotate target 是否安全时被识别。把 transformer 称为「全篇 MDX sanitizer」会扩大它实际没有承担的安全责任。
+
+这也解释了 element mode 的价值：宿主可以对原生 element 和显式 `data-hw-*` contract 建立清晰 allow-list，而不必执行作者提供的 React component。
+
+:::
+
+## 测试：把设计约束变成 release truth
+
+「无 JavaScript 也能读」「打印时不丢字」如果只写在 README 里，很容易在一次 CSS 重构后失效。这个仓库把它们拆成不同层次的检查：
+
+| 检查层 | 验证内容 |
+| --- | --- |
+| scene Vitest | grammar、canonical source、ranges、引用、limits、stale、corrections |
+| remark Vitest | schema、diagnostics、nesting、component/element/strip AST |
+| React SSR | 语义标签、URL 防御、materialized plan 不重复 derive、invalid fallback |
+| Playwright semantic | source/legend 顺序、LTR/RTL、窄屏、无 CSS、font failure |
+| Axe | WCAG A/AA 规则下的发布 fixture |
+| print / forced-colors | 装饰消失后仍保留完整文字 |
+| pinned Chromium screenshots | 在固定 Linux 镜像中做可复现 pixel diff |
+| budget gate | ESM、consumer bundle、CSS、字体、transport、SSR HTML、npm tarball |
+
+视觉截图不是 scene contract。Canonical fixture 的源文本和读者意义才是 release truth；Chromium pixel baseline 只是一份固定环境里的派生证据，Firefox 与 WebKit 更适合检查语义、可达性、overflow 与 fallback。
+
+:::hw-margin[视觉 baseline 是派生证据]{side="inline-start" align="end" tone="muted" size="sm" icon="arrow-toward" distance="tight"}
+
+读者意义、canonical fixture 与可读 fallback 才是发布判断的主轴。
+
+:::
+
+### 性能预算也保护架构边界
+
+当前 blocking budgets 包括：
+
+- scene ESM：64 KiB raw / 14 KiB gzip；
+- remark ESM：64 KiB raw / 15 KiB gzip；
+- React ESM：18 KiB raw / 4 KiB gzip；
+- theme CSS：40 KiB raw / 6 KiB gzip；
+- 默认字体：225 KiB total / 85 KiB common Latin；
+- 标准 component Scene plan transport：6 KiB；
+- 标准 materialized-plan SSR HTML：6 KiB；
+- scene 意义所需的 client-only runtime：0 B。
+
+「0 B client-only runtime」不等于宿主 React 应用没有 bundle；它表示 Annotation scene 的意义与默认呈现 :hw-annotate[不要求 hydration]{label="度量对象是 scene runtime" placement="block-start" tone="info" mark="underline" arrow="curved" distance="tight"}。预算也不能通过删除完整 legend、弱化 validation 或把编译推到浏览器来达成。
+
+预算脚本使用 esbuild metafile 收集完整静态依赖图，再计算 raw 与 canonical gzip 大小，避免用一个很小的 re-export 入口藏住真实依赖。[测量源码](https://github.com/Maidang1/mdx-handwritten/blob/8d6159638c0f1b49f5149eff074ce9fa1e6418b3/scripts/budgets/measure.mjs#L38-L66)
+
+## 回到开头：手写感只是最后一层
+
+mdx-handwritten 最值得复用的思路，不是某一条漂亮的 SVG path，而是它为文档建立的责任顺序：
+
+1. 作者写可读 source 和有限的语义意图；
+2. remark 在编译期验证语言并选择输出 AST；
+3. scene compiler 把复杂关系物化成 closed plan；
+4. renderer 把 plan 映射为 source-first semantic DOM；
+5. theme 最后才增加手写字体、颜色与几何装饰；
+6. 测试同时验证正常呈现与样式失效后的阅读路径。
+
+:::hw-watermark[semantic first]{placement="block-end-inline-end" tone="muted" size="lg" weight="semibold" rotate="3" strength="faint"}
+
+只要 source、label 和 relationship 先成为文档的一部分，手写外观就可以大胆变化；反过来，把意义藏进一次 layout 或一张 Canvas，视觉越精巧，系统边界反而越脆弱。
+
+:::
+
+:hw-text[先编译意义，再绘制个性。]{tone="accent" size="lg" weight="semibold" rotate="-1"}
+
+可以从 :hw-link[Live playground]{href="https://maidang1.github.io/mdx-handwritten/" target="blank" tone="accent" underline="strong" icon="external"} 直接试写；完整实现、ADR 与测试位于 :hw-link[GitHub repository]{href="https://github.com/Maidang1/mdx-handwritten" target="blank" tone="info" underline="subtle" icon="external"}。
+
+## 附录 A：八种 directive 的完整属性
+
+表中加粗值为必填，括号内为默认值。所有属性都必须写成带引号的静态字符串。
+
+| Directive | 属性 |
+| --- | --- |
+| `:hw-text[...]` | `tone`: inherit（默认）、neutral、muted、info、success、warning、danger、accent；`size`: inherit（默认）、sm、md、lg、display；`weight`: inherit（默认）、regular、medium、semibold；`rotate`: -3 到 3（默认 0） |
+| `:hw-link[...]` | **`href`**；`target`: self（默认）、blank；`tone`、`size`、`weight` 同 text；`rotate`: -3 到 3（默认 0）；`underline`: subtle、strong（默认）；`icon`: none（默认）、arrow-forward、arrow-back、external |
+| `:hw-mark[...]` | `kind`: underline（默认）、highlight、circle、strike、box、wavy、bracket；`tone`: inherit（默认）、neutral、muted、info、success、warning、danger、accent；`strength`: subtle、normal（默认）、strong |
+| `:hw-annotate[...]` | **`label`**，最长 120 字符；`placement`: block-start（默认）、block-start-inline-start、block-start-inline-end、block-end、block-end-inline-start、block-end-inline-end、inline-start、inline-end；`tone`: muted（默认）及其他 tone；`mark`: 七种 treatment（默认 highlight）或 none；`arrow`: curved（默认）、straight、none；`distance`: tight、normal（默认）、loose；`shift-inline` / `shift-block`: -3 到 3（默认 0）；`rotate`: -3 到 3（默认 -2） |
+| `::hw-note[...]` | `appearance`: line（默认）、tape、panel；`tone`: neutral（默认）、muted、info、success、warning、danger、accent；`icon`: auto（默认）、none、check、cross、info、warning、spark；`size`: sm、md（默认）、lg、display；`weight`: regular（默认）、medium、semibold；`rotate`: -3 到 3（默认 0）；`align`: start（默认）、center、end；`density`: compact、normal（默认） |
+| `:::hw-brace[label]` | label 必填、纯文本、最长 80 字符，body 必填；`side`: inline-start、inline-end（默认）；`align`: start、center（默认）、end；`tone`: muted（默认）及其他 tone；`rotate`: -3 到 3（默认 -2）；`distance`: tight、normal、loose（默认） |
+| `:::hw-margin[label]` | label 必填、纯文本、最长 160 字符，body 必填；`side`: inline-start（默认）、inline-end、block-start、block-end；`align`: start、center、end（默认）；`tone`: muted（默认）及其他 tone；`size`: sm、md（默认）、lg、display；`weight`: regular（默认）、medium、semibold；`rotate`: -3 到 3（默认 -2）；`icon`: none、arrow-toward（默认）、arrow-away；`distance`: tight、normal（默认）、loose |
+| `:::hw-watermark[label]` | label 必填、纯文本、最长 120 字符，body 必填；`placement`: block-start-inline-start、block-start-inline-end（默认）、block-end-inline-start、block-end-inline-end、center；`tone`: muted（默认）及其他 tone；`size`: sm、md、lg、display（默认）；`weight`: regular、medium、semibold（默认）；`rotate`: -3 到 3（默认 3）；`strength`: ghost、faint（默认）、soft |
+
+补充集合：
+
+```ts
+type Tone =
+  | 'inherit'
+  | 'neutral'
+  | 'muted'
+  | 'info'
+  | 'success'
+  | 'warning'
+  | 'danger'
+  | 'accent'
+
+type Rotation = '-3' | '-2' | '-1' | '0' | '1' | '2' | '3'
+type Align = 'start' | 'center' | 'end'
+type Distance = 'tight' | 'normal' | 'loose'
+```
+
+`hw-note`、`hw-margin`、`hw-watermark` 的 size 和 weight 不接受 `inherit`；`hw-note` 的 tone 也不接受 `inherit`，因为它们是独立的 flow-level 表达，而不是继承段落语气的行内 phrasing。
+
+## 附录 B：嵌套与失败速查
+
+| 写法 | 结果 |
+| --- | --- |
+| `hw-text` 或 `hw-note` 内嵌 `hw-mark` | 合法 |
+| `hw-text` 或 `hw-note` 内嵌其他 handwritten directive | `nesting-invalid` |
+| `hw-link`、`hw-mark`、`hw-annotate` 内嵌 handwritten directive | `nesting-invalid` |
+| link/annotate 放入 Markdown link 或交互 JSX | `nesting-invalid` |
+| `watermark → margin → brace → content` | 合法容器顺序 |
+| 同类容器递归，或反向嵌套 | `nesting-invalid` |
+| 属性未加引号、使用表达式或 spread | `attribute-dynamic` |
+| 属性重复 | `attribute-duplicate` |
+| schema 外属性 | `attribute-unknown` |
+| 错误枚举、缺少必填属性、空值 | `attribute-invalid` |
+| 不安全 `href` | `url-unsafe` |
+| container label 非纯文本 | `attribute-invalid` |
+| container label 过长 | `label-too-long` |
+| 文件中超过默认 500 个 `hw-*` 节点 | `directive-limit` |
+| unknown `hw-*` | `directive-unknown` |
+| 非 `hw-*` directive | 留给其他插件，不处理 |
+
+Scene 另有自己的规则：
+
+- 必须使用 `:::hw-scene{recipe="..."}` container；
+- 没有 bracket label；
+- 只接受 `recipe`、`locale`、`plan` 三个带引号的静态属性：`recipe` 必填且非空，`locale` 默认 `en`，`plan` 是可选的 reviewed artifact opaque binding；
+- 使用 `plan` 时，artifact 内的 recipe 与 locale 必须和 directive 声明一致；
+- body 必须是 plain source，不能嵌套 `hw-*`、HTML 或复杂 Markdown；
+- scene 不能嵌套 scene，也不能放进其他 handwritten directive；
+- expected author error 返回 `plan: null + diagnostics`，不抛出半份 plan。
+
+## 附录 C：关键源码索引
+
+- [固定 directive schema](https://github.com/Maidang1/mdx-handwritten/blob/8d6159638c0f1b49f5149eff074ce9fa1e6418b3/packages/remark/src/schema.ts#L47-L216)
+- [remark plugin 的验证与 transform 入口](https://github.com/Maidang1/mdx-handwritten/blob/8d6159638c0f1b49f5149eff074ce9fa1e6418b3/packages/remark/src/index.ts#L2000-L2043)
+- [三种 output mode 的 lowering 分流](https://github.com/Maidang1/mdx-handwritten/blob/8d6159638c0f1b49f5149eff074ce9fa1e6418b3/packages/remark/src/index.ts#L1939-L1984)
+- [ScenePlanV1 与硬上限](https://github.com/Maidang1/mdx-handwritten/blob/8d6159638c0f1b49f5149eff074ce9fa1e6418b3/packages/scene/src/core.ts#L79-L147)
+- [`createScenePlan` deterministic 路径](https://github.com/Maidang1/mdx-handwritten/blob/8d6159638c0f1b49f5149eff074ce9fa1e6418b3/packages/scene/src/core.ts#L640-L758)
+- [remark 把 materialized plan 编码进 HandScene](https://github.com/Maidang1/mdx-handwritten/blob/8d6159638c0f1b49f5149eff074ce9fa1e6418b3/packages/remark/src/index.ts#L1249-L1319)
+- [React `HandScene` 的 source-first DOM](https://github.com/Maidang1/mdx-handwritten/blob/8d6159638c0f1b49f5149eff074ce9fa1e6418b3/packages/react/src/scene.tsx#L84-L176)
+- [element output 的语义测试](https://github.com/Maidang1/mdx-handwritten/blob/8d6159638c0f1b49f5149eff074ce9fa1e6418b3/packages/remark/test/index.test.ts#L509-L567)
+- [strip output 的可读降级测试](https://github.com/Maidang1/mdx-handwritten/blob/8d6159638c0f1b49f5149eff074ce9fa1e6418b3/packages/remark/test/index.test.ts#L619-L666)
+- [性能与交付预算](https://github.com/Maidang1/mdx-handwritten/blob/8d6159638c0f1b49f5149eff074ce9fa1e6418b3/docs/specs/performance-budgets-v1.md)

@@ -99,11 +99,11 @@ importers:
         specifier: workspace:*
         version: link:packages/content-core
       '@madinah/mdx-handwritten-remark':
-        specifier: 0.1.0
-        version: 0.1.0(remark-directive@4.0.0)
+        specifier: 0.2.0
+        version: 0.2.0(remark-directive@4.0.0)
       '@madinah/mdx-handwritten-theme':
-        specifier: 0.1.0
-        version: 0.1.0
+        specifier: 0.2.0
+        version: 0.2.0
       '@tailwindcss/vite':
         specifier: ^4.1.18
         version: 4.3.2(vite@6.4.3(@types/node@26.1.0)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.0)(yaml@2.9.0))
@@ -1420,8 +1420,8 @@ packages:
   '@jridgewell/trace-mapping@0.3.9':
     resolution: {integrity: sha512-3Belt6tdc8bPgAtbcmdtNJlirVoTmEb5e2gC94PnkwEW9jI6CAHUeoG85tjWP5WquqfavoMtMwiG4P926ZKKuQ==}
 
-  '@madinah/mdx-handwritten-remark@0.1.0':
-    resolution: {integrity: sha512-Ca1fr1u+hjqhp8oejYSrur/gxtQeSsgTRCOLPSbyqyd8xZDRtSu7FMllSOvvDp9dKJu8KiDlB6/fr+BKOIgs/g==}
+  '@madinah/mdx-handwritten-remark@0.2.0':
+    resolution: {integrity: sha512-WctyXaTq/DUv+oR5pp7JDYka4ph0DZYzLGFIqBjgkwNfjYrx7Wl+4Vfyi3hwo3chNO75BXG6tMDKOCL4iPWPEQ==}
     engines: {node: '>=20.19'}
     peerDependencies:
       remark-directive: ^4.0.0
@@ -1430,8 +1430,8 @@ packages:
     resolution: {integrity: sha512-ovHkUSX3BPg2qQqCIq4M9TZugBFm/DKTaCi49YA7Ixvjbq5aw4/gTB+qogtwBCYiBQgGH8ov1cLt8Bg1l/+xjQ==}
     engines: {node: '>=20.19'}
 
-  '@madinah/mdx-handwritten-theme@0.1.0':
-    resolution: {integrity: sha512-vTgEJj6SWrJov6k9gJlY6r9iAzWFSFBUYzB7r023xan7y1gYPV3tS0VORqrXT4isOiocFZ1VGyJTiCmuANpmEA==}
+  '@madinah/mdx-handwritten-theme@0.2.0':
+    resolution: {integrity: sha512-PL/gbNIUnJZKbE0OVqYs3TYadH7b9T9GtfPL0LQ8thjgiHoBS3uYR+agdy9am7t49/BGQQJQTJEpQW3a+Ltsmw==}
 
   '@mdx-js/mdx@3.1.1':
     resolution: {integrity: sha512-f6ZO2ifpwAQIpzGWaBQT2TXxPv6z3RBzQKpVftEWN78Vl/YweF1uwussDx8ECAXVtr3Rs89fKyG9YlzUs9DyGQ==}
@@ -6547,7 +6547,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@madinah/mdx-handwritten-remark@0.1.0(remark-directive@4.0.0)':
+  '@madinah/mdx-handwritten-remark@0.2.0(remark-directive@4.0.0)':
     dependencies:
       '@madinah/mdx-handwritten-scene': 0.1.0
       mdast-util-directive: 3.1.0
@@ -6560,7 +6560,7 @@ snapshots:
 
   '@madinah/mdx-handwritten-scene@0.1.0': {}
 
-  '@madinah/mdx-handwritten-theme@0.1.0':
+  '@madinah/mdx-handwritten-theme@0.2.0':
     dependencies:
       '@fontsource-variable/shantell-sans': 5.3.0
 
