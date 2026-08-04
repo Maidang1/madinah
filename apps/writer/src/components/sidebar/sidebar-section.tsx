@@ -6,18 +6,18 @@ interface SidebarSectionProps {
 }
 
 export const SIDEBAR_SECTION_LABEL_CLASS =
-  "group flex h-5 items-center gap-1 pl-3 pr-2 text-left text-[12px] font-medium tracking-normal text-[var(--text-muted)] opacity-60";
+  "group flex h-7 items-center gap-1 rounded-md px-2 text-left text-[12px] font-medium tracking-[0.01em] text-[var(--text-muted)] transition-[background-color,color] hover:bg-[var(--item-hover-bg)] hover:text-[var(--text-secondary)]";
 
 export function SidebarSection({ title, children }: SidebarSectionProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
-    <section className="flex flex-col gap-1" aria-label={title}>
+    <section className="flex flex-col gap-1.5" aria-label={title}>
       <button
         type="button"
         aria-expanded={!isCollapsed}
         onClick={() => setIsCollapsed((collapsed) => !collapsed)}
-        className={`${SIDEBAR_SECTION_LABEL_CLASS} hover:opacity-100`}
+        className={SIDEBAR_SECTION_LABEL_CLASS}
       >
         <span>{title}</span>
         <span

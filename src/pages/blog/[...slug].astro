@@ -33,9 +33,9 @@ const tocItems = headings
   <article class="post-shell">
     <div class="post-layout">
       <div class="post-main-column">
-        <a href="/" class="post-back" aria-label="Back to blog list">
+        <a href="/" class="post-back">
           <span aria-hidden="true">&larr;</span>
-          Blog
+          全部文章
         </a>
 
         <header class="post-header">
@@ -132,8 +132,9 @@ const tocItems = headings
         input.style.opacity = "0";
         document.body.append(input);
         input.select();
-        document.execCommand("copy");
+        const copied = document.execCommand("copy");
         input.remove();
+        if (!copied) throw new Error("Copy command was rejected");
       };
 
       button.addEventListener("click", async () => {
@@ -150,10 +151,10 @@ const tocItems = headings
           }
           window.setTimeout(() => {
             feedback.textContent = "";
-          }, 2200);
+          }, 5000);
         } catch (error) {
           if (error instanceof DOMException && error.name === "AbortError") return;
-          feedback.textContent = "分享失败";
+          feedback.textContent = "分享失败，请复制地址栏中的链接";
         }
       });
     }
@@ -184,16 +185,21 @@ const tocItems = headings
       const setActive = (id: string) => {
         if (id === activeId) return;
         activeId = id;
-        for (const link of links) link.classList.remove("is-active");
+        for (const link of links) {
+          link.classList.remove("is-active");
+          link.removeAttribute("aria-current");
+        }
         const active = linkById.get(id);
         if (!active) return;
         active.classList.add("is-active");
+        active.setAttribute("aria-current", "location");
 
         // Keep the active link visible inside the (possibly scrolling) rail.
         const linkRect = active.getBoundingClientRect();
         const railRect = rail.getBoundingClientRect();
         if (linkRect.top < railRect.top || linkRect.bottom > railRect.bottom) {
-          active.scrollIntoView({ block: "nearest", behavior: "smooth" });
+          const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+          active.scrollIntoView({ block: "nearest", behavior: reduceMotion ? "auto" : "smooth" });
         }
       };
 

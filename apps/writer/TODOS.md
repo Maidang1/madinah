@@ -7,6 +7,7 @@
 
 ## Done
 
+- Writer and blog interface system polish: [`SPECs/interface-system-polish-spec.md`](SPECs/interface-system-polish-spec.md) — align the workspace chrome and public reading surfaces around shared editorial tokens, clearer hierarchy, responsive typography, and accessible interaction states.
 - Properties inspector visual polish: [`SPECs/properties-inspector-polish-spec.md`](SPECs/properties-inspector-polish-spec.md) — replace the oversized full-height metadata drawer with a responsive floating card and improve field hierarchy, multiline editing, keyboard focus, and control affordance.
 - Publish button removal — remove the Publish/Publish update action from the document toolbar and Properties inspector while preserving the online article link.
 - Writer release workflow simplification: [`SPECs/writer-release-workflow-spec.md`](SPECs/writer-release-workflow-spec.md) — use one version tag, one GitHub Actions job, and one same-repository DMG draft with no custom release orchestrator, local fallback, or automatic updater.

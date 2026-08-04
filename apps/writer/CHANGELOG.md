@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-08-04
+
+- Unify Writer's primary workspace chrome and welcome state around theme-derived surfaces, clearer active and hover states, visible keyboard focus, selectable informational text, and larger recurring controls without overriding configurable theme primaries.
+- Refine the public blog into a calmer editorial surface with stronger list-card hierarchy, more comfortable mobile reading type, resilient long-content wrapping, accessible article/TOC/share controls, reduced-motion-aware scrolling, and neutral image outlines in both appearances.
+
 ## 2026-07-16
 
 - Redesign the document Properties inspector as a content-sized floating card with a fixed header and Add property footer, pane-responsive stacked fields, a full-width description editor, clearer input and keyboard-focus treatments, and continuous focus after property removal.

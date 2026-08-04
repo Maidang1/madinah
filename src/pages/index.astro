@@ -7,12 +7,13 @@ const postsWithReadingTime = await getPublishedPosts();
 ---
 
 <BaseLayout title="Blog - Madinah" variant="list">
-  <section class="page-intro">
+  <header class="page-intro">
+    <p class="page-kicker">Writing · Engineering</p>
     <h1>Madinah's Blog</h1>
     <p>Notes on frontend development, Rust, and tools that improve how software gets built.</p>
-  </section>
+  </header>
 
-  <section aria-label="Published posts">
+  <section class="entry-list" aria-label="Published posts">
     {postsWithReadingTime.map((post) => (
       <a href={`/blog/${post.id}`} class="entry-card">
         <article>

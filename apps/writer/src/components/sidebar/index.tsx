@@ -3,7 +3,10 @@ import { WorkspaceSwitcher } from "./workspace-switcher";
 
 export function Sidebar() {
   return (
-    <div className="relative h-full overflow-hidden">
+    <aside
+      aria-label="Workspace sidebar"
+      className="relative h-full overflow-hidden bg-[var(--surface-chrome)]"
+    >
       <div
         aria-hidden="true"
         className="pointer-events-none absolute right-0 top-px bottom-px w-px bg-[var(--sidebar-divider-right)]"
@@ -23,6 +26,6 @@ export function Sidebar() {
           <WorkspaceSwitcher />
         </div>
       </div>
-    </div>
+    </aside>
   );
 }

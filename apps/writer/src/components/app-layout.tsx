@@ -110,7 +110,7 @@ function WorkspaceLayout() {
   );
 
   return (
-    <div className="relative h-screen w-screen overflow-hidden bg-transparent text-text-primary">
+    <div className="relative h-screen w-screen overflow-hidden text-text-primary">
       <div
         data-tauri-drag-region
         className="absolute inset-x-0 top-0 z-30"
@@ -154,13 +154,14 @@ function WorkspaceLayout() {
             <div
               role="presentation"
               aria-hidden="true"
+              data-resize-handle
               data-dragging={isSidebarDragging || undefined}
               onPointerDown={handleSidebarResizeStart}
               className="relative w-0 shrink-0 cursor-col-resize before:absolute before:inset-y-0 before:-left-1 before:w-2 before:content-[''] after:pointer-events-none after:absolute after:inset-y-0 after:left-0 after:w-px after:bg-transparent after:transition-colors after:content-[''] hover:after:bg-[var(--line-subtle)] data-[dragging]:after:bg-[var(--border-color)]"
             />
           )}
 
-          <div className="relative min-w-0 flex-1 bg-bg">
+          <div className="relative min-w-0 flex-1 overflow-hidden shadow-[var(--chrome-shadow)]">
             <EditorArea />
           </div>
         </div>

@@ -78,6 +78,12 @@
   --surface-input: color-mix(in srgb, var(--fg-base) calc(var(--contrast) * 28%), transparent);
   --surface-selected: color-mix(in srgb, var(--fg-base) calc(var(--contrast) * 26%), transparent);
   --surface-palette: color-mix(in srgb, var(--bg-base) 80%, transparent);
+  --surface-chrome: color-mix(in srgb, var(--fg-base) calc(var(--contrast) * 12%), transparent);
+  --surface-chrome-raised: color-mix(
+    in srgb,
+    var(--fg-base) calc(var(--contrast) * 28%),
+    transparent
+  );
 
   --item-hover-bg: color-mix(in srgb, var(--fg-base) calc(var(--contrast) * 16%), transparent);
   --item-active-bg: color-mix(in srgb, var(--fg-base) calc(var(--contrast) * 26%), transparent);
@@ -91,6 +97,9 @@
 
   --link-color: var(--accent);
   --editor-selection-bg: color-mix(in srgb, var(--accent) 30%, transparent);
+  --focus-ring: color-mix(in srgb, var(--fg-base) 86%, var(--accent));
+  --chrome-shadow:
+    0 1px 0 var(--line-subtler), 0 16px 40px color-mix(in srgb, black 9%, transparent);
 
   /* Select chevron uses fg-base via color-mix in fill — but SVG `stroke` can't
      consume CSS vars, so we recreate via stroke= with currentColor and apply
@@ -130,6 +139,9 @@
 [data-theme="light"] {
   --surface-card: transparent;
   --surface-input: color-mix(in srgb, var(--fg-base) calc(var(--contrast) * 20%), transparent);
+  --chrome-shadow:
+    0 1px 0 color-mix(in srgb, var(--fg-base) 7%, transparent),
+    0 18px 48px color-mix(in srgb, black 6%, transparent);
 }
 
 /* Dark mode: bump tab active bg so the focused tab stands out against the
@@ -140,8 +152,19 @@
 
 /* App-wide focus indicator for keyboard navigation */
 :focus-visible {
-  outline: 2px solid var(--accent, rgba(100, 149, 237, 0.7));
-  outline-offset: -2px;
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Remove focus-visible on editor inputs that manage their own styles */
@@ -150,10 +173,8 @@
 [data-frontmatter] input:focus-visible,
 [data-frontmatter] select:focus-visible,
 [data-frontmatter] textarea:focus-visible,
-[data-document-inspector] button:focus-visible,
 [data-settings-panel] input:focus-visible,
-[data-settings-panel] select:focus-visible,
-[data-settings-panel] button:focus-visible {
+[data-settings-panel] select:focus-visible {
   outline: none;
 }
 
@@ -165,19 +186,27 @@ body,
   background: transparent;
 }
 
-/* Prevent text selection everywhere except editor and form inputs */
-*:not(.ProseMirror):not(.ProseMirror *):not(textarea):not(input):not(select) {
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Keep useful labels, values, and errors copyable. Suppress selection only on
+   native chrome and gesture surfaces where selection conflicts with the
+   interaction itself. */
+button,
+[role="button"],
+[role="treeitem"],
+[cmdk-item],
+[data-tauri-drag-region],
+[data-resize-handle],
+[data-tree-path] {
   -webkit-user-select: none;
   user-select: none;
 }
 
-.ProseMirror,
-.ProseMirror *,
-textarea,
-input,
-select {
-  -webkit-user-select: text;
-  user-select: text;
+button {
+  touch-action: manipulation;
 }
 
 * {

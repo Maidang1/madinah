@@ -7,7 +7,7 @@ interface Props {
   variant?: 'list' | 'post';
 }
 
-const { title = "Madinah's Blog", description = "A modern blog built with Astro", variant = 'post' } = Astro.props;
+const { title = "Madinah's Blog", description = "Madinah 的个人技术博客，记录前端、Rust 与软件工具实践。", variant = 'post' } = Astro.props;
 ---
 
 <!doctype html>
@@ -91,10 +91,10 @@ const { title = "Madinah's Blog", description = "A modern blog built with Astro"
 
       <footer class="site-footer">
         <span>&copy; {new Date().getFullYear()} Madinah</span>
-        <span>Built with Astro</span>
+        <span>由 Astro 构建</span>
       </footer>
 
-      <a class="top-link" href="#top" aria-label="Go to top" title="Go to top">
+      <a class="top-link" href="#top" aria-label="返回顶部" title="返回顶部">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor" aria-hidden="true">
           <path d="M12 6H0l6-6z" />
         </svg>

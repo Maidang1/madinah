@@ -10,6 +10,17 @@ const tiptapCss = readFileSync(
   "utf8",
 );
 const readerThemeCss = readFileSync(resolve(appRoot, "../../shared/reader-theme.css"), "utf8");
+const webGlobalCss = readFileSync(resolve(appRoot, "../../src/styles/global.css"), "utf8");
+const webBlogPage = readFileSync(resolve(appRoot, "../../src/pages/blog/[...slug].astro"), "utf8");
+const editorTabsSource = readFileSync(
+  resolve(appRoot, "src/components/editor-area/editor-tabs.tsx"),
+  "utf8",
+);
+const sidebarSectionSource = readFileSync(
+  resolve(appRoot, "src/components/sidebar/sidebar-section.tsx"),
+  "utf8",
+);
+const welcomeSource = readFileSync(resolve(appRoot, "src/components/welcome/index.tsx"), "utf8");
 const settingsSchema = JSON.parse(
   readFileSync(resolve(appRoot, "shared/settings.schema.json"), "utf8"),
 ) as { settings: Array<{ key: string; default: unknown }> };
@@ -53,5 +64,34 @@ describe("Madinah render contract", () => {
     expect(tiptapCss).toContain("line-height: 1.75;");
     expect(tiptapCss).toContain(".tiptap-editor-host .ProseMirror img,");
     expect(tiptapCss).toContain("border-radius: 6px;");
+  });
+
+  test("keeps workspace chrome theme-derived and recurring controls keyboard-visible", () => {
+    expect(appCss).toContain("--surface-chrome:");
+    expect(appCss).toContain("var(--fg-base) calc(var(--contrast) * 12%)");
+    expect(appCss).not.toContain("var(--bg-base) 82%");
+    expect(appCss).toContain(
+      "--focus-ring: color-mix(in srgb, var(--fg-base) 86%, var(--accent));",
+    );
+    expect(appCss).toContain("outline: 2px solid var(--focus-ring);");
+    expect(appCss).not.toContain("*:not(.ProseMirror)");
+    expect(appCss).toContain("[data-tauri-drag-region],");
+    expect(editorTabsSource).toContain("group-focus-within:opacity-100");
+    expect(editorTabsSource).toContain("h-6 w-6");
+    expect(sidebarSectionSource).toContain('"group flex h-7');
+    expect(welcomeSource).toContain("min-h-10");
+    expect(welcomeSource).not.toContain("bg-bg");
+    expect(appCss).toContain("@media (prefers-reduced-motion: reduce)");
+  });
+
+  test("keeps the web reader reflowing while code scrolls locally", () => {
+    expect(webGlobalCss).toContain("contain: inline-size;");
+    expect(webGlobalCss).toContain("font-size: var(--reader-content-font-size);");
+    expect(webGlobalCss).toContain(".top-link:focus-visible");
+    expect(webGlobalCss).toContain("outline: 1px solid oklch(0 0 0 / 0.1);");
+    expect(webGlobalCss).toContain("outline-color: oklch(1 0 0 / 0.1);");
+    expect(webBlogPage).toContain('window.matchMedia("(prefers-reduced-motion: reduce)")');
+    expect(webBlogPage).toContain('behavior: reduceMotion ? "auto" : "smooth"');
+    expect(webBlogPage).toContain('active.setAttribute("aria-current", "location")');
   });
 });

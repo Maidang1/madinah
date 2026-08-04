@@ -64,9 +64,9 @@ function EditorTabButton({
         event.preventDefault();
         onContextMenu(event, tab);
       }}
-      className={` group relative flex shrink-0 items-center overflow-hidden whitespace-nowrap rounded-[8px] px-3.5 text-[13px] leading-[1.15] select-none cursor-default max-w-[180px] h-[var(--chrome-control-height)] ${
+      className={`group relative flex h-[var(--chrome-control-height)] max-w-[180px] shrink-0 cursor-default select-none items-center overflow-hidden whitespace-nowrap rounded-[9px] px-3.5 text-[13px] leading-[1.15] transition-[background-color,color,box-shadow] ${
         isActive
-          ? "bg-[var(--tab-active-bg)] text-[var(--text-secondary)] backdrop-blur-2xl"
+          ? "bg-[var(--tab-active-bg)] text-[var(--text-primary)] shadow-[inset_0_0_0_1px_var(--line-subtler)]"
           : "bg-transparent text-[var(--text-muted)] hover:bg-[var(--tab-active-bg)] hover:text-[var(--text-secondary)] hover:backdrop-blur-2xl"
       }`}
     >
@@ -78,12 +78,12 @@ function EditorTabButton({
         />
       ) : null}
       <span
-        className={`truncate group-hover:[mask-image:linear-gradient(to_right,black,black_calc(100%_-_28px),transparent)] group-hover:[-webkit-mask-image:linear-gradient(to_right,black,black_calc(100%_-_32px),transparent_calc(100%_-_8px))] ${isLoading ? "animate-pulse opacity-60" : ""}`}
+        className={`truncate group-hover:[mask-image:linear-gradient(to_right,black,black_calc(100%_-_28px),transparent)] group-hover:[-webkit-mask-image:linear-gradient(to_right,black,black_calc(100%_-_32px),transparent_calc(100%_-_8px))] group-focus-within:[mask-image:linear-gradient(to_right,black,black_calc(100%_-_28px),transparent)] group-focus-within:[-webkit-mask-image:linear-gradient(to_right,black,black_calc(100%_-_32px),transparent_calc(100%_-_8px))] ${isLoading ? "animate-pulse opacity-60" : ""}`}
       >
         {title}
       </span>
       <div
-        className="pointer-events-none absolute inset-y-0 right-0 flex translate-x-full items-center justify-end pr-1 opacity-0 group-hover:translate-x-0 group-hover:opacity-100"
+        className="pointer-events-none absolute inset-y-0 right-0 flex translate-x-full items-center justify-end pr-1 opacity-0 transition-[opacity,transform] group-hover:translate-x-0 group-hover:opacity-100 group-focus-within:translate-x-0 group-focus-within:opacity-100"
         style={{ width: 40 }}
       >
         <button
@@ -92,7 +92,7 @@ function EditorTabButton({
             event.stopPropagation();
             onClose(tab.id);
           }}
-          className="pointer-events-auto flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[13px] leading-none text-[var(--text-icon-muted)] hover:text-[var(--text-secondary)]"
+          className="pointer-events-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[14px] leading-none text-[var(--text-icon-muted)] transition-[background-color,color,transform] hover:bg-[var(--surface-subtle-strong)] hover:text-[var(--text-secondary)] active:scale-[0.96]"
           aria-label={`Close ${title}`}
         >
           ×
@@ -163,7 +163,7 @@ export function EditorTabs() {
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => void navigateBack()}
           disabled={!canNavigateBack}
-          className="flex h-[var(--chrome-control-height)] w-7 items-center justify-center rounded-lg text-base text-[var(--text-icon-muted)] transition-colors enabled:hover:bg-[var(--surface-subtle)] enabled:hover:text-[var(--text-secondary)] disabled:opacity-30"
+          className="flex h-[var(--chrome-control-height)] w-8 items-center justify-center rounded-lg text-base text-[var(--text-icon-muted)] transition-[background-color,color,transform] enabled:hover:bg-[var(--surface-subtle)] enabled:hover:text-[var(--text-secondary)] enabled:active:scale-[0.96] disabled:opacity-30"
           title="Back"
           aria-label="Back"
         >
@@ -174,7 +174,7 @@ export function EditorTabs() {
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => void navigateForward()}
           disabled={!canNavigateForward}
-          className="flex h-[var(--chrome-control-height)] w-7 items-center justify-center rounded-lg text-base text-[var(--text-icon-muted)] transition-colors enabled:hover:bg-[var(--surface-subtle)] enabled:hover:text-[var(--text-secondary)] disabled:opacity-30"
+          className="flex h-[var(--chrome-control-height)] w-8 items-center justify-center rounded-lg text-base text-[var(--text-icon-muted)] transition-[background-color,color,transform] enabled:hover:bg-[var(--surface-subtle)] enabled:hover:text-[var(--text-secondary)] enabled:active:scale-[0.96] disabled:opacity-30"
           title="Forward"
           aria-label="Forward"
         >
@@ -210,7 +210,7 @@ export function EditorTabs() {
         <button
           type="button"
           onClick={openNewTab}
-          className="ml-1 flex h-[var(--chrome-control-height)] w-9 shrink-0 items-center justify-center rounded-lg text-base text-[var(--text-icon-muted)] transition-colors hover:bg-[var(--surface-subtle)] hover:text-[var(--text-secondary)]"
+          className="ml-1 flex h-[var(--chrome-control-height)] w-9 shrink-0 items-center justify-center rounded-lg text-base text-[var(--text-icon-muted)] transition-[background-color,color,transform] hover:bg-[var(--surface-subtle)] hover:text-[var(--text-secondary)] active:scale-[0.96]"
           title="New tab"
           aria-label="New tab"
         >
