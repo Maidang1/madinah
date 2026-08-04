@@ -186,11 +186,6 @@ body,
   background: transparent;
 }
 
-html {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
 /* Keep useful labels, values, and errors copyable. Suppress selection only on
    native chrome and gesture surfaces where selection conflicts with the
    interaction itself. */

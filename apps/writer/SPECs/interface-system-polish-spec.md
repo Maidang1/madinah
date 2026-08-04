@@ -18,7 +18,7 @@ Specialist settings, AI, metadata, compact-picker, and editor-widget redesigns a
 - Preserve the existing CSS/Tailwind conventions and theme customization pipeline.
 - Keep token ownership explicit: `shared/reader-theme.css` owns only `--reader-*` reading defaults; Writer chrome remains derived from its configurable `--accent`, `--bg-base`, `--fg-base`, opacity, and contrast primaries. Static blog accent values must not override Writer theme customization.
 - Keep Writer dense enough for a desktop writing tool while making chrome layers and active states distinguishable.
-- Keep long-form article text at a comfortable reading size and measure on narrow viewports.
+- Preserve the deliberately tuned long-form article font family, size, and line height while measuring its reflow on narrow viewports.
 - Prevent long titles, descriptions, URLs, and mixed Chinese/English text from forcing page-level horizontal scrolling.
 - Keep all primary controls keyboard-visible and at least 24px in their real hit geometry; prefer 32–40px for recurring desktop controls.
 - Preserve reduced-motion behavior and use explicit transition properties.

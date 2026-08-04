@@ -3,7 +3,7 @@
 ## 2026-08-04
 
 - Unify Writer's primary workspace chrome and welcome state around theme-derived surfaces, clearer active and hover states, visible keyboard focus, selectable informational text, and larger recurring controls without overriding configurable theme primaries.
-- Refine the public blog into a calmer editorial surface with stronger list-card hierarchy, more comfortable mobile reading type, resilient long-content wrapping, accessible article/TOC/share controls, reduced-motion-aware scrolling, and neutral image outlines in both appearances.
+- Refine the public blog into a calmer editorial surface with stronger list-card hierarchy, resilient long-content wrapping, accessible article/TOC/share controls, reduced-motion-aware scrolling, and neutral image outlines in both appearances while preserving the deliberately tuned article body typography.
 
 ## 2026-07-16
 

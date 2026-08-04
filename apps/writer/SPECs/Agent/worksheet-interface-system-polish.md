@@ -21,7 +21,7 @@
 
 - The blog and Writer already share reader typography, but their surrounding surfaces and interaction language do not yet feel like one system.
 - Blog list rows depend on repeated separators and have weak interactive surface cues. The apparent 390px title clipping in the first headless screenshot was rejected as a browser-tool artifact: CDP reported an actual 500px layout viewport cropped into a 390px bitmap, with `scrollWidth === clientWidth`. True 320–390px reflow still needs device-metrics verification.
-- Mobile article copy drops to the 14.45px heading-six token instead of retaining the reading-size body token.
+- The article body typography, including its narrower mobile scale, is an intentional reader design and stays outside the visual-polish changes.
 - The blog back-to-top control explicitly removes focus without a replacement.
 - Writer globally disables selection outside the editor/forms, making useful labels, errors, and values impossible to copy.
 - Writer sidebar, tab chrome, and editor canvas have limited surface separation; section labels and some icon controls use 20–28px targets.
@@ -31,7 +31,7 @@
 
 1. Keep `shared/reader-theme.css` limited to `--reader-*` reading defaults. Add only reader-surface roles that both renderers can safely inherit; Writer chrome continues deriving from its configurable primaries and never consumes a static blog accent.
 2. Restyle the Writer shell through existing Tailwind/CSS owners, without new React state: a dedicated derived chrome surface, clearer tab/section states, selectable static labels/errors/values with explicit non-selectable drag/control exceptions, larger target geometry on the actual local buttons, a calmer footer, and a more informative welcome card. Do not change `IconButton` unless compact mode is added to the regression scope.
-3. Restyle the Astro list/article surfaces: stronger intro hierarchy, grouped post cards, comfortable mobile type, resilient wrapping, refined article controls/TOC/images, and visible focus.
+3. Restyle the Astro list/article surfaces while preserving the existing body typography: stronger intro hierarchy, grouped post cards, resilient wrapping, refined article controls/TOC/images, and visible focus.
 4. Keep motion interruptible and explicit; make the article's JS-driven TOC scrolling consult `prefers-reduced-motion` in addition to the CSS fallback.
 5. Validate the blog with device-metrics overrides at exact 320/390 widths and desktop, using `mdx-handwritten-design` plus `how-to-clone-a-website` as stress content. Record viewport/root scroll dimensions and intentional local overflow.
 6. Validate Writer at 1200×800 and 800×500 across light/dark, sidebar/tab/editor/footer/welcome states, plus one fixed non-default accent/background/foreground configuration with low contrast and translucency and one high-contrast configuration. Measure the named control hit boxes and traverse them by keyboard; smoke-check excluded surfaces that inherit global rules.
@@ -51,7 +51,7 @@ Completed on 2026-08-04.
 
 - Writer now paints the configurable `--bg` once and differentiates sidebar/footer/welcome chrome with foreground-derived overlays, preserving custom background, translucency, and contrast ownership.
 - Workspace tabs, sidebar sections, recurring controls, footer metrics, focus states, selection rules, and the no-workspace welcome state were refined without adding React state or changing compact-mode controls.
-- The blog list and article surfaces now use grouped editorial cards, more resilient narrow-screen typography/wrapping, accessible focus and active TOC states, reduced-motion-aware scrolling, and neutral image outlines.
+- The blog list and article surfaces now use grouped editorial cards, resilient narrow-screen wrapping, accessible focus and active TOC states, reduced-motion-aware scrolling, and neutral image outlines while preserving the original article body typography.
 - Independent implementation review findings were resolved: fixed-alpha Writer background stacking, custom-theme footer leakage, missing Writer reduced-motion handling, hidden settings/inspector button focus, keyboard tab-title masking, desktop TOC `aria-current`, and false-positive legacy copy fallback feedback.
 
 ### Runtime acceptance evidence

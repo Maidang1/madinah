@@ -1388,8 +1388,8 @@
 
   .post-content,
   .mdx-content {
-    font-size: var(--reader-content-font-size);
-    line-height: var(--reader-content-line-height);
+    font-size: var(--reader-h6-size);
+    line-height: 1.72;
   }
 
   .post-content h1,
@@ -1412,8 +1412,8 @@
   .post-content li,
   .mdx-content p,
   .mdx-content li {
-    font-size: var(--reader-content-font-size);
-    line-height: var(--reader-content-line-height);
+    font-size: var(--reader-h6-size);
+    line-height: 1.72;
   }
 
   .page-intro h1 {

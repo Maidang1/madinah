@@ -86,7 +86,12 @@ describe("Madinah render contract", () => {
 
   test("keeps the web reader reflowing while code scrolls locally", () => {
     expect(webGlobalCss).toContain("contain: inline-size;");
-    expect(webGlobalCss).toContain("font-size: var(--reader-content-font-size);");
+    expect(webGlobalCss).toMatch(
+      /\.post-content,\s+\.mdx-content \{\s+font-size: var\(--reader-h6-size\);\s+line-height: 1\.72;/,
+    );
+    expect(webGlobalCss).toMatch(
+      /\.post-content p,\s+\.post-content li,\s+\.mdx-content p,\s+\.mdx-content li \{\s+font-size: var\(--reader-h6-size\);\s+line-height: 1\.72;/,
+    );
     expect(webGlobalCss).toContain(".top-link:focus-visible");
     expect(webGlobalCss).toContain("outline: 1px solid oklch(0 0 0 / 0.1);");
     expect(webGlobalCss).toContain("outline-color: oklch(1 0 0 / 0.1);");
