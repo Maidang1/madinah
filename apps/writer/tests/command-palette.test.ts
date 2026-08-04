@@ -51,37 +51,28 @@ describe("useFuzzySearch hook", () => {
 });
 
 describe("command palette commands", () => {
-  test("adds a properties command when a file is active", () => {
+  test("exposes workspace and theme commands without settings or properties", () => {
     const commands = createCommandPaletteCommands(makeCommandContext({ activeFilePath: "/a.md" }));
+    const ids = commands.map((command) => command.id);
 
-    expect(commands.find((command) => command.id === "toggle-properties")?.label).toBe(
-      "Show Properties",
-    );
+    expect(ids).toContain("toggle-theme");
+    expect(ids).toContain("open-workspace");
+    expect(ids).not.toContain("open-settings");
+    expect(ids).not.toContain("toggle-properties");
   });
 
-  test("labels the properties command as hide when the inspector is open", () => {
-    const commands = createCommandPaletteCommands(
-      makeCommandContext({ activeFilePath: "/a.md", isDocumentInspectorOpen: true }),
-    );
-
-    expect(commands.find((command) => command.id === "toggle-properties")?.label).toBe(
-      "Hide Properties",
-    );
-  });
-
-  test("properties command toggles inspector and closes the palette", () => {
+  test("theme command toggles and closes the palette", () => {
     const calls: string[] = [];
     const commands = createCommandPaletteCommands(
       makeCommandContext({
-        activeFilePath: "/a.md",
-        toggleDocumentInspector: () => calls.push("toggle-properties"),
+        toggleTheme: () => calls.push("toggle-theme"),
         closePalette: () => calls.push("close"),
       }),
     );
 
-    commands.find((command) => command.id === "toggle-properties")?.run();
+    commands.find((command) => command.id === "toggle-theme")?.run();
 
-    expect(calls).toEqual(["toggle-properties", "close"]);
+    expect(calls).toEqual(["toggle-theme", "close"]);
   });
 });
 
@@ -94,17 +85,14 @@ function makeCommandContext(
     activeFilePath: null,
     activeTabId: null,
     tabs: [],
-    isDocumentInspectorOpen: false,
     toggleSidebar: () => {},
     openCreateFileIntent: () => {},
     openFileInCompactWindow: () => {},
-    toggleDocumentInspector: () => {},
     closeActiveTab: () => {},
     closeTab: () => {},
     openWorkspace: () => {},
     closeWorkspace: () => {},
     toggleTheme: () => {},
-    openSettings: () => {},
     closePalette: () => {},
     ...overrides,
   };

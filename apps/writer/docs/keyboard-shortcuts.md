@@ -26,11 +26,7 @@ Cmd+9 are ignored. Cmd+P, Cmd+O, Cmd+N, and history navigation still work.
 
 ## Menu Accelerators
 
-These shortcuts are bound to the native app menu (Tauri menu accelerators) rather than the global JS handler.
-
-| Shortcut | Action                                                |
-| -------- | ----------------------------------------------------- |
-| Cmd+,    | Open Preferences (Settings tab) in the focused window |
+The Preferences (Cmd+,) menu entry has been removed with the Preferences UI.
 
 ## Editor
 

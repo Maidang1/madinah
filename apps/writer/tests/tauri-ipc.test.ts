@@ -103,67 +103,6 @@ describe("filesystem IPC wrappers", () => {
   });
 });
 
-describe("AI IPC wrappers", () => {
-  test("loadAiSettings calls correct command", async () => {
-    mockedInvoke.mockResolvedValue({
-      schemaVersion: 2,
-      codexPath: "",
-      model: "",
-      instruction: "x",
-      timeoutSeconds: 120,
-    });
-    await ipc.loadAiSettings();
-    expect(mockedInvoke).toHaveBeenCalledWith("load_ai_settings");
-  });
-
-  test("saveAiSettings calls correct command", async () => {
-    const settings: ipc.AiSettings = {
-      schemaVersion: 2,
-      codexPath: "",
-      model: "",
-      instruction: "x",
-      timeoutSeconds: 120,
-    };
-    mockedInvoke.mockResolvedValue(settings);
-    await ipc.saveAiSettings(settings);
-    expect(mockedInvoke).toHaveBeenCalledWith("save_ai_settings", { settings });
-  });
-
-  test("checkAiSettings calls correct command", async () => {
-    const settings: ipc.AiSettings = {
-      schemaVersion: 2,
-      codexPath: "",
-      model: "",
-      instruction: "x",
-      timeoutSeconds: 120,
-    };
-    mockedInvoke.mockResolvedValue({ ok: true, message: "Connected" });
-    await ipc.checkAiSettings(settings);
-    expect(mockedInvoke).toHaveBeenCalledWith("check_ai_settings", { settings });
-  });
-
-  test("runAiAction calls correct command", async () => {
-    const input: ipc.AiActionInput = {
-      kind: "generate-metadata",
-      content: "draft",
-      workspaceRoot: "/workspace",
-    };
-    mockedInvoke.mockResolvedValue({
-      kind: "generate-metadata",
-      content: "{}",
-      provider: "codex",
-      metadata: {
-        title: "Madinah AI",
-        description: "Generated description.",
-        tags: ["ai"],
-        slug: "madinah-ai",
-      },
-    });
-    await ipc.runAiAction(input);
-    expect(mockedInvoke).toHaveBeenCalledWith("run_ai_action", { input });
-  });
-});
-
 describe("workspace IPC wrappers", () => {
   test("openWorkspace calls correct command", async () => {
     mockedInvoke.mockResolvedValue({ root: "/ws", name: "ws", file_count: 0 });

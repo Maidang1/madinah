@@ -2,6 +2,9 @@
 
 ## 2026-08-04
 
+- Reposition Writer as a general local Markdown/MDX app: remove Madinah one-click publish and View online, the Properties/frontmatter inspector, the entire Preferences panel (menu, command palette, settings tab), Codex AI actions/settings, and Cloudflare asset-upload configuration and IPC.
+- Drop obsolete SPECs and Agent worksheets for removed surfaces (publish, AI, properties, MCP, render-parity, desktop-only prune, website plan, completed Agent scratch pads).
+- Keep workspace open/edit/save, sidebar, tabs, command palette (including Toggle Dark Mode), and frontmatter parse for title/date display only.
 - Unify Writer's primary workspace chrome and welcome state around theme-derived surfaces, clearer active and hover states, visible keyboard focus, selectable informational text, and larger recurring controls without overriding configurable theme primaries.
 - Refine the public blog into a calmer editorial surface with stronger list-card hierarchy, resilient long-content wrapping, accessible article/TOC/share controls, reduced-motion-aware scrolling, and neutral image outlines in both appearances while preserving the deliberately tuned article body typography.
 

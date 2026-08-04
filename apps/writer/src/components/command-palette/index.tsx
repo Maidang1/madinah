@@ -24,13 +24,8 @@ import {
   useCloseActiveTab,
   useCloseTab,
   useOpenFile,
-  useOpenSettingsTab,
   useOpenTabs,
 } from "@/hooks/use-tabs";
-import {
-  useIsDocumentInspectorOpen,
-  useToggleDocumentInspector,
-} from "@/hooks/use-document-inspector";
 import { useTheme } from "@/hooks/use-theme";
 import { useFuzzySearch } from "./use-fuzzy-search";
 import { createCommandPaletteCommands, type CommandPaletteCommand } from "./commands";
@@ -80,10 +75,7 @@ export function CommandPalette() {
   const activeFilePath = useActiveFilePath();
   const tabs = useOpenTabs();
   const { toggleTheme } = useTheme();
-  const openSettingsTab = useOpenSettingsTab();
   const isCompactFileMode = useIsCompactFileMode();
-  const isDocumentInspectorOpen = useIsDocumentInspectorOpen();
-  const toggleDocumentInspector = useToggleDocumentInspector();
 
   const isCreateIntent = intent === "create-file";
   const trimmedSearch = search.trim();
@@ -135,19 +127,16 @@ export function CommandPalette() {
     activeFilePath,
     activeTabId,
     tabs,
-    isDocumentInspectorOpen,
     toggleSidebar,
     openCreateFileIntent: () => openCommandPalette("create-file"),
     openFileInCompactWindow: (path) => {
       void tauri.openFileInStandaloneWindow(path);
     },
-    toggleDocumentInspector,
     closeActiveTab,
     closeTab,
     openWorkspace: () => void handleOpenWorkspace(),
     closeWorkspace,
     toggleTheme,
-    openSettings: openSettingsTab,
     closePalette: close,
   });
 

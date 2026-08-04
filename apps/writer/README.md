@@ -1,10 +1,12 @@
 # Writer
 
-Fast and lightweight app for your workspace's Markdown and MDX files
+Fast and lightweight local app for reading and editing Markdown and MDX files in a workspace.
 
 ![Writer](./assets/screenshot.png)
 
 It is built with Tauri v2, React, Zustand, TipTap, and Rust. The app keeps documents on disk, respects workspace `.gitignore` rules, supports multiple windows, and ships through an ad-hoc-signed macOS release flow.
+
+Writer is a general Markdown/MDX surface. It no longer includes Madinah blog publishing, Properties/frontmatter forms, in-app Preferences, AI writing tools, or remote asset upload configuration.
 
 ## Fork Notice
 
@@ -62,18 +64,6 @@ cargo test
 cargo clippy
 cargo fmt --check
 ```
-
-## Publishing Madinah Articles
-
-Writer retains the Madinah publication pipeline, but the document toolbar and Properties inspector no longer expose **Publish** or **Publish update** actions. Published articles still expose **View online** using the same URL contract as the Astro site.
-
-The underlying pipeline validates and prepares frontmatter, flushes the latest editor state to disk, commits only the active article, and pushes the current branch to its configured upstream. Other staged and unstaged files remain outside the article commit.
-
-Git author identity and an upstream branch must already be configured. A failed push leaves the publication commit locally and reports its short commit ID.
-
-## Editor AI
-
-Writer integrates Codex through the Rust `codex-client-sdk`. Install and authenticate the Codex CLI before using rewrite, polish, metadata, or review actions. Preferences can auto-detect the CLI or use an explicit executable path and model override. AI turns run with a read-only workspace sandbox, disabled web search, and no approval escalation.
 
 ## Releases
 

@@ -1,7 +1,4 @@
 import { TiptapEditor } from "./tiptap-editor";
-import { AiOperationBanner } from "./ai-operation-banner";
-import { AiReviewPanel } from "./ai-review-panel";
-import { DocumentInspector } from "./document-inspector";
 import { useEditorSettingsRef } from "./use-editor-settings";
 import { useIsFileLoading } from "@/hooks/use-tabs";
 import { memo, useEffect, useRef, useState } from "react";
@@ -57,9 +54,6 @@ export const EditorPane = memo(function EditorPane({ path, isActive }: EditorPan
           <TiptapEditor filePath={path} autoFocus={isActive} scrollContainerRef={writeScrollRef} />
         </div>
       </OverlayScrollbar>
-      {isActive && <DocumentInspector filePath={path} />}
-      {isActive && <AiOperationBanner />}
-      {isActive && <AiReviewPanel filePath={path} />}
     </div>
   );
 });

@@ -32,7 +32,7 @@ A follow-up WebView regression showed a second hit-test path:
 
 ## Validation
 
-- `vp test --run tests/code-fence-extension.test.ts tests/madinah-render-contract.test.ts`
+- `vp test --run tests/code-fence-extension.test.ts`
 - `vp check`
 - `PATH="/Users/bytedance/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$HOME/.cargo/bin:$PATH" pnpm run build:app` from `apps/desktop/e2e`
 - `PATH="/Users/bytedance/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$HOME/.cargo/bin:$PATH" CI=true pnpm run test:wdio -- --spec ./specs/code-block-hit-test.spec.js` from `apps/desktop/e2e`

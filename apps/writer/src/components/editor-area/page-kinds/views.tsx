@@ -1,11 +1,9 @@
 import { EditorPane } from "../editor-pane";
 import { DocumentFooter } from "../document-footer";
 import { NewTabPage } from "../new-tab-page";
-import { SettingsPanel } from "@/components/settings-panel";
 import type { Location } from "./index";
 import type { FileLocation } from "./file";
 import type { LauncherLocation } from "./launcher";
-import type { SettingsLocation } from "./settings";
 import type { PageKindView } from "./types";
 
 /**
@@ -18,9 +16,8 @@ import type { PageKindView } from "./types";
  * its behavior module.
  */
 // `file` needs a small adapter because EditorPane is keyed by `path`, not by
-// the location object; `launcher`/`settings` reference their components
-// directly (extra props are ignored), keeping this file to a single component
-// definition.
+// the location object; `launcher` references its component directly (extra
+// props are ignored), keeping this file to a single component definition.
 // Page-kind view registry: exports the pageKindView resolver alongside the file-tab adapter component; not a Fast-Refresh component surface.
 // eslint-disable-next-line react-doctor/only-export-components
 const FileTabBody = ({ location, isActive }: { location: FileLocation; isActive: boolean }) => (
@@ -35,9 +32,6 @@ const views = {
   launcher: {
     Component: NewTabPage,
   } satisfies PageKindView<LauncherLocation>,
-  settings: {
-    Component: SettingsPanel,
-  } satisfies PageKindView<SettingsLocation>,
 } as const;
 
 /** Resolve a location to its registered view. Throws on an unknown kind —

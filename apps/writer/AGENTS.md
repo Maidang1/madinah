@@ -2,7 +2,7 @@
 title: AGENTS
 ---
 
-Writer is a Tauri v2 desktop markdown editor: React frontend + Rust backend. It targets writers who use local-first plain-text workflows (Obsidian vaults, docs repos, personal wikis).
+Writer is a Tauri v2 desktop Markdown/MDX app: React frontend + Rust backend. It targets local-first plain-text workflows (Obsidian vaults, docs repos, personal notes). Blog publishing, Preferences UI, AI toolkit, and remote asset upload are out of product scope.
 
 ## This File
 

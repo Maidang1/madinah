@@ -75,4 +75,4 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 }));
 
 // Settings are hydrated by resolveStartup() via get_startup_state before the first render.
-// loadSettings() remains available for runtime reloads (e.g. settings page).
+// loadSettings() remains available for runtime reloads (e.g. settings:changed).

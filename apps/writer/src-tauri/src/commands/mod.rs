@@ -1,10 +1,6 @@
-pub mod ai;
-pub(crate) mod ai_content;
-pub mod asset_upload;
 pub mod fs;
 pub(crate) mod fs_support;
 pub mod images;
-pub mod publish;
 pub mod recents;
 pub mod search;
 pub mod settings;

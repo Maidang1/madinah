@@ -1,6 +1,5 @@
 import { fileKind, type FileLocation } from "./file";
 import { launcherKind, type LauncherLocation } from "./launcher";
-import { settingsKind, type SettingsLocation } from "./settings";
 import type { AnyPageKind, PageKind, SerializedLocation } from "./types";
 
 /**
@@ -10,9 +9,9 @@ import type { AnyPageKind, PageKind, SerializedLocation } from "./types";
  * that's declared here is usable everywhere and a kind that's missing is a
  * type error at every call site.
  */
-const kinds = [fileKind, launcherKind, settingsKind] as const;
+const kinds = [fileKind, launcherKind] as const;
 
-export type Location = FileLocation | LauncherLocation | SettingsLocation;
+export type Location = FileLocation | LauncherLocation;
 
 const byKind: Map<string, AnyPageKind> = new Map(
   kinds.map((k) => [k.kind, k as unknown as AnyPageKind]),
@@ -49,4 +48,3 @@ export function deserializeLocation(data: SerializedLocation | null | undefined)
 export type { PageKind, SerializedLocation, AnyPageKind } from "./types";
 export type { FileLocation } from "./file";
 export type { LauncherLocation } from "./launcher";
-export type { SettingsLocation } from "./settings";

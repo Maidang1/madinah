@@ -252,20 +252,14 @@ fn position_new_window(app: &tauri::AppHandle, window: &WebviewWindow) {
 /// Build the native menu bar and wire app-level menu events.
 #[cfg(desktop)]
 fn install_app_menu(app: &tauri::AppHandle) -> Result<(), Box<dyn std::error::Error>> {
-    let preferences_item = MenuItemBuilder::with_id("preferences.open", "Preferences…")
-        .accelerator("CmdOrCtrl+,")
-        .build(app)?;
-
     #[cfg(target_os = "macos")]
     let cli_item = MenuItemBuilder::with_id("cli.toggle", CLI_MENU_INSTALL_LABEL).build(app)?;
 
     let app_submenu = {
         let b = SubmenuBuilder::new(app, "Writer")
-            .item(&PredefinedMenuItem::about(app, Some("About Writer"), None)?)
-            .separator()
-            .item(&preferences_item);
+            .item(&PredefinedMenuItem::about(app, Some("About Writer"), None)?);
         #[cfg(target_os = "macos")]
-        let b = b.item(&cli_item);
+        let b = b.separator().item(&cli_item);
         b.separator()
             .item(&PredefinedMenuItem::services(app, None)?)
             .separator()
@@ -308,37 +302,15 @@ fn install_app_menu(app: &tauri::AppHandle) -> Result<(), Box<dyn std::error::Er
     }
 
     app.on_menu_event(|app, event| match event.id().0.as_str() {
-        "preferences.open" => emit_to_focused_window(app, "menu:open-preferences"),
         #[cfg(target_os = "macos")]
         "cli.toggle" => run_cli_toggle(app.clone()),
-        _ => {}
+        _ => {
+            let _ = app;
+            let _ = event;
+        }
     });
 
     Ok(())
-}
-
-/// Send an event to whichever webview window currently has focus, scoped to
-/// that window so other windows don't react. The native menu handler runs on
-/// the `AppHandle` and isn't tied to a window, so we resolve the target here.
-///
-/// Fallback order if no window reports focus (focus race, platform error
-/// from `is_focused`): the main window if visible, else any visible window.
-/// `webview_windows()` returns a `HashMap` whose iteration order is
-/// non-deterministic, so the explicit main-window preference matters.
-fn emit_to_focused_window(app: &tauri::AppHandle, event: &str) {
-    let windows = app.webview_windows();
-    let target = windows
-        .values()
-        .find(|w| w.is_focused().unwrap_or(false))
-        .or_else(|| {
-            windows
-                .get(MAIN_WINDOW_LABEL)
-                .filter(|w| w.is_visible().unwrap_or(false))
-        })
-        .or_else(|| windows.values().find(|w| w.is_visible().unwrap_or(false)));
-    if let Some(window) = target {
-        let _ = app.emit_to(window.label(), event, ());
-    }
 }
 
 #[cfg(target_os = "macos")]
@@ -535,15 +507,6 @@ pub fn run() {
             commands::search::index_workspace,
             commands::search::fuzzy_search,
             commands::images::save_clipboard_image,
-            commands::publish::publish_document,
-            commands::asset_upload::load_asset_upload_settings,
-            commands::asset_upload::save_asset_upload_settings,
-            commands::asset_upload::check_asset_upload_settings,
-            commands::asset_upload::upload_asset_image,
-            commands::ai::load_ai_settings,
-            commands::ai::save_ai_settings,
-            commands::ai::check_ai_settings,
-            commands::ai::run_ai_action,
             commands::settings::get_settings,
             commands::settings::get_setting,
             commands::settings::set_setting,

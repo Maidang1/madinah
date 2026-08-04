@@ -1,4 +1,3 @@
-import { settingsKind } from "@/components/editor-area/page-kinds/settings";
 import type { Tab } from "@/hooks/use-tabs";
 
 export type CommandPaletteCommand = {
@@ -14,17 +13,14 @@ interface CreateCommandPaletteCommandsInput {
   activeFilePath: string | null;
   activeTabId: string | null;
   tabs: Tab[];
-  isDocumentInspectorOpen: boolean;
   toggleSidebar: () => void;
   openCreateFileIntent: () => void;
   openFileInCompactWindow: (path: string) => void;
-  toggleDocumentInspector: () => void;
   closeActiveTab: () => void;
   closeTab: (tabId: string) => void;
   openWorkspace: () => void;
   closeWorkspace: () => void;
   toggleTheme: () => void;
-  openSettings: () => void;
   closePalette: () => void;
 }
 
@@ -64,17 +60,6 @@ export const COMMAND_PALETTE_COMMANDS: readonly CommandPaletteCommandDefinition[
     isVisible: ({ root, activeFilePath }) => Boolean(root && activeFilePath),
     run: ({ activeFilePath, openFileInCompactWindow, closePalette }) => {
       if (activeFilePath) openFileInCompactWindow(activeFilePath);
-      closePalette();
-    },
-  },
-  {
-    id: "toggle-properties",
-    label: ({ isDocumentInspectorOpen }) =>
-      isDocumentInspectorOpen ? "Hide Properties" : "Show Properties",
-    description: "Command",
-    isVisible: ({ activeFilePath }) => Boolean(activeFilePath),
-    run: ({ toggleDocumentInspector, closePalette }) => {
-      toggleDocumentInspector();
       closePalette();
     },
   },
@@ -120,16 +105,6 @@ export const COMMAND_PALETTE_COMMANDS: readonly CommandPaletteCommandDefinition[
     description: "Command",
     run: ({ toggleTheme, closePalette }) => {
       toggleTheme();
-      closePalette();
-    },
-  },
-  {
-    id: "open-settings",
-    label: "Settings",
-    description: settingsKind.description,
-    isVisible: ({ isCompactFileMode }) => !isCompactFileMode,
-    run: ({ openSettings, closePalette }) => {
-      openSettings();
       closePalette();
     },
   },

@@ -32,7 +32,7 @@ import {
 } from "./editor-derived";
 
 export type { FileLocation, Location, OpenFile, SessionTab, Tab } from "@/domain/editor-session";
-export { createSettingsTab, getEditorSessionSnapshot } from "@/domain/editor-session";
+export { getEditorSessionSnapshot } from "@/domain/editor-session";
 
 interface EditorState {
   openFiles: Map<string, OpenFile>;

@@ -54,10 +54,6 @@ export function createFileTab(path: string, id = createTabId()): Tab {
   return { id, location: { kind: "file", path }, back: [], forward: [] };
 }
 
-export function createSettingsTab(id = createTabId()): Tab {
-  return { id, location: { kind: "settings" }, back: [], forward: [] };
-}
-
 export function cloneTab(tab: Tab): Tab {
   return { ...tab, back: [...tab.back], forward: [...tab.forward] };
 }

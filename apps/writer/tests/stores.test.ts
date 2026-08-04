@@ -197,7 +197,7 @@ describe("editor-store", () => {
     expect(file?.content).toBe("\n# Hello\n\nBody");
   });
 
-  test("updateFrontmatter(path, null) unmounts the frontmatter panel, dirties the file, and re-infers title", async () => {
+  test("updateFrontmatter(path, null) clears frontmatter, dirties the file, and re-infers title", async () => {
     mockedInvoke.mockResolvedValue({
       path: "/test/file.md",
       content: "---\ntitle: Hello\n---\n\n# From Body\n\nBody",
@@ -744,7 +744,6 @@ describe("ui-store", () => {
       isCommandPaletteOpen: false,
       commandPaletteIntent: "search",
       commandPaletteSearch: "",
-      isDocumentInspectorOpen: false,
     });
 
     useSettingsStore.setState({
@@ -785,22 +784,6 @@ describe("ui-store", () => {
 
     useUIStore.getState().closeCommandPalette();
     expect(useUIStore.getState().commandPaletteSearch).toBe("");
-  });
-
-  test("document inspector opens, closes, and toggles without persistence", () => {
-    expect(useUIStore.getState().isDocumentInspectorOpen).toBe(false);
-
-    useUIStore.getState().openDocumentInspector();
-    expect(useUIStore.getState().isDocumentInspectorOpen).toBe(true);
-
-    useUIStore.getState().toggleDocumentInspector();
-    expect(useUIStore.getState().isDocumentInspectorOpen).toBe(false);
-
-    useUIStore.getState().toggleDocumentInspector();
-    expect(useUIStore.getState().isDocumentInspectorOpen).toBe(true);
-
-    useUIStore.getState().closeDocumentInspector();
-    expect(useUIStore.getState().isDocumentInspectorOpen).toBe(false);
   });
 
   test("toggleTheme cycles system→light→dark→system", () => {

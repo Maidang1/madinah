@@ -1,4 +1,3 @@
-import { createSettingsTab } from "@/domain/editor-session";
 import { useEditorStore } from "@/stores/editor-store";
 import type { DocumentStats } from "@/lib/document-stats";
 
@@ -102,13 +101,4 @@ export function useIsActive(path: string) {
 
 export function useReloadVersion(path: string | null) {
   return useEditorStore((s) => (path ? (s.openFiles.get(path)?.reloadVersion ?? 0) : 0));
-}
-
-function useOpenOrFocus() {
-  return useEditorStore((s) => s.openOrFocus);
-}
-
-export function useOpenSettingsTab() {
-  const openOrFocus = useOpenOrFocus();
-  return () => openOrFocus((tab) => tab.location.kind === "settings", createSettingsTab);
 }
