@@ -36,7 +36,7 @@
 
 ## Up Next
 
--
+- AI-first ACP Assistant: [`SPECs/ai-first-acp-assistant-spec.md`](SPECs/ai-first-acp-assistant-spec.md), [GitHub #9](https://github.com/Maidang1/madinah/issues/9) — add a default Workspace Assistant for grounded note queries and selection-aware translation, explanation, and polishing through user-managed ACP agents; deliver it in the spec's separate slices.
 
 ## Backlog
 

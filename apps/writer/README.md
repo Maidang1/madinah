@@ -6,7 +6,9 @@ Fast and lightweight local app for reading and editing Markdown and MDX files in
 
 It is built with Tauri v2, React, Zustand, TipTap, and Rust. The app keeps documents on disk, respects workspace `.gitignore` rules, supports multiple windows, and ships through an ad-hoc-signed macOS release flow.
 
-Writer is a general Markdown/MDX surface. It no longer includes Madinah blog publishing, Properties/frontmatter forms, in-app Preferences, AI writing tools, or remote asset upload configuration.
+Writer is a general Markdown/MDX surface. It no longer includes Madinah blog publishing, Properties/frontmatter forms, in-app Preferences, the former provider-specific AI toolkit, or remote asset upload configuration.
+
+An AI-first Assistant built on user-managed Agent Client Protocol runtimes is an approved product direction but is not implemented in the current release. Its product and architecture contract lives in [`SPECs/ai-first-acp-assistant-spec.md`](./SPECs/ai-first-acp-assistant-spec.md).
 
 ## Fork Notice
 

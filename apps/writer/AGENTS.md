@@ -2,7 +2,7 @@
 title: AGENTS
 ---
 
-Writer is a Tauri v2 desktop Markdown/MDX app: React frontend + Rust backend. It targets local-first plain-text workflows (Obsidian vaults, docs repos, personal notes). Blog publishing, Preferences UI, AI toolkit, and remote asset upload are out of product scope.
+Writer is a Tauri v2 desktop Markdown/MDX app: React frontend + Rust backend. It targets local-first plain-text workflows (Obsidian vaults, docs repos, personal notes). Blog publishing, a general Preferences UI, direct model-provider integration, embedded models, and remote asset upload are out of product scope. An AI-first Assistant using user-managed ACP agents is an approved direction tracked in [`SPECs/ai-first-acp-assistant-spec.md`](./SPECs/ai-first-acp-assistant-spec.md); it is not implemented yet.
 
 ## This File
 
