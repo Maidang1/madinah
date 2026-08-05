@@ -5,11 +5,22 @@ import * as tauri from "@/lib/tauri";
 import { getPreference, setPreference } from "@/lib/preferences";
 import { saveSession, loadSession } from "@/lib/session";
 import { getEditorSessionSnapshot, useEditorStore } from "@/stores/editor-store";
+import {
+  isSameWorkspaceLease,
+  type WorkspaceReadOnlyLease,
+} from "@/domain/workspace-turn-lifecycle";
 
 export type WorkspaceChromeMode = "workspace" | "compact-file";
 
+export type WorkspaceDirectoryReconciliation =
+  | { status: "reloaded"; path: string; entries: DirEntry[] }
+  | { status: "deleted"; path: string }
+  | { status: "failed"; path: string; message: string };
+
 interface WorkspaceState {
   root: string | null;
+  generation: number;
+  readOnlyLease: WorkspaceReadOnlyLease | null;
   chromeMode: WorkspaceChromeMode;
   fileCount: number;
   isIndexing: boolean;
@@ -41,7 +52,17 @@ interface WorkspaceState {
   handleDirectoryChanged: (path: string) => void;
   bumpSidebarMetadataVersion: () => void;
   removeRecentWorkspace: (path: string) => Promise<void>;
+  acquireReadOnly: (root: string) => WorkspaceReadOnlyLease;
+  releaseReadOnly: (lease: WorkspaceReadOnlyLease) => boolean;
+  applyReconciliationProjection: (
+    lease: WorkspaceReadOnlyLease,
+    fileCount: number,
+    rootEntries: DirEntry[],
+    directoryResults: WorkspaceDirectoryReconciliation[],
+  ) => boolean;
 }
+
+let workspaceReadOnlyLeaseSequence = 0;
 
 function pinnedFilesPreferenceKey(root: string) {
   return `workspace:${root}:sidebar-pinned-files`;
@@ -81,6 +102,8 @@ function dedupe(paths: string[]) {
 
 export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   root: null,
+  generation: 0,
+  readOnlyLease: null,
   chromeMode: "workspace",
   fileCount: 0,
   isIndexing: false,
@@ -118,6 +141,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     ]);
     set({
       root: info.root,
+      generation: get().generation + 1,
+      readOnlyLease: null,
       chromeMode: "workspace",
       fileCount: info.file_count,
       isIndexing: true,
@@ -146,6 +171,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     useEditorStore.getState().resetSession();
     set({
       root: null,
+      generation: get().generation + 1,
+      readOnlyLease: null,
       chromeMode: "workspace",
       fileCount: 0,
       directoryCache: new Map(),
@@ -161,6 +188,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
     set({
       root: bundle.workspace.root,
+      generation: get().generation + 1,
+      readOnlyLease: null,
       chromeMode: "workspace",
       fileCount: bundle.workspace.file_count,
       isIndexing: true,
@@ -402,6 +431,57 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     set((state) => ({
       recentWorkspaces: state.recentWorkspaces.filter((p) => p !== path),
     }));
+  },
+
+  acquireReadOnly: (root: string) => {
+    const state = get();
+    if (state.root !== root) {
+      throw new Error(`Workspace is not current: ${root}`);
+    }
+    if (state.readOnlyLease) {
+      throw new Error(`Workspace is already read-only: ${root}`);
+    }
+    const lease: WorkspaceReadOnlyLease = {
+      root,
+      generation: state.generation,
+      id: ++workspaceReadOnlyLeaseSequence,
+    };
+    set({ readOnlyLease: lease });
+    return lease;
+  },
+
+  releaseReadOnly: (lease) => {
+    if (!isSameWorkspaceLease(get().readOnlyLease, lease)) return false;
+    set({ readOnlyLease: null });
+    return true;
+  },
+
+  applyReconciliationProjection: (lease, fileCount, rootEntries, directoryResults) => {
+    let applied = false;
+    set((state) => {
+      if (!isSameWorkspaceLease(state.readOnlyLease, lease)) return state;
+      applied = true;
+      const directoryCache = new Map<string, DirEntry[]>([[lease.root, rootEntries]]);
+      const expandedDirs = new Set(state.expandedDirs);
+      for (const result of directoryResults) {
+        if (result.status === "reloaded") {
+          directoryCache.set(result.path, result.entries);
+        } else if (result.status === "deleted") {
+          expandedDirs.delete(result.path);
+        } else {
+          const previousEntries = state.directoryCache.get(result.path);
+          if (previousEntries) directoryCache.set(result.path, previousEntries);
+        }
+      }
+      return {
+        fileCount,
+        isIndexing: false,
+        directoryCache,
+        expandedDirs,
+        sidebarMetadataVersion: state.sidebarMetadataVersion + 1,
+      };
+    });
+    return applied;
   },
 }));
 

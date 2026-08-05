@@ -86,6 +86,7 @@ type EditorStateSetter = (
 
 const pendingLoads = new Map<string, Promise<void>>();
 const pendingNavigationVersionByTabId = new Map<string, number>();
+let openFileInstanceSequence = 0;
 
 // How long openFile waits for a fresh file to finish loading before falling
 // back to creating the tab with a "Loading..." placeholder. Below ~100 ms is
@@ -94,6 +95,7 @@ const OPEN_FILE_GRACE_MS = 40;
 
 function createLoadingFile(path: string): OpenFile {
   return {
+    instanceId: ++openFileInstanceSequence,
     path,
     frontmatter: null,
     content: "",

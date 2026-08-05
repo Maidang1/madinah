@@ -66,6 +66,7 @@ describe("keyboard shortcuts - tab navigation", () => {
         [
           "/a.md",
           {
+            instanceId: 1,
             path: "/a.md",
             frontmatter: "",
             content: "a",
@@ -85,6 +86,7 @@ describe("keyboard shortcuts - tab navigation", () => {
         [
           "/b.md",
           {
+            instanceId: 2,
             path: "/b.md",
             frontmatter: "",
             content: "b",

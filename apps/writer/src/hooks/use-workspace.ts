@@ -38,3 +38,7 @@ export function useIsStartupResolved() {
 export function useWorkspaceRoot() {
   return useWorkspaceStore((s) => s.root);
 }
+
+export function useWorkspaceReadOnly() {
+  return useWorkspaceStore((s) => s.readOnlyLease !== null);
+}

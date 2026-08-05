@@ -10,6 +10,7 @@ import {
 } from "@/components/editor-area/page-kinds";
 
 export interface OpenFile {
+  instanceId: number;
   path: string;
   frontmatter: string | null;
   content: string;

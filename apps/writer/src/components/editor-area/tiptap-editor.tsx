@@ -11,6 +11,7 @@ import Typography from "@tiptap/extension-typography";
 import type { Editor } from "@tiptap/react";
 import * as editorApi from "@/hooks/editor-api";
 import { useReloadVersion } from "@/hooks/use-tabs";
+import { useWorkspaceReadOnly } from "@/hooks/use-workspace";
 import type { OverlayScrollbarRef } from "@/components/overlay-scrollbar";
 import { TiptapSlashMenu } from "./tiptap-slash-menu";
 import "./tiptap-editor.css";
@@ -71,12 +72,14 @@ export function useTiptapEditor(
   const prevPathRef = useRef<string | null>(null);
   const prevReloadVersionRef = useRef<number>(0);
   const suppressUpdateRef = useRef(false);
+  const isWorkspaceReadOnly = useWorkspaceReadOnly();
   filePathRef.current = filePath;
   autoFocusRef.current = autoFocus;
 
   const editor = useEditor({
     extensions: buildExtensions(),
     content: "",
+    editable: !isWorkspaceReadOnly,
     // setContent is our own write path; don't emit updates for it.
     editorProps: {
       attributes: {
@@ -96,6 +99,10 @@ export function useTiptapEditor(
   });
 
   const reloadVersion = useReloadVersion(filePath);
+
+  useEffect(() => {
+    editor?.setEditable(!isWorkspaceReadOnly);
+  }, [editor, isWorkspaceReadOnly]);
 
   // Initial mount + path / reload-version swaps.
   useEffect(() => {

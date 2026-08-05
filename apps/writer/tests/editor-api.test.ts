@@ -32,6 +32,7 @@ describe("editorApi", () => {
       [
         "/test.md",
         {
+          instanceId: 1,
           path: "/test.md",
           frontmatter: "",
           content: "hello",
@@ -64,6 +65,7 @@ describe("editorApi", () => {
       [
         "/a.md",
         {
+          instanceId: 1,
           path: "/a.md",
           frontmatter: "",
           content: "",
@@ -101,6 +103,7 @@ describe("editorApi", () => {
       [
         "/a.md",
         {
+          instanceId: 1,
           path: "/a.md",
           frontmatter: null,
           content: "modified",

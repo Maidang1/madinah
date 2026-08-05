@@ -38,6 +38,7 @@ All docs except CLAUDE.md, AGENTS.md, TODOS.md, and CHANGELOG.md live in `./docs
 - [docs/consolidation.md](./docs/consolidation.md) — if adding the next case touches more than one file, the structure is wrong: single source of truth, side-effect ownership, registry over per-case branches, one write path
 - [docs/react-guidelines.md](./docs/react-guidelines.md) — imports, state, side effects, component structure, persistence
 - [docs/zustand.md](./docs/zustand.md) — side effect timing, selectors, bail-out patterns
+- [docs/workspace-lifecycle.md](./docs/workspace-lifecycle.md) — per-window flush, read-only lease, explicit reconciliation/reload, and later coordinator boundary
 - [docs/vite-plus.md](./docs/vite-plus.md) — `vp` CLI usage and common pitfalls
 - [docs/keyboard-shortcuts.md](./docs/keyboard-shortcuts.md) — canonical shortcut map
 

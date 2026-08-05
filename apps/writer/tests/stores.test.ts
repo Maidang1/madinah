@@ -1096,6 +1096,7 @@ describe("workspace-store closeWorkspace", () => {
         [
           "/test/a.md",
           {
+            instanceId: 1,
             path: "/test/a.md",
             frontmatter: null,
             content: "a",
