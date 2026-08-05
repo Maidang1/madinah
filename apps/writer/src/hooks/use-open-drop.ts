@@ -7,6 +7,7 @@ import { mark } from "@/lib/startup-metrics";
 import type { PendingOpenPayload } from "@/lib/tauri";
 import type { FileContent } from "@/types/fs";
 import * as tauri from "@/lib/tauri";
+import { getParentDir } from "@/lib/paths";
 
 /** Open a file in this window's standalone compact chrome. The shared path
  *  for startup, drag-drop, the compact picker, and the command palette. The
@@ -15,6 +16,12 @@ import * as tauri from "@/lib/tauri";
 export async function openStandaloneFile(path: string, prefetched: FileContent | null = null) {
   useWorkspaceStore.getState().setChromeMode("compact-file");
   await useEditorStore.getState().openCompactFile(path, prefetched);
+}
+
+export async function openContainingWorkspaceForFile(path: string) {
+  const parent = getParentDir(path);
+  if (!parent) throw new Error("This file has no containing folder to open.");
+  await tauri.openWorkspaceInNewWindow(parent, path);
 }
 
 export async function handleOpenPayload(payload: PendingOpenPayload) {

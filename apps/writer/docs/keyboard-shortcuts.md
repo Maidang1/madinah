@@ -14,14 +14,15 @@ These shortcuts are handled by the global `useKeyboardShortcuts` hook and work r
 | Cmd+T           | New tab                       |
 | Cmd+W           | Close current tab             |
 | Cmd+\\          | Toggle sidebar                |
+| Cmd+Shift+\\    | Reveal or focus Assistant     |
 | Ctrl+Tab        | Next tab                      |
 | Ctrl+Shift+Tab  | Previous tab                  |
 | Cmd+1 ... Cmd+9 | Jump to Nth tab               |
 | Alt+ArrowLeft   | Navigate back                 |
 | Alt+ArrowRight  | Navigate forward              |
 
-In compact single-file windows, sidebar and tab-management shortcuts do not
-create hidden UI state: Cmd+\\, Cmd+T, Ctrl+Tab, Ctrl+Shift+Tab, and Cmd+1 ...
+In compact single-file windows, sidebar, Assistant, and tab-management shortcuts do not
+create hidden UI state: Cmd+\\, Cmd+Shift+\\, Cmd+T, Ctrl+Tab, Ctrl+Shift+Tab, and Cmd+1 ...
 Cmd+9 are ignored. Cmd+P, Cmd+O, Cmd+N, and history navigation still work.
 
 ## Menu Accelerators

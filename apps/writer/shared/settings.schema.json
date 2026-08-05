@@ -54,6 +54,22 @@
       "default": true
     },
     {
+      "key": "appearance.assistant-width",
+      "label": "Assistant Width",
+      "description": "Default Assistant pane width in pixels",
+      "category": "Appearance",
+      "type": "number",
+      "default": 320
+    },
+    {
+      "key": "appearance.assistant-visible",
+      "label": "Assistant Visible",
+      "description": "Show the Assistant by default",
+      "category": "Appearance",
+      "type": "boolean",
+      "default": true
+    },
+    {
       "key": "appearance.sidebar-file-label",
       "label": "Sidebar File Label",
       "description": "Show the document title or the filename for files in the sidebar",

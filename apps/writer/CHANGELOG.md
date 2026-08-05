@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-08-06
+
+- Add the default-visible, independently resizable Assistant discovery pane for Workspace windows. Writer now detects directly installed Claude Agent ACP, Codex ACP, and explicitly registered native ACP executables through a bounded initialize-only handshake, reports actionable compatibility states, and never downloads packages or stores credentials; custom registrations accept only bounded valueless ACP transport switches, are capped at 32 entries/256 KiB, and launch self-contained executables of at most 128 MiB from a verified, cancellable private copy so configured-path replacement cannot change what is spawned.
+- Keep compact-file windows AI-free while adding an explicit “Open containing folder” action that preserves the active file in a new Workspace window.
+
 ## 2026-08-04
 
 - Reposition Writer as a general local Markdown/MDX app: remove Madinah one-click publish and View online, the Properties/frontmatter inspector, the entire Preferences panel (menu, command palette, settings tab), Codex AI actions/settings, and Cloudflare asset-upload configuration and IPC.

@@ -7,6 +7,7 @@
 
 ## Done
 
+- ACP Agent discovery and compatibility: [`SPECs/Agent/worksheet-acp-agent-discovery.md`](SPECs/Agent/worksheet-acp-agent-discovery.md), [GitHub #11](https://github.com/Maidang1/madinah/issues/11) — discovers built-in and explicitly registered compatible ACP Agents through bounded initialize-only probes, with conservative no-secret registrations, Workspace lifecycle cancellation, immutable private-copy launch, actionable status modeling, and Assistant catalog UI; the parent AI-first Assistant remains Up Next.
 - Workspace Turn Lifecycle prefactor: [`SPECs/Agent/worksheet-workspace-turn-lifecycle.md`](SPECs/Agent/worksheet-workspace-turn-lifecycle.md), [GitHub #10](https://github.com/Maidang1/madinah/issues/10) — established the behavior-preserving flush, lease-scoped read-only, explicit reconciliation/reload, and unlock seam required by later Agent Turn orchestration; the parent AI-first Assistant remains Up Next.
 - Product de-blog-specialization — remove Preferences UI, Properties/frontmatter inspector, Madinah publish/View online, AI toolkit, and remote asset upload; keep general Markdown/MDX edit and workspace chrome. Purge obsolete SPECs/Agent worksheets for removed surfaces.
 - Writer release workflow simplification: [`SPECs/writer-release-workflow-spec.md`](SPECs/writer-release-workflow-spec.md) — one version tag, one GitHub Actions job, same-repository DMG draft.

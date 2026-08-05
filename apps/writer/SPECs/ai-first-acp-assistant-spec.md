@@ -25,7 +25,7 @@ The complete approved vocabulary is in the repository root `CONTEXT.md`. Archite
 ## Goals
 
 - Connect to locally launched Agent Client Protocol agents through one provider-neutral boundary.
-- Detect Claude Agent ACP and Codex ACP, and accept custom ACP command/argument registrations.
+- Detect Claude Agent ACP and Codex ACP, and accept conservative custom ACP executable registrations.
 - Stream Assistant messages, transient thoughts, tool activity, permission requests, and turn state.
 - Persist user messages, final replies, citations, change summaries, permission decisions, runtime session identifiers, timestamps, and turn outcomes.
 - Restore compatible runtime sessions after restarting Writer.
@@ -76,11 +76,21 @@ The complete approved vocabulary is in the repository root `CONTEXT.md`. Archite
 - Writer is an ACP client and uses an official ACP SDK rather than hand-written wire types.
 - The Rust backend owns runtime discovery, process spawning, stdio transport, handshake, capability negotiation, session lifecycle, cancellation, and termination.
 - Keep built-in launch/detection definitions in one typed registry. The initial registry contains Claude Agent ACP and Codex ACP.
-- Let users add a custom Agent Registration containing a local executable command and arguments. Do not accept or persist API keys or provider credentials.
+- Let users add a custom Agent Registration containing the already-canonical absolute path of a local regular native executable no larger than 128 MiB. Reject symlinks, scripts/text wrappers, package runners, shells, interpreters, generic dispatchers, and non-executable files. Verify the file before persistence. For discovery, run the blocking open/validate/bounded-copy/sync/revalidate phase off the async runtime, copy from the opened handle into a securely created private executable artifact with per-chunk Workspace cancellation, validate and launch only that artifact, then remove it after process cleanup on every outcome. A source classified as missing is never spawned even if it appears immediately afterward. At most three custom bindings run concurrently, bounding private-copy disk use to 384 MiB.
+- A custom native ACP executable must be self-contained and must not require sibling resources, helpers, or libraries resolved through `current_exe`, `$ORIGIN`, or `@executable_path`, because Writer launches the verified private copy. Surface this constraint in registration copy and as actionable guidance on a custom startup/handshake failure. Built-in Agents continue normal installed-path launches.
+- Custom registrations may persist only the valueless ACP transport switches `--stdio` and `--acp`, with bounded path/argument sizes. Reject all opaque positional and value-bearing arguments because Writer cannot prove that arbitrary values are not credentials. Users configure models, profiles, and authentication in the native runtime outside Writer.
+- Bound registration storage and discovery work: the registration file is at most 256 KiB, contains at most 32 custom entries, and advances through checked monotonic revisions. Discovery rejects an over-limit snapshot rather than partially queueing it.
 - Never silently run `npx`, download a package, or install/update an executable. Missing agents show their source and setup guidance only.
 - A Writer-compatible Agent Runtime must support streamed text, session creation and restoration, cancellation, a Workspace working directory, and permission requests.
 - Reject an incompatible agent after handshake and list its missing required capabilities. Do not silently degrade persistence, Stop, or permission behavior.
 - Use ACP protocol negotiation and advertised optional capabilities; do not branch application behavior on provider names outside the launch registry.
+
+Discovery before Workspace AI Access Consent is initialize-only: it launches the direct executable,
+negotiates ACP v1, and inspects advertised capabilities, but does not send a Workspace path, create or
+load a session, or send a prompt. Protocol-baseline methods are modeled from the negotiated ACP version;
+session restoration requires the explicit `loadSession` advertisement. Authentication is actionable when
+initialization itself reports it; session-time authentication remains unverified until the consent/runtime
+slice.
 
 ## Workspace Consent and Authority
 
@@ -90,6 +100,7 @@ The complete approved vocabulary is in the repository root `CONTEXT.md`. Archite
 - Grant the Agent Runtime unrestricted Workspace read/write access as an explicit trust decision.
 - Preserve ACP permission prompts for every terminal command, external network side effect, or access outside the Workspace.
 - Do not claim that ACP `cwd` or permission messages form an OS sandbox. A user-managed runtime is trusted to honor the ACP contract; Writer does not police a malicious process.
+- A directly registered native runtime is likewise trusted for its own internal behavior. Native-file validation prevents Writer from persisting secrets or launching an obvious wrapper; it is not an OS sandbox or an audit of what the runtime does after launch.
 - Persist permission decisions for the conversation record, but never reuse a prior decision to auto-approve a later External Action.
 
 ## Agent Turn State Machine

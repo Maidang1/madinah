@@ -28,11 +28,15 @@ notify = { version = "7", features = ["macos_fsevent"] }
 ignore = "0.4"
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp"] }
 uuid = { version = "1", features = ["v4"] }
-tokio = { version = "1", features = ["fs", "io-util", "process", "sync", "time"] }
+tokio = { version = "1", features = ["fs", "io-util", "macros", "process", "rt", "sync", "time"] }
 parking_lot = "0.12"
 thiserror = "2"
 trash = "5"
 base64 = "0.22"
+agent-client-protocol = "2.0.0"
+futures = "0.3"
+rustix = { version = "1", features = ["fs", "process"] }
+tempfile = "3"
 tauri-plugin-store = "2.4.2"
 tauri-plugin-single-instance = "2"
 tauri-plugin-webdriver = { version = "0.2", optional = true }
@@ -46,8 +50,8 @@ objc2 = "0.6.4"
 e2e = ["dep:tauri-plugin-webdriver"]
 
 [dev-dependencies]
-tempfile = "3"
 regex-lite = "0.1"
+tauri = { version = "2", features = ["test"] }
 
 [profile.release]
 strip = true

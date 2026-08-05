@@ -64,6 +64,9 @@ pub struct WorkspaceState {
     /// same file onto the existing window and as the target of the
     /// single-file watcher.
     pub standalone_file: RwLock<Option<PathBuf>>,
+    /// Monotonic discovery request generation for this window. A newer
+    /// refresh or Workspace transition invalidates older compatibility work.
+    pub assistant_discovery_epoch: Arc<AtomicU64>,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -92,11 +95,20 @@ impl Default for WorkspaceState {
             startup_open_taken: AtomicBool::new(false),
             pending_open: Mutex::new(VecDeque::new()),
             standalone_file: RwLock::new(None),
+            assistant_discovery_epoch: Arc::new(AtomicU64::new(0)),
         }
     }
 }
 
 impl WorkspaceState {
+    /// Cancel compatibility probes captured against the previous Workspace
+    /// identity. Call only after publishing the new root/file identity so a
+    /// discovery command cannot validate the outgoing root after this bump.
+    pub fn invalidate_assistant_discovery(&self) {
+        self.assistant_discovery_epoch
+            .fetch_add(1, Ordering::AcqRel);
+    }
+
     pub fn set_startup_open(&self, payload: PendingOpenPayload) {
         debug_assert!(
             !self.startup_open_taken.load(Ordering::Acquire),
@@ -217,6 +229,9 @@ pub struct AppState {
     /// so concurrent recents updates from multiple windows don't drop each
     /// other's entries. Held only for the load→save span.
     pub recent_files_lock: Mutex<()>,
+    /// Serializes versioned read-modify-write updates to the process-wide
+    /// custom ACP Agent registration document.
+    pub assistant_registrations_lock: Mutex<()>,
 }
 
 impl AppState {
@@ -225,6 +240,7 @@ impl AppState {
             windows: RwLock::new(HashMap::new()),
             sessions_file_lock: Mutex::new(()),
             recent_files_lock: Mutex::new(()),
+            assistant_registrations_lock: Mutex::new(()),
         }
     }
 
@@ -252,7 +268,13 @@ impl AppState {
     /// event handler so the watcher's `Drop` runs (stopping FSEvents /
     /// inotify subscriptions) and the index memory is reclaimed.
     pub fn remove(&self, label: &str) -> Option<Arc<WorkspaceState>> {
-        self.windows.write().remove(label)
+        let state = self.windows.write().remove(label);
+        if let Some(state) = &state {
+            state
+                .assistant_discovery_epoch
+                .fetch_add(1, Ordering::AcqRel);
+        }
+        state
     }
 
     /// Find an existing window already hosting or opening `path`. Used to
@@ -337,6 +359,16 @@ pub fn rebuild_dirs_from_index(files: &[IndexedFile], root: &Path) -> HashSet<Pa
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn workspace_transition_invalidates_in_flight_assistant_discovery() {
+        let state = WorkspaceState::default();
+        state.assistant_discovery_epoch.store(7, Ordering::Release);
+
+        state.invalidate_assistant_discovery();
+
+        assert_eq!(state.assistant_discovery_epoch.load(Ordering::Acquire), 8);
+    }
 
     #[test]
     fn find_by_workspace_matches_startup_open() {

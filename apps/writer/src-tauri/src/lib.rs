@@ -1,3 +1,4 @@
+mod assistant;
 mod commands;
 mod config;
 #[cfg(target_os = "macos")]
@@ -480,6 +481,10 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            commands::assistant::discover_agent_runtimes,
+            commands::assistant::cancel_agent_discovery,
+            commands::assistant::add_agent_registration,
+            commands::assistant::remove_agent_registration,
             commands::fs::read_directory,
             commands::fs::read_recent_files,
             commands::fs::read_file_entries,

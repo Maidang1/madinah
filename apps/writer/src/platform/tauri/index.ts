@@ -1,3 +1,4 @@
+export * from "./assistant";
 export * from "./fs";
 export * from "./images";
 export * from "./search";

@@ -85,6 +85,7 @@ fn prepare_workspace_state(
 
     // Reset per-workspace state.
     *state.workspace_root.write() = Some(root.clone());
+    state.invalidate_assistant_discovery();
     *state.standalone_file.write() = None;
     *state.file_index.write() = Vec::new();
     state.invalidate_recent_files_cache();
@@ -434,6 +435,7 @@ pub(crate) fn watch_standalone_file_impl(
     let state = app.state::<AppState>().get_or_create(label);
     let epoch = state.workspace_epoch.fetch_add(1, Ordering::SeqCst) + 1;
     *state.standalone_file.write() = Some(file.clone());
+    state.invalidate_assistant_discovery();
 
     let old_watcher = state.watcher_handle.write().take();
     drop_watcher_off_thread(old_watcher);

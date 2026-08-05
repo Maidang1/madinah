@@ -20,7 +20,7 @@ import {
   useNavigateForward,
   useOpenFiles,
 } from "@/hooks/use-tabs";
-import { openStandaloneFile } from "@/hooks/use-open-drop";
+import { openContainingWorkspaceForFile, openStandaloneFile } from "@/hooks/use-open-drop";
 import { getFileName } from "@/lib/paths";
 
 const PICKER_POPUP_ID = "compact-file-picker-popup";
@@ -107,6 +107,11 @@ export function CompactFileLayout() {
   const handleOpenFile = useCallback(async (path: string) => {
     await openStandaloneFile(path);
   }, []);
+
+  const handleOpenContainingWorkspace = useCallback(async () => {
+    if (!activeFilePath) return;
+    await openContainingWorkspaceForFile(activeFilePath);
+  }, [activeFilePath]);
 
   const openNavigator = useCallback(() => {
     if (openFrameRef.current) {
@@ -436,6 +441,23 @@ export function CompactFileLayout() {
           </button>
         </div>
       </div>
+
+      {activeFilePath && (
+        <div
+          className="pointer-events-none absolute right-0 top-0 z-50 flex items-center pr-3"
+          style={{
+            height: "calc(var(--chrome-control-height) + var(--chrome-control-padding) * 2)",
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => void handleOpenContainingWorkspace()}
+            className="pointer-events-auto rounded-md border border-[var(--line-subtle)] bg-[var(--bg-base)] px-2 py-1 text-xs text-text-secondary hover:bg-surface-hover"
+          >
+            Open containing folder
+          </button>
+        </div>
+      )}
 
       <div className="relative h-full min-w-0 bg-bg">
         <EditorArea showFooter={false} />

@@ -3,6 +3,7 @@ import { useUIStore } from "@/stores/ui-store";
 import { useEditorStore } from "@/stores/editor-store";
 import { useWorkspaceStore } from "@/stores/workspace-store";
 import { toggleSidebar } from "@/hooks/use-sidebar";
+import { revealOrFocusAssistant } from "@/hooks/use-assistant-panel";
 import { getWorkspaceChromeMode } from "@/lib/compact-mode";
 
 function isEditableTargetFocused(): boolean {
@@ -10,6 +11,13 @@ function isEditableTargetFocused(): boolean {
   if (!active) return false;
   if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement) return true;
   return (active as HTMLElement).isContentEditable;
+}
+
+export function getBackslashShortcut(
+  event: Pick<KeyboardEvent, "metaKey" | "ctrlKey" | "shiftKey" | "key" | "code">,
+): "assistant" | "sidebar" | null {
+  if (!(event.metaKey || event.ctrlKey) || event.code !== "Backslash") return null;
+  return event.shiftKey ? "assistant" : "sidebar";
 }
 
 export function useKeyboardShortcuts() {
@@ -60,8 +68,18 @@ export function useKeyboardShortcuts() {
         return;
       }
 
+      const backslashShortcut = getBackslashShortcut(e);
+
+      // Cmd+Shift+\ — reveal or focus Assistant
+      if (backslashShortcut === "assistant") {
+        e.preventDefault();
+        if (isCompactFileMode) return;
+        revealOrFocusAssistant();
+        return;
+      }
+
       // Cmd+\ — toggle sidebar
-      if (mod && e.key === "\\") {
+      if (backslashShortcut === "sidebar") {
         e.preventDefault();
         if (isCompactFileMode) return;
         toggleSidebar();

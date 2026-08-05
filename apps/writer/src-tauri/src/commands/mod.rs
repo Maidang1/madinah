@@ -1,3 +1,4 @@
+pub mod assistant;
 pub mod fs;
 pub(crate) mod fs_support;
 pub mod images;

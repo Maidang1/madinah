@@ -39,6 +39,10 @@ export function useWorkspaceRoot() {
   return useWorkspaceStore((s) => s.root);
 }
 
+export function useWorkspaceGeneration() {
+  return useWorkspaceStore((s) => s.generation);
+}
+
 export function useWorkspaceReadOnly() {
   return useWorkspaceStore((s) => s.readOnlyLease !== null);
 }
