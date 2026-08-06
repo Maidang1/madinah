@@ -36,6 +36,12 @@ describe("buildKnowledgePrompt", () => {
       prompt.indexOf("What is our deploy process?"),
     );
   });
+
+  test("allows mutative Workspace work outside knowledge-citation rules", () => {
+    const prompt = buildKnowledgePrompt("Rewrite README.md");
+    expect(prompt).toContain("create, edit, reorganize");
+    expect(prompt).toContain("not to mutative work");
+  });
 });
 
 describe("parseCitationReference", () => {
@@ -83,6 +89,20 @@ describe("extractCitationCandidates", () => {
     const text = "Visit https://example.com/a.md and read the README without an extension.";
     expect(extractCitationCandidates(text)).toEqual([]);
   });
+
+  test("extracts CommonMark destinations with optional titles", () => {
+    const text = [
+      "See [a](docs/deploy.md \"Deploy title\") and [b](<docs/My Guide.mdx#intro> 'Intro').",
+      "Sources:",
+      '- [c](notes/runbook.mdx "Runbook")',
+    ].join("\n");
+    const candidates = extractCitationCandidates(text);
+    expect(candidates.map((c) => `${c.relativePath}#${c.anchor ?? ""}`)).toEqual([
+      "docs/deploy.md#",
+      "docs/My Guide.mdx#intro",
+      "notes/runbook.mdx#",
+    ]);
+  });
 });
 
 describe("classifyCitationPath", () => {
@@ -101,6 +121,26 @@ describe("classifyCitationPath", () => {
     expect(
       classifyCitationPath({ raw: "notes/data.json", relativePath: "notes/data.json" }, ROOT),
     ).toMatchObject({ citation: { reason: "unsupported-extension" } });
+  });
+
+  test("rejects percent-encoded traversal, file: URLs, and Windows drive paths after decode", () => {
+    const encoded = parseCitationReference("%2e%2e/secret.md");
+    expect(encoded).toMatchObject({ relativePath: "../secret.md" });
+    expect(classifyCitationPath(encoded!, ROOT)).toMatchObject({
+      citation: { reason: "traversal" },
+    });
+
+    const fileUrl = parseCitationReference("file:///tmp/note.md");
+    expect(fileUrl).toMatchObject({ relativePath: "file:///tmp/note.md" });
+    expect(classifyCitationPath(fileUrl!, ROOT)).toMatchObject({
+      citation: { reason: "absolute" },
+    });
+
+    const win = parseCitationReference("C:/Vault/note.md");
+    expect(win).toMatchObject({ relativePath: "C:/Vault/note.md" });
+    expect(classifyCitationPath(win!, ROOT)).toMatchObject({
+      citation: { reason: "absolute" },
+    });
   });
 
   test("accepts nested relative markdown paths", () => {
@@ -177,6 +217,23 @@ describe("validateCitation", () => {
         deps,
       ),
     ).resolves.toMatchObject({ status: "invalid", reason: "missing-heading" });
+  });
+
+  test("heading anchors with inline MD match plain-text TipTap slugs", async () => {
+    const linked = memoryDeps({
+      "/workspace/docs/linked.md": "## Hello [link](x.md) and `code`\n\nBody.\n",
+    });
+    await expect(
+      validateCitation(
+        {
+          raw: "docs/linked.md#hello-link-and-code",
+          relativePath: "docs/linked.md",
+          anchor: "hello-link-and-code",
+        },
+        ROOT,
+        linked,
+      ),
+    ).resolves.toMatchObject({ status: "valid", anchor: "hello-link-and-code" });
   });
 
   test("missing files and unsupported extensions are not evidence", async () => {

@@ -212,15 +212,12 @@ export function TiptapEditor({ filePath, autoFocus, scrollContainerRef }: Tiptap
 
   useEffect(() => {
     if (!editor) {
-      registerOpenEditorHeadingScroller(null);
+      registerOpenEditorHeadingScroller(filePath, null);
       return;
     }
     const path = filePath;
-    registerOpenEditorHeadingScroller((targetPath, anchor) => {
-      if (targetPath !== path) return false;
-      return scrollEditorToHeadingSlug(editor, anchor);
-    });
-    return () => registerOpenEditorHeadingScroller(null);
+    registerOpenEditorHeadingScroller(path, (anchor) => scrollEditorToHeadingSlug(editor, anchor));
+    return () => registerOpenEditorHeadingScroller(path, null);
   }, [editor, filePath]);
 
   return (

@@ -14,15 +14,22 @@ import {
 const WINDOWS_ABSOLUTE = /^[A-Za-z]:[\\/]/;
 const URL_SCHEME = /^[A-Za-z][A-Za-z\d+.-]*:/;
 
-/** Instructions prepended so free-form knowledge questions require Document evidence. */
+/**
+ * Instructions prepended to every free-form temporary-conversation send in v1.
+ * Knowledge-answer rules apply when the user is asking about Workspace content;
+ * mutative edit/create/run requests remain allowed and are not citation-gated.
+ */
 export const KNOWLEDGE_PROMPT_INSTRUCTIONS = [
-  "You are answering inside a Writer Workspace. For any knowledge question:",
+  "You are answering inside a Writer Workspace.",
+  "When the user asks a knowledge question about Workspace content:",
   "- Search and answer only from Markdown/MDX Documents in this Workspace (.md, .mdx, .markdown).",
   "- Cite every supporting Document as a Workspace-relative path with an optional GFM heading slug anchor,",
   "  for example `notes/guide.md` or `docs/My Guide.mdx#setup`.",
   "- Prefer a final Sources section listing one relative reference per line, and/or Markdown links to those paths.",
   "- Other Workspace files may inform your reasoning but must never be cited as evidence.",
   "- If you cannot support the answer with Workspace Documents, say so; do not invent sources.",
+  "When the user asks you to create, edit, reorganize, or otherwise change Workspace files (or run Agent tools),",
+  "follow that request normally. Knowledge-citation rules apply to knowledge answers, not to mutative work.",
   "",
   "User message:",
 ].join("\n");
@@ -133,8 +140,8 @@ export function extractCitationCandidates(text: string): CitationCandidate[] {
     results.push(candidate);
   };
 
-  // Markdown links: [label](dest) and [label](<dest>)
-  const linkRe = /\[[^\]]*]\(\s*(<[^>\n]+>|[^)\s]+)\s*\)/g;
+  // Markdown links: [label](dest), [label](<dest>), optional CommonMark titles
+  const linkRe = /\[[^\]]*]\(\s*(<[^>\n]+>|[^)\s]+)(?:\s+(?:"[^"]*"|'[^']*'|\([^)]*\)))?\s*\)/g;
   for (const match of text.matchAll(linkRe)) {
     const dest = match[1]!;
     if (looksLikeDocumentRef(dest)) push(dest);
@@ -167,8 +174,9 @@ export function extractCitationCandidates(text: string): CitationCandidate[] {
       if (!trimmed) continue;
       // Strip leading list markers
       const item = trimmed.replace(/^[-*+]\s+/, "").replace(/^\d+\.\s+/, "");
-      // Prefer link dest if the line is a markdown link
-      const linkOnly = /^\[[^\]]*]\(\s*(<[^>\n]+>|[^)\s]+)\s*\)$/.exec(item);
+      // Prefer link dest if the line is a markdown link (optional title)
+      const linkOnly =
+        /^\[[^\]]*]\(\s*(<[^>\n]+>|[^)\s]+)(?:\s+(?:"[^"]*"|'[^']*'|\([^)]*\)))?\s*\)$/.exec(item);
       if (linkOnly) {
         push(linkOnly[1]!);
         continue;

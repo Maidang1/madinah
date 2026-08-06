@@ -83,3 +83,7 @@
 ### Review notes
 
 Plan/impl self-review against acceptance criteria: all AC covered by pure tests + store/panel projection; no embeddings; temporary Conversation only; serializable `grounding` for #14 attachment. No P0/P1 remaining.
+
+### Post-review follow-up (`1173707`)
+
+External review found navigation bugs (singleton scroller, same-path openFile no-op, raw-MD vs TipTap slug drift). Fixed with path-scoped Map registration, same-active scroll/`missing-anchor` without openFile, `plainHeadingTextForSlug` parity, expanded nav/extraction tests, mutative-friendly knowledge wrap, titled links, and comment/docs updates. All 8 review issues marked fixed.

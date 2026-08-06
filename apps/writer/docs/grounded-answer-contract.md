@@ -15,15 +15,17 @@ Other Workspace files may inform the Agent Runtime but never satisfy this contra
 
 ## Projection
 
-- Knowledge instructions are prepended to free-form user prompts before `start_agent_turn`.
-- Citation candidates are extracted conservatively from final agent text (Markdown link destinations, backtick paths, and `Sources` / `References` lines).
+- Knowledge instructions are prepended to every free-form temporary-conversation send before `start_agent_turn` (v1 has no separate knowledge mode; #15 Quick Actions may specialize prompts later).
+- Instructions apply Document-only **citation** rules to knowledge questions, but explicitly allow create/edit/tool mutative work when the user asks for it—they must not steer the Agent away from non-Document writes.
+- Citation candidates are extracted conservatively from final agent text (Markdown link destinations including optional CommonMark titles, backtick paths, and `Sources` / `References` lines).
 - Validation runs after a successful terminal turn with injectable filesystem deps (`fileExists` / `readFile`); pure unit tests use in-memory maps.
+- On completion, `grounding` is immediately a validating placeholder, then the final Grounded/Ungrounded projection.
 - At least one valid citation → status `grounded`. Zero valid citations → status `ungrounded`. The reply remains visible either way.
 - Invalid, escaping, missing, unsupported, or malformed references render as plain text with an invalid-source reason and do not count toward grounding.
 
 ## Navigation
 
-Valid citations open the Document through the ordinary editor open path and, when anchored, stage a pending heading slug. TipTap consumes the pending slug after load and scrolls to the matching heading; same-document clicks scroll immediately. Unresolved display-time anchors fall back to the top of the file with the existing anchor warning.
+Valid citations open the Document through the ordinary editor open path and, when anchored, use path-scoped TipTap heading scrollers (one registration per keep-alive file path). Same-active-document clicks scroll immediately and never rely on `openFile` (a same-path open is a no-op). Cross-document / keep-alive activation stages a pending heading slug for first load and also tries the path-scoped scroller after open. Unresolved anchors return `missing-anchor` so the UI can show the existing anchor warning. Heading slugs for validation strip common Markdown inline constructs so they match TipTap `textContent`.
 
 ## Persistence attachment
 

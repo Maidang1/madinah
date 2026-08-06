@@ -57,7 +57,11 @@ export interface TemporaryAssistantConversation {
     options: Array<{ id: string; name: string; kind: string }>;
     responding: boolean;
   } | null;
-  /** Null until a completed turn finishes citation validation. */
+  /**
+   * Null until a completed terminal event. On completion, immediately becomes a
+   * validating placeholder (`status: "ungrounded", citations: [], validating: true`),
+   * then the final Grounded/Ungrounded projection once FS validation settles.
+   */
   grounding: ConversationGrounding | null;
 }
 

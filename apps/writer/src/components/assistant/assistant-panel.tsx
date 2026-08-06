@@ -24,6 +24,7 @@ import {
 } from "@/hooks/use-assistant";
 import type { ValidatedCitation } from "@/lib/grounded-answer";
 import { openDocumentAtCitation } from "@/lib/document-navigation";
+import { showAnchorWarning } from "@/components/editor-area/anchor-warning-store";
 
 interface AssistantPanelProps {
   onCollapse: () => void;
@@ -560,7 +561,15 @@ function GroundingCitations({ citations }: { citations: ValidatedCitation[] }) {
                   type="button"
                   className="text-left text-xs font-medium text-[var(--accent)] hover:underline"
                   onClick={() =>
-                    void openDocumentAtCitation(citation.absolutePath, citation.anchor)
+                    void openDocumentAtCitation(citation.absolutePath, citation.anchor).then(
+                      (result) => {
+                        if (result.status === "missing-anchor") {
+                          showAnchorWarning(
+                            `Heading “${result.anchor}” was not found in this document.`,
+                          );
+                        }
+                      },
+                    )
                   }
                 >
                   {citation.relativePath}

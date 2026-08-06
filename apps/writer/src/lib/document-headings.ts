@@ -15,6 +15,36 @@ export interface ParseDocumentHeadingsOptions {
 
 const DEFAULT_MAX_DEPTH = 3;
 
+/**
+ * Reduce ATX heading source text to the plain text TipTap/`textContent` would
+ * expose, so validation slugs match navigation slugs for links, code, emphasis,
+ * and simple HTML-ish markup.
+ */
+export function plainHeadingTextForSlug(raw: string): string {
+  let text = raw;
+  // Images ![alt](url) → alt
+  text = text.replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1");
+  // Inline links [label](dest "title"?) including angle-bracket destinations
+  text = text.replace(
+    /\[([^\]]+)\]\(\s*<?[^)\s>]+>?(?:\s+(?:"[^"]*"|'[^']*'|\([^)]*\)))?\s*\)/g,
+    "$1",
+  );
+  // Reference links [label][id]
+  text = text.replace(/\[([^\]]+)\]\[[^\]]*\]/g, "$1");
+  // Autolink-ish bare brackets left as label if still present
+  text = text.replace(/\[([^\]]+)\]/g, "$1");
+  // Inline code
+  text = text.replace(/`([^`]+)`/g, "$1");
+  // Simple HTML tags
+  text = text.replace(/<\/?[^>\n]+>/g, "");
+  // Emphasis / strikethrough wrappers
+  text = text.replace(/(\*\*|__|~~)(.*?)\1/g, "$2");
+  text = text.replace(/(\*|_)(.*?)\1/g, "$2");
+  // Leftover emphasis markers
+  text = text.replace(/[*_~]+/g, "");
+  return text.replace(/\s+/g, " ").trim();
+}
+
 // When `slugDepth > maxDepth` the slugger still walks the skipped levels so
 // duplicate counts stay accurate against the doc as a whole (the rail can
 // render H1–H3 while anchor resolution against the full doc still works).
@@ -54,7 +84,7 @@ export function parseDocumentHeadings(
         const level = match[1].length;
         const text = match[2].trim();
         if (text && level <= slugDepth) {
-          const slug = slugger(text);
+          const slug = slugger(plainHeadingTextForSlug(text));
           if (level <= maxDepth) {
             headings.push({ level, text, line: i, pos, slug });
           }
