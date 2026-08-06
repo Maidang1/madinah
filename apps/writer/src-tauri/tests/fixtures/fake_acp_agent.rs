@@ -84,7 +84,8 @@ fn main() {
             descendant.wait().expect("fake Agent descendant wait");
             None
         }
-        "turn_success" | "turn_tail" | "turn_write_fail" | "turn_hang" | "turn_permission" => None,
+        "turn_success" | "turn_tail" | "turn_write_fail" | "turn_hang" | "turn_permission"
+        | "turn_resume" | "turn_load_fail" => None,
         _ => panic!("unknown fake Agent mode: {mode}"),
     };
     if mode.starts_with("turn_") {
@@ -98,11 +99,25 @@ fn main() {
         io::stdin()
             .lock()
             .read_line(&mut request)
-            .expect("fake Agent new session request");
+            .expect("fake Agent session request");
         fs::write(&request_path, format!("{request}\n")).expect("fake Agent session request log");
-        assert!(request.contains("\"method\":\"session/new\""));
-        let session_id = request_id(&request);
-        respond(&session_id, r#"{"sessionId":"fake-session"}"#);
+        let session_rpc_id = request_id(&request);
+        if mode == "turn_load_fail" {
+            assert!(request.contains("\"method\":\"session/load\""));
+            println!(
+                r#"{{"jsonrpc":"2.0","id":{session_rpc_id},"error":{{"code":-32001,"message":"session not found"}}}}"#
+            );
+            io::stdout().flush().expect("fake Agent load failure flush");
+            return;
+        }
+        if mode == "turn_resume" {
+            assert!(request.contains("\"method\":\"session/load\""));
+            assert!(request.contains("fake-session"));
+            respond(&session_rpc_id, r#"{}"#);
+        } else {
+            assert!(request.contains("\"method\":\"session/new\""));
+            respond(&session_rpc_id, r#"{"sessionId":"fake-session"}"#);
+        }
 
         request.clear();
         io::stdin()

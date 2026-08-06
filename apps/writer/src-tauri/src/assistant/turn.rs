@@ -100,6 +100,14 @@ pub struct TurnPermissionRequest {
     pub options: Vec<TurnPermissionOption>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecordedPermissionDecision {
+    pub request_id: String,
+    pub title: String,
+    pub option_id: Option<String>,
+}
+
 #[derive(Clone)]
 pub struct TurnReservation {
     inner: Arc<ActiveTurn>,
@@ -381,6 +389,7 @@ impl TurnReservation {
         state.phase = TurnPhase::AwaitingPermission;
         state.pending_permission = Some(PendingPermission {
             request_id: request_id.clone(),
+            title: title.clone(),
             option_ids: options.iter().map(|option| option.id.clone()).collect(),
             response: Some(response),
         });
@@ -420,8 +429,14 @@ impl TurnReservation {
             .response
             .take()
             .ok_or_else(|| "The permission request was already answered.".to_string())?;
+        let title = pending.title.clone();
         state.pending_permission = None;
         state.phase = TurnPhase::Running;
+        state.permission_decisions.push(RecordedPermissionDecision {
+            request_id: request_id.into(),
+            title,
+            option_id: option_id.clone(),
+        });
         drop(state);
         response
             .send(option_id)
@@ -435,6 +450,10 @@ impl TurnReservation {
                 let _ = response.send(None);
             }
         }
+    }
+
+    pub fn permission_decisions(&self) -> Vec<RecordedPermissionDecision> {
+        self.inner.state.lock().permission_decisions.clone()
     }
 }
 
@@ -523,10 +542,12 @@ struct ActiveTurnState {
     phase: TurnPhase,
     participants: HashMap<String, Participant>,
     pending_permission: Option<PendingPermission>,
+    permission_decisions: Vec<RecordedPermissionDecision>,
 }
 
 struct PendingPermission {
     request_id: String,
+    title: String,
     option_ids: Vec<String>,
     response: Option<oneshot::Sender<Option<String>>>,
 }
@@ -750,6 +771,7 @@ impl AgentCoordinator {
                 phase: TurnPhase::Preparing,
                 participants,
                 pending_permission: None,
+                permission_decisions: Vec::new(),
             }),
             changed: Notify::new(),
             cancellation_tx: watch::channel(false).0,

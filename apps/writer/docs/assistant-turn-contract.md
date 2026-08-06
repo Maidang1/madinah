@@ -1,6 +1,6 @@
 # Assistant Turn IPC Contract
 
-Issue #12 implements one temporary, serialized ACP Agent Turn. Rust is the normative owner of the process, ACP session, permission responder, and process-wide coordinator. The coordinator is keyed by canonical Workspace path; there is no frontend queue and no durable Conversation in this slice.
+Issues #12 and #14 implement serialized ACP Agent Turns over durable, Runtime-bound Assistant Conversations. Rust is the normative owner of the process, ACP session, conversation storage, permission responder, and process-wide coordinator. The coordinator is keyed by canonical Workspace path; there is no frontend queue.
 
 ## Consent and selection
 
@@ -26,9 +26,17 @@ Every prepare/reconcile acknowledgement includes the turn, canonical root, Rust 
 
 During an active turn, TipTap and sidebar mutation surfaces follow the read-only lease. Rust derives the mutation target's current canonical Workspace, atomically acquires a coordinator permit before an Agent reservation can win, and holds it through the actual blocking write/create/rename/delete/image I/O. The prepare flush is the only Writer write permitted after reservation and carries the exact turn/participant/prepare-request identity; a stale window/path or ordinary delayed save is rejected. Workspace publication uses the same coordinator gate, so switching cannot overtake an in-flight Writer mutation. This is application serialization, not an operating-system filesystem lock: the trusted Agent remains unrestricted and partial writes remain on disk after failure.
 
+## Conversations and persistence
+
+Writer stores a versioned conversation index and one atomic record per conversation in application data (never inside the Workspace). Creating a conversation permanently binds it to one Agent Runtime id; changing Runtime requires a new conversation. When exactly one compatible Runtime exists it is selected automatically; when several exist the user chooses and Writer remembers the last choice per Workspace.
+
+Persisted fields are limited to user messages, final agent replies, citation fields (validation is a later ticket), change summaries, permission decisions (audit only — never auto-reused), runtime session identifiers, turn outcomes/states, and timestamps. Streamed thought, hidden reasoning, complete terminal output, and intermediate tool results are projected only during the active turn and are never written to durable storage.
+
+On each subsequent turn, Rust attempts ACP `session/load` when a runtime session id is stored. If restore fails, Writer keeps the local transcript, marks the conversation restore-failed, and requires a new conversation rather than silently creating a new session and replaying history. Deleting a conversation removes Writer-owned index entries and records and warns that Runtime-owned session data may remain.
+
 ## ACP projection and bounds
 
-The runtime uses the ACP SDK 2.0 protocol-v1 model. Session-correlated text updates are appended to the temporary Conversation; bounded tool metadata becomes a visible change summary. Permission requests surface only Agent-provided `allow-once`/`reject-once` choices plus cancel. Persistent `allow-always`/`reject-always` choices are never forwarded; a request with no one-shot choice is cancelled. One exact decision is accepted for the current turn/request and is never persisted or automatically reused.
+The runtime uses the ACP SDK 2.0 protocol-v1 model. Session-correlated text updates are streamed to the active Conversation; bounded completed tool metadata becomes a visible change summary. Permission requests surface only Agent-provided `allow-once`/`reject-once` choices plus cancel. Persistent `allow-always`/`reject-always` choices are never forwarded; a request with no one-shot choice is cancelled. One exact decision is accepted for the current turn/request, may be recorded for audit, and is never automatically reused.
 
 Prompts are limited to 64 KiB, protocol lines to 1 MiB, projected text to 2 MiB, and change summaries to 128 entries of 4 KiB each. Prepare and reconcile waits are 60 seconds, permission waits 10 minutes, and the complete turn 30 minutes. Cancellation from Workspace/window teardown interrupts binding or protocol work, terminates the process group/direct child, confirms reap, and removes any private executable artifact before reconciliation.
 
@@ -36,6 +44,6 @@ Prompts are limited to 64 KiB, protocol lines to 1 MiB, projected text to 2 MiB,
 
 Rust serde models under `src-tauri/src/assistant/` own the wire. `src/platform/tauri/assistant.ts` mirrors them. [`shared/assistant-turn-wire.json`](../shared/assistant-turn-wire.json) is consumed by Rust and TypeScript exact-roundtrip tests so event tags, casing, and lifecycle identity cannot drift silently.
 
-The desktop command tests invoke the serialized Tauri adapters with a deterministic native fake ACP Agent. They cover per-Workspace consent, prepare failure before spawn, successful stream/permission/reconcile/unlock, write-then-crash reconciliation, partial-write visibility, process cleanup, bridge removal, and the real serialized write boundary's stale-path/prepare-identity enforcement. Frontend tests observe the public #10 prepare/reconcile/retained-release seam, exact generation-bound reconciliation state, and rendered consent/permission/output behavior.
+The desktop command tests invoke the serialized Tauri adapters with a deterministic native fake ACP Agent. They cover per-Workspace consent, prepare failure before spawn, successful stream/permission/reconcile/unlock with durable turn persistence, write-then-crash reconciliation, partial-write visibility, process cleanup, bridge removal, and the real serialized write boundary's stale-path/prepare-identity enforcement. Frontend tests observe conversation create/select/delete projection, multi-turn send, restore-failure blocking, the public #10 prepare/reconcile/retained-release seam, and rendered consent/permission/output behavior.
 
-The single temporary Conversation is terminal after its first result; creating another Conversation, persistence/restore, focus context, quick actions, citations, and Agent Stop controls remain later tickets.
+Focus context, quick actions, citation validation, and Agent Stop controls remain later tickets.

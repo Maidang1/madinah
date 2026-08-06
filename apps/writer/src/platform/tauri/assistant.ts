@@ -152,6 +152,72 @@ export interface StartAgentTurnResponse {
   workspaceRoot: string;
 }
 
+export type ConversationRestoreStatus = "none" | "active" | "failed";
+export type ConversationMessageRole = "user" | "assistant";
+
+export interface ConversationCitation {
+  path: string;
+  heading: string | null;
+}
+
+export interface ConversationMessage {
+  id: string;
+  role: ConversationMessageRole;
+  content: string;
+  citations: ConversationCitation[];
+  createdAt: number;
+}
+
+export interface ConversationPermissionDecision {
+  requestId: string;
+  title: string;
+  optionId: string | null;
+  decidedAt: number;
+}
+
+export interface ConversationTurn {
+  turnId: string;
+  status: string;
+  outcomeMessage: string;
+  changeSummaries: string[];
+  permissionDecisions: ConversationPermissionDecision[];
+  startedAt: number;
+  finishedAt: number;
+}
+
+export interface ConversationSummary {
+  id: string;
+  workspaceRoot: string;
+  agentId: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
+  restoreStatus: ConversationRestoreStatus;
+}
+
+export interface ConversationRecord {
+  version: number;
+  id: string;
+  workspaceRoot: string;
+  agentId: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
+  runtimeSessionId: string | null;
+  restoreStatus: ConversationRestoreStatus;
+  messages: ConversationMessage[];
+  turns: ConversationTurn[];
+}
+
+export interface WorkspaceConversationSnapshot {
+  workspaceRoot: string;
+  revision: number;
+  conversations: ConversationSummary[];
+  activeConversationId: string | null;
+  lastAgentId: string | null;
+  activeConversation: ConversationRecord | null;
+}
+
 export function discoverAgentRuntimes(workspaceRoot: string): Promise<AgentDiscoveryResponse> {
   return invoke("discover_agent_runtimes", { workspaceRoot });
 }
@@ -181,6 +247,60 @@ export function getAiAccessConsent(workspaceRoot: string): Promise<AiAccessConse
 
 export function grantAiAccessConsent(workspaceRoot: string): Promise<AiAccessConsent> {
   return invoke("grant_ai_access_consent", { workspaceRoot });
+}
+
+export function listAssistantConversations(
+  workspaceRoot: string,
+): Promise<WorkspaceConversationSnapshot> {
+  return invoke("list_assistant_conversations", { workspaceRoot });
+}
+
+export function createAssistantConversation(
+  workspaceRoot: string,
+  agentId: string,
+  name?: string | null,
+): Promise<ConversationRecord> {
+  return invoke("create_assistant_conversation", {
+    workspaceRoot,
+    agentId,
+    name: name ?? null,
+  });
+}
+
+export function renameAssistantConversation(
+  workspaceRoot: string,
+  conversationId: string,
+  name: string,
+): Promise<ConversationRecord> {
+  return invoke("rename_assistant_conversation", {
+    workspaceRoot,
+    conversationId,
+    name,
+  });
+}
+
+export function selectAssistantConversation(
+  workspaceRoot: string,
+  conversationId: string,
+): Promise<ConversationRecord> {
+  return invoke("select_assistant_conversation", {
+    workspaceRoot,
+    conversationId,
+  });
+}
+
+export function deleteAssistantConversation(
+  workspaceRoot: string,
+  conversationId: string,
+): Promise<WorkspaceConversationSnapshot> {
+  return invoke("delete_assistant_conversation", {
+    workspaceRoot,
+    conversationId,
+  });
+}
+
+export function rememberAssistantAgent(workspaceRoot: string, agentId: string): Promise<void> {
+  return invoke("remember_assistant_agent", { workspaceRoot, agentId });
 }
 
 export function registerAgentTurnBridge(
