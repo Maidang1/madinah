@@ -107,8 +107,9 @@ fn add_agent_registration_core(
     state: &AppState,
 ) -> Result<RegistrationSnapshot, String> {
     let window_state = state.get_or_create(window_label);
-    begin_workspace_discovery(&workspace_root, &window_state)?;
+    let (canonical_root, _) = begin_workspace_discovery(&workspace_root, &window_state)?;
     let _guard = state.assistant_registrations_lock.lock();
+    state.reject_workspace_mutation_if_active(Path::new(&canonical_root))?;
     add_registration(&path, command, args)
 }
 
@@ -137,8 +138,9 @@ fn remove_agent_registration_core(
     state: &AppState,
 ) -> Result<RegistrationSnapshot, String> {
     let window_state = state.get_or_create(window_label);
-    begin_workspace_discovery(&workspace_root, &window_state)?;
+    let (canonical_root, _) = begin_workspace_discovery(&workspace_root, &window_state)?;
     let _guard = state.assistant_registrations_lock.lock();
+    state.reject_workspace_mutation_if_active(Path::new(&canonical_root))?;
     remove_registration(&path, &id)
 }
 
@@ -291,6 +293,41 @@ mod tests {
                 .load(Ordering::Acquire),
             1
         );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn desktop_registration_is_rejected_while_workspace_turn_is_active() {
+        let dir = tempfile::tempdir().unwrap();
+        let workspace = dir.path().join("workspace");
+        fs::create_dir(&workspace).unwrap();
+        let executable = build_native_fake_agent(dir.path(), "compatible");
+        let (app, webview) = mock_desktop(dir.path().join("registrations.json"));
+        let root = workspace.canonicalize().unwrap();
+        *app.state::<AppState>()
+            .get_or_create(webview.label())
+            .workspace_root
+            .write() = Some(root.clone());
+        app.state::<AppState>()
+            .agent_coordinator
+            .register_bridge(webview.label(), root.clone(), 1, 1)
+            .unwrap();
+        let _turn = app
+            .state::<AppState>()
+            .agent_coordinator
+            .reserve(root.clone(), &[(webview.label().to_string(), 1)])
+            .unwrap();
+        let error = invoke::<RegistrationSnapshot>(
+            &webview,
+            "add_agent_registration",
+            json!({
+                "workspaceRoot": root.to_string_lossy(),
+                "command": executable,
+                "args": ["--stdio"]
+            }),
+        )
+        .unwrap_err();
+        assert!(error.to_string().contains("active Agent Turn"));
     }
 
     #[cfg(unix)]

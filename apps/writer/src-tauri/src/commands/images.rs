@@ -1,7 +1,9 @@
 use crate::error::AppError;
+use crate::state::AppState;
 use serde::Serialize;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use tauri::Manager;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct ImageSaveResult {
@@ -14,8 +16,53 @@ pub fn save_clipboard_image(
     markdown_file_path: String,
     image_data: Vec<u8>,
     format: String,
+    webview: tauri::Webview,
+    app: tauri::AppHandle,
 ) -> Result<ImageSaveResult, AppError> {
-    save_clipboard_image_impl(&markdown_file_path, &image_data, &format)
+    let markdown = PathBuf::from(&markdown_file_path);
+    let parent = markdown.parent().unwrap_or(Path::new("."));
+    let stem = markdown
+        .file_stem()
+        .ok_or_else(|| AppError::Io("No file stem".into()))?
+        .to_string_lossy()
+        .into_owned();
+    let assets_name = format!("{}-assets", stem);
+    let assets_target = parent.join(&assets_name);
+    let context = app.state::<AppState>().begin_writer_mutation_context(
+        webview.label(),
+        &[markdown.as_path(), assets_target.as_path()],
+        None,
+    )?;
+    let filename = image_filename(&format);
+    let mut targets = context.targets.into_iter();
+    let _markdown_relative = targets
+        .next()
+        .ok_or_else(|| AppError::Io("No markdown target".into()))?;
+    let assets_relative = targets
+        .next()
+        .ok_or_else(|| AppError::Io("No assets target".into()))?;
+    let relative = assets_relative.join(&filename);
+    context
+        .dir
+        .create_dir_all(&assets_relative)
+        .map_err(|e| AppError::Io(e.to_string()))?;
+    context
+        .dir
+        .write(&relative, &image_data)
+        .map_err(|e| AppError::Io(e.to_string()))?;
+    Ok(ImageSaveResult {
+        relative_path: Path::new(&assets_name)
+            .join(&filename)
+            .to_string_lossy()
+            .into_owned(),
+        absolute_path: Path::new(&markdown_file_path)
+            .parent()
+            .unwrap()
+            .join(&assets_name)
+            .join(&filename)
+            .to_string_lossy()
+            .into_owned(),
+    })
 }
 
 pub fn save_clipboard_image_impl(
@@ -38,23 +85,7 @@ pub fn save_clipboard_image_impl(
     let assets_dir = md_dir.join(&assets_dir_name);
     fs::create_dir_all(&assets_dir)?;
 
-    // Generate filename: {YYYYMMDD}-{HHMMSS}-{4-char-uuid}.{format}
-    let now = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default();
-    let secs = now.as_secs();
-    // Simple date/time formatting from epoch
-    let (year, month, day, hour, min, sec) = epoch_to_datetime(secs);
-    let short_uuid = &uuid::Uuid::new_v4().to_string()[..4];
-    let ext = match format {
-        "jpeg" | "jpg" => "jpg",
-        "webp" => "webp",
-        _ => "png",
-    };
-    let filename = format!(
-        "{:04}{:02}{:02}-{:02}{:02}{:02}-{}.{}",
-        year, month, day, hour, min, sec, short_uuid, ext
-    );
+    let filename = image_filename(format);
 
     let abs_path = assets_dir.join(&filename);
     fs::write(&abs_path, image_data)?;
@@ -65,6 +96,29 @@ pub fn save_clipboard_image_impl(
         relative_path,
         absolute_path: abs_path.to_string_lossy().to_string(),
     })
+}
+
+fn image_filename(format: &str) -> String {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default();
+    let (year, month, day, hour, min, sec) = epoch_to_datetime(now.as_secs());
+    let ext = match format {
+        "jpeg" | "jpg" => "jpg",
+        "webp" => "webp",
+        _ => "png",
+    };
+    format!(
+        "{:04}{:02}{:02}-{:02}{:02}{:02}-{}.{}",
+        year,
+        month,
+        day,
+        hour,
+        min,
+        sec,
+        &uuid::Uuid::new_v4().to_string()[..4],
+        ext
+    )
 }
 
 fn epoch_to_datetime(secs: u64) -> (u64, u64, u64, u64, u64, u64) {

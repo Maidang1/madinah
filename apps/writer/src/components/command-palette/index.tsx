@@ -17,7 +17,7 @@ import {
   useSetCommandPaletteSearch,
 } from "@/hooks/use-command-palette";
 import { useSidebar } from "@/hooks/use-sidebar";
-import { useIsCompactFileMode, useWorkspace } from "@/hooks/use-workspace";
+import { useIsCompactFileMode, useWorkspace, useWorkspaceReadOnly } from "@/hooks/use-workspace";
 import {
   useActiveFilePath,
   useActiveTabId,
@@ -76,8 +76,12 @@ export function CommandPalette() {
   const tabs = useOpenTabs();
   const { toggleTheme } = useTheme();
   const isCompactFileMode = useIsCompactFileMode();
+  const isWorkspaceReadOnly = useWorkspaceReadOnly();
 
   const isCreateIntent = intent === "create-file";
+  useEffect(() => {
+    if (isCreateIntent && isWorkspaceReadOnly) close();
+  }, [close, isCreateIntent, isWorkspaceReadOnly]);
   const trimmedSearch = search.trim();
   const fileQuery = isCreateIntent ? "" : search;
   // Standalone compact windows have no workspace index — search filters the
@@ -123,6 +127,7 @@ export function CommandPalette() {
 
   const commands: CommandPaletteCommand[] = createCommandPaletteCommands({
     root,
+    isWorkspaceReadOnly,
     isCompactFileMode,
     activeFilePath,
     activeTabId,

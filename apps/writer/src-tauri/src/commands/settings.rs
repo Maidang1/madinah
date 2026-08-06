@@ -110,13 +110,38 @@ pub fn set_setting(
     let config_value =
         json_to_config_value(&value).ok_or_else(|| AppError::Io("Invalid value type".into()))?;
 
-    with_settings_mut(&app, webview.label(), |settings| {
+    let permit = if scope == "workspace" {
+        let root = app
+            .state::<AppState>()
+            .get_or_create(webview.label())
+            .workspace_root
+            .read()
+            .clone()
+            .ok_or_else(|| AppError::Io("No active Workspace for workspace settings".into()))?;
+        let target = root.join(".writer").join("config");
+        Some(app.state::<AppState>().begin_writer_mutation_context(
+            webview.label(),
+            &[target.as_path()],
+            None,
+        )?)
+    } else {
+        None
+    };
+
+    let result = with_settings_mut(&app, webview.label(), |settings| {
         let result = match scope.as_str() {
-            "workspace" => settings.set_workspace(&key, config_value),
+            "workspace" => {
+                let ctx = permit
+                    .as_ref()
+                    .ok_or_else(|| std::io::Error::other("missing capability context"))?;
+                settings.set_workspace_with_dir(&key, config_value, &ctx.dir, &ctx.targets[0])
+            }
             _ => settings.set_global(&key, config_value),
         };
         result.map_err(|e| AppError::Io(e.to_string()))
-    })?
+    })?;
+    drop(permit);
+    result
 }
 
 #[tauri::command]
@@ -126,11 +151,35 @@ pub fn reset_setting(
     webview: tauri::Webview,
     app: tauri::AppHandle,
 ) -> Result<(), AppError> {
-    with_settings_mut(&app, webview.label(), |settings| {
+    let permit = if scope == "workspace" {
+        let root = app
+            .state::<AppState>()
+            .get_or_create(webview.label())
+            .workspace_root
+            .read()
+            .clone()
+            .ok_or_else(|| AppError::Io("No active Workspace for workspace settings".into()))?;
+        let target = root.join(".writer").join("config");
+        Some(app.state::<AppState>().begin_writer_mutation_context(
+            webview.label(),
+            &[target.as_path()],
+            None,
+        )?)
+    } else {
+        None
+    };
+    let result = with_settings_mut(&app, webview.label(), |settings| {
         let result = match scope.as_str() {
-            "workspace" => settings.reset_workspace(&key),
+            "workspace" => {
+                let ctx = permit
+                    .as_ref()
+                    .ok_or_else(|| std::io::Error::other("missing capability context"))?;
+                settings.reset_workspace_with_dir(&key, &ctx.dir, &ctx.targets[0])
+            }
             _ => settings.reset_global(&key),
         };
         result.map_err(|e| AppError::Io(e.to_string()))
-    })?
+    })?;
+    drop(permit);
+    result
 }

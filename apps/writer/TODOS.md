@@ -2,6 +2,7 @@
 
 ## In Progress
 
+- First serialized Agent Turn: [`SPECs/Agent/worksheet-first-serialized-agent-turn.md`](SPECs/Agent/worksheet-first-serialized-agent-turn.md), [GitHub #12](https://github.com/Maidang1/madinah/issues/12) — add per-Workspace AI Access Consent and one temporary ACP Conversation whose Agent Turn is prepared, serialized, streamed, reconciled, and unlocked through the accepted Workspace lifecycle seam; the parent AI-first Assistant remains Up Next.
 - MDX file rendering support: [`SPECs/mdx-file-rendering-support-spec.md`](SPECs/mdx-file-rendering-support-spec.md) — treat `.mdx` files as first-class Markdown documents across open, sidebar, search, recents, watcher, links, and safe editor rendering.
 - Reveal-in-sidebar + residual external-watcher misses: [`SPECs/reveal-in-sidebar-and-external-watcher-spec.md`](SPECs/reveal-in-sidebar-and-external-watcher-spec.md) — keep the explicit tab-context-menu "Reveal in sidebar" action working, leave ordinary file opens from expanding the Everything tree, and characterize the remaining external-file-watcher miss cases through a logging + manual-repro pass before patching further.
 

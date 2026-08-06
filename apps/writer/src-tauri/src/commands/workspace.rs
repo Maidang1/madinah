@@ -63,6 +63,12 @@ fn prepare_workspace_state(
         .unwrap_or_else(|| canonical_path.clone());
 
     let state = app.state::<AppState>().get_or_create(label);
+    let current_root = state.workspace_root.read().clone();
+    let _transition = app
+        .state::<AppState>()
+        .agent_coordinator
+        .begin_workspace_transition(label, current_root.as_deref(), Some(&root))
+        .map_err(AppError::Io)?;
 
     // Bump the epoch before any reset or background spawn. Every background
     // task captured the prior value; anything still running against it will
@@ -433,6 +439,13 @@ pub(crate) fn watch_standalone_file_impl(
         .map_err(|e| AppError::Io(e.to_string()))?;
 
     let state = app.state::<AppState>().get_or_create(label);
+    let target_root = app.state::<AppState>().workspace_root_for_target(&file);
+    let current_root = state.workspace_root.read().clone();
+    let _transition = app
+        .state::<AppState>()
+        .agent_coordinator
+        .begin_workspace_transition(label, current_root.as_deref(), target_root.as_deref())
+        .map_err(AppError::Io)?;
     let epoch = state.workspace_epoch.fetch_add(1, Ordering::SeqCst) + 1;
     *state.standalone_file.write() = Some(file.clone());
     state.invalidate_assistant_discovery();

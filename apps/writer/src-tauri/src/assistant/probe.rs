@@ -373,7 +373,7 @@ fn auth_method_info(method: &agent_client_protocol::schema::v1::AuthMethod) -> A
     }
 }
 
-async fn terminate_and_reap(child: &mut Child, pid: Option<u32>) -> Result<(), String> {
+pub(super) async fn terminate_and_reap(child: &mut Child, pid: Option<u32>) -> Result<(), String> {
     let mut failures = Vec::new();
     #[cfg(unix)]
     match pid

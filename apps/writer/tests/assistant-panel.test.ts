@@ -1,7 +1,10 @@
 import { describe, expect, test, vi } from "vite-plus/test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { AssistantCatalogView } from "../src/components/assistant/assistant-panel";
+import {
+  AssistantCatalogView,
+  AssistantTurnView,
+} from "../src/components/assistant/assistant-panel";
 import type { AgentDiscovery } from "../src/platform/tauri/assistant";
 
 function agent(overrides: Partial<AgentDiscovery>): AgentDiscovery {
@@ -74,5 +77,58 @@ describe("Assistant discovery shell", () => {
     expect(markup).toContain("--stdio");
     expect(markup).not.toContain("Put one argument on each line");
     expect(markup).not.toContain("Send message");
+  });
+
+  test("shows complete per-Workspace consent and an executable one-shot permission request", () => {
+    const viewProps = {
+      agents: [agent({ id: "ready", name: "Ready Agent" })],
+      selectedAgentId: null,
+      turnBridgeReady: true,
+      conversation: null,
+      onGrantConsent: vi.fn(),
+      onSelectAgent: vi.fn(),
+      onSend: vi.fn(),
+      onRespondPermission: vi.fn(),
+    };
+    const consent = renderToStaticMarkup(
+      createElement(AssistantTurnView, { ...viewProps, consent: "required" }),
+    );
+    expect(consent).toContain("may use cloud services");
+    expect(consent).toContain("unrestricted read and write access");
+    expect(consent).toContain("ignored files");
+    expect(consent).toContain("not open as Documents");
+    expect(consent).toContain("does not provide rollback");
+    expect(consent).toContain("Enable for this Workspace");
+
+    const permission = renderToStaticMarkup(
+      createElement(AssistantTurnView, {
+        ...viewProps,
+        consent: "granted",
+        selectedAgentId: "ready",
+        conversation: {
+          id: "conversation-1",
+          turnId: "turn-1",
+          prompt: "Do work",
+          output: "",
+          changeSummaries: [],
+          status: "awaiting-permission",
+          message: null,
+          reconciliation: null,
+          permission: {
+            requestId: "permission-1",
+            title: "Access the network",
+            options: [
+              { id: "allow-once", name: "Allow once", kind: "allow-once" },
+              { id: "reject-once", name: "Reject", kind: "reject-once" },
+            ],
+            responding: false,
+          },
+        },
+      }),
+    );
+    expect(permission).toContain("External Action");
+    expect(permission).toContain("Access the network");
+    expect(permission).toContain("Allow once");
+    expect(permission).toContain("Reject");
   });
 });

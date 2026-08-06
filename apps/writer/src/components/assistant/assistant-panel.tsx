@@ -1,15 +1,26 @@
 import { useState, type FormEvent } from "react";
 import type { AgentDiscovery } from "@/platform/tauri/assistant";
 import {
+  type AssistantConsent,
   type AssistantDiscoveryPhase,
+  type TemporaryAssistantConversation,
   useAddCustomAgent,
   useAssistantAgents,
   useAssistantError,
   useAssistantPhase,
   useAssistantRegistrationError,
+  useAssistantTurnBridgeReady,
+  useAssistantConsent,
+  useAssistantConversation,
+  useGrantAssistantConsent,
   useOpenAgentSetup,
   useRefreshAssistant,
   useRemoveCustomAgent,
+  useRespondAssistantPermission,
+  useSelectedAssistantAgent,
+  useSelectAssistantAgent,
+  useSendAssistantTurn,
+  isAssistantConversationActive,
 } from "@/hooks/use-assistant";
 
 interface AssistantPanelProps {
@@ -54,19 +65,232 @@ function AssistantCatalog() {
   const addCustom = useAddCustomAgent();
   const removeCustom = useRemoveCustomAgent();
   const openSetup = useOpenAgentSetup();
+  const conversation = useAssistantConversation();
+  const isTurnActive = isAssistantConversationActive(conversation);
 
   return (
-    <AssistantCatalogView
-      phase={phase}
+    <>
+      <AssistantTurnComposer agents={agents} />
+      <AssistantCatalogView
+        phase={phase}
+        agents={agents}
+        error={error}
+        registrationError={registrationError}
+        onRefresh={refresh}
+        onAdd={addCustom}
+        onRemove={removeCustom}
+        onOpenSetup={openSetup}
+        isTurnActive={isTurnActive}
+      />
+    </>
+  );
+}
+
+function AssistantTurnComposer({ agents }: { agents: AgentDiscovery[] }) {
+  const consent = useAssistantConsent();
+  const grantConsent = useGrantAssistantConsent();
+  const selectedAgentId = useSelectedAssistantAgent();
+  const selectAgent = useSelectAssistantAgent();
+  const conversation = useAssistantConversation();
+  const turnBridgeReady = useAssistantTurnBridgeReady();
+  const send = useSendAssistantTurn();
+  const respondPermission = useRespondAssistantPermission();
+  return (
+    <AssistantTurnView
       agents={agents}
-      error={error}
-      registrationError={registrationError}
-      onRefresh={refresh}
-      onAdd={addCustom}
-      onRemove={removeCustom}
-      onOpenSetup={openSetup}
+      consent={consent}
+      selectedAgentId={selectedAgentId}
+      conversation={conversation}
+      turnBridgeReady={turnBridgeReady}
+      onGrantConsent={grantConsent}
+      onSelectAgent={selectAgent}
+      onSend={send}
+      onRespondPermission={respondPermission}
     />
   );
+}
+
+interface AssistantTurnViewProps {
+  agents: AgentDiscovery[];
+  consent: AssistantConsent;
+  selectedAgentId: string | null;
+  conversation: TemporaryAssistantConversation | null;
+  turnBridgeReady: boolean;
+  onGrantConsent: () => Promise<void>;
+  onSelectAgent: (id: string) => void;
+  onSend: (prompt: string) => Promise<void>;
+  onRespondPermission: (optionId: string | null) => Promise<void>;
+}
+
+export function AssistantTurnView({
+  agents,
+  consent,
+  selectedAgentId,
+  conversation,
+  turnBridgeReady,
+  onGrantConsent: grantConsent,
+  onSelectAgent: selectAgent,
+  onSend: send,
+  onRespondPermission: respondPermission,
+}: AssistantTurnViewProps) {
+  const [prompt, setPrompt] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const compatible = agents.filter((agent) => agent.status === "compatible");
+  const isActive = isAssistantConversationActive(conversation);
+  const hasConversation = conversation !== null;
+
+  async function handleConsent() {
+    setError(null);
+    try {
+      await grantConsent();
+    } catch (consentError) {
+      setError(errorMessage(consentError));
+    }
+  }
+
+  async function handleSend(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    try {
+      await send(prompt);
+      setPrompt("");
+    } catch (sendError) {
+      setError(errorMessage(sendError));
+    }
+  }
+
+  if (consent !== "granted") {
+    return (
+      <section className="mx-3 mt-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+        <h3 className="text-sm font-semibold text-text-primary">Enable AI Access</h3>
+        <p className="mt-2 text-xs leading-5 text-text-secondary">
+          The selected Agent may use cloud services. It receives unrestricted read and write access
+          to this entire Workspace, including ignored files and files that are not open as
+          Documents. Changes happen directly on disk; Writer does not provide rollback or an Apply
+          step. Configure and authenticate the Agent outside Writer.
+        </p>
+        <button
+          type="button"
+          disabled={consent === "loading"}
+          onClick={() => void handleConsent()}
+          className="mt-3 rounded-md bg-text-primary px-3 py-1.5 text-xs font-medium text-[var(--bg-base)] disabled:opacity-50"
+        >
+          {consent === "loading" ? "Checking…" : "Enable for this Workspace"}
+        </button>
+        {error && <p className="mt-2 text-xs text-red-600 dark:text-red-300">{error}</p>}
+      </section>
+    );
+  }
+
+  return (
+    <section className="mx-3 mt-3 border-b border-[var(--line-subtler)] pb-3">
+      <form onSubmit={handleSend}>
+        <label className="block text-xs text-text-secondary">
+          Agent
+          <select
+            value={selectedAgentId ?? ""}
+            onChange={(event) => selectAgent(event.target.value)}
+            disabled={hasConversation || compatible.length === 0}
+            className="mt-1 w-full rounded-md border border-[var(--line-subtle)] bg-[var(--bg-base)] px-2 py-1.5 text-sm text-text-primary"
+          >
+            {compatible.length === 0 && <option value="">No compatible Agent</option>}
+            {compatible.map((agent) => (
+              <option key={agent.id} value={agent.id}>
+                {agent.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="mt-2 block text-xs text-text-secondary">
+          Message
+          <textarea
+            value={prompt}
+            onChange={(event) => setPrompt(event.target.value)}
+            disabled={hasConversation}
+            rows={3}
+            placeholder="Ask the Agent to update this Workspace…"
+            className="mt-1 w-full resize-y rounded-md border border-[var(--line-subtle)] bg-transparent px-2 py-1.5 text-sm text-text-primary outline-none"
+          />
+        </label>
+        <button
+          type="submit"
+          disabled={hasConversation || !turnBridgeReady || !selectedAgentId || !prompt.trim()}
+          className="mt-2 w-full rounded-md bg-text-primary px-3 py-1.5 text-xs font-medium text-[var(--bg-base)] disabled:opacity-50"
+        >
+          {isActive ? "Agent Turn active…" : hasConversation ? "Turn complete" : "Send message"}
+        </button>
+      </form>
+      {error && (
+        <p role="alert" className="mt-2 text-xs text-red-600 dark:text-red-300">
+          {error}
+        </p>
+      )}
+      {conversation && (
+        <div aria-live="polite" className="mt-3 rounded-lg bg-surface-hover p-2.5">
+          <p className="text-[10px] font-medium uppercase tracking-wide text-text-muted">
+            {conversation.status}
+          </p>
+          {conversation.output && (
+            <p className="mt-1 whitespace-pre-wrap text-sm leading-5 text-text-primary">
+              {conversation.output}
+            </p>
+          )}
+          {conversation.changeSummaries.length > 0 && (
+            <div className="mt-2">
+              <p className="text-xs font-medium text-text-secondary">Changes</p>
+              <ul className="mt-1 list-disc pl-4 text-xs text-text-muted">
+                {conversation.changeSummaries.map((summary) => (
+                  <li key={summary}>{summary}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {conversation.message && conversation.message !== conversation.output && (
+            <p className="mt-2 text-xs text-text-muted">{conversation.message}</p>
+          )}
+          {conversation.permission && (
+            <div className="mt-2 rounded-md border border-amber-500/30 bg-[var(--bg-base)] p-2">
+              <p className="text-xs font-medium text-text-primary">External Action</p>
+              <p className="mt-1 text-xs text-text-secondary">{conversation.permission.title}</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {conversation.permission.options.map((option) => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    disabled={conversation.permission?.responding}
+                    onClick={() => void respondPermission(option.id).catch(setPermissionError)}
+                    className="rounded-md border border-[var(--line-subtle)] px-2 py-1 text-xs text-text-secondary disabled:opacity-50"
+                  >
+                    {option.name}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  disabled={conversation.permission.responding}
+                  onClick={() => void respondPermission(null).catch(setPermissionError)}
+                  className="rounded-md px-2 py-1 text-xs text-text-muted disabled:opacity-50"
+                >
+                  Cancel turn action
+                </button>
+              </div>
+            </div>
+          )}
+          {conversation.reconciliation?.failures.map((failure, index) => (
+            <p
+              key={`${failure.phase}-${failure.path ?? index}`}
+              className="mt-1 text-xs text-red-600"
+            >
+              Reload {failure.path ?? failure.phase}: {failure.message}
+            </p>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+
+  function setPermissionError(permissionError: unknown) {
+    setError(errorMessage(permissionError));
+  }
 }
 
 interface AssistantCatalogViewProps {
@@ -78,6 +302,7 @@ interface AssistantCatalogViewProps {
   onAdd: (command: string, args: string[]) => Promise<void> | void;
   onRemove: (id: string) => Promise<void> | void;
   onOpenSetup?: (url: string) => Promise<void> | void;
+  isTurnActive?: boolean;
 }
 
 export function AssistantCatalogView({
@@ -89,6 +314,7 @@ export function AssistantCatalogView({
   onAdd,
   onRemove,
   onOpenSetup,
+  isTurnActive = false,
 }: AssistantCatalogViewProps) {
   const [command, setCommand] = useState("");
   const [useStdio, setUseStdio] = useState(false);
@@ -143,7 +369,7 @@ export function AssistantCatalogView({
         <button
           type="button"
           onClick={() => void onRefresh()}
-          disabled={phase === "loading"}
+          disabled={phase === "loading" || isTurnActive}
           className="shrink-0 rounded-md border border-[var(--line-subtle)] px-2 py-1 text-xs text-text-secondary hover:bg-surface-hover disabled:opacity-50"
         >
           {phase === "loading" ? "Checking…" : "Retry"}
@@ -169,6 +395,7 @@ export function AssistantCatalogView({
             agent={agent}
             onRemove={handleRemove}
             onOpenSetup={handleOpenSetup}
+            isTurnActive={isTurnActive}
           />
         ))}
       </div>
@@ -205,7 +432,7 @@ export function AssistantCatalogView({
         {formError && <p className="mt-2 text-xs text-red-600 dark:text-red-300">{formError}</p>}
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || isTurnActive}
           className="mt-3 w-full rounded-md bg-text-primary px-3 py-1.5 text-xs font-medium text-[var(--bg-base)] disabled:opacity-50"
         >
           {isSubmitting ? "Adding…" : "Add Agent"}
@@ -219,10 +446,12 @@ function AgentCard({
   agent,
   onRemove,
   onOpenSetup,
+  isTurnActive,
 }: {
   agent: AgentDiscovery;
   onRemove: (id: string) => Promise<void> | void;
   onOpenSetup?: (url: string) => Promise<void> | void;
+  isTurnActive: boolean;
 }) {
   const label = statusLabel(agent.status);
   return (
@@ -246,6 +475,7 @@ function AgentCard({
         {agent.status === "missing" && agent.setupUrl && (
           <button
             type="button"
+            disabled={isTurnActive}
             onClick={() => void onOpenSetup?.(agent.setupUrl)}
             className="text-xs font-medium text-[var(--accent)] hover:underline"
           >
@@ -255,6 +485,7 @@ function AgentCard({
         {agent.source === "custom" && (
           <button
             type="button"
+            disabled={isTurnActive}
             onClick={() => void onRemove(agent.id)}
             className="text-xs text-text-muted hover:text-red-600"
           >
@@ -279,4 +510,8 @@ function statusLabel(status: AgentDiscovery["status"]): string {
     case "handshake-failed":
       return "Handshake failed";
   }
+}
+
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
 }

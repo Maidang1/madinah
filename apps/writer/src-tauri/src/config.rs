@@ -1,3 +1,4 @@
+use cap_std::fs::Dir;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -388,6 +389,30 @@ impl Settings {
         std::fs::write(&ws_path, &self.workspace_raw)
     }
 
+    pub fn set_workspace_with_dir(
+        &mut self,
+        key: &str,
+        value: ConfigValue,
+        dir: &Dir,
+        relative: &Path,
+    ) -> std::io::Result<()> {
+        if self.workspace_path.is_none() {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                "no workspace config path",
+            ));
+        }
+        self.workspace.insert(key.to_string(), value.clone());
+        let mut current = parse_config(&self.workspace_raw);
+        current.insert(key.to_string(), value);
+        self.workspace_raw = serialize_config(&current, &self.workspace_raw);
+        dir.create_dir_all(relative.parent().unwrap_or(Path::new(".")))?;
+        let temp = relative.with_file_name(format!(".~{}", uuid::Uuid::new_v4()));
+        dir.write(&temp, self.workspace_raw.as_bytes())?;
+        dir.rename(&temp, dir, relative)?;
+        Ok(())
+    }
+
     /// Remove a key override from the global scope.
     pub fn reset_global(&mut self, key: &str) -> std::io::Result<()> {
         self.global.remove(key);
@@ -412,6 +437,26 @@ impl Settings {
         self.workspace.remove(key);
         self.workspace_raw = remove_key_from_config(key, &self.workspace_raw);
         std::fs::write(&ws_path, &self.workspace_raw)
+    }
+
+    pub fn reset_workspace_with_dir(
+        &mut self,
+        key: &str,
+        dir: &Dir,
+        relative: &Path,
+    ) -> std::io::Result<()> {
+        if self.workspace_path.is_none() {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                "no workspace config path",
+            ));
+        }
+        self.workspace.remove(key);
+        self.workspace_raw = remove_key_from_config(key, &self.workspace_raw);
+        let temp = relative.with_file_name(format!(".~{}", uuid::Uuid::new_v4()));
+        dir.write(&temp, self.workspace_raw.as_bytes())?;
+        dir.rename(&temp, dir, relative)?;
+        Ok(())
     }
 
     /// Reload global config from disk.

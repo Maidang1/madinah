@@ -2,6 +2,15 @@ import { invoke } from "@tauri-apps/api/core";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import type { DirEntry, FileContent, WriteResult } from "@/types/fs";
 
+export interface WriterMutationPreparation {
+  turnId: string;
+  workspaceRoot: string;
+  workspaceEpoch: number;
+  participantToken: string;
+  bridgeId: string;
+  requestId: string;
+}
+
 export function readDirectory(path: string): Promise<DirEntry[]> {
   return invoke("read_directory", { path });
 }
@@ -18,8 +27,12 @@ export function readFile(path: string): Promise<FileContent> {
   return invoke("read_file", { path });
 }
 
-export function writeFile(path: string, content: string): Promise<WriteResult> {
-  return invoke("write_file", { path, content });
+export function writeFile(
+  path: string,
+  content: string,
+  preparation: WriterMutationPreparation | null = null,
+): Promise<WriteResult> {
+  return invoke("write_file", { path, content, preparation });
 }
 
 export function createFile(path: string): Promise<FileContent> {

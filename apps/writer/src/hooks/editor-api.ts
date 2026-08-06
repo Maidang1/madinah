@@ -2,6 +2,7 @@ import { useEditorStore } from "@/stores/editor-store";
 import { useWorkspaceStore } from "@/stores/workspace-store";
 import { flushSave } from "@/lib/save";
 import type { WorkspaceReadOnlyLease } from "@/domain/workspace-turn-lifecycle";
+import type { WriterMutationPreparation } from "@/platform/tauri/fs";
 import { isPathInsideWorkspace, isSameWorkspaceLease } from "@/domain/workspace-turn-lifecycle";
 export type { OpenFile, Tab, SessionTab } from "@/domain/editor-session";
 export type { WorkspaceReadOnlyLease } from "@/domain/workspace-turn-lifecycle";
@@ -62,11 +63,14 @@ export function applyWorkspaceDocumentReconciliation(
   return true;
 }
 
-export async function flushWorkspaceDocuments(workspaceRoot: string) {
+export async function flushWorkspaceDocuments(
+  workspaceRoot: string,
+  preparation: WriterMutationPreparation | null = null,
+) {
   const dirtyPaths = [...useEditorStore.getState().openFiles.values()]
     .filter((file) => file.isDirty && isPathInsideWorkspace(file.path, workspaceRoot))
     .map((file) => file.path);
-  const results = await Promise.allSettled(dirtyPaths.map((path) => flushSave(path)));
+  const results = await Promise.allSettled(dirtyPaths.map((path) => flushSave(path, preparation)));
   const failures = results.flatMap((result, index) =>
     result.status === "rejected"
       ? [

@@ -1,4 +1,5 @@
 pub mod assistant;
+pub mod assistant_turn;
 pub mod fs;
 pub(crate) mod fs_support;
 pub mod images;

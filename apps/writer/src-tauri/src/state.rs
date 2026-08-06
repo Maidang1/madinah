@@ -1,6 +1,9 @@
+use crate::assistant::{AgentCoordinator, WriterMutationPermit, WriterMutationPreparation};
 use crate::config::Settings;
 use crate::ignore::WorkspaceIgnore;
 use crate::open_target::PendingOpenPayload;
+use cap_std::ambient_authority;
+use cap_std::fs::Dir;
 use notify::RecommendedWatcher;
 use parking_lot::{Mutex, RwLock};
 use std::collections::{HashMap, HashSet, VecDeque};
@@ -232,15 +235,241 @@ pub struct AppState {
     /// Serializes versioned read-modify-write updates to the process-wide
     /// custom ACP Agent registration document.
     pub assistant_registrations_lock: Mutex<()>,
+    /// Serializes versioned per-canonical-Workspace AI Access Consent writes.
+    pub assistant_consents_lock: Mutex<()>,
+    /// Sole process-wide owner of active Agent Turns, keyed by canonical Workspace.
+    pub agent_coordinator: Arc<AgentCoordinator>,
+}
+
+pub struct WriterMutationContext {
+    pub(crate) _permit: Option<WriterMutationPermit>,
+    pub root: PathBuf,
+    pub dir: Dir,
+    pub targets: Vec<PathBuf>,
 }
 
 impl AppState {
+    pub fn begin_writer_mutation_context(
+        &self,
+        window_label: &str,
+        targets: &[&Path],
+        preparation: Option<&WriterMutationPreparation>,
+    ) -> Result<WriterMutationContext, crate::error::AppError> {
+        let window = self
+            .get(window_label)
+            .ok_or_else(|| crate::error::AppError::Io("Unknown Writer window".into()))?;
+        let root = window.workspace_root.read().clone().or_else(|| {
+            targets
+                .iter()
+                .find_map(|target| self.workspace_root_for_target(target))
+        });
+        let (root, dir) = if let Some(root) = root {
+            let root = root
+                .canonicalize()
+                .map_err(|e| crate::error::AppError::Io(e.to_string()))?;
+            let dir = Dir::open_ambient_dir(&root, ambient_authority())
+                .map_err(|e| crate::error::AppError::Io(e.to_string()))?;
+            (root, dir)
+        } else {
+            let target = targets
+                .first()
+                .ok_or_else(|| crate::error::AppError::Io("No mutation target".into()))?;
+            let parent = target
+                .parent()
+                .ok_or_else(|| crate::error::AppError::Io("No mutation parent".into()))?
+                .canonicalize()
+                .map_err(|e| crate::error::AppError::Io(e.to_string()))?;
+            let dir = Dir::open_ambient_dir(&parent, ambient_authority())
+                .map_err(|e| crate::error::AppError::Io(e.to_string()))?;
+            (parent, dir)
+        };
+        let mut relatives = Vec::with_capacity(targets.len());
+        for target in targets {
+            let canonical = self.secure_mutation_path(target)?;
+            let relative = canonical
+                .strip_prefix(&root)
+                .map_err(|_| crate::error::AppError::Io("Mutation escaped capability root".into()))?
+                .to_path_buf();
+            if relative.components().any(|c| {
+                matches!(
+                    c,
+                    std::path::Component::RootDir | std::path::Component::ParentDir
+                )
+            }) {
+                return Err(crate::error::AppError::Io(
+                    "Invalid capability-relative target".into(),
+                ));
+            }
+            relatives.push(relative);
+        }
+        let permit = if window.workspace_root.read().is_some()
+            || self.workspace_root_for_target(targets[0]).is_some()
+        {
+            self.agent_coordinator
+                .acquire_writer_mutation(window_label, &root, preparation)
+                .map_err(crate::error::AppError::Io)?
+                .attach_capability(
+                    dir.try_clone()
+                        .map_err(|e| crate::error::AppError::Io(e.to_string()))?,
+                )
+        } else {
+            return Ok(WriterMutationContext {
+                _permit: None,
+                root,
+                dir,
+                targets: relatives,
+            });
+        };
+        Ok(WriterMutationContext {
+            _permit: Some(permit),
+            root,
+            dir,
+            targets: relatives,
+        })
+    }
+
+    pub fn begin_writer_mutation(
+        &self,
+        window_label: &str,
+        targets: &[&Path],
+        preparation: Option<&WriterMutationPreparation>,
+    ) -> Result<Option<WriterMutationPermit>, crate::error::AppError> {
+        let Some(window_state) = self.get(window_label) else {
+            return Ok(None);
+        };
+        let root = window_state.workspace_root.read().clone().or_else(|| {
+            targets
+                .iter()
+                .find_map(|target| self.workspace_root_for_target(target))
+        });
+        let Some(root) = root else {
+            if preparation.is_some() {
+                return Err(crate::error::AppError::Io(
+                    "The Agent Turn preparation write has no active Workspace.".into(),
+                ));
+            }
+            return Ok(None);
+        };
+        if targets.is_empty()
+            || targets
+                .iter()
+                .any(|target| Self::canonical_target_within_root(target, &root).is_err())
+        {
+            return Err(crate::error::AppError::Io(
+                "Writer rejected a Workspace mutation whose target is outside the invoking window's current Workspace."
+                    .into(),
+            ));
+        }
+        self.agent_coordinator
+            .acquire_writer_mutation(window_label, &root, preparation)
+            .map(Some)
+            .map_err(crate::error::AppError::Io)
+    }
+
+    /// Resolve a mutation path to a canonical parent-bound path before any
+    /// blocking I/O. Callers must use the returned path for the operation;
+    /// retaining the user-provided spelling would re-open a TOCTOU window.
+    pub fn secure_mutation_path(&self, target: &Path) -> Result<PathBuf, crate::error::AppError> {
+        let mut cursor = target;
+        let mut suffix = Vec::new();
+        if std::fs::symlink_metadata(cursor)
+            .map(|metadata| metadata.file_type().is_symlink())
+            .unwrap_or(false)
+        {
+            return Err(crate::error::AppError::Io(
+                "Writer rejected a symlink mutation target.".into(),
+            ));
+        }
+        while !cursor.exists() {
+            let Some(name) = cursor.file_name() else {
+                return Err(crate::error::AppError::Io(
+                    "Invalid mutation target.".into(),
+                ));
+            };
+            suffix.push(name.to_os_string());
+            cursor = cursor
+                .parent()
+                .ok_or_else(|| crate::error::AppError::Io("Invalid mutation parent.".into()))?;
+            if std::fs::symlink_metadata(cursor)
+                .map(|metadata| metadata.file_type().is_symlink())
+                .unwrap_or(false)
+            {
+                return Err(crate::error::AppError::Io(
+                    "Writer rejected a symlink mutation parent.".into(),
+                ));
+            }
+        }
+        let mut canonical = std::fs::canonicalize(cursor)
+            .map_err(|error| crate::error::AppError::Io(error.to_string()))?;
+        for component in suffix.iter().rev() {
+            canonical.push(component);
+        }
+        Ok(canonical)
+    }
+
+    pub fn workspace_root_for_target(&self, target: &Path) -> Option<PathBuf> {
+        self.windows
+            .read()
+            .values()
+            .filter_map(|window| {
+                let root = window.workspace_root.read().clone()?;
+                Self::canonical_target_within_root(target, &root)
+                    .ok()
+                    .map(|_| root)
+            })
+            .max_by_key(|root| root.components().count())
+    }
+
+    pub fn reject_workspace_mutation_if_active(&self, root: &Path) -> Result<(), String> {
+        if self.agent_coordinator.is_workspace_active(root) {
+            Err("That Workspace has an active Agent Turn; Writer cannot mutate its settings or registrations.".into())
+        } else {
+            Ok(())
+        }
+    }
+
+    fn canonical_target_within_root(target: &Path, root: &Path) -> Result<PathBuf, ()> {
+        if !target.is_absolute() {
+            return Err(());
+        }
+        let mut cursor = target;
+        let mut suffix = Vec::new();
+        if std::fs::symlink_metadata(cursor)
+            .map(|metadata| metadata.file_type().is_symlink())
+            .unwrap_or(false)
+        {
+            return Err(());
+        }
+        while !cursor.exists() {
+            let Some(name) = cursor.file_name() else {
+                return Err(());
+            };
+            suffix.push(name.to_os_string());
+            let Some(parent) = cursor.parent() else {
+                return Err(());
+            };
+            cursor = parent;
+            if std::fs::symlink_metadata(cursor)
+                .map(|metadata| metadata.file_type().is_symlink())
+                .unwrap_or(false)
+            {
+                return Err(());
+            }
+        }
+        let mut canonical = std::fs::canonicalize(cursor).map_err(|_| ())?;
+        for component in suffix.iter().rev() {
+            canonical.push(component);
+        }
+        canonical.starts_with(root).then_some(canonical).ok_or(())
+    }
     pub fn new() -> Self {
         Self {
             windows: RwLock::new(HashMap::new()),
             sessions_file_lock: Mutex::new(()),
             recent_files_lock: Mutex::new(()),
             assistant_registrations_lock: Mutex::new(()),
+            assistant_consents_lock: Mutex::new(()),
+            agent_coordinator: Arc::new(AgentCoordinator::default()),
         }
     }
 
@@ -324,6 +553,19 @@ impl AppState {
     pub fn labels(&self) -> Vec<String> {
         self.windows.read().keys().cloned().collect()
     }
+
+    /// Snapshot every registered window currently hosting `root`, together
+    /// with the exact Rust Workspace incarnation used by Agent Turn routing.
+    pub fn workspace_incarnations(&self, root: &Path) -> Vec<(String, u64)> {
+        let map = self.windows.read();
+        let mut matches = map
+            .iter()
+            .filter(|(_, state)| state.workspace_root.read().as_deref() == Some(root))
+            .map(|(label, state)| (label.clone(), state.workspace_epoch.load(Ordering::Acquire)))
+            .collect::<Vec<_>>();
+        matches.sort_by(|left, right| left.0.cmp(&right.0));
+        matches
+    }
 }
 
 impl Default for AppState {
@@ -359,6 +601,7 @@ pub fn rebuild_dirs_from_index(files: &[IndexedFile], root: &Path) -> HashSet<Pa
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::assistant::WriterMutationPreparation;
 
     #[test]
     fn workspace_transition_invalidates_in_flight_assistant_discovery() {
@@ -368,6 +611,248 @@ mod tests {
         state.invalidate_assistant_discovery();
 
         assert_eq!(state.assistant_discovery_epoch.load(Ordering::Acquire), 8);
+    }
+
+    #[test]
+    fn writer_mutation_permit_is_target_scoped_and_atomic_with_turn_reservation() {
+        let app_state = AppState::new();
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path().join("workspace");
+        std::fs::create_dir(&root).unwrap();
+        let root = root.canonicalize().unwrap();
+        let window = app_state.get_or_create("writer");
+        *window.workspace_root.write() = Some(root.clone());
+        let target = root.join("note.md");
+        let stale_target = temp.path().join("outside/note.md");
+        assert!(app_state
+            .begin_writer_mutation("writer", &[stale_target.as_path()], None)
+            .is_err());
+
+        let permit = app_state
+            .begin_writer_mutation("writer", &[target.as_path()], None)
+            .unwrap()
+            .unwrap();
+        app_state
+            .agent_coordinator
+            .register_bridge("writer", root.clone(), 0, 4)
+            .unwrap();
+        assert!(app_state
+            .agent_coordinator
+            .reserve(root.clone(), &[("writer".into(), 0)])
+            .is_err());
+        drop(permit);
+        let turn = app_state
+            .agent_coordinator
+            .reserve(root, &[("writer".into(), 0)])
+            .unwrap();
+
+        let request = turn.prepare_requests().pop().unwrap();
+        assert!(app_state
+            .begin_writer_mutation("writer", &[target.as_path()], None)
+            .is_err());
+        let preparation = WriterMutationPreparation {
+            turn_id: request.turn_id,
+            workspace_root: request.workspace_root,
+            workspace_epoch: request.workspace_epoch,
+            participant_token: request.participant_token,
+            bridge_id: request.bridge_id,
+            request_id: request.request_id,
+        };
+        let prepare_permit = app_state
+            .begin_writer_mutation("writer", &[target.as_path()], Some(&preparation))
+            .unwrap()
+            .unwrap();
+        drop(prepare_permit);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn capability_context_survives_workspace_parent_replacement() {
+        use std::os::unix::fs::symlink;
+        let app_state = AppState::new();
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path().join("workspace");
+        let outside = temp.path().join("outside");
+        std::fs::create_dir(&root).unwrap();
+        std::fs::create_dir(&outside).unwrap();
+        let root = root.canonicalize().unwrap();
+        let window = app_state.get_or_create("writer");
+        *window.workspace_root.write() = Some(root.clone());
+        let target = root.join("note.md");
+        std::fs::write(&target, "old").unwrap();
+        let context = app_state
+            .begin_writer_mutation_context("writer", &[target.as_path()], None)
+            .unwrap();
+        let moved = temp.path().join("workspace-moved");
+        std::fs::rename(&root, &moved).unwrap();
+        symlink(&outside, &root).unwrap();
+        context.dir.write(&context.targets[0], b"new").unwrap();
+        assert_eq!(
+            std::fs::read_to_string(moved.join("note.md")).unwrap(),
+            "new"
+        );
+        assert!(!outside.join("note.md").exists());
+    }
+
+    #[test]
+    fn workspace_transition_cannot_overtake_or_admit_a_writer_mutation() {
+        let app_state = AppState::new();
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path().join("workspace");
+        std::fs::create_dir(&root).unwrap();
+        let root = root.canonicalize().unwrap();
+        let target = root.join("note.md");
+        let window = app_state.get_or_create("writer");
+        *window.workspace_root.write() = Some(root.clone());
+        let mutation = app_state
+            .begin_writer_mutation("writer", &[target.as_path()], None)
+            .unwrap()
+            .unwrap();
+
+        assert!(app_state
+            .agent_coordinator
+            .begin_workspace_transition("writer", Some(&root), Some(&root))
+            .is_err());
+        drop(mutation);
+
+        let transition = app_state
+            .agent_coordinator
+            .begin_workspace_transition("writer", Some(&root), Some(&root))
+            .unwrap();
+        assert!(app_state
+            .begin_writer_mutation("writer", &[target.as_path()], None)
+            .is_err());
+        drop(transition);
+        assert!(app_state
+            .begin_writer_mutation("writer", &[target.as_path()], None)
+            .is_ok());
+    }
+
+    #[test]
+    fn writer_mutation_rejects_parent_escape_and_symlink_escape() {
+        let app_state = AppState::new();
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path().join("workspace");
+        let outside = temp.path().join("outside");
+        std::fs::create_dir(&root).unwrap();
+        std::fs::create_dir(&outside).unwrap();
+        let root = root.canonicalize().unwrap();
+        let window = app_state.get_or_create("writer");
+        *window.workspace_root.write() = Some(root.clone());
+
+        let escaped = root.join("../outside.txt");
+        assert!(app_state
+            .begin_writer_mutation("writer", &[escaped.as_path()], None)
+            .is_err());
+
+        #[cfg(unix)]
+        std::os::unix::fs::symlink(&outside, root.join("linked")).unwrap();
+        #[cfg(unix)]
+        assert!(app_state
+            .begin_writer_mutation("writer", &[root.join("linked/file.md").as_path()], None)
+            .is_err());
+        assert!(app_state
+            .begin_writer_mutation(
+                "writer",
+                &[
+                    root.join("note.md").as_path(),
+                    root.join("note-assets").as_path()
+                ],
+                None,
+            )
+            .is_ok());
+        #[cfg(unix)]
+        {
+            std::os::unix::fs::symlink(&outside, root.join("note-assets")).unwrap();
+            assert!(app_state
+                .begin_writer_mutation(
+                    "writer",
+                    &[
+                        root.join("note.md").as_path(),
+                        root.join("note-assets").as_path()
+                    ],
+                    None,
+                )
+                .is_err());
+        }
+    }
+
+    #[test]
+    fn standalone_target_inside_active_workspace_is_read_only() {
+        let app_state = AppState::new();
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path().join("workspace");
+        std::fs::create_dir(&root).unwrap();
+        let root = root.canonicalize().unwrap();
+        let hosted = app_state.get_or_create("hosted");
+        let _compact = app_state.get_or_create("compact");
+        *hosted.workspace_root.write() = Some(root.clone());
+        app_state
+            .agent_coordinator
+            .register_bridge("hosted", root.clone(), 1, 1)
+            .unwrap();
+        let _turn = app_state
+            .agent_coordinator
+            .reserve(root.clone(), &[("hosted".into(), 1)])
+            .unwrap();
+        assert!(app_state
+            .begin_writer_mutation("compact", &[root.join("note.md").as_path()], None)
+            .is_err());
+        assert!(app_state
+            .begin_writer_mutation(
+                "compact",
+                &[
+                    root.join("note.md").as_path(),
+                    root.join("note-assets").as_path()
+                ],
+                None,
+            )
+            .is_err());
+    }
+
+    #[test]
+    fn nested_workspace_uses_most_specific_active_root_for_standalone_mutation() {
+        let app = AppState::new();
+        let dir = tempfile::tempdir().unwrap();
+        let outer = dir.path().join("repo");
+        let inner = outer.join("sub");
+        std::fs::create_dir_all(&inner).unwrap();
+        let outer = outer.canonicalize().unwrap();
+        let inner = inner.canonicalize().unwrap();
+        *app.get_or_create("outer").workspace_root.write() = Some(outer.clone());
+        *app.get_or_create("inner").workspace_root.write() = Some(inner.clone());
+        let _standalone = app.get_or_create("standalone");
+        app.agent_coordinator
+            .register_bridge("inner", inner.clone(), 1, 1)
+            .unwrap();
+        let _turn = app.agent_coordinator.reserve(inner.clone(), &[]).unwrap();
+        assert!(app
+            .begin_writer_mutation("standalone", &[inner.join("note.md").as_path()], None)
+            .is_err());
+    }
+
+    #[test]
+    fn workspace_settings_target_is_rejected_during_active_turn() {
+        let app_state = AppState::new();
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path().join("workspace");
+        std::fs::create_dir(&root).unwrap();
+        let root = root.canonicalize().unwrap();
+        let window = app_state.get_or_create("writer");
+        *window.workspace_root.write() = Some(root.clone());
+        app_state
+            .agent_coordinator
+            .register_bridge("writer", root.clone(), 1, 1)
+            .unwrap();
+        let _turn = app_state
+            .agent_coordinator
+            .reserve(root.clone(), &[("writer".into(), 1)])
+            .unwrap();
+        let config = root.join(".writer/config");
+        assert!(app_state
+            .begin_writer_mutation("writer", &[config.as_path()], None)
+            .is_err());
+        assert!(!config.exists());
     }
 
     #[test]

@@ -21,7 +21,7 @@ import {
 } from "@/hooks/use-file-tree";
 import { useOpenFile } from "@/hooks/use-tabs";
 import { useSetting } from "@/hooks/use-settings";
-import { useWorkspaceRoot } from "@/hooks/use-workspace";
+import { useWorkspaceReadOnly, useWorkspaceRoot } from "@/hooks/use-workspace";
 import * as tauri from "@/lib/tauri";
 import { getFileStem, getParentDir } from "@/lib/paths";
 import { useMoveEntry } from "./use-move-entry";
@@ -63,6 +63,8 @@ export function FileTree({
   const pinnedFiles = usePinnedFiles();
   const togglePinnedFile = useTogglePinnedFile();
   const workspaceRoot = useWorkspaceRoot();
+  const isWorkspaceReadOnly = useWorkspaceReadOnly();
+  const allowMutations = enableContextMenus && !isWorkspaceReadOnly;
   const fileLabelMode = useSetting("appearance.sidebar-file-label");
   const [renamingPath, setRenamingPath] = useState<string | null>(null);
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
@@ -147,6 +149,7 @@ export function FileTree({
         selectionAnchorRef.current = entry.path;
         return;
       }
+      if (!allowMutations) return;
 
       // Plain press: decide what a drag would carry. Pressing a row already in a
       // multi-selection drags the whole selection; pressing any other row drags
@@ -164,7 +167,7 @@ export function FileTree({
       }
       beginDrag(event, dragged, entry);
     },
-    [beginDrag, entryByPath, flatItems, selectedPaths],
+    [allowMutations, beginDrag, entryByPath, flatItems, selectedPaths],
   );
 
   // A plain click (no drag — drags suppress the click) opens/toggles the row and
@@ -187,6 +190,7 @@ export function FileTree({
   const handleRenameSubmit = useCallback(
     async (entry: DirEntry, nextValue: string) => {
       setRenamingPath(null);
+      if (!allowMutations) return;
 
       const trimmed = nextValue.trim();
       if (!trimmed) return;
@@ -219,7 +223,7 @@ export function FileTree({
         window.alert(`Failed to rename: ${error instanceof Error ? error.message : String(error)}`);
       }
     },
-    [applyPathChange],
+    [allowMutations, applyPathChange],
   );
 
   const handleRenameCancel = useCallback(() => {
@@ -244,7 +248,7 @@ export function FileTree({
 
   const handleContextMenu = useCallback(
     (_event: MouseEvent<HTMLElement>, entry: DirEntry) => {
-      if (!enableContextMenus) return;
+      if (!allowMutations) return;
 
       // If multiple items are selected and the right-clicked item is in the selection,
       // show the bulk menu
@@ -264,7 +268,7 @@ export function FileTree({
     },
     [
       clearSelection,
-      enableContextMenus,
+      allowMutations,
       handleBulkContextMenu,
       handleFileContextMenu,
       handleFolderContextMenu,
@@ -302,7 +306,7 @@ export function FileTree({
           onToggleDir={toggleDirectory}
           onOpenFile={openFile}
           onClick={onRowClick}
-          onContextMenu={enableContextMenus ? handleContextMenu : undefined}
+          onContextMenu={allowMutations ? handleContextMenu : undefined}
           onPointerDown={onRowPointerDown}
           onRenameSubmit={handleRenameSubmit}
           onRenameCancel={handleRenameCancel}

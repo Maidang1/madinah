@@ -4,11 +4,16 @@ import type {
   WorkspaceReadOnlyLease,
   WorkspaceReconciliationOutcome,
 } from "@/domain/workspace-turn-lifecycle";
+import type { WriterMutationPreparation } from "@/platform/tauri/fs";
 
-export async function prepareWorkspaceTurn(root: string): Promise<WorkspaceReadOnlyLease> {
+export async function prepareWorkspaceTurn(
+  root: string,
+  preparation: WriterMutationPreparation | null = null,
+): Promise<WorkspaceReadOnlyLease> {
   const lease = editorApi.acquireWorkspaceReadOnly(root);
   try {
-    await editorApi.flushWorkspaceDocuments(root);
+    if (preparation) await editorApi.flushWorkspaceDocuments(root, preparation);
+    else await editorApi.flushWorkspaceDocuments(root);
     if (!editorApi.isWorkspaceReadOnly(lease)) {
       throw new Error(`Workspace changed during preparation: ${root}`);
     }
@@ -21,6 +26,7 @@ export async function prepareWorkspaceTurn(root: string): Promise<WorkspaceReadO
 
 export async function reconcileWorkspaceTurn(
   lease: WorkspaceReadOnlyLease,
+  options: { retainReadOnly?: boolean } = {},
 ): Promise<WorkspaceReconciliationOutcome> {
   let outcome: WorkspaceReconciliationOutcome;
   try {
@@ -36,7 +42,11 @@ export async function reconcileWorkspaceTurn(
       ],
     };
   } finally {
-    editorApi.releaseWorkspaceReadOnly(lease);
+    if (!options.retainReadOnly) editorApi.releaseWorkspaceReadOnly(lease);
   }
   return outcome;
+}
+
+export function releaseWorkspaceTurn(lease: WorkspaceReadOnlyLease) {
+  editorApi.releaseWorkspaceReadOnly(lease);
 }

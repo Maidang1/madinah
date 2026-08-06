@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 #[cfg(test)]
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
-use tauri::{Emitter, Manager};
+use tauri::{Emitter, Manager, Runtime};
 
 #[derive(Debug, Clone, Serialize)]
 pub struct DirEntry {
@@ -178,19 +178,59 @@ pub fn write_file_impl(path: &str, content: &str) -> Result<WriteResult, AppErro
 pub async fn write_file(
     path: String,
     content: String,
+    preparation: Option<crate::assistant::WriterMutationPreparation>,
     webview: tauri::Webview,
     app: tauri::AppHandle,
 ) -> Result<WriteResult, AppError> {
+    write_file_core(path, content, preparation, webview.label(), app).await
+}
+
+pub(crate) async fn write_file_core<R: Runtime>(
+    path: String,
+    content: String,
+    preparation: Option<crate::assistant::WriterMutationPreparation>,
+    window_label: &str,
+    app: tauri::AppHandle<R>,
+) -> Result<WriteResult, AppError> {
+    let write_path = app
+        .state::<AppState>()
+        .secure_mutation_path(Path::new(&path))?;
+    let context = app.state::<AppState>().begin_writer_mutation_context(
+        window_label,
+        &[Path::new(&path)],
+        preparation.as_ref(),
+    )?;
     // Record self-write before spawning (fast, just a HashMap insert).
     // The record is per-window so only this window's watcher suppresses
     // the echo — if another window is watching the same workspace it
     // still sees a genuine file-changed event.
-    let state = app.state::<AppState>().get_or_create(webview.label());
-    let label = webview.label().to_string();
+    let state = app.state::<AppState>().get_or_create(window_label);
+    let label = window_label.to_string();
     crate::watcher::record_write(&state, &PathBuf::from(&path));
 
-    let write_path = PathBuf::from(&path);
-    let result = blocking(move || write_file_impl(&path, &content)).await?;
+    let result_path = write_path.clone();
+    let result = blocking(move || {
+        let dir = context.dir;
+        let file_name = context
+            .targets
+            .into_iter()
+            .next()
+            .ok_or_else(|| AppError::Io("No target".into()))?;
+        let temp_name = format!(".~{}", uuid::Uuid::new_v4());
+        dir.write(&temp_name, content.as_bytes())
+            .map_err(|e| AppError::Io(e.to_string()))?;
+        dir.rename(&temp_name, &dir, &file_name)
+            .map_err(|e| AppError::Io(e.to_string()))?;
+        let modified_at = dir
+            .metadata(&file_name)
+            .map(|_| modified_time(&result_path))
+            .unwrap_or(0);
+        Ok(WriteResult {
+            path: result_path.to_string_lossy().into_owned(),
+            modified_at,
+        })
+    })
+    .await?;
     state.update_index_modified_at(&write_path, result.modified_at);
     let _ = app.emit_to(label, "sidebar:metadata-changed", &result.path);
     Ok(result)
@@ -287,8 +327,38 @@ pub fn create_file_impl(path: &str) -> Result<FileContent, AppError> {
 }
 
 #[tauri::command]
-pub async fn create_file(path: String) -> Result<FileContent, AppError> {
-    blocking(move || create_file_impl(&path)).await
+pub async fn create_file(
+    path: String,
+    webview: tauri::Webview,
+    app: tauri::AppHandle,
+) -> Result<FileContent, AppError> {
+    let context = app.state::<AppState>().begin_writer_mutation_context(
+        webview.label(),
+        &[Path::new(&path)],
+        None,
+    )?;
+    let absolute_path = path.clone();
+    blocking(move || {
+        let target = context
+            .targets
+            .into_iter()
+            .next()
+            .ok_or_else(|| AppError::Io("No target".into()))?;
+        if context.dir.metadata(&target).is_ok() {
+            return Err(AppError::AlreadyExists(path));
+        }
+        let mut file = context
+            .dir
+            .create(&target)
+            .map_err(|e| AppError::Io(e.to_string()))?;
+        std::io::Write::write_all(&mut file, b"# ").map_err(|e| AppError::Io(e.to_string()))?;
+        Ok(FileContent {
+            path: absolute_path.clone(),
+            content: "# ".into(),
+            modified_at: modified_time(Path::new(&absolute_path)),
+        })
+    })
+    .await
 }
 
 pub fn create_directory_impl(path: &str) -> Result<DirEntry, AppError> {
@@ -312,8 +382,40 @@ pub fn create_directory_impl(path: &str) -> Result<DirEntry, AppError> {
 }
 
 #[tauri::command]
-pub async fn create_directory(path: String) -> Result<DirEntry, AppError> {
-    blocking(move || create_directory_impl(&path)).await
+pub async fn create_directory(
+    path: String,
+    webview: tauri::Webview,
+    app: tauri::AppHandle,
+) -> Result<DirEntry, AppError> {
+    let context = app.state::<AppState>().begin_writer_mutation_context(
+        webview.label(),
+        &[Path::new(&path)],
+        None,
+    )?;
+    let absolute_path = path.clone();
+    blocking(move || {
+        let target = context
+            .targets
+            .into_iter()
+            .next()
+            .ok_or_else(|| AppError::Io("No target".into()))?;
+        context
+            .dir
+            .create_dir_all(&target)
+            .map_err(|e| AppError::Io(e.to_string()))?;
+        Ok(DirEntry {
+            name: target
+                .file_name()
+                .map(|v| v.to_string_lossy().into_owned())
+                .unwrap_or_default(),
+            path: absolute_path.clone(),
+            is_dir: true,
+            is_markdown: false,
+            modified_at: modified_time(Path::new(&absolute_path)),
+            title: None,
+        })
+    })
+    .await
 }
 
 pub fn rename_entry_impl(old_path: &str, new_path: &str) -> Result<(), AppError> {
@@ -330,8 +432,37 @@ pub fn rename_entry_impl(old_path: &str, new_path: &str) -> Result<(), AppError>
 }
 
 #[tauri::command]
-pub async fn rename_entry(old_path: String, new_path: String) -> Result<(), AppError> {
-    blocking(move || rename_entry_impl(&old_path, &new_path)).await
+pub async fn rename_entry(
+    old_path: String,
+    new_path: String,
+    webview: tauri::Webview,
+    app: tauri::AppHandle,
+) -> Result<(), AppError> {
+    let context = app.state::<AppState>().begin_writer_mutation_context(
+        webview.label(),
+        &[Path::new(&old_path), Path::new(&new_path)],
+        None,
+    )?;
+    blocking(move || {
+        let mut targets = context.targets.into_iter();
+        let old = targets
+            .next()
+            .ok_or_else(|| AppError::Io("No source".into()))?;
+        let new = targets
+            .next()
+            .ok_or_else(|| AppError::Io("No destination".into()))?;
+        if context.dir.metadata(&old).is_err() {
+            return Err(AppError::NotFound(old_path));
+        }
+        if context.dir.metadata(&new).is_ok() {
+            return Err(AppError::AlreadyExists(new_path));
+        }
+        context
+            .dir
+            .rename(&old, &context.dir, &new)
+            .map_err(|e| AppError::Io(e.to_string()))
+    })
+    .await
 }
 
 pub fn delete_entry_impl(path: &str) -> Result<(), AppError> {
@@ -344,8 +475,40 @@ pub fn delete_entry_impl(path: &str) -> Result<(), AppError> {
 }
 
 #[tauri::command]
-pub async fn delete_entry(path: String) -> Result<(), AppError> {
-    blocking(move || delete_entry_impl(&path)).await
+pub async fn delete_entry(
+    path: String,
+    webview: tauri::Webview,
+    app: tauri::AppHandle,
+) -> Result<(), AppError> {
+    let context = app.state::<AppState>().begin_writer_mutation_context(
+        webview.label(),
+        &[Path::new(&path)],
+        None,
+    )?;
+    blocking(move || {
+        let target = context
+            .targets
+            .into_iter()
+            .next()
+            .ok_or_else(|| AppError::Io("No target".into()))?;
+        let metadata = context
+            .dir
+            .metadata(&target)
+            .map_err(|_| AppError::NotFound(path.clone()))?;
+        if metadata.is_dir() {
+            context
+                .dir
+                .remove_dir_all(&target)
+                .map_err(|e| AppError::Io(e.to_string()))?;
+        } else {
+            context
+                .dir
+                .remove_file(&target)
+                .map_err(|e| AppError::Io(e.to_string()))?;
+        }
+        Ok(())
+    })
+    .await
 }
 
 #[tauri::command]

@@ -28,6 +28,7 @@ pub type BindingObserver = Arc<dyn Fn(BindingProgress) + Send + Sync>;
 #[derive(Clone)]
 pub struct BindingControl {
     cancellation: Option<(Arc<AtomicU64>, u64)>,
+    cancellation_message: &'static str,
     #[cfg(test)]
     observer: Option<BindingObserver>,
 }
@@ -36,6 +37,16 @@ impl BindingControl {
     pub fn new(cancellation: Option<(Arc<AtomicU64>, u64)>) -> Self {
         Self {
             cancellation,
+            cancellation_message: "Agent discovery was superseded by a newer Workspace request.",
+            #[cfg(test)]
+            observer: None,
+        }
+    }
+
+    pub fn for_turn(cancellation: (Arc<AtomicU64>, u64)) -> Self {
+        Self {
+            cancellation: Some(cancellation),
+            cancellation_message: "Agent Turn cancelled because a Workspace window closed.",
             #[cfg(test)]
             observer: None,
         }
@@ -50,7 +61,7 @@ impl BindingControl {
     fn check_cancelled(&self) -> Result<(), String> {
         if let Some((epoch, expected_epoch)) = &self.cancellation {
             if epoch.load(Ordering::Acquire) != *expected_epoch {
-                return Err("Agent discovery was superseded by a newer Workspace request.".into());
+                return Err(self.cancellation_message.into());
             }
         }
         Ok(())

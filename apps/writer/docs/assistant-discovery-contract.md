@@ -42,4 +42,4 @@ Rust serializes `AgentStatus` as `compatible`, `missing`, `authentication-requir
 
 `DiscoveryResponse.workspaceRoot` is the canonical Workspace root validated against the invoking window. `registrationRevision` identifies the immutable registration snapshot used for that discovery. A malformed registration file is reported through `registrationError` without overwriting the file or suppressing built-in Agent results.
 
-Discovery is initialize-only. It does not create or restore a session, send a prompt, transmit the Workspace path to an Agent, or start issue #12 runtime execution.
+Discovery remains initialize-only: it does not create or restore a session, send a prompt, or transmit the Workspace path. A later explicit start command may select one compatible discovery result and registration revision for the temporary runtime flow documented in [assistant-turn-contract.md](./assistant-turn-contract.md); discovery itself never starts that flow.

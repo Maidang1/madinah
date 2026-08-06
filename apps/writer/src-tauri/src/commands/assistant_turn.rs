@@ -1,0 +1,1821 @@
+use crate::assistant::{
+    bind_custom_executable, builtin_agents, grant_consent, load_consents, load_registrations,
+    run_agent_turn, run_bound_agent_turn, AgentDefinition, AgentSource, BindingControl,
+    ConsentStatus, FrontendLeaseIdentity, LifecycleRequest, PrepareAcknowledgement, PrepareResult,
+    ReconcileAcknowledgement, RuntimeChannels, RuntimeOutcome, RuntimePermissionRequest,
+    RuntimeUpdate, TurnPermissionOption, TurnPhase, TurnReservation,
+};
+use crate::state::{AppState, WorkspaceState};
+use serde::{Deserialize, Serialize};
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
+use std::time::Duration;
+use tauri::{Emitter, Manager, Runtime, WebviewWindow};
+
+const CONSENT_FILE_NAME: &str = "assistant-consents.json";
+const REGISTRATION_FILE_NAME: &str = "assistant-agents.json";
+const MAX_PROMPT_BYTES: usize = 64 * 1024;
+const LIFECYCLE_TIMEOUT: Duration = Duration::from_secs(60);
+const TURN_TIMEOUT: Duration = Duration::from_secs(30 * 60);
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TurnBridgeRegistration {
+    pub bridge_id: String,
+    pub workspace_root: String,
+    pub workspace_epoch: u64,
+    pub frontend_generation: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StartAgentTurnResponse {
+    pub turn_id: String,
+    pub conversation_id: String,
+    pub workspace_root: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(
+    tag = "type",
+    rename_all = "kebab-case",
+    rename_all_fields = "camelCase"
+)]
+pub enum AgentTurnEvent {
+    Prepare {
+        turn_id: String,
+        conversation_id: String,
+        workspace_root: String,
+        workspace_epoch: u64,
+        participant_token: String,
+        bridge_id: String,
+        request_id: String,
+    },
+    Reconcile {
+        turn_id: String,
+        conversation_id: String,
+        workspace_root: String,
+        workspace_epoch: u64,
+        participant_token: String,
+        bridge_id: String,
+        request_id: String,
+        lease: FrontendLeaseIdentity,
+    },
+    Phase {
+        turn_id: String,
+        conversation_id: String,
+        workspace_root: String,
+        phase: TurnPhase,
+    },
+    StreamText {
+        turn_id: String,
+        conversation_id: String,
+        workspace_root: String,
+        text: String,
+    },
+    ChangeSummary {
+        turn_id: String,
+        conversation_id: String,
+        workspace_root: String,
+        summary: String,
+    },
+    Permission {
+        turn_id: String,
+        conversation_id: String,
+        workspace_root: String,
+        request_id: String,
+        title: String,
+        options: Vec<TurnPermissionOption>,
+    },
+    Terminal {
+        turn_id: String,
+        conversation_id: String,
+        workspace_root: String,
+        status: String,
+        message: String,
+    },
+    ReconciliationBlocked {
+        turn_id: String,
+        conversation_id: String,
+        workspace_root: String,
+        message: String,
+    },
+}
+
+#[tauri::command]
+pub fn register_agent_turn_bridge(
+    workspace_root: String,
+    frontend_generation: u64,
+    expected_bridge_id: Option<String>,
+    window: WebviewWindow,
+    state: tauri::State<'_, AppState>,
+) -> Result<TurnBridgeRegistration, String> {
+    register_agent_turn_bridge_core(
+        workspace_root,
+        frontend_generation,
+        expected_bridge_id.as_deref(),
+        window.label(),
+        &state,
+    )
+}
+
+#[tauri::command]
+pub fn unregister_agent_turn_bridge(
+    workspace_root: String,
+    bridge_id: String,
+    window: WebviewWindow,
+    state: tauri::State<'_, AppState>,
+) -> bool {
+    unregister_agent_turn_bridge_core(&workspace_root, &bridge_id, window.label(), &state)
+}
+
+fn unregister_agent_turn_bridge_core(
+    workspace_root: &str,
+    bridge_id: &str,
+    window_label: &str,
+    state: &AppState,
+) -> bool {
+    state
+        .agent_coordinator
+        .unregister_bridge(window_label, Path::new(workspace_root), bridge_id)
+}
+
+#[tauri::command]
+#[allow(clippy::too_many_arguments)] // Tauri serializes these named IPC fields individually.
+pub fn start_agent_turn(
+    workspace_root: String,
+    agent_id: String,
+    registration_revision: u64,
+    conversation_id: String,
+    prompt: String,
+    window: WebviewWindow,
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<StartAgentTurnResponse, String> {
+    start_agent_turn_core(
+        workspace_root,
+        agent_id,
+        registration_revision,
+        conversation_id,
+        prompt,
+        window.label(),
+        app.clone(),
+        consent_path(&app)?,
+        registration_path(&app)?,
+        &state,
+        LIFECYCLE_TIMEOUT,
+    )
+}
+
+#[tauri::command]
+pub fn acknowledge_agent_turn_prepared(
+    acknowledgement: PrepareAcknowledgement,
+    window: WebviewWindow,
+    state: tauri::State<'_, AppState>,
+) -> Result<PrepareResultWire, String> {
+    acknowledge_agent_turn_prepared_core(window.label(), acknowledgement, &state)
+}
+
+#[tauri::command]
+pub fn acknowledge_agent_turn_reconciled(
+    acknowledgement: ReconcileAcknowledgement,
+    window: WebviewWindow,
+    state: tauri::State<'_, AppState>,
+) -> Result<bool, String> {
+    acknowledge_agent_turn_reconciled_core(window.label(), acknowledgement, &state)
+}
+
+#[tauri::command]
+pub fn respond_agent_turn_permission(
+    workspace_root: String,
+    turn_id: String,
+    request_id: String,
+    option_id: Option<String>,
+    window: WebviewWindow,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), String> {
+    respond_agent_turn_permission_core(
+        workspace_root,
+        turn_id,
+        request_id,
+        option_id,
+        window.label(),
+        &state,
+    )
+}
+
+fn respond_agent_turn_permission_core(
+    workspace_root: String,
+    turn_id: String,
+    request_id: String,
+    option_id: Option<String>,
+    window_label: &str,
+    state: &AppState,
+) -> Result<(), String> {
+    let canonical_root = validate_workspace_request(
+        &workspace_root,
+        &state.get_or_create(window_label),
+        "answering the Agent permission request",
+    )?;
+    let turn = state
+        .agent_coordinator
+        .active(Path::new(&canonical_root), &turn_id)?;
+    turn.respond_permission(window_label, &request_id, option_id)
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum PrepareResultWire {
+    Ready,
+    Failed,
+    Pending,
+}
+
+fn register_agent_turn_bridge_core(
+    workspace_root: String,
+    frontend_generation: u64,
+    expected_bridge_id: Option<&str>,
+    window_label: &str,
+    state: &AppState,
+) -> Result<TurnBridgeRegistration, String> {
+    let window_state = state.get_or_create(window_label);
+    let canonical_root = validate_workspace_request(
+        &workspace_root,
+        &window_state,
+        "registering the Agent Turn event bridge",
+    )?;
+    let workspace_epoch = window_state.workspace_epoch.load(Ordering::Acquire);
+    let bridge_id = state.agent_coordinator.register_bridge_cas(
+        window_label,
+        PathBuf::from(&canonical_root),
+        workspace_epoch,
+        frontend_generation,
+        expected_bridge_id,
+    )?;
+    Ok(TurnBridgeRegistration {
+        bridge_id,
+        workspace_root: canonical_root,
+        workspace_epoch,
+        frontend_generation,
+    })
+}
+
+#[allow(clippy::too_many_arguments)]
+fn start_agent_turn_core<R: Runtime>(
+    workspace_root: String,
+    agent_id: String,
+    registration_revision: u64,
+    conversation_id: String,
+    prompt: String,
+    window_label: &str,
+    app: tauri::AppHandle<R>,
+    consent_path: PathBuf,
+    registration_path: PathBuf,
+    state: &AppState,
+    lifecycle_timeout: Duration,
+) -> Result<StartAgentTurnResponse, String> {
+    if conversation_id.is_empty()
+        || conversation_id.len() > 128
+        || !conversation_id
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-'))
+    {
+        return Err(
+            "The temporary Assistant Conversation identity must be 1-128 ASCII letters, digits, '.', '_' or '-'.".into(),
+        );
+    }
+    if prompt.trim().is_empty() || prompt.len() > MAX_PROMPT_BYTES {
+        return Err(format!(
+            "An Agent prompt must contain 1 to {MAX_PROMPT_BYTES} bytes."
+        ));
+    }
+    let canonical_root = validate_workspace_request(
+        &workspace_root,
+        &state.get_or_create(window_label),
+        "starting the Agent Turn",
+    )?;
+    {
+        let _guard = state.assistant_consents_lock.lock();
+        let consent = load_consents(&consent_path)?;
+        if !consent
+            .workspaces
+            .iter()
+            .any(|root| root == &canonical_root)
+        {
+            return Err(
+                "Enable AI Access for this Workspace before starting an Agent Turn.".into(),
+            );
+        }
+    }
+    let _registrations_guard = state.assistant_registrations_lock.lock();
+    let agent = validate_agent_selection(&agent_id, registration_revision, &registration_path)?;
+
+    let root = PathBuf::from(&canonical_root);
+    let windows = state.workspace_incarnations(&root);
+    let reservation = state.agent_coordinator.reserve(root, &windows)?;
+    let response = StartAgentTurnResponse {
+        turn_id: reservation.turn_id().to_string(),
+        conversation_id: conversation_id.clone(),
+        workspace_root: canonical_root,
+    };
+    tauri::async_runtime::spawn(drive_preparation(
+        app,
+        reservation,
+        agent,
+        prompt,
+        conversation_id,
+        lifecycle_timeout,
+        TURN_TIMEOUT,
+    ));
+    Ok(response)
+}
+
+fn validate_agent_selection(
+    agent_id: &str,
+    registration_revision: u64,
+    registration_path: &Path,
+) -> Result<AgentDefinition, String> {
+    if let Some(agent) = builtin_agents()
+        .into_iter()
+        .find(|agent| agent.id == agent_id)
+    {
+        return Ok(agent);
+    }
+    let snapshot = load_registrations(registration_path)?;
+    if snapshot.revision != registration_revision {
+        return Err(
+            "The selected custom Agent changed after discovery; refresh and choose it again."
+                .into(),
+        );
+    }
+    if let Some(registration) = snapshot
+        .registrations
+        .into_iter()
+        .find(|registration| registration.id == agent_id)
+    {
+        Ok(AgentDefinition {
+            id: registration.id,
+            name: "Custom ACP Agent".into(),
+            source: AgentSource::Custom,
+            command: registration.command,
+            args: registration.args,
+            setup_url: String::new(),
+            capabilities: Default::default(),
+        })
+    } else {
+        Err("The selected compatible Agent is no longer registered.".into())
+    }
+}
+
+fn acknowledge_agent_turn_prepared_core(
+    window_label: &str,
+    acknowledgement: PrepareAcknowledgement,
+    state: &AppState,
+) -> Result<PrepareResultWire, String> {
+    validate_acknowledgement_incarnation(
+        window_label,
+        &acknowledgement.workspace_root,
+        acknowledgement.workspace_epoch,
+        state,
+    )?;
+    let turn = state.agent_coordinator.active(
+        Path::new(&acknowledgement.workspace_root),
+        &acknowledgement.turn_id,
+    )?;
+    turn.acknowledge_prepare(window_label, acknowledgement)
+        .map(PrepareResultWire::from)
+}
+
+fn acknowledge_agent_turn_reconciled_core(
+    window_label: &str,
+    acknowledgement: ReconcileAcknowledgement,
+    state: &AppState,
+) -> Result<bool, String> {
+    validate_acknowledgement_incarnation(
+        window_label,
+        &acknowledgement.workspace_root,
+        acknowledgement.workspace_epoch,
+        state,
+    )?;
+    let turn = state.agent_coordinator.active(
+        Path::new(&acknowledgement.workspace_root),
+        &acknowledgement.turn_id,
+    )?;
+    turn.acknowledge_reconcile(window_label, acknowledgement)
+}
+
+fn validate_acknowledgement_incarnation(
+    window_label: &str,
+    workspace_root: &str,
+    workspace_epoch: u64,
+    state: &AppState,
+) -> Result<(), String> {
+    let window_state = state
+        .get(window_label)
+        .ok_or_else(|| "The invoking Writer window no longer exists.".to_string())?;
+    if window_state.workspace_root.read().as_deref() != Some(Path::new(workspace_root))
+        || window_state.workspace_epoch.load(Ordering::Acquire) != workspace_epoch
+    {
+        return Err(
+            "The Writer window changed Workspace before acknowledging the Agent Turn.".into(),
+        );
+    }
+    Ok(())
+}
+
+impl From<PrepareResult> for PrepareResultWire {
+    fn from(value: PrepareResult) -> Self {
+        match value {
+            PrepareResult::Ready => Self::Ready,
+            PrepareResult::Failed(_) => Self::Failed,
+            PrepareResult::Pending => Self::Pending,
+        }
+    }
+}
+
+async fn drive_preparation<R: Runtime>(
+    app: tauri::AppHandle<R>,
+    turn: TurnReservation,
+    agent: AgentDefinition,
+    prompt: String,
+    conversation_id: String,
+    lifecycle_timeout: Duration,
+    turn_timeout: Duration,
+) {
+    let prepare_requests = turn.prepare_requests();
+    let window_labels = prepare_requests
+        .iter()
+        .map(|request| request.window_label.clone())
+        .collect::<Vec<_>>();
+    for request in &prepare_requests {
+        if let Err(error) = app.emit_to(
+            &request.window_label,
+            "assistant:turn-event",
+            prepare_event(request, &conversation_id),
+        ) {
+            let _ = turn.acknowledge_prepare(
+                &request.window_label,
+                PrepareAcknowledgement {
+                    turn_id: request.turn_id.clone(),
+                    workspace_root: request.workspace_root.clone(),
+                    workspace_epoch: request.workspace_epoch,
+                    participant_token: request.participant_token.clone(),
+                    bridge_id: request.bridge_id.clone(),
+                    request_id: request.request_id.clone(),
+                    lease: None,
+                    error: Some(format!("Could not deliver Workspace preparation: {error}")),
+                },
+            );
+        }
+    }
+
+    let mut cancellation = turn.cancellation_receiver();
+    let preparation = tokio::select! {
+        result = turn.wait_for_preparation(lifecycle_timeout) => result,
+        _ = cancellation.changed() => Err("Agent Turn cancelled because a Workspace window closed.".into()),
+    };
+    let runtime_result = match preparation {
+        Ok(PrepareResult::Failed(error)) => Err(error),
+        Ok(PrepareResult::Ready) => {
+            if let Err(error) = turn.mark_running() {
+                Err(error)
+            } else {
+                emit_phase(
+                    &app,
+                    &turn,
+                    &window_labels,
+                    &conversation_id,
+                    TurnPhase::Running,
+                );
+                run_selected_agent(
+                    &app,
+                    &turn,
+                    &window_labels,
+                    agent,
+                    prompt,
+                    &conversation_id,
+                    turn_timeout,
+                )
+                .await
+            }
+        }
+        Ok(PrepareResult::Pending) => unreachable!(),
+        Err(error) => Err(error),
+    };
+
+    turn.cancel_pending_permission();
+    let reconcile_requests = turn.begin_reconciliation();
+    emit_phase(
+        &app,
+        &turn,
+        &window_labels,
+        &conversation_id,
+        TurnPhase::Reconciling,
+    );
+    for request in &reconcile_requests {
+        if let Some(lease) = request.lease.clone() {
+            let _ = app.emit_to(
+                &request.window_label,
+                "assistant:turn-event",
+                reconcile_event(request, &conversation_id, lease),
+            );
+        }
+    }
+
+    let reconciliation = match turn.wait_for_reconciliation(lifecycle_timeout).await {
+        Ok(()) => Ok(()),
+        Err(error) => {
+            let message = format!(
+                "{error} Writer is keeping this Workspace read-only; close or switch this window to withdraw the blocked participant. Partial Agent changes remain on disk."
+            );
+            for window_label in &window_labels {
+                let _ = app.emit_to(
+                    window_label,
+                    "assistant:turn-event",
+                    AgentTurnEvent::ReconciliationBlocked {
+                        turn_id: turn.turn_id().to_string(),
+                        conversation_id: conversation_id.clone(),
+                        workspace_root: turn.workspace_root().to_string_lossy().into_owned(),
+                        message: message.clone(),
+                    },
+                );
+            }
+            loop {
+                let release = tokio::select! {
+                    result = turn.wait_for_reconciliation_release(lifecycle_timeout) => result,
+                    _ = cancellation.changed() => {
+                        Err("Agent Turn reconciliation was released because its final Workspace participant closed.".into())
+                    },
+                };
+                match release {
+                    Ok(()) => break Err(error),
+                    Err(release_error) if *cancellation.borrow() => break Err(release_error),
+                    Err(_) => continue,
+                }
+            }
+        }
+    };
+    let reconciliation_failed = turn.reconciliation_failed();
+    let reconciliation_succeeded = reconciliation.is_ok();
+    let (status, message) = match (runtime_result, reconciliation) {
+        (Ok(_), Ok(())) if reconciliation_failed => (
+            "failed",
+            "The Agent finished, but Writer could not reload every changed Workspace item. Partial changes remain on disk."
+                .into(),
+        ),
+        (Ok(outcome), Ok(())) => ("completed", completed_message(&outcome)),
+        (Err(error), Ok(())) => ("failed", failure_message(&error)),
+        (Ok(_), Err(error)) => ("failed", failure_message(&error)),
+        (Err(runtime), Err(reconcile)) => (
+            "failed",
+            failure_message(&format!("{runtime} {reconcile}")),
+        ),
+    };
+    for window_label in window_labels {
+        let _ = app.emit_to(
+            window_label,
+            "assistant:turn-event",
+            AgentTurnEvent::Terminal {
+                turn_id: turn.turn_id().to_string(),
+                conversation_id: conversation_id.clone(),
+                workspace_root: prepare_requests
+                    .first()
+                    .map(|request| request.workspace_root.clone())
+                    .unwrap_or_default(),
+                status: status.into(),
+                message: message.clone(),
+            },
+        );
+    }
+    if reconciliation_succeeded {
+        let coordinator = &app.state::<AppState>().agent_coordinator;
+        let _ = coordinator.finish(&turn);
+    }
+}
+
+async fn run_selected_agent<R: Runtime>(
+    app: &tauri::AppHandle<R>,
+    turn: &TurnReservation,
+    window_labels: &[String],
+    agent: AgentDefinition,
+    prompt: String,
+    conversation_id: &str,
+    deadline: Duration,
+) -> Result<RuntimeOutcome, String> {
+    let workspace_root = turn.workspace_root().to_path_buf();
+    let cancellation = turn.cancellation_receiver();
+    let (update_tx, mut update_rx) = tokio::sync::mpsc::unbounded_channel();
+    let (permission_tx, mut permission_rx) = tokio::sync::mpsc::unbounded_channel();
+    let command = agent.command.clone();
+    let args = agent.args.clone();
+    let runtime = async move {
+        match agent.source {
+            AgentSource::BuiltIn => {
+                run_agent_turn(
+                    Path::new(&command),
+                    &args,
+                    &workspace_root,
+                    &prompt,
+                    RuntimeChannels {
+                        updates: update_tx,
+                        permissions: permission_tx,
+                    },
+                    cancellation,
+                    deadline,
+                )
+                .await
+            }
+            AgentSource::Custom => {
+                if *cancellation.borrow() {
+                    return Err("Agent Turn cancelled because a Workspace window closed.".into());
+                }
+                let binding_args = args.clone();
+                let binding_epoch = Arc::new(AtomicU64::new(0));
+                let cancellation_epoch = binding_epoch.clone();
+                let mut binding_cancellation = cancellation.clone();
+                let cancellation_task = tokio::spawn(async move {
+                    if *binding_cancellation.borrow()
+                        || binding_cancellation.changed().await.is_ok()
+                    {
+                        cancellation_epoch.store(1, Ordering::Release);
+                    }
+                });
+                let binding_control = BindingControl::for_turn((binding_epoch, 0));
+                let binding_result = tokio::task::spawn_blocking(move || {
+                    bind_custom_executable(&command, &binding_args, &binding_control)
+                })
+                .await;
+                cancellation_task.abort();
+                let binding = binding_result
+                    .map_err(|error| format!("Custom Agent binding task failed: {error}"))??
+                    .ok_or_else(|| {
+                        "The selected custom Agent executable is missing.".to_string()
+                    })?;
+                run_bound_agent_turn(
+                    binding,
+                    &args,
+                    &workspace_root,
+                    &prompt,
+                    RuntimeChannels {
+                        updates: update_tx,
+                        permissions: permission_tx,
+                    },
+                    cancellation,
+                    deadline,
+                )
+                .await
+            }
+        }
+    };
+    tokio::pin!(runtime);
+    let mut updates_open = true;
+    let mut permissions_open = true;
+    loop {
+        tokio::select! {
+            result = &mut runtime => {
+                while let Ok(update) = update_rx.try_recv() {
+                    emit_runtime_update(app, turn, window_labels, conversation_id, update);
+                }
+                return result;
+            },
+            update = update_rx.recv(), if updates_open => match update {
+                Some(update) => emit_runtime_update(app, turn, window_labels, conversation_id, update),
+                None => updates_open = false,
+            },
+            permission = permission_rx.recv(), if permissions_open => match permission {
+                Some(permission) => emit_permission_request(app, turn, window_labels, conversation_id, permission)?,
+                None => permissions_open = false,
+            }
+        }
+    }
+}
+
+fn emit_permission_request<R: Runtime>(
+    app: &tauri::AppHandle<R>,
+    turn: &TurnReservation,
+    window_labels: &[String],
+    conversation_id: &str,
+    request: RuntimePermissionRequest,
+) -> Result<(), String> {
+    let permission = turn.begin_permission(
+        request.title,
+        request
+            .options
+            .into_iter()
+            .map(|option| TurnPermissionOption {
+                id: option.id,
+                name: option.name,
+                kind: option.kind,
+            })
+            .collect(),
+        request.response,
+    )?;
+    emit_phase(
+        app,
+        turn,
+        window_labels,
+        conversation_id,
+        TurnPhase::AwaitingPermission,
+    );
+    let event = AgentTurnEvent::Permission {
+        turn_id: turn.turn_id().into(),
+        conversation_id: conversation_id.into(),
+        workspace_root: turn.workspace_root().to_string_lossy().into_owned(),
+        request_id: permission.request_id,
+        title: permission.title,
+        options: permission.options,
+    };
+    for window_label in window_labels {
+        let _ = app.emit_to(window_label, "assistant:turn-event", event.clone());
+    }
+    Ok(())
+}
+
+fn emit_runtime_update<R: Runtime>(
+    app: &tauri::AppHandle<R>,
+    turn: &TurnReservation,
+    window_labels: &[String],
+    conversation_id: &str,
+    update: RuntimeUpdate,
+) {
+    let event = match update {
+        RuntimeUpdate::PermissionResolved => {
+            emit_phase(
+                app,
+                turn,
+                window_labels,
+                conversation_id,
+                TurnPhase::Running,
+            );
+            return;
+        }
+        RuntimeUpdate::Text(text) => AgentTurnEvent::StreamText {
+            turn_id: turn.turn_id().into(),
+            conversation_id: conversation_id.into(),
+            workspace_root: turn.workspace_root().to_string_lossy().into_owned(),
+            text,
+        },
+        RuntimeUpdate::ChangeSummary(summary) => AgentTurnEvent::ChangeSummary {
+            turn_id: turn.turn_id().into(),
+            conversation_id: conversation_id.into(),
+            workspace_root: turn.workspace_root().to_string_lossy().into_owned(),
+            summary,
+        },
+    };
+    for window_label in window_labels {
+        let _ = app.emit_to(window_label, "assistant:turn-event", event.clone());
+    }
+}
+
+fn emit_phase<R: Runtime>(
+    app: &tauri::AppHandle<R>,
+    turn: &TurnReservation,
+    window_labels: &[String],
+    conversation_id: &str,
+    phase: TurnPhase,
+) {
+    let event = AgentTurnEvent::Phase {
+        turn_id: turn.turn_id().into(),
+        conversation_id: conversation_id.into(),
+        workspace_root: turn.workspace_root().to_string_lossy().into_owned(),
+        phase,
+    };
+    for window_label in window_labels {
+        let _ = app.emit_to(window_label, "assistant:turn-event", event.clone());
+    }
+}
+
+fn completed_message(outcome: &RuntimeOutcome) -> String {
+    if outcome.output.is_empty() {
+        "Agent Turn completed.".into()
+    } else {
+        outcome.output.clone()
+    }
+}
+
+fn failure_message(error: &str) -> String {
+    format!(
+        "{error} If the Agent wrote files, those partial changes remain; Writer does not roll them back."
+    )
+}
+
+fn prepare_event(request: &LifecycleRequest, conversation_id: &str) -> AgentTurnEvent {
+    AgentTurnEvent::Prepare {
+        turn_id: request.turn_id.clone(),
+        conversation_id: conversation_id.into(),
+        workspace_root: request.workspace_root.clone(),
+        workspace_epoch: request.workspace_epoch,
+        participant_token: request.participant_token.clone(),
+        bridge_id: request.bridge_id.clone(),
+        request_id: request.request_id.clone(),
+    }
+}
+
+fn reconcile_event(
+    request: &LifecycleRequest,
+    conversation_id: &str,
+    lease: FrontendLeaseIdentity,
+) -> AgentTurnEvent {
+    AgentTurnEvent::Reconcile {
+        turn_id: request.turn_id.clone(),
+        conversation_id: conversation_id.into(),
+        workspace_root: request.workspace_root.clone(),
+        workspace_epoch: request.workspace_epoch,
+        participant_token: request.participant_token.clone(),
+        bridge_id: request.bridge_id.clone(),
+        request_id: request.request_id.clone(),
+        lease,
+    }
+}
+
+#[tauri::command]
+pub fn get_ai_access_consent(
+    workspace_root: String,
+    window: WebviewWindow,
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<ConsentStatus, String> {
+    get_ai_access_consent_core(workspace_root, window.label(), consent_path(&app)?, &state)
+}
+
+#[tauri::command]
+pub fn grant_ai_access_consent(
+    workspace_root: String,
+    window: WebviewWindow,
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<ConsentStatus, String> {
+    grant_ai_access_consent_core(workspace_root, window.label(), consent_path(&app)?, &state)
+}
+
+fn get_ai_access_consent_core(
+    workspace_root: String,
+    window_label: &str,
+    path: PathBuf,
+    state: &AppState,
+) -> Result<ConsentStatus, String> {
+    let canonical_root = validate_workspace_request(
+        &workspace_root,
+        &state.get_or_create(window_label),
+        "checking AI Access Consent",
+    )?;
+    let snapshot = load_consents(&path)?;
+    Ok(status(canonical_root, &snapshot))
+}
+
+fn grant_ai_access_consent_core(
+    workspace_root: String,
+    window_label: &str,
+    path: PathBuf,
+    state: &AppState,
+) -> Result<ConsentStatus, String> {
+    let canonical_root = validate_workspace_request(
+        &workspace_root,
+        &state.get_or_create(window_label),
+        "granting AI Access Consent",
+    )?;
+    let _guard = state.assistant_consents_lock.lock();
+    let snapshot = grant_consent(&path, canonical_root.clone())?;
+    Ok(status(canonical_root, &snapshot))
+}
+
+fn status(workspace_root: String, snapshot: &crate::assistant::ConsentSnapshot) -> ConsentStatus {
+    ConsentStatus {
+        granted: snapshot
+            .workspaces
+            .iter()
+            .any(|root| root == &workspace_root),
+        workspace_root,
+        revision: snapshot.revision,
+    }
+}
+
+fn consent_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    app.path()
+        .app_data_dir()
+        .map(|path| path.join(CONSENT_FILE_NAME))
+        .map_err(|error| format!("Could not resolve AI Access Consent storage: {error}"))
+}
+
+fn registration_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    app.path()
+        .app_data_dir()
+        .map(|path| path.join(REGISTRATION_FILE_NAME))
+        .map_err(|error| format!("Could not resolve Agent registration storage: {error}"))
+}
+
+fn validate_workspace_request(
+    requested: &str,
+    state: &Arc<WorkspaceState>,
+    action: &str,
+) -> Result<String, String> {
+    let requested = Path::new(requested)
+        .canonicalize()
+        .map_err(|error| format!("Could not resolve the requested Workspace: {error}"))?;
+    let current = state.workspace_root.read();
+    let current = current
+        .as_ref()
+        .ok_or_else(|| format!("Open a Workspace before {action}."))?;
+    if requested != *current {
+        return Err(format!(
+            "The Workspace changed before {action} could start."
+        ));
+    }
+    Ok(current.to_string_lossy().into_owned())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::assistant::{
+        add_registration, build_native_fake_agent, fake_agent_artifact_path, ReconcileResult,
+        WriterMutationPreparation,
+    };
+    use serde::de::DeserializeOwned;
+    use serde_json::{json, Value};
+    use std::fs;
+    use std::sync::mpsc;
+    use tauri::test::MockRuntime;
+    use tauri::Listener;
+
+    struct TestConsentPath(PathBuf);
+
+    struct TestAssistantPaths {
+        consent: PathBuf,
+        registrations: PathBuf,
+    }
+
+    #[tauri::command(rename = "get_ai_access_consent")]
+    fn test_get_ai_access_consent(
+        workspace_root: String,
+        window: tauri::WebviewWindow<MockRuntime>,
+        path: tauri::State<'_, TestConsentPath>,
+        state: tauri::State<'_, AppState>,
+    ) -> Result<ConsentStatus, String> {
+        get_ai_access_consent_core(workspace_root, window.label(), path.0.clone(), &state)
+    }
+
+    #[tauri::command(rename = "grant_ai_access_consent")]
+    fn test_grant_ai_access_consent(
+        workspace_root: String,
+        window: tauri::WebviewWindow<MockRuntime>,
+        path: tauri::State<'_, TestConsentPath>,
+        state: tauri::State<'_, AppState>,
+    ) -> Result<ConsentStatus, String> {
+        grant_ai_access_consent_core(workspace_root, window.label(), path.0.clone(), &state)
+    }
+
+    #[tauri::command(rename = "register_agent_turn_bridge")]
+    fn test_register_agent_turn_bridge(
+        workspace_root: String,
+        frontend_generation: u64,
+        window: tauri::WebviewWindow<MockRuntime>,
+        state: tauri::State<'_, AppState>,
+    ) -> Result<TurnBridgeRegistration, String> {
+        register_agent_turn_bridge_core(
+            workspace_root,
+            frontend_generation,
+            None,
+            window.label(),
+            &state,
+        )
+    }
+
+    #[tauri::command(rename = "unregister_agent_turn_bridge")]
+    fn test_unregister_agent_turn_bridge(
+        workspace_root: String,
+        bridge_id: String,
+        window: tauri::WebviewWindow<MockRuntime>,
+        state: tauri::State<'_, AppState>,
+    ) -> bool {
+        unregister_agent_turn_bridge_core(&workspace_root, &bridge_id, window.label(), &state)
+    }
+
+    #[tauri::command(rename = "write_file")]
+    async fn test_write_file(
+        path: String,
+        content: String,
+        preparation: Option<WriterMutationPreparation>,
+        window: tauri::WebviewWindow<MockRuntime>,
+        app: tauri::AppHandle<MockRuntime>,
+    ) -> Result<crate::commands::fs::WriteResult, crate::error::AppError> {
+        crate::commands::fs::write_file_core(path, content, preparation, window.label(), app).await
+    }
+
+    #[tauri::command(rename = "start_agent_turn")]
+    fn test_start_agent_turn(
+        workspace_root: String,
+        agent_id: String,
+        registration_revision: u64,
+        conversation_id: String,
+        prompt: String,
+        window: tauri::WebviewWindow<MockRuntime>,
+        app: tauri::AppHandle<MockRuntime>,
+        paths: tauri::State<'_, TestAssistantPaths>,
+        state: tauri::State<'_, AppState>,
+    ) -> Result<StartAgentTurnResponse, String> {
+        start_agent_turn_core(
+            workspace_root,
+            agent_id,
+            registration_revision,
+            conversation_id,
+            prompt,
+            window.label(),
+            app,
+            paths.consent.clone(),
+            paths.registrations.clone(),
+            &state,
+            Duration::from_secs(2),
+        )
+    }
+
+    #[tauri::command(rename = "acknowledge_agent_turn_prepared")]
+    fn test_acknowledge_agent_turn_prepared(
+        acknowledgement: PrepareAcknowledgement,
+        window: tauri::WebviewWindow<MockRuntime>,
+        state: tauri::State<'_, AppState>,
+    ) -> Result<PrepareResultWire, String> {
+        acknowledge_agent_turn_prepared_core(window.label(), acknowledgement, &state)
+    }
+
+    #[tauri::command(rename = "acknowledge_agent_turn_reconciled")]
+    fn test_acknowledge_agent_turn_reconciled(
+        acknowledgement: ReconcileAcknowledgement,
+        window: tauri::WebviewWindow<MockRuntime>,
+        state: tauri::State<'_, AppState>,
+    ) -> Result<bool, String> {
+        acknowledge_agent_turn_reconciled_core(window.label(), acknowledgement, &state)
+    }
+
+    #[tauri::command(rename = "respond_agent_turn_permission")]
+    fn test_respond_agent_turn_permission(
+        workspace_root: String,
+        turn_id: String,
+        request_id: String,
+        option_id: Option<String>,
+        window: tauri::WebviewWindow<MockRuntime>,
+        state: tauri::State<'_, AppState>,
+    ) -> Result<(), String> {
+        respond_agent_turn_permission_core(
+            workspace_root,
+            turn_id,
+            request_id,
+            option_id,
+            window.label(),
+            &state,
+        )
+    }
+
+    fn invoke<T: DeserializeOwned>(
+        webview: &tauri::WebviewWindow<MockRuntime>,
+        command: &str,
+        body: Value,
+    ) -> Result<T, Value> {
+        tauri::test::get_ipc_response(
+            webview,
+            tauri::webview::InvokeRequest {
+                cmd: command.into(),
+                callback: tauri::ipc::CallbackFn(0),
+                error: tauri::ipc::CallbackFn(1),
+                url: "tauri://localhost".parse().unwrap(),
+                body: tauri::ipc::InvokeBody::Json(body),
+                headers: Default::default(),
+                invoke_key: tauri::test::INVOKE_KEY.to_string(),
+            },
+        )
+        .map(|response| response.deserialize::<T>().unwrap())
+    }
+
+    #[test]
+    fn desktop_consent_is_persisted_per_canonical_workspace_and_rejects_spoofing() {
+        let dir = tempfile::tempdir().unwrap();
+        let workspace_a = dir.path().join("workspace-a");
+        let workspace_b = dir.path().join("workspace-b");
+        fs::create_dir_all(&workspace_a).unwrap();
+        fs::create_dir_all(&workspace_b).unwrap();
+        let consent_path = dir.path().join("assistant-consents.json");
+        let app = tauri::test::mock_builder()
+            .manage(AppState::new())
+            .manage(TestConsentPath(consent_path.clone()))
+            .invoke_handler(tauri::generate_handler![
+                test_get_ai_access_consent,
+                test_grant_ai_access_consent
+            ])
+            .build(tauri::test::mock_context(tauri::test::noop_assets()))
+            .unwrap();
+        let webview = tauri::WebviewWindowBuilder::new(&app, "consent-test", Default::default())
+            .build()
+            .unwrap();
+        let window_state = app.state::<AppState>().get_or_create("consent-test");
+        *window_state.workspace_root.write() = Some(workspace_a.canonicalize().unwrap());
+
+        let before = invoke::<ConsentStatus>(
+            &webview,
+            "get_ai_access_consent",
+            json!({ "workspaceRoot": workspace_a }),
+        )
+        .unwrap();
+        assert!(!before.granted);
+
+        let granted = invoke::<ConsentStatus>(
+            &webview,
+            "grant_ai_access_consent",
+            json!({ "workspaceRoot": workspace_a.join(".") }),
+        )
+        .unwrap();
+        assert!(granted.granted);
+        assert_eq!(granted.revision, 1);
+
+        let repeated = invoke::<ConsentStatus>(
+            &webview,
+            "grant_ai_access_consent",
+            json!({ "workspaceRoot": workspace_a }),
+        )
+        .unwrap();
+        assert_eq!(repeated.revision, 1, "granting twice must be idempotent");
+
+        let persisted = load_consents(&consent_path).unwrap();
+        assert_eq!(persisted.revision, 1);
+        assert_eq!(persisted.workspaces, vec![granted.workspace_root.clone()]);
+
+        *window_state.workspace_root.write() = Some(workspace_b.canonicalize().unwrap());
+        let separate = invoke::<ConsentStatus>(
+            &webview,
+            "get_ai_access_consent",
+            json!({ "workspaceRoot": workspace_b }),
+        )
+        .unwrap();
+        assert!(!separate.granted);
+
+        let spoofed = invoke::<ConsentStatus>(
+            &webview,
+            "get_ai_access_consent",
+            json!({ "workspaceRoot": workspace_a }),
+        );
+        assert!(spoofed.is_err());
+    }
+
+    #[test]
+    fn shared_turn_wire_fixture_round_trips_rust_serde_models() {
+        let raw: Value =
+            serde_json::from_str(include_str!("../../../shared/assistant-turn-wire.json")).unwrap();
+        let bridge: TurnBridgeRegistration =
+            serde_json::from_value(raw["bridgeRegistration"].clone()).unwrap();
+        assert_eq!(
+            serde_json::to_value(bridge).unwrap(),
+            raw["bridgeRegistration"]
+        );
+        for raw_event in raw["events"].as_array().unwrap() {
+            let event: AgentTurnEvent = serde_json::from_value(raw_event.clone()).unwrap();
+            assert_eq!(serde_json::to_value(event).unwrap(), *raw_event);
+        }
+    }
+
+    #[test]
+    fn desktop_write_boundary_requires_exact_prepare_identity_during_agent_turn() {
+        let dir = tempfile::tempdir().unwrap();
+        let workspace = dir.path().join("workspace");
+        fs::create_dir_all(&workspace).unwrap();
+        let workspace = workspace.canonicalize().unwrap();
+        let note = workspace.join("note.md");
+        let stale_note = dir.path().join("previous-workspace-note.md");
+        fs::write(&note, "before").unwrap();
+        fs::write(&stale_note, "stale-before").unwrap();
+        let app = tauri::test::mock_builder()
+            .manage(AppState::new())
+            .invoke_handler(tauri::generate_handler![test_write_file])
+            .build(tauri::test::mock_context(tauri::test::noop_assets()))
+            .unwrap();
+        let webview = tauri::WebviewWindowBuilder::new(&app, "writer", Default::default())
+            .build()
+            .unwrap();
+        let app_state = app.state::<AppState>();
+        let window_state = app_state.get_or_create("writer");
+        *window_state.workspace_root.write() = Some(workspace.clone());
+        window_state.workspace_epoch.store(3, Ordering::Release);
+        let stale = invoke::<Value>(
+            &webview,
+            "write_file",
+            json!({ "path": stale_note, "content": "stale-after", "preparation": null }),
+        );
+        assert!(stale.is_err());
+        assert_eq!(fs::read_to_string(&stale_note).unwrap(), "stale-before");
+        app_state
+            .agent_coordinator
+            .register_bridge("writer", workspace.clone(), 3, 5)
+            .unwrap();
+        let turn = app_state
+            .agent_coordinator
+            .reserve(workspace.clone(), &[("writer".into(), 3)])
+            .unwrap();
+        let request = turn.prepare_requests().pop().unwrap();
+
+        let denied = invoke::<Value>(
+            &webview,
+            "write_file",
+            json!({ "path": note, "content": "denied", "preparation": null }),
+        );
+        assert!(denied.is_err());
+        assert_eq!(fs::read_to_string(&note).unwrap(), "before");
+
+        let preparation = WriterMutationPreparation {
+            turn_id: request.turn_id,
+            workspace_root: request.workspace_root,
+            workspace_epoch: request.workspace_epoch,
+            participant_token: request.participant_token,
+            bridge_id: request.bridge_id,
+            request_id: request.request_id,
+        };
+        invoke::<Value>(
+            &webview,
+            "write_file",
+            json!({ "path": note, "content": "prepared", "preparation": preparation }),
+        )
+        .unwrap();
+        assert_eq!(fs::read_to_string(note).unwrap(), "prepared");
+    }
+
+    #[test]
+    fn desktop_partial_prepare_failure_reconciles_before_unlock_without_runtime_start() {
+        let dir = tempfile::tempdir().unwrap();
+        let workspace = dir.path().join("workspace");
+        fs::create_dir_all(&workspace).unwrap();
+        let workspace = workspace.canonicalize().unwrap();
+        let consent_path = dir.path().join("assistant-consents.json");
+        grant_consent(&consent_path, workspace.to_string_lossy().into_owned()).unwrap();
+        let app = tauri::test::mock_builder()
+            .manage(AppState::new())
+            .manage(TestAssistantPaths {
+                consent: consent_path,
+                registrations: dir.path().join("assistant-agents.json"),
+            })
+            .invoke_handler(tauri::generate_handler![
+                test_register_agent_turn_bridge,
+                test_start_agent_turn,
+                test_acknowledge_agent_turn_prepared,
+                test_acknowledge_agent_turn_reconciled
+            ])
+            .build(tauri::test::mock_context(tauri::test::noop_assets()))
+            .unwrap();
+        let first = tauri::WebviewWindowBuilder::new(&app, "first", Default::default())
+            .build()
+            .unwrap();
+        let second = tauri::WebviewWindowBuilder::new(&app, "second", Default::default())
+            .build()
+            .unwrap();
+        let app_state = app.state::<AppState>();
+        for (label, epoch) in [("first", 4), ("second", 7)] {
+            let state = app_state.get_or_create(label);
+            *state.workspace_root.write() = Some(workspace.clone());
+            state.workspace_epoch.store(epoch, Ordering::Release);
+        }
+        let workspace_root = workspace.to_string_lossy().into_owned();
+        invoke::<TurnBridgeRegistration>(
+            &first,
+            "register_agent_turn_bridge",
+            json!({ "workspaceRoot": workspace_root, "frontendGeneration": 10 }),
+        )
+        .unwrap();
+        invoke::<TurnBridgeRegistration>(
+            &second,
+            "register_agent_turn_bridge",
+            json!({ "workspaceRoot": workspace_root, "frontendGeneration": 20 }),
+        )
+        .unwrap();
+
+        let (event_tx, event_rx) = mpsc::channel();
+        for (label, webview) in [("first", &first), ("second", &second)] {
+            let event_tx = event_tx.clone();
+            webview.listen("assistant:turn-event", move |event| {
+                let event = serde_json::from_str::<AgentTurnEvent>(event.payload()).unwrap();
+                let _ = event_tx.send((label, event));
+            });
+        }
+        let started = invoke::<StartAgentTurnResponse>(
+            &first,
+            "start_agent_turn",
+            json!({
+                "workspaceRoot": workspace_root,
+                "agentId": "codex-acp",
+                "registrationRevision": 0,
+                "conversationId": "conversation-1",
+                "prompt": "Update the Workspace"
+            }),
+        )
+        .unwrap();
+
+        let mut prepare = Vec::new();
+        while prepare.len() < 2 {
+            let (_, event) = event_rx.recv_timeout(Duration::from_secs(2)).unwrap();
+            if matches!(event, AgentTurnEvent::Prepare { .. }) {
+                prepare.push(event);
+            }
+        }
+        prepare.sort_by_key(|event| match event {
+            AgentTurnEvent::Prepare {
+                workspace_epoch, ..
+            } => *workspace_epoch,
+            _ => unreachable!(),
+        });
+        let make_prepare_ack = |event: &AgentTurnEvent, lease, error| match event {
+            AgentTurnEvent::Prepare {
+                turn_id,
+                workspace_root,
+                workspace_epoch,
+                participant_token,
+                bridge_id,
+                request_id,
+                ..
+            } => PrepareAcknowledgement {
+                turn_id: turn_id.clone(),
+                workspace_root: workspace_root.clone(),
+                workspace_epoch: *workspace_epoch,
+                participant_token: participant_token.clone(),
+                bridge_id: bridge_id.clone(),
+                request_id: request_id.clone(),
+                lease,
+                error,
+            },
+            _ => unreachable!(),
+        };
+        let lease = FrontendLeaseIdentity {
+            generation: 10,
+            id: 91,
+        };
+        invoke::<PrepareResultWire>(
+            &first,
+            "acknowledge_agent_turn_prepared",
+            json!({
+                "acknowledgement": make_prepare_ack(&prepare[0], Some(lease.clone()), None)
+            }),
+        )
+        .unwrap();
+        invoke::<PrepareResultWire>(
+            &second,
+            "acknowledge_agent_turn_prepared",
+            json!({
+                "acknowledgement": make_prepare_ack(&prepare[1], None, Some("save failed".into()))
+            }),
+        )
+        .unwrap();
+
+        let reconcile = loop {
+            let (_, event) = event_rx.recv_timeout(Duration::from_secs(2)).unwrap();
+            if let AgentTurnEvent::Reconcile { .. } = event {
+                break event;
+            }
+        };
+        let acknowledgement = match reconcile {
+            AgentTurnEvent::Reconcile {
+                turn_id,
+                workspace_root,
+                workspace_epoch,
+                participant_token,
+                bridge_id,
+                request_id,
+                lease,
+                ..
+            } => ReconcileAcknowledgement {
+                turn_id,
+                workspace_root,
+                workspace_epoch,
+                participant_token,
+                bridge_id,
+                request_id,
+                lease,
+                result: ReconcileResult::Completed,
+            },
+            _ => unreachable!(),
+        };
+        assert!(invoke::<bool>(
+            &first,
+            "acknowledge_agent_turn_reconciled",
+            json!({ "acknowledgement": acknowledgement }),
+        )
+        .unwrap());
+        assert!(app_state.agent_coordinator.is_active(&workspace));
+
+        let terminal = loop {
+            let (_, event) = event_rx.recv_timeout(Duration::from_secs(2)).unwrap();
+            if let AgentTurnEvent::Terminal { .. } = event {
+                break event;
+            }
+        };
+        assert!(matches!(
+            terminal,
+            AgentTurnEvent::Terminal { ref status, ref message, .. }
+                if status == "failed" && message.contains("save failed")
+        ));
+        let inactive = (0..20).any(|_| {
+            if !app_state.agent_coordinator.is_active(&workspace) {
+                true
+            } else {
+                std::thread::sleep(Duration::from_millis(5));
+                false
+            }
+        });
+        assert!(
+            inactive,
+            "terminal publication must be followed by driver cleanup"
+        );
+        assert_eq!(
+            started.turn_id,
+            match prepare[0].clone() {
+                AgentTurnEvent::Prepare { turn_id, .. } => turn_id,
+                _ => unreachable!(),
+            }
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn desktop_fake_agent_turn_orders_consent_prepare_stream_reconcile_and_unlock() {
+        let dir = tempfile::tempdir().unwrap();
+        let workspace = dir.path().join("workspace");
+        fs::create_dir_all(&workspace).unwrap();
+        let workspace = workspace.canonicalize().unwrap();
+        let source = build_native_fake_agent(dir.path(), "turn_permission");
+        let pid_path = fake_agent_artifact_path(&source, "pids");
+        let registration_path = dir.path().join("assistant-agents.json");
+        let registrations = add_registration(
+            &registration_path,
+            source.to_string_lossy().into_owned(),
+            vec!["--stdio".into()],
+        )
+        .unwrap();
+        let registration = registrations.registrations[0].clone();
+        let consent_path = dir.path().join("assistant-consents.json");
+        let app = tauri::test::mock_builder()
+            .manage(AppState::new())
+            .manage(TestConsentPath(consent_path.clone()))
+            .manage(TestAssistantPaths {
+                consent: consent_path,
+                registrations: registration_path,
+            })
+            .invoke_handler(tauri::generate_handler![
+                test_grant_ai_access_consent,
+                test_register_agent_turn_bridge,
+                test_unregister_agent_turn_bridge,
+                test_start_agent_turn,
+                test_acknowledge_agent_turn_prepared,
+                test_acknowledge_agent_turn_reconciled,
+                test_respond_agent_turn_permission
+            ])
+            .build(tauri::test::mock_context(tauri::test::noop_assets()))
+            .unwrap();
+        let webview = tauri::WebviewWindowBuilder::new(&app, "turn", Default::default())
+            .build()
+            .unwrap();
+        let app_state = app.state::<AppState>();
+        let window_state = app_state.get_or_create("turn");
+        *window_state.workspace_root.write() = Some(workspace.clone());
+        window_state.workspace_epoch.store(8, Ordering::Release);
+        let workspace_root = workspace.to_string_lossy().into_owned();
+
+        let consent = invoke::<ConsentStatus>(
+            &webview,
+            "grant_ai_access_consent",
+            json!({ "workspaceRoot": workspace_root }),
+        )
+        .unwrap();
+        assert!(consent.granted);
+        let bridge = invoke::<TurnBridgeRegistration>(
+            &webview,
+            "register_agent_turn_bridge",
+            json!({ "workspaceRoot": workspace_root, "frontendGeneration": 31 }),
+        )
+        .unwrap();
+
+        let (event_tx, event_rx) = mpsc::channel();
+        webview.listen("assistant:turn-event", move |event| {
+            let event = serde_json::from_str::<AgentTurnEvent>(event.payload()).unwrap();
+            let _ = event_tx.send(event);
+        });
+        let started = invoke::<StartAgentTurnResponse>(
+            &webview,
+            "start_agent_turn",
+            json!({
+                "workspaceRoot": workspace_root,
+                "agentId": registration.id,
+                "registrationRevision": registrations.revision,
+                "conversationId": "conversation-native-fixture",
+                "prompt": "Update the Workspace"
+            }),
+        )
+        .unwrap();
+
+        let prepare = event_rx.recv_timeout(Duration::from_secs(2)).unwrap();
+        let acknowledgement = match prepare {
+            AgentTurnEvent::Prepare {
+                turn_id,
+                workspace_root,
+                workspace_epoch,
+                participant_token,
+                bridge_id,
+                request_id,
+                ..
+            } => PrepareAcknowledgement {
+                turn_id,
+                workspace_root,
+                workspace_epoch,
+                participant_token,
+                bridge_id,
+                request_id,
+                lease: Some(FrontendLeaseIdentity {
+                    generation: 31,
+                    id: 44,
+                }),
+                error: None,
+            },
+            event => panic!("expected prepare event, got {event:?}"),
+        };
+        assert_eq!(
+            invoke::<PrepareResultWire>(
+                &webview,
+                "acknowledge_agent_turn_prepared",
+                json!({ "acknowledgement": acknowledgement }),
+            )
+            .unwrap(),
+            PrepareResultWire::Ready
+        );
+
+        let mut order = vec!["consent", "prepare"];
+        let mut streamed = String::new();
+        let mut summaries = Vec::new();
+        let mut running_phases = 0;
+        loop {
+            let event = event_rx.recv_timeout(Duration::from_secs(8)).unwrap();
+            match event {
+                AgentTurnEvent::Phase {
+                    phase: TurnPhase::Running,
+                    ..
+                } => {
+                    running_phases += 1;
+                    if running_phases == 1 {
+                        order.push("run");
+                    }
+                }
+                AgentTurnEvent::StreamText { text, .. } => {
+                    order.push("stream");
+                    streamed.push_str(&text);
+                }
+                AgentTurnEvent::ChangeSummary { summary, .. } => summaries.push(summary),
+                AgentTurnEvent::Permission {
+                    turn_id,
+                    workspace_root,
+                    request_id,
+                    title,
+                    options,
+                    ..
+                } => {
+                    assert_eq!(title, "Access the network");
+                    assert!(options.iter().any(|option| option.id == "reject-once"));
+                    invoke::<()>(
+                        &webview,
+                        "respond_agent_turn_permission",
+                        json!({
+                            "workspaceRoot": workspace_root,
+                            "turnId": turn_id,
+                            "requestId": request_id,
+                            "optionId": "allow-once",
+                        }),
+                    )
+                    .unwrap();
+                }
+                AgentTurnEvent::Phase {
+                    phase: TurnPhase::Reconciling,
+                    ..
+                } => {
+                    order.push("reconcile");
+                }
+                AgentTurnEvent::Reconcile {
+                    turn_id,
+                    workspace_root,
+                    workspace_epoch,
+                    participant_token,
+                    bridge_id,
+                    request_id,
+                    lease,
+                    ..
+                } => {
+                    assert_eq!(
+                        fs::read_to_string(workspace.join("agent-change.md")).unwrap(),
+                        "# Written by fake Agent\n"
+                    );
+                    assert!(invoke::<bool>(
+                        &webview,
+                        "acknowledge_agent_turn_reconciled",
+                        json!({
+                            "acknowledgement": ReconcileAcknowledgement {
+                                turn_id,
+                                workspace_root,
+                                workspace_epoch,
+                                participant_token,
+                                bridge_id,
+                                request_id,
+                                lease,
+                                result: ReconcileResult::Completed,
+                            }
+                        }),
+                    )
+                    .unwrap());
+                }
+                AgentTurnEvent::Terminal {
+                    status, message, ..
+                } => {
+                    assert_eq!(status, "completed", "unexpected terminal: {message}");
+                    order.push("unlock");
+                    break;
+                }
+                _ => {}
+            }
+        }
+        assert_eq!(streamed, "Turn complete");
+        assert_eq!(summaries, vec!["Updated agent-change.md"]);
+        assert_eq!(
+            running_phases, 2,
+            "permission resolution must resume every window"
+        );
+        assert_eq!(
+            order,
+            vec!["consent", "prepare", "run", "stream", "reconcile", "unlock"]
+        );
+        assert!((0..20).any(|_| {
+            if !app_state.agent_coordinator.is_active(&workspace) {
+                true
+            } else {
+                std::thread::sleep(Duration::from_millis(5));
+                false
+            }
+        }));
+        assert_eq!(started.conversation_id, "conversation-native-fixture");
+        assert!(invoke::<bool>(
+            &webview,
+            "unregister_agent_turn_bridge",
+            json!({ "workspaceRoot": workspace_root, "bridgeId": bridge.bridge_id }),
+        )
+        .unwrap());
+        for pid in fs::read_to_string(pid_path).unwrap().lines() {
+            assert!(!std::process::Command::new("/bin/kill")
+                .args(["-0", pid])
+                .status()
+                .unwrap()
+                .success());
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn desktop_agent_crash_reconciles_partial_write_before_failed_unlock() {
+        let dir = tempfile::tempdir().unwrap();
+        let workspace = dir.path().join("workspace");
+        fs::create_dir_all(&workspace).unwrap();
+        let workspace = workspace.canonicalize().unwrap();
+        let source = build_native_fake_agent(dir.path(), "turn_write_fail");
+        let registration_path = dir.path().join("assistant-agents.json");
+        let registrations = add_registration(
+            &registration_path,
+            source.to_string_lossy().into_owned(),
+            vec![],
+        )
+        .unwrap();
+        let consent_path = dir.path().join("assistant-consents.json");
+        grant_consent(&consent_path, workspace.to_string_lossy().into_owned()).unwrap();
+        let app = tauri::test::mock_builder()
+            .manage(AppState::new())
+            .manage(TestAssistantPaths {
+                consent: consent_path,
+                registrations: registration_path,
+            })
+            .invoke_handler(tauri::generate_handler![
+                test_register_agent_turn_bridge,
+                test_start_agent_turn,
+                test_acknowledge_agent_turn_prepared,
+                test_acknowledge_agent_turn_reconciled
+            ])
+            .build(tauri::test::mock_context(tauri::test::noop_assets()))
+            .unwrap();
+        let webview = tauri::WebviewWindowBuilder::new(&app, "crash", Default::default())
+            .build()
+            .unwrap();
+        let app_state = app.state::<AppState>();
+        let window_state = app_state.get_or_create("crash");
+        *window_state.workspace_root.write() = Some(workspace.clone());
+        window_state.workspace_epoch.store(2, Ordering::Release);
+        let workspace_root = workspace.to_string_lossy().into_owned();
+        invoke::<TurnBridgeRegistration>(
+            &webview,
+            "register_agent_turn_bridge",
+            json!({ "workspaceRoot": workspace_root, "frontendGeneration": 6 }),
+        )
+        .unwrap();
+        let (event_tx, event_rx) = mpsc::channel();
+        webview.listen("assistant:turn-event", move |event| {
+            let event = serde_json::from_str::<AgentTurnEvent>(event.payload()).unwrap();
+            let _ = event_tx.send(event);
+        });
+        invoke::<StartAgentTurnResponse>(
+            &webview,
+            "start_agent_turn",
+            json!({
+                "workspaceRoot": workspace_root,
+                "agentId": registrations.registrations[0].id,
+                "registrationRevision": registrations.revision,
+                "conversationId": "conversation-crash",
+                "prompt": "Write then fail"
+            }),
+        )
+        .unwrap();
+        let prepare = event_rx.recv_timeout(Duration::from_secs(2)).unwrap();
+        let acknowledgement = match prepare {
+            AgentTurnEvent::Prepare {
+                turn_id,
+                workspace_root,
+                workspace_epoch,
+                participant_token,
+                bridge_id,
+                request_id,
+                ..
+            } => PrepareAcknowledgement {
+                turn_id,
+                workspace_root,
+                workspace_epoch,
+                participant_token,
+                bridge_id,
+                request_id,
+                lease: Some(FrontendLeaseIdentity {
+                    generation: 6,
+                    id: 7,
+                }),
+                error: None,
+            },
+            other => panic!("expected prepare, got {other:?}"),
+        };
+        invoke::<PrepareResultWire>(
+            &webview,
+            "acknowledge_agent_turn_prepared",
+            json!({ "acknowledgement": acknowledgement }),
+        )
+        .unwrap();
+
+        loop {
+            let event = event_rx.recv_timeout(Duration::from_secs(8)).unwrap();
+            if let AgentTurnEvent::Reconcile {
+                turn_id,
+                workspace_root,
+                workspace_epoch,
+                participant_token,
+                bridge_id,
+                request_id,
+                lease,
+                ..
+            } = event
+            {
+                assert_eq!(
+                    fs::read_to_string(workspace.join("agent-change.md")).unwrap(),
+                    "# Written by fake Agent\n"
+                );
+                invoke::<bool>(
+                    &webview,
+                    "acknowledge_agent_turn_reconciled",
+                    json!({
+                        "acknowledgement": ReconcileAcknowledgement {
+                            turn_id,
+                            workspace_root,
+                            workspace_epoch,
+                            participant_token,
+                            bridge_id,
+                            request_id,
+                            lease,
+                            result: ReconcileResult::Completed,
+                        }
+                    }),
+                )
+                .unwrap();
+                break;
+            }
+        }
+        let terminal = loop {
+            let event = event_rx.recv_timeout(Duration::from_secs(2)).unwrap();
+            if let AgentTurnEvent::Terminal { .. } = event {
+                break event;
+            }
+        };
+        assert!(matches!(
+            terminal,
+            AgentTurnEvent::Terminal { status, message, .. }
+                if status == "failed"
+                    && message.contains("partial changes remain")
+                    && message.contains("does not roll them back")
+        ));
+        assert!((0..20).any(|_| {
+            if !app_state.agent_coordinator.is_active(&workspace) {
+                true
+            } else {
+                std::thread::sleep(Duration::from_millis(5));
+                false
+            }
+        }));
+    }
+}

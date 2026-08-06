@@ -2,6 +2,7 @@
 
 ## 2026-08-06
 
+- Add the first serialized ACP Agent Turn: each canonical Workspace requires its own full-access consent, flushes open Documents and becomes read-only before launch, shows streamed output, change summaries, and strictly one-shot permission choices in one temporary Conversation, then explicitly reloads Agent changes before unlocking. Target-scoped mutation permits prevent Writer writes from racing reservation; reconciliation failures remain visibly locked, partial disk writes remain, and Writer never claims rollback.
 - Add the default-visible, independently resizable Assistant discovery pane for Workspace windows. Writer now detects directly installed Claude Agent ACP, Codex ACP, and explicitly registered native ACP executables through a bounded initialize-only handshake, reports actionable compatibility states, and never downloads packages or stores credentials; custom registrations accept only bounded valueless ACP transport switches, are capped at 32 entries/256 KiB, and launch self-contained executables of at most 128 MiB from a verified, cancellable private copy so configured-path replacement cannot change what is spawned.
 - Keep compact-file windows AI-free while adding an explicit “Open containing folder” action that preserves the active file in a new Workspace window.
 

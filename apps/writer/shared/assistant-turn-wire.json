@@ -1,0 +1,79 @@
+{
+  "bridgeRegistration": {
+    "bridgeId": "bridge-1",
+    "workspaceRoot": "/workspace",
+    "workspaceEpoch": 9,
+    "frontendGeneration": 5
+  },
+  "events": [
+    {
+      "type": "prepare",
+      "turnId": "turn-1",
+      "conversationId": "conversation-1",
+      "workspaceRoot": "/workspace",
+      "workspaceEpoch": 9,
+      "participantToken": "participant-1",
+      "bridgeId": "bridge-1",
+      "requestId": "prepare-1"
+    },
+    {
+      "type": "phase",
+      "turnId": "turn-1",
+      "conversationId": "conversation-1",
+      "workspaceRoot": "/workspace",
+      "phase": "awaiting-permission"
+    },
+    {
+      "type": "permission",
+      "turnId": "turn-1",
+      "conversationId": "conversation-1",
+      "workspaceRoot": "/workspace",
+      "requestId": "permission-1",
+      "title": "Access the network",
+      "options": [
+        { "id": "allow-once", "name": "Allow once", "kind": "allow-once" },
+        { "id": "reject-once", "name": "Reject", "kind": "reject-once" }
+      ]
+    },
+    {
+      "type": "stream-text",
+      "turnId": "turn-1",
+      "conversationId": "conversation-1",
+      "workspaceRoot": "/workspace",
+      "text": "Turn complete"
+    },
+    {
+      "type": "change-summary",
+      "turnId": "turn-1",
+      "conversationId": "conversation-1",
+      "workspaceRoot": "/workspace",
+      "summary": "Updated note.md"
+    },
+    {
+      "type": "reconcile",
+      "turnId": "turn-1",
+      "conversationId": "conversation-1",
+      "workspaceRoot": "/workspace",
+      "workspaceEpoch": 9,
+      "participantToken": "participant-1",
+      "bridgeId": "bridge-1",
+      "requestId": "reconcile-1",
+      "lease": { "generation": 5, "id": 17 }
+    },
+    {
+      "type": "reconciliation-blocked",
+      "turnId": "turn-1",
+      "conversationId": "conversation-1",
+      "workspaceRoot": "/workspace",
+      "message": "Reload failed; editing remains locked."
+    },
+    {
+      "type": "terminal",
+      "turnId": "turn-1",
+      "conversationId": "conversation-1",
+      "workspaceRoot": "/workspace",
+      "status": "completed",
+      "message": "Turn complete"
+    }
+  ]
+}

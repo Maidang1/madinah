@@ -291,6 +291,7 @@ describe("Workspace Turn Lifecycle", () => {
   test("exposes one reusable Workspace Turn Lifecycle seam", () => {
     expect(workspaceTurnLifecycle.prepareWorkspaceTurn).toBeTypeOf("function");
     expect(workspaceTurnLifecycle.reconcileWorkspaceTurn).toBeTypeOf("function");
+    expect(workspaceTurnLifecycle.releaseWorkspaceTurn).toBeTypeOf("function");
   });
 
   test("locks before flushing, rejects overlap, and unlocks after successful reconciliation", async () => {
@@ -356,6 +357,23 @@ describe("Workspace Turn Lifecycle", () => {
       status: "failed",
       failures: [{ phase: "index", message: "rescan failed" }],
     });
+    expect(editorApi.isWorkspaceReadOnly()).toBe(false);
+  });
+
+  test("can retain read-only after reconciliation until the coordinator unlocks", async () => {
+    mockedInvoke.mockImplementation(async (command) => {
+      if (command === "index_workspace") return { file_count: 0, duration_ms: 1 };
+      if (command === "read_directory") return [];
+      return null;
+    });
+    const lease = await workspaceTurnLifecycle.prepareWorkspaceTurn("/workspace");
+
+    await expect(
+      workspaceTurnLifecycle.reconcileWorkspaceTurn(lease, { retainReadOnly: true }),
+    ).resolves.toMatchObject({ status: "completed" });
+    expect(editorApi.isWorkspaceReadOnly(lease)).toBe(true);
+
+    workspaceTurnLifecycle.releaseWorkspaceTurn(lease);
     expect(editorApi.isWorkspaceReadOnly()).toBe(false);
   });
 

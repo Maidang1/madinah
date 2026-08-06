@@ -63,7 +63,9 @@ fn attach_window_handlers(app: &tauri::AppHandle, window: &WebviewWindow) {
         WindowEvent::Destroyed => {
             // Remove the state; the `WorkspaceState`'s `RecommendedWatcher`
             // drops on the last `Arc` release, unregistering FSEvents/inotify.
-            handle.state::<AppState>().remove(&label);
+            let state = handle.state::<AppState>();
+            state.agent_coordinator.withdraw_window(&label);
+            state.remove(&label);
         }
         _ => {}
     });
@@ -257,8 +259,11 @@ fn install_app_menu(app: &tauri::AppHandle) -> Result<(), Box<dyn std::error::Er
     let cli_item = MenuItemBuilder::with_id("cli.toggle", CLI_MENU_INSTALL_LABEL).build(app)?;
 
     let app_submenu = {
-        let b = SubmenuBuilder::new(app, "Writer")
-            .item(&PredefinedMenuItem::about(app, Some("About Writer"), None)?);
+        let b = SubmenuBuilder::new(app, "Writer").item(&PredefinedMenuItem::about(
+            app,
+            Some("About Writer"),
+            None,
+        )?);
         #[cfg(target_os = "macos")]
         let b = b.separator().item(&cli_item);
         b.separator()
@@ -485,6 +490,14 @@ pub fn run() {
             commands::assistant::cancel_agent_discovery,
             commands::assistant::add_agent_registration,
             commands::assistant::remove_agent_registration,
+            commands::assistant_turn::get_ai_access_consent,
+            commands::assistant_turn::grant_ai_access_consent,
+            commands::assistant_turn::register_agent_turn_bridge,
+            commands::assistant_turn::unregister_agent_turn_bridge,
+            commands::assistant_turn::start_agent_turn,
+            commands::assistant_turn::acknowledge_agent_turn_prepared,
+            commands::assistant_turn::acknowledge_agent_turn_reconciled,
+            commands::assistant_turn::respond_agent_turn_permission,
             commands::fs::read_directory,
             commands::fs::read_recent_files,
             commands::fs::read_file_entries,

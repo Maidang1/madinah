@@ -1,7 +1,10 @@
 mod catalog;
+mod consent;
 mod discovery;
 mod probe;
 mod registrations;
+mod runtime;
+mod turn;
 
 // These serde models own the Assistant discovery IPC wire contract. The
 // TypeScript mirror and ownership rules are documented in
@@ -16,6 +19,7 @@ pub use catalog::{
 };
 #[cfg(test)]
 pub(super) use catalog::{BindingObserver, BindingProgress};
+pub use consent::{grant_consent, load_consents, ConsentSnapshot, ConsentStatus};
 #[cfg(test)]
 pub use discovery::{
     discover_agents, discover_agents_for_epoch_observed, discover_agents_observed,
@@ -31,6 +35,17 @@ pub use registrations::CustomAgentRegistration;
 pub use registrations::{
     add_registration, load_registrations, remove_registration, validate_registration_count,
     RegistrationSnapshot,
+};
+pub(super) use runtime::{
+    run_agent_turn, run_bound_agent_turn, RuntimeChannels, RuntimeOutcome,
+    RuntimePermissionRequest, RuntimeUpdate,
+};
+#[cfg(test)]
+pub use turn::ReconcileResult;
+pub use turn::{
+    AgentCoordinator, FrontendLeaseIdentity, LifecycleRequest, PrepareAcknowledgement,
+    PrepareResult, ReconcileAcknowledgement, TurnPermissionOption, TurnPhase, TurnReservation,
+    WriterMutationPermit, WriterMutationPreparation,
 };
 
 #[cfg(all(test, unix))]

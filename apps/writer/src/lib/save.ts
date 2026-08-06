@@ -2,6 +2,7 @@ import { useSettingsStore } from "@/stores/settings-store";
 import type { OpenFile } from "@/hooks/editor-api";
 import { serializeDocument } from "@/lib/frontmatter";
 import * as tauri from "@/lib/tauri";
+import type { WriterMutationPreparation } from "@/platform/tauri/fs";
 
 const THROTTLE_MS = 1000;
 
@@ -38,6 +39,7 @@ interface SaveController {
   inFlight: boolean;
   pending: boolean;
   flushRequested: boolean;
+  preparation: WriterMutationPreparation | null;
   waiters: Array<{
     resolve: () => void;
     reject: (error: Error) => void;
@@ -55,6 +57,7 @@ function getSaveController(path: string): SaveController {
       inFlight: false,
       pending: false,
       flushRequested: false,
+      preparation: null,
       waiters: [],
     };
     saveControllers.set(path, controller);
@@ -111,10 +114,14 @@ export function cancelSave(path: string) {
 /** Persist the latest document snapshot immediately and resolve only after all
  * edits observed during the write have reached disk. Publication uses this as
  * its durability boundary before invoking Git. */
-export function flushSave(path: string): Promise<void> {
+export function flushSave(
+  path: string,
+  preparation: WriterMutationPreparation | null = null,
+): Promise<void> {
   const controller = getSaveController(path);
   controller.pending = true;
   controller.flushRequested = true;
+  controller.preparation = preparation;
 
   const completion = new Promise<void>((resolve, reject) => {
     controller.waiters.push({ resolve, reject });
@@ -187,7 +194,8 @@ async function performSave(path: string, controller = getSaveController(path)) {
   let terminalError: Error | undefined;
 
   try {
-    await tauri.writeFile(path, full);
+    if (controller.preparation) await tauri.writeFile(path, full, controller.preparation);
+    else await tauri.writeFile(path, full);
 
     const latestFile = store.getOpenFile(path);
     if (!latestFile) return;
@@ -208,6 +216,7 @@ async function performSave(path: string, controller = getSaveController(path)) {
       else queueSave(path, controller);
     } else {
       controller.flushRequested = false;
+      controller.preparation = null;
       settleSaveWaiters(controller, terminalError);
       cleanupSaveController(path, controller);
     }

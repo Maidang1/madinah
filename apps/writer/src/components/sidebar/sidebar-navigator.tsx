@@ -1,6 +1,6 @@
 import { useCallback, useState, type MouseEvent } from "react";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
-import { useWorkspace } from "@/hooks/use-workspace";
+import { useWorkspace, useWorkspaceReadOnly } from "@/hooks/use-workspace";
 import { useSetting } from "@/hooks/use-settings";
 import {
   usePinnedFiles,
@@ -50,6 +50,8 @@ export function SidebarNavigator({
   className = "flex flex-col gap-4 py-2",
 }: SidebarNavigatorProps) {
   const { root } = useWorkspace();
+  const isWorkspaceReadOnly = useWorkspaceReadOnly();
+  const allowMutations = enableContextMenus && !isWorkspaceReadOnly;
   const defaultOpenFile = useOpenFile();
   const openFile = openFileOverride ?? defaultOpenFile;
   const refreshDirectory = useRefreshDirectory();
@@ -74,7 +76,7 @@ export function SidebarNavigator({
 
   const handleRenameFile = useCallback(
     (entry: DirEntry) => {
-      if (!enableContextMenus) return;
+      if (!allowMutations) return;
 
       void (async () => {
         const currentStem = getFileStem(entry.name);
@@ -100,12 +102,12 @@ export function SidebarNavigator({
         }
       })();
     },
-    [applyPathChange, enableContextMenus],
+    [allowMutations, applyPathChange],
   );
 
   const handleFileContextMenu = useCallback(
     (_event: MouseEvent<HTMLElement>, entry: DirEntry) => {
-      if (!enableContextMenus || !root) return;
+      if (!allowMutations || !root) return;
       const parent = getParentDir(entry.path);
       const relative = getRelativePath(entry.path, root);
 
@@ -177,7 +179,7 @@ export function SidebarNavigator({
       });
     },
     [
-      enableContextMenus,
+      allowMutations,
       handleRenameFile,
       openFileAndComplete,
       pinnedPaths,
@@ -207,7 +209,7 @@ export function SidebarNavigator({
                 isSelected={false}
                 onToggleDir={noopToggleDirectory}
                 onOpenFile={openFileAndComplete}
-                onContextMenu={enableContextMenus ? handleFileContextMenu : undefined}
+                onContextMenu={allowMutations ? handleFileContextMenu : undefined}
                 fileLabelMode={fileLabelMode}
               />
             ))}
@@ -233,7 +235,7 @@ export function SidebarNavigator({
                 isSelected={false}
                 onToggleDir={noopToggleDirectory}
                 onOpenFile={openFileAndComplete}
-                onContextMenu={enableContextMenus ? handleFileContextMenu : undefined}
+                onContextMenu={allowMutations ? handleFileContextMenu : undefined}
                 fileLabelMode={fileLabelMode}
               />
             ))}
@@ -250,7 +252,7 @@ export function SidebarNavigator({
         <FileTree
           rootPath={root}
           openFile={openFileAndComplete}
-          enableContextMenus={enableContextMenus}
+          enableContextMenus={allowMutations}
         />
       </SidebarSection>
     </div>

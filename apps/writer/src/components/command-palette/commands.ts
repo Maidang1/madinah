@@ -9,6 +9,7 @@ export type CommandPaletteCommand = {
 
 interface CreateCommandPaletteCommandsInput {
   root: string | null;
+  isWorkspaceReadOnly?: boolean;
   isCompactFileMode: boolean;
   activeFilePath: string | null;
   activeTabId: string | null;
@@ -49,8 +50,8 @@ export const COMMAND_PALETTE_COMMANDS: readonly CommandPaletteCommandDefinition[
     id: "new-file",
     label: "Create New File",
     description: "Command",
-    isVisible: ({ root, isCompactFileMode, activeFilePath }) =>
-      Boolean(root || (isCompactFileMode && activeFilePath)),
+    isVisible: ({ root, isCompactFileMode, activeFilePath, isWorkspaceReadOnly = false }) =>
+      !isWorkspaceReadOnly && Boolean(root || (isCompactFileMode && activeFilePath)),
     run: ({ openCreateFileIntent }) => openCreateFileIntent(),
   },
   {
