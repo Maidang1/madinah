@@ -114,6 +114,7 @@ describe("Assistant discovery shell", () => {
           status: "awaiting-permission",
           message: null,
           reconciliation: null,
+          grounding: null,
           permission: {
             requestId: "permission-1",
             title: "Access the network",
@@ -130,5 +131,84 @@ describe("Assistant discovery shell", () => {
     expect(permission).toContain("Access the network");
     expect(permission).toContain("Allow once");
     expect(permission).toContain("Reject");
+  });
+
+  test("renders Ungrounded warning and navigable valid citations", () => {
+    const viewProps = {
+      agents: [agent({ id: "ready", name: "Ready Agent" })],
+      selectedAgentId: "ready",
+      turnBridgeReady: true,
+      consent: "granted" as const,
+      onGrantConsent: vi.fn(),
+      onSelectAgent: vi.fn(),
+      onSend: vi.fn(),
+      onRespondPermission: vi.fn(),
+    };
+
+    const ungrounded = renderToStaticMarkup(
+      createElement(AssistantTurnView, {
+        ...viewProps,
+        conversation: {
+          id: "c1",
+          turnId: "t1",
+          prompt: "What is X?",
+          output: "X is inventively blue.",
+          changeSummaries: [],
+          status: "completed",
+          message: null,
+          reconciliation: null,
+          permission: null,
+          grounding: {
+            status: "ungrounded",
+            validating: false,
+            citations: [
+              {
+                status: "invalid",
+                raw: "notes/missing.md",
+                relativePath: "notes/missing.md",
+                reason: "missing-file",
+              },
+            ],
+          },
+        },
+      }),
+    );
+    expect(ungrounded).toContain("Ungrounded");
+    expect(ungrounded).toContain("no valid Workspace Document reference");
+    expect(ungrounded).toContain("X is inventively blue.");
+    expect(ungrounded).toContain("invalid (missing-file)");
+
+    const grounded = renderToStaticMarkup(
+      createElement(AssistantTurnView, {
+        ...viewProps,
+        conversation: {
+          id: "c2",
+          turnId: "t2",
+          prompt: "How deploy?",
+          output: "Use the blue gate.",
+          changeSummaries: [],
+          status: "completed",
+          message: null,
+          reconciliation: null,
+          permission: null,
+          grounding: {
+            status: "grounded",
+            validating: false,
+            citations: [
+              {
+                status: "valid",
+                raw: "docs/deploy.md#blue-gate",
+                relativePath: "docs/deploy.md",
+                absolutePath: "/workspace/docs/deploy.md",
+                anchor: "blue-gate",
+              },
+            ],
+          },
+        },
+      }),
+    );
+    expect(grounded).toContain("Grounded");
+    expect(grounded).toContain("docs/deploy.md#blue-gate");
+    expect(grounded).not.toContain("no valid Workspace Document reference");
   });
 });

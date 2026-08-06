@@ -13,6 +13,10 @@ import * as editorApi from "@/hooks/editor-api";
 import { useReloadVersion } from "@/hooks/use-tabs";
 import { useWorkspaceReadOnly } from "@/hooks/use-workspace";
 import type { OverlayScrollbarRef } from "@/components/overlay-scrollbar";
+import { createHeadingSlugger } from "@/lib/heading-slug";
+import { registerOpenEditorHeadingScroller } from "@/lib/document-navigation";
+import { consumePendingAnchor } from "@/lib/pending-anchor";
+import { showAnchorWarning } from "./anchor-warning-store";
 import { TiptapSlashMenu } from "./tiptap-slash-menu";
 import "./tiptap-editor.css";
 import "./slash-command-menu.css";
@@ -130,12 +134,24 @@ export function useTiptapEditor(
     suppressUpdateRef.current = false;
 
     if (pathChanged) {
-      // Restore the saved scroll position for this file (pixel offset, stored
-      // per-file in the editor store). Deferred so the layout settles first.
-      const scroller = scrollContainerRef?.current ?? null;
-      const scrollPos = file?.scrollPos ?? 0;
-      if (scroller) {
-        requestAnimationFrame(() => scroller.scrollTo({ top: scrollPos, behavior: "auto" }));
+      const pendingAnchor = consumePendingAnchor(filePath);
+      if (pendingAnchor) {
+        requestAnimationFrame(() => {
+          const scrolled = scrollEditorToHeadingSlug(editor, pendingAnchor);
+          if (!scrolled) {
+            showAnchorWarning(`Heading “${pendingAnchor}” was not found in this document.`);
+            const scroller = scrollContainerRef?.current ?? null;
+            scroller?.scrollTo({ top: 0, behavior: "auto" });
+          }
+        });
+      } else {
+        // Restore the saved scroll position for this file (pixel offset, stored
+        // per-file in the editor store). Deferred so the layout settles first.
+        const scroller = scrollContainerRef?.current ?? null;
+        const scrollPos = file?.scrollPos ?? 0;
+        if (scroller) {
+          requestAnimationFrame(() => scroller.scrollTo({ top: scrollPos, behavior: "auto" }));
+        }
       }
       if (autoFocusRef.current) editor.commands.focus("start");
     }
@@ -193,10 +209,54 @@ export function useTiptapEditor(
 
 export function TiptapEditor({ filePath, autoFocus, scrollContainerRef }: TiptapEditorProps) {
   const editor = useTiptapEditor(filePath, autoFocus, scrollContainerRef);
+
+  useEffect(() => {
+    if (!editor) {
+      registerOpenEditorHeadingScroller(null);
+      return;
+    }
+    const path = filePath;
+    registerOpenEditorHeadingScroller((targetPath, anchor) => {
+      if (targetPath !== path) return false;
+      return scrollEditorToHeadingSlug(editor, anchor);
+    });
+    return () => registerOpenEditorHeadingScroller(null);
+  }, [editor, filePath]);
+
   return (
     <>
       <EditorContent editor={editor} className="tiptap-editor-host" />
       {editor ? <TiptapSlashMenu editor={editor} /> : null}
     </>
   );
+}
+
+/** Scroll the TipTap document to the first heading whose GFM slug matches. */
+export function scrollEditorToHeadingSlug(editor: Editor, slug: string): boolean {
+  const slugger = createHeadingSlugger();
+  let targetPos: number | null = null;
+  editor.state.doc.descendants((node, pos) => {
+    if (node.type.name !== "heading") return true;
+    const text = node.textContent.trim();
+    if (!text) return true;
+    const headingSlug = slugger(text);
+    if (headingSlug === slug) {
+      targetPos = pos;
+      return false;
+    }
+    return true;
+  });
+  if (targetPos === null) return false;
+  try {
+    const dom = editor.view.nodeDOM(targetPos);
+    if (dom instanceof HTMLElement) {
+      dom.scrollIntoView({ behavior: "smooth", block: "start" });
+      return true;
+    }
+  } catch {
+    // Fall through to selection-based focus if nodeDOM is unavailable.
+  }
+  editor.commands.setTextSelection(targetPos + 1);
+  editor.commands.scrollIntoView();
+  return true;
 }

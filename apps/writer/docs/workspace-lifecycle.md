@@ -20,4 +20,4 @@ Workspace generation prevents delayed work for a closed Workspace from applying 
 
 ## Coordinator boundary
 
-This frontend seam does not own runtime discovery/spawning, ACP, Assistant state, process-wide coordination, cancellation, or permissions. Issue #12's Rust coordinator owns those responsibilities and calls this seam only for prepare and explicit reconcile. Conversation persistence/restore, focus context, quick actions, and grounded citations remain later AI-first Assistant tickets.
+This frontend seam does not own runtime discovery/spawning, ACP, Assistant state, process-wide coordination, cancellation, or permissions. Issue #12's Rust coordinator owns those responsibilities and calls this seam only for prepare and explicit reconcile. Grounded citation validation (#13) is a frontend projection over terminal agent text and the live Workspace filesystem; it does not extend this lifecycle seam. Conversation persistence/restore, focus context, and quick actions remain later AI-first Assistant tickets.

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vite-plus/test";
-import { buildSlugIndex, parseDocumentHeadings } from "../src/hooks/use-document-headings";
+import { buildSlugIndex, parseDocumentHeadings } from "../src/lib/document-headings";
 
 describe("parseDocumentHeadings", () => {
   test("returns empty array for empty content", () => {
