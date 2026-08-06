@@ -1,22 +1,27 @@
 import { useState, type FormEvent } from "react";
-import type { AgentDiscovery } from "@/platform/tauri/assistant";
+import type { AgentDiscovery, ConversationSummary } from "@/platform/tauri/assistant";
 import {
+  type ActiveAssistantConversation,
   type AssistantConsent,
   type AssistantDiscoveryPhase,
-  type TemporaryAssistantConversation,
   useAddCustomAgent,
   useAssistantAgents,
+  useAssistantConversations,
   useAssistantError,
   useAssistantPhase,
   useAssistantRegistrationError,
   useAssistantTurnBridgeReady,
   useAssistantConsent,
   useAssistantConversation,
+  useCreateAssistantConversation,
+  useDeleteAssistantConversation,
   useGrantAssistantConsent,
   useOpenAgentSetup,
   useRefreshAssistant,
   useRemoveCustomAgent,
+  useRenameAssistantConversation,
   useRespondAssistantPermission,
+  useSelectAssistantConversation,
   useSelectedAssistantAgent,
   useSelectAssistantAgent,
   useSendAssistantTurn,
@@ -92,6 +97,11 @@ function AssistantTurnComposer({ agents }: { agents: AgentDiscovery[] }) {
   const selectedAgentId = useSelectedAssistantAgent();
   const selectAgent = useSelectAssistantAgent();
   const conversation = useAssistantConversation();
+  const conversations = useAssistantConversations();
+  const createConversation = useCreateAssistantConversation();
+  const selectConversation = useSelectAssistantConversation();
+  const renameConversation = useRenameAssistantConversation();
+  const deleteConversation = useDeleteAssistantConversation();
   const turnBridgeReady = useAssistantTurnBridgeReady();
   const send = useSendAssistantTurn();
   const respondPermission = useRespondAssistantPermission();
@@ -101,9 +111,14 @@ function AssistantTurnComposer({ agents }: { agents: AgentDiscovery[] }) {
       consent={consent}
       selectedAgentId={selectedAgentId}
       conversation={conversation}
+      conversations={conversations}
       turnBridgeReady={turnBridgeReady}
       onGrantConsent={grantConsent}
       onSelectAgent={selectAgent}
+      onCreateConversation={createConversation}
+      onSelectConversation={selectConversation}
+      onRenameConversation={renameConversation}
+      onDeleteConversation={deleteConversation}
       onSend={send}
       onRespondPermission={respondPermission}
     />
@@ -114,10 +129,15 @@ interface AssistantTurnViewProps {
   agents: AgentDiscovery[];
   consent: AssistantConsent;
   selectedAgentId: string | null;
-  conversation: TemporaryAssistantConversation | null;
+  conversation: ActiveAssistantConversation | null;
+  conversations: ConversationSummary[];
   turnBridgeReady: boolean;
   onGrantConsent: () => Promise<void>;
   onSelectAgent: (id: string) => void;
+  onCreateConversation: (name?: string) => Promise<void>;
+  onSelectConversation: (conversationId: string) => Promise<void>;
+  onRenameConversation: (conversationId: string, name: string) => Promise<void>;
+  onDeleteConversation: (conversationId: string) => Promise<void>;
   onSend: (prompt: string) => Promise<void>;
   onRespondPermission: (optionId: string | null) => Promise<void>;
 }
@@ -127,9 +147,14 @@ export function AssistantTurnView({
   consent,
   selectedAgentId,
   conversation,
+  conversations,
   turnBridgeReady,
   onGrantConsent: grantConsent,
   onSelectAgent: selectAgent,
+  onCreateConversation: createConversation,
+  onSelectConversation: selectConversation,
+  onRenameConversation: renameConversation,
+  onDeleteConversation: deleteConversation,
   onSend: send,
   onRespondPermission: respondPermission,
 }: AssistantTurnViewProps) {
@@ -137,7 +162,10 @@ export function AssistantTurnView({
   const [error, setError] = useState<string | null>(null);
   const compatible = agents.filter((agent) => agent.status === "compatible");
   const isActive = isAssistantConversationActive(conversation);
-  const hasConversation = conversation !== null;
+  const restoreFailed = conversation?.restoreStatus === "failed";
+  // Agent selection is only locked during an active turn. While idle, the user
+  // can pick a different Runtime and create a new Conversation bound to it.
+  const agentLocked = isActive;
 
   async function handleConsent() {
     setError(null);
@@ -182,18 +210,124 @@ export function AssistantTurnView({
     );
   }
 
+  async function handleCreateConversation() {
+    setError(null);
+    try {
+      if (compatible.length > 1 && !selectedAgentId) {
+        setError("Choose which compatible Agent this Conversation should bind permanently.");
+        return;
+      }
+      const name = window.prompt("Name this Assistant Conversation", "New conversation");
+      if (name === null) return;
+      await createConversation(name.trim() || undefined);
+    } catch (createError) {
+      setError(errorMessage(createError));
+    }
+  }
+
+  async function handleSelectConversation(conversationId: string) {
+    setError(null);
+    try {
+      await selectConversation(conversationId);
+    } catch (selectError) {
+      setError(errorMessage(selectError));
+    }
+  }
+
+  async function handleRenameConversation(conversationId: string, currentName: string) {
+    setError(null);
+    const name = window.prompt("Rename Assistant Conversation", currentName);
+    if (name === null) return;
+    const trimmed = name.trim();
+    if (!trimmed) {
+      setError("Conversation names cannot be empty.");
+      return;
+    }
+    try {
+      await renameConversation(conversationId, trimmed);
+    } catch (renameError) {
+      setError(errorMessage(renameError));
+    }
+  }
+
+  async function handleDeleteConversation(conversationId: string) {
+    setError(null);
+    const confirmed = window.confirm(
+      "Delete this Assistant Conversation from Writer?\n\nWriter-owned history and runtime session mappings will be removed. Runtime-owned session data may remain because ACP has no standard session-deletion guarantee.",
+    );
+    if (!confirmed) return;
+    try {
+      await deleteConversation(conversationId);
+    } catch (deleteError) {
+      setError(errorMessage(deleteError));
+    }
+  }
+
   return (
     <section className="mx-3 mt-3 border-b border-[var(--line-subtler)] pb-3">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <label className="min-w-0 flex-1 text-xs text-text-secondary">
+          Conversation
+          <select
+            value={conversation?.id ?? ""}
+            onChange={(event) => {
+              if (event.target.value) void handleSelectConversation(event.target.value);
+            }}
+            disabled={isActive || conversations.length === 0}
+            className="mt-1 w-full rounded-md border border-[var(--line-subtle)] bg-[var(--bg-base)] px-2 py-1.5 text-sm text-text-primary"
+          >
+            {conversations.length === 0 && <option value="">No conversations yet</option>}
+            {conversations.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="flex shrink-0 flex-col gap-1 pt-4">
+          <button
+            type="button"
+            disabled={isActive || compatible.length === 0}
+            onClick={() => void handleCreateConversation()}
+            className="rounded-md border border-[var(--line-subtle)] px-2 py-1 text-[11px] text-text-secondary disabled:opacity-50"
+          >
+            New
+          </button>
+          {conversation && (
+            <>
+              <button
+                type="button"
+                disabled={isActive}
+                onClick={() => void handleRenameConversation(conversation.id, conversation.name)}
+                className="rounded-md px-2 py-1 text-[11px] text-text-muted hover:text-text-primary disabled:opacity-50"
+              >
+                Rename
+              </button>
+              <button
+                type="button"
+                disabled={isActive}
+                onClick={() => void handleDeleteConversation(conversation.id)}
+                className="rounded-md px-2 py-1 text-[11px] text-text-muted hover:text-red-600 disabled:opacity-50"
+              >
+                Delete
+              </button>
+            </>
+          )}
+        </div>
+      </div>
       <form onSubmit={handleSend}>
         <label className="block text-xs text-text-secondary">
-          Agent
+          Agent for new Conversation
           <select
             value={selectedAgentId ?? ""}
             onChange={(event) => selectAgent(event.target.value)}
-            disabled={hasConversation || compatible.length === 0}
+            disabled={agentLocked || compatible.length === 0}
             className="mt-1 w-full rounded-md border border-[var(--line-subtle)] bg-[var(--bg-base)] px-2 py-1.5 text-sm text-text-primary"
           >
             {compatible.length === 0 && <option value="">No compatible Agent</option>}
+            {compatible.length > 1 && !selectedAgentId && (
+              <option value="">Choose a compatible Agent…</option>
+            )}
             {compatible.map((agent) => (
               <option key={agent.id} value={agent.id}>
                 {agent.name}
@@ -201,12 +335,22 @@ export function AssistantTurnView({
             ))}
           </select>
         </label>
+        {conversation && (
+          <p className="mt-1 text-[11px] text-text-muted">
+            Selected Conversation is bound to{" "}
+            <span className="font-medium text-text-secondary">
+              {agents.find((agent) => agent.id === conversation.agentId)?.name ??
+                conversation.agentId}
+            </span>
+            . Create a new Conversation to bind a different Runtime.
+          </p>
+        )}
         <label className="mt-2 block text-xs text-text-secondary">
           Message
           <textarea
             value={prompt}
             onChange={(event) => setPrompt(event.target.value)}
-            disabled={hasConversation}
+            disabled={isActive || restoreFailed}
             rows={3}
             placeholder="Ask the Agent to update this Workspace…"
             className="mt-1 w-full resize-y rounded-md border border-[var(--line-subtle)] bg-transparent px-2 py-1.5 text-sm text-text-primary outline-none"
@@ -214,12 +358,24 @@ export function AssistantTurnView({
         </label>
         <button
           type="submit"
-          disabled={hasConversation || !turnBridgeReady || !selectedAgentId || !prompt.trim()}
+          disabled={
+            isActive ||
+            restoreFailed ||
+            !turnBridgeReady ||
+            !(selectedAgentId || conversation?.agentId) ||
+            !prompt.trim()
+          }
           className="mt-2 w-full rounded-md bg-text-primary px-3 py-1.5 text-xs font-medium text-[var(--bg-base)] disabled:opacity-50"
         >
-          {isActive ? "Agent Turn active…" : hasConversation ? "Turn complete" : "Send message"}
+          {isActive ? "Agent Turn active…" : "Send message"}
         </button>
       </form>
+      {restoreFailed && (
+        <p role="alert" className="mt-2 text-xs text-amber-700 dark:text-amber-300">
+          This Conversation cannot resume its Runtime session. Writer kept the local transcript;
+          create a new Conversation instead of replaying history.
+        </p>
+      )}
       {error && (
         <p role="alert" className="mt-2 text-xs text-red-600 dark:text-red-300">
           {error}
@@ -228,10 +384,18 @@ export function AssistantTurnView({
       {conversation && (
         <div aria-live="polite" className="mt-3 rounded-lg bg-surface-hover p-2.5">
           <p className="text-[10px] font-medium uppercase tracking-wide text-text-muted">
-            {conversation.status}
+            {conversation.name} · {conversation.status}
           </p>
+          {conversation.messages.map((message) => (
+            <div key={message.id} className="mt-2">
+              <p className="text-[10px] uppercase tracking-wide text-text-muted">{message.role}</p>
+              <p className="mt-0.5 whitespace-pre-wrap text-sm leading-5 text-text-primary">
+                {message.content}
+              </p>
+            </div>
+          ))}
           {conversation.output && (
-            <p className="mt-1 whitespace-pre-wrap text-sm leading-5 text-text-primary">
+            <p className="mt-2 whitespace-pre-wrap text-sm leading-5 text-text-primary">
               {conversation.output}
             </p>
           )}

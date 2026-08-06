@@ -1,5 +1,6 @@
 mod catalog;
 mod consent;
+mod conversation;
 mod discovery;
 mod probe;
 mod registrations;
@@ -20,6 +21,13 @@ pub use catalog::{
 #[cfg(test)]
 pub(super) use catalog::{BindingObserver, BindingProgress};
 pub use consent::{grant_consent, load_consents, ConsentSnapshot, ConsentStatus};
+pub use conversation::{
+    append_completed_turn, create_conversation, delete_conversation, list_workspace_conversations,
+    load_conversation_for_workspace, mark_session_restore_failed, remember_last_agent,
+    rename_conversation, select_conversation, unix_millis, ConversationRestoreStatus,
+    ConversationWriteResult, PersistedPermissionDecision, TurnPersistenceInput,
+    WorkspaceConversationSnapshot,
+};
 #[cfg(test)]
 pub use discovery::{
     discover_agents, discover_agents_for_epoch_observed, discover_agents_observed,
@@ -36,6 +44,7 @@ pub use registrations::{
     add_registration, load_registrations, remove_registration, validate_registration_count,
     RegistrationSnapshot,
 };
+pub use runtime::is_session_restore_error;
 pub(super) use runtime::{
     run_agent_turn, run_bound_agent_turn, RuntimeChannels, RuntimeOutcome,
     RuntimePermissionRequest, RuntimeUpdate,

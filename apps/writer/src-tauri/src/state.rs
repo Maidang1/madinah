@@ -237,6 +237,8 @@ pub struct AppState {
     pub assistant_registrations_lock: Mutex<()>,
     /// Serializes versioned per-canonical-Workspace AI Access Consent writes.
     pub assistant_consents_lock: Mutex<()>,
+    /// Serializes versioned Assistant Conversation index and per-conversation records.
+    pub assistant_conversations_lock: Mutex<()>,
     /// Sole process-wide owner of active Agent Turns, keyed by canonical Workspace.
     pub agent_coordinator: Arc<AgentCoordinator>,
 }
@@ -469,6 +471,7 @@ impl AppState {
             recent_files_lock: Mutex::new(()),
             assistant_registrations_lock: Mutex::new(()),
             assistant_consents_lock: Mutex::new(()),
+            assistant_conversations_lock: Mutex::new(()),
             agent_coordinator: Arc::new(AgentCoordinator::default()),
         }
     }

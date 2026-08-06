@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useAssistantStore } from "@/stores/assistant-store";
+import { isAssistantConversationActive, useAssistantStore } from "@/stores/assistant-store";
 import { useWorkspaceGeneration, useWorkspaceRoot } from "./use-workspace";
 import { openExternalUrl } from "@/platform/tauri/window";
 import { connectAssistantTurnLifecycle } from "./assistant-turn-lifecycle";
@@ -8,16 +8,15 @@ import { useWorkspaceStore } from "@/stores/workspace-store";
 export type {
   AssistantConsent,
   AssistantDiscoveryPhase,
-  TemporaryAssistantConversation,
+  ActiveAssistantConversation,
+  AssistantTurnStatus,
 } from "@/stores/assistant-store";
 
-export function isAssistantConversationActive(
-  conversation: import("@/stores/assistant-store").TemporaryAssistantConversation | null,
-) {
-  return (
-    conversation !== null && conversation.status !== "completed" && conversation.status !== "failed"
-  );
-}
+/** @deprecated Use ActiveAssistantConversation */
+export type TemporaryAssistantConversation =
+  import("@/stores/assistant-store").ActiveAssistantConversation;
+
+export { isAssistantConversationActive };
 
 export function useAssistantDiscoveryLifecycle() {
   const workspaceRoot = useWorkspaceRoot();
@@ -26,6 +25,7 @@ export function useAssistantDiscoveryLifecycle() {
   const deactivateWorkspace = useAssistantStore((state) => state.deactivateWorkspace);
   const refresh = useAssistantStore((state) => state.refresh);
   const loadConsent = useAssistantStore((state) => state.loadConsent);
+  const loadConversations = useAssistantStore((state) => state.loadConversations);
 
   useEffect(() => {
     if (!workspaceRoot) {
@@ -33,7 +33,7 @@ export function useAssistantDiscoveryLifecycle() {
       return;
     }
     activateWorkspace(workspaceRoot, workspaceGeneration);
-    void refresh();
+    void refresh().then(() => loadConversations());
     void loadConsent();
     let disposed = false;
     const abortController = new AbortController();
@@ -61,6 +61,7 @@ export function useAssistantDiscoveryLifecycle() {
     activateWorkspace,
     deactivateWorkspace,
     loadConsent,
+    loadConversations,
     refresh,
     workspaceGeneration,
     workspaceRoot,
@@ -117,6 +118,26 @@ export function useSelectAssistantAgent() {
 
 export function useAssistantConversation() {
   return useAssistantStore((state) => state.conversation);
+}
+
+export function useAssistantConversations() {
+  return useAssistantStore((state) => state.conversations);
+}
+
+export function useCreateAssistantConversation() {
+  return useAssistantStore((state) => state.createConversation);
+}
+
+export function useSelectAssistantConversation() {
+  return useAssistantStore((state) => state.selectConversation);
+}
+
+export function useRenameAssistantConversation() {
+  return useAssistantStore((state) => state.renameConversation);
+}
+
+export function useDeleteAssistantConversation() {
+  return useAssistantStore((state) => state.deleteConversation);
 }
 
 export function useAssistantTurnBridgeReady() {

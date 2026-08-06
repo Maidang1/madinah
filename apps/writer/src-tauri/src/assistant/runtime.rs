@@ -1,10 +1,10 @@
 use super::{probe::terminate_and_reap, BoundCustomExecutable};
 use agent_client_protocol::schema::{
     v1::{
-        ContentBlock, InitializeRequest, NewSessionRequest, PermissionOptionKind, PromptRequest,
-        RequestPermissionOutcome, RequestPermissionRequest, RequestPermissionResponse,
-        SelectedPermissionOutcome, SessionNotification, SessionUpdate, StopReason, TextContent,
-        ToolCallStatus,
+        ContentBlock, InitializeRequest, LoadSessionRequest, NewSessionRequest,
+        PermissionOptionKind, PromptRequest, RequestPermissionOutcome, RequestPermissionRequest,
+        RequestPermissionResponse, SelectedPermissionOutcome, SessionId, SessionNotification,
+        SessionUpdate, StopReason, TextContent, ToolCallStatus,
     },
     ProtocolVersion,
 };
@@ -41,6 +41,13 @@ pub struct RuntimeOutcome {
     pub output: String,
     pub change_summaries: Vec<String>,
     pub stop_reason: String,
+    pub session_id: Option<String>,
+}
+
+/// Classifies ACP session restore failures so callers can preserve the local
+/// transcript and require a new Conversation instead of replaying history.
+pub fn is_session_restore_error(error: &str) -> bool {
+    error.contains("SESSION_RESTORE_FAILED:")
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -66,6 +73,7 @@ pub async fn run_bound_agent_turn(
     args: &[String],
     workspace_root: &Path,
     prompt: &str,
+    existing_session_id: Option<&str>,
     channels: RuntimeChannels,
     cancellation: watch::Receiver<bool>,
     deadline: Duration,
@@ -75,6 +83,7 @@ pub async fn run_bound_agent_turn(
         args,
         workspace_root,
         prompt,
+        existing_session_id,
         channels,
         cancellation,
         deadline,
@@ -97,6 +106,7 @@ pub async fn run_agent_turn(
     args: &[String],
     workspace_root: &Path,
     prompt: &str,
+    existing_session_id: Option<&str>,
     channels: RuntimeChannels,
     cancellation: watch::Receiver<bool>,
     deadline: Duration,
@@ -106,6 +116,7 @@ pub async fn run_agent_turn(
         args,
         workspace_root,
         prompt,
+        existing_session_id,
         channels,
         cancellation,
         deadline,
@@ -125,6 +136,7 @@ async fn run_agent_turn_process(
     args: &[String],
     workspace_root: &Path,
     prompt: &str,
+    existing_session_id: Option<&str>,
     channels: RuntimeChannels,
     mut cancellation: watch::Receiver<bool>,
     deadline: Duration,
@@ -197,6 +209,7 @@ async fn run_agent_turn_process(
     let permission_updates = updates.clone();
     let workspace_root = workspace_root.to_path_buf();
     let prompt = prompt.to_string();
+    let existing_session_id = existing_session_id.map(str::to_owned);
 
     let protocol = Client
         .builder()
@@ -282,18 +295,44 @@ async fn run_agent_turn_process(
                 ));
             }
             if !initialized.agent_capabilities.load_session {
+                let message = if existing_session_id.is_some() {
+                    "SESSION_RESTORE_FAILED: Agent no longer advertises required session restoration"
+                } else {
+                    "Agent no longer advertises required session restoration"
+                };
                 return Err(agent_client_protocol::Error::into_internal_error(
-                    io::Error::other("Agent no longer advertises required session restoration"),
+                    io::Error::other(message),
                 ));
             }
-            let session = connection
-                .send_request(NewSessionRequest::new(workspace_root))
-                .block_task()
-                .await?;
-            session_projection.lock().session_id = Some(session.session_id.0.to_string());
+            let session_id = if let Some(existing) = existing_session_id.as_deref() {
+                match connection
+                    .send_request(LoadSessionRequest::new(
+                        SessionId::new(existing),
+                        workspace_root.clone(),
+                    ))
+                    .block_task()
+                    .await
+                {
+                    Ok(_) => existing.to_string(),
+                    Err(error) => {
+                        return Err(agent_client_protocol::Error::into_internal_error(
+                            io::Error::other(format!(
+                                "SESSION_RESTORE_FAILED: could not resume runtime session: {error}"
+                            )),
+                        ));
+                    }
+                }
+            } else {
+                let session = connection
+                    .send_request(NewSessionRequest::new(workspace_root.clone()))
+                    .block_task()
+                    .await?;
+                session.session_id.0.to_string()
+            };
+            session_projection.lock().session_id = Some(session_id.clone());
             let response = connection
                 .send_request(PromptRequest::new(
-                    session.session_id,
+                    SessionId::new(session_id),
                     vec![ContentBlock::Text(TextContent::new(prompt))],
                 ))
                 .block_task()
@@ -352,6 +391,7 @@ async fn run_agent_turn_process(
         output: projection.output.clone(),
         change_summaries: projection.change_summaries.clone(),
         stop_reason: stop_reason_name(&stop_reason).into(),
+        session_id: projection.session_id.clone(),
     })
 }
 
@@ -530,6 +570,7 @@ mod tests {
             &[],
             &workspace,
             "Update the Workspace",
+            None,
             RuntimeChannels {
                 updates: update_tx,
                 permissions: permission_tx,
@@ -547,6 +588,7 @@ mod tests {
         )));
         assert_eq!(outcome.output, "Turn complete");
         assert_eq!(outcome.change_summaries, vec!["Updated agent-change.md"]);
+        assert_eq!(outcome.session_id.as_deref(), Some("fake-session"));
         assert_eq!(outcome.stop_reason, "end-turn");
         assert_eq!(
             fs::read_to_string(workspace.join("agent-change.md")).unwrap(),
@@ -573,6 +615,73 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn sdk_resumes_an_existing_session_with_session_load() {
+        let dir = tempfile::tempdir().unwrap();
+        let workspace = dir.path().join("workspace");
+        fs::create_dir_all(&workspace).unwrap();
+        let source = build_native_fake_agent(dir.path(), "turn_resume");
+        let bound =
+            bind_custom_executable(&source.to_string_lossy(), &[], &BindingControl::new(None))
+                .unwrap()
+                .unwrap();
+        let (updates, mut rx) = mpsc::unbounded_channel();
+        let (permissions, _permission_rx) = mpsc::unbounded_channel();
+        let (_cancel, cancellation) = watch::channel(false);
+        let outcome = run_bound_agent_turn(
+            bound,
+            &[],
+            &workspace,
+            "Continue",
+            Some("fake-session"),
+            RuntimeChannels {
+                updates,
+                permissions,
+            },
+            cancellation,
+            Duration::from_secs(5),
+        )
+        .await
+        .unwrap();
+        let seen = std::iter::from_fn(|| rx.try_recv().ok()).collect::<Vec<_>>();
+        assert!(seen.contains(&RuntimeUpdate::Text("Turn complete".into())));
+        assert_eq!(outcome.session_id.as_deref(), Some("fake-session"));
+    }
+
+    #[tokio::test]
+    async fn sdk_classifies_session_load_failure_for_conversation_restore() {
+        let dir = tempfile::tempdir().unwrap();
+        let workspace = dir.path().join("workspace");
+        fs::create_dir_all(&workspace).unwrap();
+        let source = build_native_fake_agent(dir.path(), "turn_load_fail");
+        let bound =
+            bind_custom_executable(&source.to_string_lossy(), &[], &BindingControl::new(None))
+                .unwrap()
+                .unwrap();
+        let (updates, _rx) = mpsc::unbounded_channel();
+        let (permissions, _permission_rx) = mpsc::unbounded_channel();
+        let (_cancel, cancellation) = watch::channel(false);
+        let error = run_bound_agent_turn(
+            bound,
+            &[],
+            &workspace,
+            "Continue",
+            Some("missing-session"),
+            RuntimeChannels {
+                updates,
+                permissions,
+            },
+            cancellation,
+            Duration::from_secs(5),
+        )
+        .await
+        .unwrap_err();
+        assert!(
+            is_session_restore_error(&error),
+            "unexpected error: {error}"
+        );
+    }
+
+    #[tokio::test]
     async fn sdk_keeps_connection_open_for_tail_updates_after_prompt_response() {
         let dir = tempfile::tempdir().unwrap();
         let workspace = dir.path().join("workspace");
@@ -590,6 +699,7 @@ mod tests {
             &[],
             &workspace,
             "tail",
+            None,
             RuntimeChannels {
                 updates,
                 permissions,
@@ -602,6 +712,7 @@ mod tests {
         let seen = std::iter::from_fn(|| rx.try_recv().ok()).collect::<Vec<_>>();
         assert!(seen.contains(&RuntimeUpdate::Text("Turn complete".into())));
         assert_eq!(outcome.stop_reason, "end-turn");
+        assert_eq!(outcome.session_id.as_deref(), Some("fake-session"));
     }
 
     #[tokio::test]
@@ -625,6 +736,7 @@ mod tests {
                 &[],
                 &workspace,
                 "Wait forever",
+                None,
                 RuntimeChannels {
                     updates: update_tx,
                     permissions: permission_tx,

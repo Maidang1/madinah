@@ -75,6 +75,8 @@ describe("Assistant Turn serialized wire contract", () => {
             type: "terminal",
             status: oneOf(event.status!, ["completed", "failed"] as const),
             message: event.message!,
+            restoreStatus: oneOf(event.restoreStatus!, ["none", "active", "failed"] as const),
+            persistenceError: event.persistenceError ?? null,
           };
         default:
           throw new Error(`Unknown fixture event: ${event.type}`);

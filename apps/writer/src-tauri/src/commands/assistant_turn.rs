@@ -1,9 +1,14 @@
 use crate::assistant::{
-    bind_custom_executable, builtin_agents, grant_consent, load_consents, load_registrations,
-    run_agent_turn, run_bound_agent_turn, AgentDefinition, AgentSource, BindingControl,
-    ConsentStatus, FrontendLeaseIdentity, LifecycleRequest, PrepareAcknowledgement, PrepareResult,
-    ReconcileAcknowledgement, RuntimeChannels, RuntimeOutcome, RuntimePermissionRequest,
-    RuntimeUpdate, TurnPermissionOption, TurnPhase, TurnReservation,
+    append_completed_turn, bind_custom_executable, builtin_agents, create_conversation,
+    delete_conversation, grant_consent, is_session_restore_error, list_workspace_conversations,
+    load_consents, load_conversation_for_workspace, load_registrations,
+    mark_session_restore_failed, remember_last_agent, rename_conversation, run_agent_turn,
+    run_bound_agent_turn, select_conversation, unix_millis, AgentDefinition, AgentSource,
+    BindingControl, ConsentStatus, ConversationRestoreStatus, ConversationWriteResult,
+    FrontendLeaseIdentity, LifecycleRequest, PersistedPermissionDecision, PrepareAcknowledgement,
+    PrepareResult, ReconcileAcknowledgement, RuntimeChannels, RuntimeOutcome,
+    RuntimePermissionRequest, RuntimeUpdate, TurnPermissionOption, TurnPersistenceInput, TurnPhase,
+    TurnReservation, WorkspaceConversationSnapshot,
 };
 use crate::state::{AppState, WorkspaceState};
 use serde::{Deserialize, Serialize};
@@ -94,6 +99,10 @@ pub enum AgentTurnEvent {
         workspace_root: String,
         status: String,
         message: String,
+        /// Authoritative Conversation restore status after this turn's durable write.
+        restore_status: String,
+        /// Present when Writer could not persist retained conversation fields.
+        persistence_error: Option<String>,
     },
     ReconciliationBlocked {
         turn_id: String,
@@ -142,6 +151,105 @@ fn unregister_agent_turn_bridge_core(
 }
 
 #[tauri::command]
+pub fn list_assistant_conversations(
+    workspace_root: String,
+    window: WebviewWindow,
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<WorkspaceConversationSnapshot, String> {
+    list_assistant_conversations_core(workspace_root, window.label(), app_data_dir(&app)?, &state)
+}
+
+#[tauri::command]
+pub fn create_assistant_conversation(
+    workspace_root: String,
+    agent_id: String,
+    name: Option<String>,
+    window: WebviewWindow,
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<ConversationWriteResult, String> {
+    create_assistant_conversation_core(
+        workspace_root,
+        agent_id,
+        name,
+        window.label(),
+        app_data_dir(&app)?,
+        &state,
+    )
+}
+
+#[tauri::command]
+pub fn rename_assistant_conversation(
+    workspace_root: String,
+    conversation_id: String,
+    name: String,
+    window: WebviewWindow,
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<ConversationWriteResult, String> {
+    rename_assistant_conversation_core(
+        workspace_root,
+        conversation_id,
+        name,
+        window.label(),
+        app_data_dir(&app)?,
+        &state,
+    )
+}
+
+#[tauri::command]
+pub fn select_assistant_conversation(
+    workspace_root: String,
+    conversation_id: String,
+    window: WebviewWindow,
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<ConversationWriteResult, String> {
+    select_assistant_conversation_core(
+        workspace_root,
+        conversation_id,
+        window.label(),
+        app_data_dir(&app)?,
+        &state,
+    )
+}
+
+#[tauri::command]
+pub fn delete_assistant_conversation(
+    workspace_root: String,
+    conversation_id: String,
+    window: WebviewWindow,
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<WorkspaceConversationSnapshot, String> {
+    delete_assistant_conversation_core(
+        workspace_root,
+        conversation_id,
+        window.label(),
+        app_data_dir(&app)?,
+        &state,
+    )
+}
+
+#[tauri::command]
+pub fn remember_assistant_agent(
+    workspace_root: String,
+    agent_id: String,
+    window: WebviewWindow,
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), String> {
+    remember_assistant_agent_core(
+        workspace_root,
+        agent_id,
+        window.label(),
+        app_data_dir(&app)?,
+        &state,
+    )
+}
+
+#[tauri::command]
 #[allow(clippy::too_many_arguments)] // Tauri serializes these named IPC fields individually.
 pub fn start_agent_turn(
     workspace_root: String,
@@ -163,6 +271,7 @@ pub fn start_agent_turn(
         app.clone(),
         consent_path(&app)?,
         registration_path(&app)?,
+        app_data_dir(&app)?,
         &state,
         LIFECYCLE_TIMEOUT,
     )
@@ -261,6 +370,105 @@ fn register_agent_turn_bridge_core(
     })
 }
 
+fn list_assistant_conversations_core(
+    workspace_root: String,
+    window_label: &str,
+    app_data_dir: PathBuf,
+    state: &AppState,
+) -> Result<WorkspaceConversationSnapshot, String> {
+    let canonical_root = validate_workspace_request(
+        &workspace_root,
+        &state.get_or_create(window_label),
+        "listing Assistant Conversations",
+    )?;
+    let _guard = state.assistant_conversations_lock.lock();
+    list_workspace_conversations(&app_data_dir, &canonical_root)
+}
+
+fn create_assistant_conversation_core(
+    workspace_root: String,
+    agent_id: String,
+    name: Option<String>,
+    window_label: &str,
+    app_data_dir: PathBuf,
+    state: &AppState,
+) -> Result<ConversationWriteResult, String> {
+    let canonical_root = validate_workspace_request(
+        &workspace_root,
+        &state.get_or_create(window_label),
+        "creating an Assistant Conversation",
+    )?;
+    // Consent is not required to create a conversation shell; AI turns still require it.
+    let _guard = state.assistant_conversations_lock.lock();
+    create_conversation(&app_data_dir, canonical_root, agent_id, name)
+}
+
+fn rename_assistant_conversation_core(
+    workspace_root: String,
+    conversation_id: String,
+    name: String,
+    window_label: &str,
+    app_data_dir: PathBuf,
+    state: &AppState,
+) -> Result<ConversationWriteResult, String> {
+    let canonical_root = validate_workspace_request(
+        &workspace_root,
+        &state.get_or_create(window_label),
+        "renaming an Assistant Conversation",
+    )?;
+    let _guard = state.assistant_conversations_lock.lock();
+    rename_conversation(&app_data_dir, &canonical_root, &conversation_id, name)
+}
+
+fn select_assistant_conversation_core(
+    workspace_root: String,
+    conversation_id: String,
+    window_label: &str,
+    app_data_dir: PathBuf,
+    state: &AppState,
+) -> Result<ConversationWriteResult, String> {
+    let canonical_root = validate_workspace_request(
+        &workspace_root,
+        &state.get_or_create(window_label),
+        "selecting an Assistant Conversation",
+    )?;
+    let _guard = state.assistant_conversations_lock.lock();
+    select_conversation(&app_data_dir, &canonical_root, &conversation_id)
+}
+
+fn delete_assistant_conversation_core(
+    workspace_root: String,
+    conversation_id: String,
+    window_label: &str,
+    app_data_dir: PathBuf,
+    state: &AppState,
+) -> Result<WorkspaceConversationSnapshot, String> {
+    let canonical_root = validate_workspace_request(
+        &workspace_root,
+        &state.get_or_create(window_label),
+        "deleting an Assistant Conversation",
+    )?;
+    state.reject_workspace_mutation_if_active(Path::new(&canonical_root))?;
+    let _guard = state.assistant_conversations_lock.lock();
+    delete_conversation(&app_data_dir, &canonical_root, &conversation_id)
+}
+
+fn remember_assistant_agent_core(
+    workspace_root: String,
+    agent_id: String,
+    window_label: &str,
+    app_data_dir: PathBuf,
+    state: &AppState,
+) -> Result<(), String> {
+    let canonical_root = validate_workspace_request(
+        &workspace_root,
+        &state.get_or_create(window_label),
+        "remembering the selected Agent",
+    )?;
+    let _guard = state.assistant_conversations_lock.lock();
+    remember_last_agent(&app_data_dir, &canonical_root, &agent_id)
+}
+
 #[allow(clippy::too_many_arguments)]
 fn start_agent_turn_core<R: Runtime>(
     workspace_root: String,
@@ -272,6 +480,7 @@ fn start_agent_turn_core<R: Runtime>(
     app: tauri::AppHandle<R>,
     consent_path: PathBuf,
     registration_path: PathBuf,
+    app_data_dir: PathBuf,
     state: &AppState,
     lifecycle_timeout: Duration,
 ) -> Result<StartAgentTurnResponse, String> {
@@ -282,7 +491,7 @@ fn start_agent_turn_core<R: Runtime>(
             .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-'))
     {
         return Err(
-            "The temporary Assistant Conversation identity must be 1-128 ASCII letters, digits, '.', '_' or '-'.".into(),
+            "The Assistant Conversation identity must be 1-128 ASCII letters, digits, '.', '_' or '-'.".into(),
         );
     }
     if prompt.trim().is_empty() || prompt.len() > MAX_PROMPT_BYTES {
@@ -308,6 +517,24 @@ fn start_agent_turn_core<R: Runtime>(
             );
         }
     }
+    let existing_session_id = {
+        let _guard = state.assistant_conversations_lock.lock();
+        let record =
+            load_conversation_for_workspace(&app_data_dir, &canonical_root, &conversation_id)?;
+        if record.agent_id != agent_id {
+            return Err(
+                "This Assistant Conversation is permanently bound to a different Agent Runtime; create a new Conversation to change Runtimes."
+                    .into(),
+            );
+        }
+        if record.restore_status == ConversationRestoreStatus::Failed {
+            return Err(
+                "This Assistant Conversation cannot resume its Runtime session; create a new Conversation instead of replaying history."
+                    .into(),
+            );
+        }
+        record.runtime_session_id
+    };
     let _registrations_guard = state.assistant_registrations_lock.lock();
     let agent = validate_agent_selection(&agent_id, registration_revision, &registration_path)?;
 
@@ -325,6 +552,8 @@ fn start_agent_turn_core<R: Runtime>(
         agent,
         prompt,
         conversation_id,
+        existing_session_id,
+        app_data_dir,
         lifecycle_timeout,
         TURN_TIMEOUT,
     ));
@@ -440,6 +669,8 @@ async fn drive_preparation<R: Runtime>(
     agent: AgentDefinition,
     prompt: String,
     conversation_id: String,
+    existing_session_id: Option<String>,
+    app_data_dir: PathBuf,
     lifecycle_timeout: Duration,
     turn_timeout: Duration,
 ) {
@@ -448,6 +679,7 @@ async fn drive_preparation<R: Runtime>(
         .iter()
         .map(|request| request.window_label.clone())
         .collect::<Vec<_>>();
+    let started_at = unix_millis();
     for request in &prepare_requests {
         if let Err(error) = app.emit_to(
             &request.window_label,
@@ -493,8 +725,9 @@ async fn drive_preparation<R: Runtime>(
                     &turn,
                     &window_labels,
                     agent,
-                    prompt,
+                    prompt.clone(),
                     &conversation_id,
+                    existing_session_id.as_deref(),
                     turn_timeout,
                 )
                 .await
@@ -505,6 +738,16 @@ async fn drive_preparation<R: Runtime>(
     };
 
     turn.cancel_pending_permission();
+    let permission_decisions = turn
+        .permission_decisions()
+        .into_iter()
+        .map(|decision| PersistedPermissionDecision {
+            request_id: decision.request_id,
+            title: decision.title,
+            option_id: decision.option_id,
+            decided_at: decision.decided_at,
+        })
+        .collect::<Vec<_>>();
     let reconcile_requests = turn.begin_reconciliation();
     emit_phase(
         &app,
@@ -558,19 +801,128 @@ async fn drive_preparation<R: Runtime>(
     };
     let reconciliation_failed = turn.reconciliation_failed();
     let reconciliation_succeeded = reconciliation.is_ok();
-    let (status, message) = match (runtime_result, reconciliation) {
-        (Ok(_), Ok(())) if reconciliation_failed => (
+    let restore_failed = runtime_result
+        .as_ref()
+        .err()
+        .is_some_and(|error| is_session_restore_error(error));
+    let (mut status, mut message, outcome_for_persist) = match (runtime_result, reconciliation) {
+        (Ok(outcome), Ok(())) if reconciliation_failed => (
             "failed",
             "The Agent finished, but Writer could not reload every changed Workspace item. Partial changes remain on disk."
                 .into(),
+            Some(outcome),
         ),
-        (Ok(outcome), Ok(())) => ("completed", completed_message(&outcome)),
-        (Err(error), Ok(())) => ("failed", failure_message(&error)),
-        (Ok(_), Err(error)) => ("failed", failure_message(&error)),
+        (Ok(outcome), Ok(())) => {
+            let message = completed_message(&outcome);
+            ("completed", message, Some(outcome))
+        }
+        (Err(error), Ok(())) if restore_failed || is_session_restore_error(&error) => (
+            "failed",
+            format!(
+                "Could not resume the Runtime session for this Conversation. Writer kept the local transcript; create a new Conversation instead of replaying history. {error}"
+            ),
+            None,
+        ),
+        (Err(error), Ok(())) => ("failed", failure_message(&error), None),
+        (Ok(outcome), Err(error)) => ("failed", failure_message(&error), Some(outcome)),
         (Err(runtime), Err(reconcile)) => (
             "failed",
             failure_message(&format!("{runtime} {reconcile}")),
+            None,
         ),
+    };
+    let finished_at = unix_millis();
+    let workspace_root = turn.workspace_root().to_string_lossy().into_owned();
+    let mut restore_status = if restore_failed {
+        ConversationRestoreStatus::Failed
+    } else {
+        ConversationRestoreStatus::None
+    };
+    let mut persistence_error: Option<String> = None;
+    {
+        let state = app.state::<AppState>();
+        let _guard = state.assistant_conversations_lock.lock();
+        if restore_failed {
+            match mark_session_restore_failed(&app_data_dir, &workspace_root, &conversation_id) {
+                Ok(record) => restore_status = record.restore_status,
+                Err(error) => {
+                    persistence_error = Some(error.clone());
+                    status = "failed";
+                    message = format!(
+                        "{message} Writer could not mark the Conversation restore failure on disk: {error}"
+                    );
+                }
+            }
+        } else if status == "completed" || outcome_for_persist.is_some() {
+            let final_reply = outcome_for_persist
+                .as_ref()
+                .map(|outcome| outcome.output.clone())
+                .unwrap_or_default();
+            let change_summaries = outcome_for_persist
+                .as_ref()
+                .map(|outcome| outcome.change_summaries.clone())
+                .unwrap_or_default();
+            let runtime_session_id = outcome_for_persist
+                .as_ref()
+                .and_then(|outcome| outcome.session_id.clone());
+            match append_completed_turn(
+                &app_data_dir,
+                &workspace_root,
+                &conversation_id,
+                TurnPersistenceInput {
+                    turn_id: turn.turn_id().to_string(),
+                    prompt: prompt.clone(),
+                    final_reply,
+                    status: status.into(),
+                    outcome_message: message.clone(),
+                    change_summaries,
+                    permission_decisions: permission_decisions.clone(),
+                    runtime_session_id,
+                    started_at,
+                    finished_at,
+                },
+            ) {
+                Ok(record) => restore_status = record.restore_status,
+                Err(error) => {
+                    persistence_error = Some(error.clone());
+                    status = "failed";
+                    message =
+                        format!("{message} Writer could not save this Conversation turn: {error}");
+                }
+            }
+        } else if !prompt.is_empty() {
+            // Persist a failed turn that still produced a user prompt so history is auditable.
+            match append_completed_turn(
+                &app_data_dir,
+                &workspace_root,
+                &conversation_id,
+                TurnPersistenceInput {
+                    turn_id: turn.turn_id().to_string(),
+                    prompt,
+                    final_reply: String::new(),
+                    status: status.into(),
+                    outcome_message: message.clone(),
+                    change_summaries: Vec::new(),
+                    permission_decisions,
+                    runtime_session_id: None,
+                    started_at,
+                    finished_at,
+                },
+            ) {
+                Ok(record) => restore_status = record.restore_status,
+                Err(error) => {
+                    persistence_error = Some(error.clone());
+                    status = "failed";
+                    message =
+                        format!("{message} Writer could not save this Conversation turn: {error}");
+                }
+            }
+        }
+    }
+    let restore_status_wire = match restore_status {
+        ConversationRestoreStatus::None => "none",
+        ConversationRestoreStatus::Active => "active",
+        ConversationRestoreStatus::Failed => "failed",
     };
     for window_label in window_labels {
         let _ = app.emit_to(
@@ -585,6 +937,8 @@ async fn drive_preparation<R: Runtime>(
                     .unwrap_or_default(),
                 status: status.into(),
                 message: message.clone(),
+                restore_status: restore_status_wire.into(),
+                persistence_error: persistence_error.clone(),
             },
         );
     }
@@ -594,6 +948,7 @@ async fn drive_preparation<R: Runtime>(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn run_selected_agent<R: Runtime>(
     app: &tauri::AppHandle<R>,
     turn: &TurnReservation,
@@ -601,6 +956,7 @@ async fn run_selected_agent<R: Runtime>(
     agent: AgentDefinition,
     prompt: String,
     conversation_id: &str,
+    existing_session_id: Option<&str>,
     deadline: Duration,
 ) -> Result<RuntimeOutcome, String> {
     let workspace_root = turn.workspace_root().to_path_buf();
@@ -609,6 +965,7 @@ async fn run_selected_agent<R: Runtime>(
     let (permission_tx, mut permission_rx) = tokio::sync::mpsc::unbounded_channel();
     let command = agent.command.clone();
     let args = agent.args.clone();
+    let existing_session_id = existing_session_id.map(str::to_owned);
     let runtime = async move {
         match agent.source {
             AgentSource::BuiltIn => {
@@ -617,6 +974,7 @@ async fn run_selected_agent<R: Runtime>(
                     &args,
                     &workspace_root,
                     &prompt,
+                    existing_session_id.as_deref(),
                     RuntimeChannels {
                         updates: update_tx,
                         permissions: permission_tx,
@@ -657,6 +1015,7 @@ async fn run_selected_agent<R: Runtime>(
                     &args,
                     &workspace_root,
                     &prompt,
+                    existing_session_id.as_deref(),
                     RuntimeChannels {
                         updates: update_tx,
                         permissions: permission_tx,
@@ -905,6 +1264,12 @@ fn registration_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
         .map_err(|error| format!("Could not resolve Agent registration storage: {error}"))
 }
 
+fn app_data_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    app.path()
+        .app_data_dir()
+        .map_err(|error| format!("Could not resolve Writer application data: {error}"))
+}
+
 fn validate_workspace_request(
     requested: &str,
     state: &Arc<WorkspaceState>,
@@ -929,8 +1294,8 @@ fn validate_workspace_request(
 mod tests {
     use super::*;
     use crate::assistant::{
-        add_registration, build_native_fake_agent, fake_agent_artifact_path, ReconcileResult,
-        WriterMutationPreparation,
+        add_registration, build_native_fake_agent, create_conversation, fake_agent_artifact_path,
+        load_conversation_for_workspace, ReconcileResult, WriterMutationPreparation,
     };
     use serde::de::DeserializeOwned;
     use serde_json::{json, Value};
@@ -944,6 +1309,17 @@ mod tests {
     struct TestAssistantPaths {
         consent: PathBuf,
         registrations: PathBuf,
+        app_data: PathBuf,
+    }
+
+    fn json_object_has_key(value: &Value, key: &str) -> bool {
+        match value {
+            Value::Object(map) => {
+                map.contains_key(key) || map.values().any(|child| json_object_has_key(child, key))
+            }
+            Value::Array(items) => items.iter().any(|child| json_object_has_key(child, key)),
+            _ => false,
+        }
     }
 
     #[tauri::command(rename = "get_ai_access_consent")]
@@ -1025,6 +1401,7 @@ mod tests {
             app,
             paths.consent.clone(),
             paths.registrations.clone(),
+            paths.app_data.clone(),
             &state,
             Duration::from_secs(2),
         )
@@ -1244,11 +1621,22 @@ mod tests {
         let workspace = workspace.canonicalize().unwrap();
         let consent_path = dir.path().join("assistant-consents.json");
         grant_consent(&consent_path, workspace.to_string_lossy().into_owned()).unwrap();
+        let app_data = dir.path().join("app-data");
+        fs::create_dir_all(&app_data).unwrap();
+        let conversation = create_conversation(
+            &app_data,
+            workspace.to_string_lossy().into_owned(),
+            "codex-acp".into(),
+            Some("Prepare fail".into()),
+        )
+        .unwrap()
+        .conversation;
         let app = tauri::test::mock_builder()
             .manage(AppState::new())
             .manage(TestAssistantPaths {
                 consent: consent_path,
                 registrations: dir.path().join("assistant-agents.json"),
+                app_data,
             })
             .invoke_handler(tauri::generate_handler![
                 test_register_agent_turn_bridge,
@@ -1299,7 +1687,7 @@ mod tests {
                 "workspaceRoot": workspace_root,
                 "agentId": "codex-acp",
                 "registrationRevision": 0,
-                "conversationId": "conversation-1",
+                "conversationId": conversation.id,
                 "prompt": "Update the Workspace"
             }),
         )
@@ -1446,12 +1834,23 @@ mod tests {
         .unwrap();
         let registration = registrations.registrations[0].clone();
         let consent_path = dir.path().join("assistant-consents.json");
+        let app_data = dir.path().join("app-data");
+        fs::create_dir_all(&app_data).unwrap();
+        let conversation = create_conversation(
+            &app_data,
+            workspace.to_string_lossy().into_owned(),
+            registration.id.clone(),
+            Some("Native fixture".into()),
+        )
+        .unwrap()
+        .conversation;
         let app = tauri::test::mock_builder()
             .manage(AppState::new())
             .manage(TestConsentPath(consent_path.clone()))
             .manage(TestAssistantPaths {
                 consent: consent_path,
                 registrations: registration_path,
+                app_data: app_data.clone(),
             })
             .invoke_handler(tauri::generate_handler![
                 test_grant_ai_access_consent,
@@ -1499,7 +1898,7 @@ mod tests {
                 "workspaceRoot": workspace_root,
                 "agentId": registration.id,
                 "registrationRevision": registrations.revision,
-                "conversationId": "conversation-native-fixture",
+                "conversationId": conversation.id,
                 "prompt": "Update the Workspace"
             }),
         )
@@ -1649,7 +2048,33 @@ mod tests {
                 false
             }
         }));
-        assert_eq!(started.conversation_id, "conversation-native-fixture");
+        assert_eq!(started.conversation_id, conversation.id);
+        let persisted =
+            load_conversation_for_workspace(&app_data, &workspace_root, &conversation.id).unwrap();
+        assert_eq!(persisted.messages.len(), 2);
+        assert_eq!(persisted.messages[0].content, "Update the Workspace");
+        assert_eq!(persisted.messages[1].content, "Turn complete");
+        assert_eq!(
+            persisted.runtime_session_id.as_deref(),
+            Some("fake-session")
+        );
+        assert_eq!(persisted.turns.len(), 1);
+        let persisted_value = serde_json::to_value(&persisted).unwrap();
+        for forbidden in [
+            "thought",
+            "thoughts",
+            "reasoning",
+            "hiddenReasoning",
+            "terminalOutput",
+            "toolResults",
+            "intermediateToolResults",
+            "streamChunks",
+        ] {
+            assert!(
+                !json_object_has_key(&persisted_value, forbidden),
+                "persisted conversation contains ephemeral key `{forbidden}`"
+            );
+        }
         assert!(invoke::<bool>(
             &webview,
             "unregister_agent_turn_bridge",
@@ -1682,11 +2107,22 @@ mod tests {
         .unwrap();
         let consent_path = dir.path().join("assistant-consents.json");
         grant_consent(&consent_path, workspace.to_string_lossy().into_owned()).unwrap();
+        let app_data = dir.path().join("app-data");
+        fs::create_dir_all(&app_data).unwrap();
+        let conversation = create_conversation(
+            &app_data,
+            workspace.to_string_lossy().into_owned(),
+            registrations.registrations[0].id.clone(),
+            Some("Crash fixture".into()),
+        )
+        .unwrap()
+        .conversation;
         let app = tauri::test::mock_builder()
             .manage(AppState::new())
             .manage(TestAssistantPaths {
                 consent: consent_path,
                 registrations: registration_path,
+                app_data,
             })
             .invoke_handler(tauri::generate_handler![
                 test_register_agent_turn_bridge,
@@ -1722,7 +2158,7 @@ mod tests {
                 "workspaceRoot": workspace_root,
                 "agentId": registrations.registrations[0].id,
                 "registrationRevision": registrations.revision,
-                "conversationId": "conversation-crash",
+                "conversationId": conversation.id,
                 "prompt": "Write then fail"
             }),
         )
@@ -1817,5 +2253,211 @@ mod tests {
                 false
             }
         }));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn desktop_session_restore_failure_preserves_transcript_and_blocks_further_turns() {
+        use crate::assistant::{
+            append_completed_turn, ConversationRestoreStatus, TurnPersistenceInput,
+        };
+
+        let dir = tempfile::tempdir().unwrap();
+        let workspace = dir.path().join("workspace");
+        fs::create_dir_all(&workspace).unwrap();
+        let workspace = workspace.canonicalize().unwrap();
+        let source = build_native_fake_agent(dir.path(), "turn_load_fail");
+        let registration_path = dir.path().join("assistant-agents.json");
+        let registrations = add_registration(
+            &registration_path,
+            source.to_string_lossy().into_owned(),
+            vec![],
+        )
+        .unwrap();
+        let consent_path = dir.path().join("assistant-consents.json");
+        grant_consent(&consent_path, workspace.to_string_lossy().into_owned()).unwrap();
+        let app_data = dir.path().join("app-data");
+        fs::create_dir_all(&app_data).unwrap();
+        let conversation = create_conversation(
+            &app_data,
+            workspace.to_string_lossy().into_owned(),
+            registrations.registrations[0].id.clone(),
+            Some("Restore fail".into()),
+        )
+        .unwrap()
+        .conversation;
+        let finished = unix_millis();
+        append_completed_turn(
+            &app_data,
+            &workspace.to_string_lossy(),
+            &conversation.id,
+            TurnPersistenceInput {
+                turn_id: "seed-turn".into(),
+                prompt: "Earlier".into(),
+                final_reply: "Kept transcript".into(),
+                status: "completed".into(),
+                outcome_message: "Kept transcript".into(),
+                change_summaries: Vec::new(),
+                permission_decisions: Vec::new(),
+                runtime_session_id: Some("missing-session".into()),
+                started_at: finished,
+                finished_at: finished,
+            },
+        )
+        .unwrap();
+        let app = tauri::test::mock_builder()
+            .manage(AppState::new())
+            .manage(TestAssistantPaths {
+                consent: consent_path,
+                registrations: registration_path,
+                app_data: app_data.clone(),
+            })
+            .invoke_handler(tauri::generate_handler![
+                test_register_agent_turn_bridge,
+                test_start_agent_turn,
+                test_acknowledge_agent_turn_prepared,
+                test_acknowledge_agent_turn_reconciled
+            ])
+            .build(tauri::test::mock_context(tauri::test::noop_assets()))
+            .unwrap();
+        let webview = tauri::WebviewWindowBuilder::new(&app, "restore", Default::default())
+            .build()
+            .unwrap();
+        let app_state = app.state::<AppState>();
+        let window_state = app_state.get_or_create("restore");
+        *window_state.workspace_root.write() = Some(workspace.clone());
+        window_state.workspace_epoch.store(3, Ordering::Release);
+        let workspace_root = workspace.to_string_lossy().into_owned();
+        invoke::<TurnBridgeRegistration>(
+            &webview,
+            "register_agent_turn_bridge",
+            json!({ "workspaceRoot": workspace_root, "frontendGeneration": 9 }),
+        )
+        .unwrap();
+        let (event_tx, event_rx) = mpsc::channel();
+        webview.listen("assistant:turn-event", move |event| {
+            let event = serde_json::from_str::<AgentTurnEvent>(event.payload()).unwrap();
+            let _ = event_tx.send(event);
+        });
+        invoke::<StartAgentTurnResponse>(
+            &webview,
+            "start_agent_turn",
+            json!({
+                "workspaceRoot": workspace_root,
+                "agentId": registrations.registrations[0].id,
+                "registrationRevision": registrations.revision,
+                "conversationId": conversation.id,
+                "prompt": "Continue after restart"
+            }),
+        )
+        .unwrap();
+        let prepare = event_rx.recv_timeout(Duration::from_secs(2)).unwrap();
+        let acknowledgement = match prepare {
+            AgentTurnEvent::Prepare {
+                turn_id,
+                workspace_root,
+                workspace_epoch,
+                participant_token,
+                bridge_id,
+                request_id,
+                ..
+            } => PrepareAcknowledgement {
+                turn_id,
+                workspace_root,
+                workspace_epoch,
+                participant_token,
+                bridge_id,
+                request_id,
+                lease: Some(FrontendLeaseIdentity {
+                    generation: 9,
+                    id: 1,
+                }),
+                error: None,
+            },
+            other => panic!("expected prepare, got {other:?}"),
+        };
+        invoke::<PrepareResultWire>(
+            &webview,
+            "acknowledge_agent_turn_prepared",
+            json!({ "acknowledgement": acknowledgement }),
+        )
+        .unwrap();
+        let terminal = loop {
+            let event = event_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+            if let AgentTurnEvent::Reconcile {
+                turn_id,
+                workspace_root,
+                workspace_epoch,
+                participant_token,
+                bridge_id,
+                request_id,
+                lease,
+                ..
+            } = &event
+            {
+                invoke::<bool>(
+                    &webview,
+                    "acknowledge_agent_turn_reconciled",
+                    json!({
+                        "acknowledgement": {
+                            "turnId": turn_id,
+                            "workspaceRoot": workspace_root,
+                            "workspaceEpoch": workspace_epoch,
+                            "participantToken": participant_token,
+                            "bridgeId": bridge_id,
+                            "requestId": request_id,
+                            "lease": lease,
+                            "result": "completed"
+                        }
+                    }),
+                )
+                .unwrap();
+                continue;
+            }
+            if let AgentTurnEvent::Terminal { .. } = event {
+                break event;
+            }
+        };
+        match terminal {
+            AgentTurnEvent::Terminal {
+                status,
+                message,
+                restore_status,
+                persistence_error,
+                ..
+            } => {
+                assert_eq!(status, "failed");
+                assert!(message.contains("resume the Runtime session"));
+                assert_eq!(restore_status, "failed");
+                assert!(persistence_error.is_none());
+            }
+            other => panic!("expected terminal, got {other:?}"),
+        }
+        let reloaded =
+            load_conversation_for_workspace(&app_data, &workspace_root, &conversation.id).unwrap();
+        assert_eq!(reloaded.restore_status, ConversationRestoreStatus::Failed);
+        assert_eq!(reloaded.messages.len(), 2);
+        assert_eq!(reloaded.messages[1].content, "Kept transcript");
+        assert_eq!(
+            reloaded.runtime_session_id.as_deref(),
+            Some("missing-session")
+        );
+        let rejected = invoke::<StartAgentTurnResponse>(
+            &webview,
+            "start_agent_turn",
+            json!({
+                "workspaceRoot": workspace_root,
+                "agentId": registrations.registrations[0].id,
+                "registrationRevision": registrations.revision,
+                "conversationId": conversation.id,
+                "prompt": "Try again"
+            }),
+        );
+        assert!(rejected.is_err(), "second start should be rejected");
+        let error = rejected.unwrap_err().to_string();
+        assert!(
+            error.contains("create a new Conversation") || error.contains("resume"),
+            "unexpected second-start error: {error}"
+        );
     }
 }

@@ -82,11 +82,16 @@ describe("Assistant discovery shell", () => {
   test("shows complete per-Workspace consent and an executable one-shot permission request", () => {
     const viewProps = {
       agents: [agent({ id: "ready", name: "Ready Agent" })],
-      selectedAgentId: null,
+      selectedAgentId: null as string | null,
       turnBridgeReady: true,
       conversation: null,
+      conversations: [],
       onGrantConsent: vi.fn(),
       onSelectAgent: vi.fn(),
+      onCreateConversation: vi.fn(),
+      onSelectConversation: vi.fn(),
+      onRenameConversation: vi.fn(),
+      onDeleteConversation: vi.fn(),
       onSend: vi.fn(),
       onRespondPermission: vi.fn(),
     };
@@ -105,8 +110,25 @@ describe("Assistant discovery shell", () => {
         ...viewProps,
         consent: "granted",
         selectedAgentId: "ready",
+        conversations: [
+          {
+            id: "conversation-1",
+            workspaceRoot: "/workspace",
+            agentId: "ready",
+            name: "Draft",
+            createdAt: 1,
+            updatedAt: 1,
+            restoreStatus: "active",
+          },
+        ],
         conversation: {
           id: "conversation-1",
+          name: "Draft",
+          agentId: "ready",
+          restoreStatus: "active",
+          runtimeSessionId: "session-1",
+          messages: [],
+          turns: [],
           turnId: "turn-1",
           prompt: "Do work",
           output: "",
@@ -130,5 +152,7 @@ describe("Assistant discovery shell", () => {
     expect(permission).toContain("Access the network");
     expect(permission).toContain("Allow once");
     expect(permission).toContain("Reject");
+    expect(permission).toContain("Selected Conversation is bound to");
+    expect(permission).toContain("Delete");
   });
 });

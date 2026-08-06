@@ -7,15 +7,28 @@ vi.mock("../src/platform/tauri/assistant", () => ({
   removeAgentRegistration: vi.fn(),
   getAiAccessConsent: vi.fn(),
   grantAiAccessConsent: vi.fn(),
+  listAssistantConversations: vi.fn(),
+  createAssistantConversation: vi.fn(),
+  renameAssistantConversation: vi.fn(),
+  selectAssistantConversation: vi.fn(),
+  deleteAssistantConversation: vi.fn(),
+  rememberAssistantAgent: vi.fn(),
   startAgentTurn: vi.fn(),
   respondAgentTurnPermission: vi.fn(),
 }));
 
 import * as assistantApi from "../src/platform/tauri/assistant";
-import type { AgentDiscovery, AgentDiscoveryResponse } from "../src/platform/tauri/assistant";
+import type {
+  AgentDiscovery,
+  AgentDiscoveryResponse,
+  ConversationRecord,
+  WorkspaceConversationSnapshot,
+} from "../src/platform/tauri/assistant";
 import { useAssistantStore } from "../src/stores/assistant-store";
 
 const discover = vi.mocked(assistantApi.discoverAgentRuntimes);
+const listConversations = vi.mocked(assistantApi.listAssistantConversations);
+const createConversation = vi.mocked(assistantApi.createAssistantConversation);
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -58,12 +71,63 @@ function compatibleAgent(id: string): AgentDiscovery {
   };
 }
 
+function emptySnapshot(workspaceRoot: string): WorkspaceConversationSnapshot {
+  return {
+    workspaceRoot,
+    revision: 0,
+    conversations: [],
+    activeConversationId: null,
+    lastAgentId: null,
+    activeConversation: null,
+  };
+}
+
+function record(
+  workspaceRoot: string,
+  id: string,
+  agentId: string,
+  overrides: Partial<ConversationRecord> = {},
+): ConversationRecord {
+  return {
+    version: 1,
+    id,
+    workspaceRoot,
+    agentId,
+    name: "Conversation",
+    createdAt: 1,
+    updatedAt: 1,
+    runtimeSessionId: null,
+    restoreStatus: "none",
+    messages: [],
+    turns: [],
+    ...overrides,
+  };
+}
+
+function written(
+  workspaceRoot: string,
+  id: string,
+  agentId: string,
+  revision = 1,
+  overrides: Partial<ConversationRecord> = {},
+) {
+  return {
+    revision,
+    conversation: record(workspaceRoot, id, agentId, overrides),
+  };
+}
+
 describe("Assistant discovery store", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(assistantApi.cancelAgentDiscovery).mockResolvedValue(1);
+    vi.mocked(assistantApi.rememberAssistantAgent).mockResolvedValue();
+    listConversations.mockResolvedValue(emptySnapshot("/workspace"));
     useAssistantStore.getState().deactivateWorkspace();
     vi.clearAllMocks();
+    vi.mocked(assistantApi.cancelAgentDiscovery).mockResolvedValue(1);
+    vi.mocked(assistantApi.rememberAssistantAgent).mockResolvedValue();
+    listConversations.mockResolvedValue(emptySnapshot("/workspace"));
   });
 
   test("deactivation invalidates local state and cancels backend discovery", () => {
@@ -77,6 +141,8 @@ describe("Assistant discovery store", () => {
       workspaceRoot: null,
       workspaceGeneration: null,
       agents: [],
+      conversations: [],
+      conversation: null,
     });
   });
 
@@ -117,7 +183,19 @@ describe("Assistant discovery store", () => {
     });
   });
 
-  test("selects the first compatible Agent as part of the discovery action", async () => {
+  test("auto-selects only when exactly one compatible Agent exists", async () => {
+    discover.mockResolvedValue({
+      ...response("/workspace"),
+      agents: [compatibleAgent("only")],
+    });
+    useAssistantStore.getState().activateWorkspace("/workspace", 1);
+
+    await useAssistantStore.getState().refresh();
+
+    expect(useAssistantStore.getState().selectedAgentId).toBe("only");
+  });
+
+  test("does not auto-select when several compatible Agents exist without a remembered choice", async () => {
     discover.mockResolvedValue({
       ...response("/workspace"),
       agents: [compatibleAgent("first"), compatibleAgent("second")],
@@ -126,22 +204,133 @@ describe("Assistant discovery store", () => {
 
     await useAssistantStore.getState().refresh();
 
-    expect(useAssistantStore.getState().selectedAgentId).toBe("first");
+    expect(useAssistantStore.getState().selectedAgentId).toBeNull();
   });
 
-  test("keeps consent and the temporary conversation scoped to one Workspace generation", async () => {
+  test("restores the last remembered Agent when several compatible Agents exist", async () => {
+    listConversations.mockResolvedValue({
+      ...emptySnapshot("/workspace"),
+      lastAgentId: "second",
+    });
+    discover.mockResolvedValue({
+      ...response("/workspace"),
+      agents: [compatibleAgent("first"), compatibleAgent("second")],
+    });
+    useAssistantStore.getState().activateWorkspace("/workspace", 1);
+    await useAssistantStore.getState().refresh();
+    await useAssistantStore.getState().loadConversations();
+
+    expect(useAssistantStore.getState().selectedAgentId).toBe("second");
+    expect(useAssistantStore.getState().lastAgentId).toBe("second");
+  });
+
+  test("remembers an explicit Agent choice for New even while a Conversation is selected", () => {
+    useAssistantStore.getState().activateWorkspace("/workspace", 1);
+    useAssistantStore.setState({
+      agents: [compatibleAgent("first"), compatibleAgent("second")],
+      selectedAgentId: "first",
+      conversation: {
+        id: "conv-1",
+        name: "Bound to first",
+        agentId: "first",
+        restoreStatus: "active",
+        runtimeSessionId: "session-1",
+        messages: [],
+        turns: [],
+        turnId: null,
+        prompt: "",
+        output: "",
+        changeSummaries: [],
+        status: "idle",
+        message: null,
+        reconciliation: null,
+        permission: null,
+      },
+    });
+
+    useAssistantStore.getState().selectAgent("second");
+
+    expect(useAssistantStore.getState().selectedAgentId).toBe("second");
+    expect(assistantApi.rememberAssistantAgent).toHaveBeenCalledWith("/workspace", "second");
+  });
+
+  test("creates a Conversation with an explicitly chosen Runtime while another Conversation is selected", async () => {
+    createConversation.mockResolvedValue(written("/workspace", "conv-2", "second", 2));
+    useAssistantStore.getState().activateWorkspace("/workspace", 1);
+    useAssistantStore.setState({
+      agents: [compatibleAgent("first"), compatibleAgent("second")],
+      selectedAgentId: "second",
+      conversation: {
+        id: "conv-1",
+        name: "Bound to first",
+        agentId: "first",
+        restoreStatus: "active",
+        runtimeSessionId: "session-1",
+        messages: [],
+        turns: [],
+        turnId: null,
+        prompt: "",
+        output: "",
+        changeSummaries: [],
+        status: "idle",
+        message: null,
+        reconciliation: null,
+        permission: null,
+      },
+      conversations: [
+        {
+          id: "conv-1",
+          workspaceRoot: "/workspace",
+          agentId: "first",
+          name: "Bound to first",
+          createdAt: 1,
+          updatedAt: 1,
+          restoreStatus: "active",
+        },
+      ],
+    });
+
+    await useAssistantStore.getState().createConversation("Switch runtime");
+
+    expect(createConversation).toHaveBeenCalledWith("/workspace", "second", "Switch runtime");
+    expect(useAssistantStore.getState().conversation).toMatchObject({
+      id: "conv-2",
+      agentId: "second",
+    });
+    expect(useAssistantStore.getState().conversationRevision).toBe(2);
+  });
+
+  test("keeps consent and conversations scoped to one Workspace generation", async () => {
     vi.mocked(assistantApi.getAiAccessConsent).mockResolvedValue({
       granted: true,
       workspaceRoot: "/workspace-a",
       revision: 4,
     });
+    listConversations.mockResolvedValue({
+      ...emptySnapshot("/workspace-a"),
+      conversations: [
+        {
+          id: "c1",
+          workspaceRoot: "/workspace-a",
+          agentId: "agent-a",
+          name: "One",
+          createdAt: 1,
+          updatedAt: 1,
+          restoreStatus: "none",
+        },
+      ],
+      activeConversationId: "c1",
+      activeConversation: record("/workspace-a", "c1", "agent-a", { name: "One" }),
+    });
     useAssistantStore.getState().activateWorkspace("/workspace-a", 1);
     await useAssistantStore.getState().loadConsent();
+    await useAssistantStore.getState().loadConversations();
     useAssistantStore.getState().selectAgent("agent-a");
 
     expect(useAssistantStore.getState()).toMatchObject({
       consent: "granted",
       selectedAgentId: "agent-a",
+      conversation: { id: "c1" },
     });
 
     useAssistantStore.getState().activateWorkspace("/workspace-b", 2);
@@ -150,27 +339,31 @@ describe("Assistant discovery store", () => {
       consent: "unknown",
       selectedAgentId: null,
       conversation: null,
+      conversations: [],
     });
   });
 
-  test("starts exactly one temporary conversation and refuses later sends", async () => {
-    vi.mocked(assistantApi.startAgentTurn).mockImplementation(
-      async (_root, _agent, _revision, conversationId) => ({
-        turnId: "turn-1",
-        conversationId,
-        workspaceRoot: "/workspace",
-      }),
-    );
+  test("allows multi-turn sends on a durable conversation and refuses concurrent turns", async () => {
+    createConversation.mockResolvedValue(written("/workspace", "conv-1", "agent"));
+    vi.mocked(assistantApi.startAgentTurn).mockResolvedValue({
+      turnId: "turn-1",
+      conversationId: "conv-1",
+      workspaceRoot: "/workspace",
+    });
     useAssistantStore.getState().activateWorkspace("/workspace", 3);
     useAssistantStore.setState({
       consent: "granted",
       turnBridgeReady: true,
       selectedAgentId: "agent",
       registrationRevision: 7,
+      agents: [compatibleAgent("agent")],
     });
+    await useAssistantStore.getState().createConversation();
+    expect(useAssistantStore.getState().conversation?.id).toBe("conv-1");
 
     await useAssistantStore.getState().send("Make a change");
     const conversationId = useAssistantStore.getState().conversation!.id;
+    expect(conversationId).toBe("conv-1");
     await expect(useAssistantStore.getState().send("Queue this")).rejects.toThrow("already active");
     useAssistantStore.getState().receiveTurnEvent({
       type: "stream-text",
@@ -194,36 +387,86 @@ describe("Assistant discovery store", () => {
       workspaceRoot: "/workspace",
       status: "completed",
       message: "Done",
+      restoreStatus: "active",
+      persistenceError: null,
     });
-    await expect(useAssistantStore.getState().send("Start another")).rejects.toThrow(
-      "already has its temporary Conversation",
-    );
+    expect(useAssistantStore.getState().conversation?.status).toBe("completed");
+    expect(useAssistantStore.getState().conversation?.restoreStatus).toBe("active");
 
-    expect(useAssistantStore.getState().conversation).toMatchObject({
-      turnId: "turn-1",
-      prompt: "Make a change",
-      output: "Done",
-      changeSummaries: ["Updated note.md"],
-      status: "completed",
+    vi.mocked(assistantApi.startAgentTurn).mockResolvedValue({
+      turnId: "turn-2",
+      conversationId: "conv-1",
+      workspaceRoot: "/workspace",
     });
+    await useAssistantStore.getState().send("Second turn");
+    expect(useAssistantStore.getState().conversation?.status).toBe("preparing");
+    expect(assistantApi.startAgentTurn).toHaveBeenLastCalledWith(
+      "/workspace",
+      "agent",
+      7,
+      "conv-1",
+      "Second turn",
+    );
   });
 
-  test("keeps blocked reconciliation active and ignores stale reconciliation outcomes", async () => {
-    vi.mocked(assistantApi.startAgentTurn).mockImplementation(
-      async (_root, _agent, _revision, conversationId) => ({
-        turnId: "turn-1",
-        conversationId,
-        workspaceRoot: "/workspace",
-      }),
-    );
+  test("refuses sends when runtime restore failed and keeps the transcript", async () => {
     useAssistantStore.getState().activateWorkspace("/workspace", 3);
     useAssistantStore.setState({
       consent: "granted",
       turnBridgeReady: true,
       selectedAgentId: "agent",
+      conversation: {
+        id: "conv-1",
+        name: "Broken",
+        agentId: "agent",
+        restoreStatus: "failed",
+        runtimeSessionId: "session-1",
+        messages: [
+          {
+            id: "m1",
+            role: "user",
+            content: "Earlier",
+            citations: [],
+            createdAt: 1,
+          },
+        ],
+        turns: [],
+        turnId: null,
+        prompt: "",
+        output: "",
+        changeSummaries: [],
+        status: "idle",
+        message: null,
+        reconciliation: null,
+        permission: null,
+      },
     });
+
+    await expect(useAssistantStore.getState().send("Again")).rejects.toThrow(
+      "create a new Conversation",
+    );
+    expect(useAssistantStore.getState().conversation?.messages).toHaveLength(1);
+    expect(assistantApi.startAgentTurn).not.toHaveBeenCalled();
+  });
+
+  test("keeps blocked reconciliation active and ignores stale reconciliation outcomes", async () => {
+    createConversation.mockResolvedValue(written("/workspace", "conv-1", "agent"));
+    vi.mocked(assistantApi.startAgentTurn).mockResolvedValue({
+      turnId: "turn-1",
+      conversationId: "conv-1",
+      workspaceRoot: "/workspace",
+    });
+    useAssistantStore.getState().activateWorkspace("/workspace", 3);
+    useAssistantStore.setState({
+      consent: "granted",
+      turnBridgeReady: true,
+      selectedAgentId: "agent",
+      agents: [compatibleAgent("agent")],
+    });
+    await useAssistantStore.getState().createConversation();
     await useAssistantStore.getState().send("Make a change");
     const conversationId = useAssistantStore.getState().conversation!.id;
+    expect(conversationId).toBe("conv-1");
 
     useAssistantStore.getState().receiveTurnEvent({
       type: "reconciliation-blocked",
@@ -253,7 +496,44 @@ describe("Assistant discovery store", () => {
     expect(useAssistantStore.getState().conversation?.reconciliation?.status).toBe("failed");
   });
 
+  test("applies authoritative restoreStatus from the terminal event", async () => {
+    useAssistantStore.getState().activateWorkspace("/workspace", 3);
+    useAssistantStore.setState({
+      conversation: {
+        id: "conv-1",
+        name: "Broken",
+        agentId: "agent",
+        restoreStatus: "active",
+        runtimeSessionId: "session-1",
+        messages: [],
+        turns: [],
+        turnId: "turn-1",
+        prompt: "Continue",
+        output: "",
+        changeSummaries: [],
+        status: "running",
+        message: null,
+        reconciliation: null,
+        permission: null,
+      },
+    });
+
+    useAssistantStore.getState().receiveTurnEvent({
+      type: "terminal",
+      turnId: "turn-1",
+      conversationId: "conv-1",
+      workspaceRoot: "/workspace",
+      status: "failed",
+      message: "Could not resume",
+      restoreStatus: "failed",
+      persistenceError: null,
+    });
+
+    expect(useAssistantStore.getState().conversation?.restoreStatus).toBe("failed");
+  });
+
   test("keeps early phases and sends each permission decision only once", async () => {
+    createConversation.mockResolvedValue(written("/workspace", "conv-fast", "agent"));
     const started = deferred<{
       turnId: string;
       conversationId: string;
@@ -268,10 +548,14 @@ describe("Assistant discovery store", () => {
       turnBridgeReady: true,
       selectedAgentId: "agent",
       registrationRevision: 8,
+      agents: [compatibleAgent("agent")],
     });
+    await useAssistantStore.getState().createConversation();
+    const conversationId = useAssistantStore.getState().conversation!.id;
+    expect(conversationId).toBe("conv-fast");
 
     const send = useAssistantStore.getState().send("Run it");
-    const conversationId = useAssistantStore.getState().conversation!.id;
+    expect(useAssistantStore.getState().conversation?.status).toBe("starting");
     useAssistantStore.getState().receiveTurnEvent({
       type: "phase",
       turnId: "turn-fast",
