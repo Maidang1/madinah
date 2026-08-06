@@ -295,8 +295,13 @@ async fn run_agent_turn_process(
                 ));
             }
             if !initialized.agent_capabilities.load_session {
+                let message = if existing_session_id.is_some() {
+                    "SESSION_RESTORE_FAILED: Agent no longer advertises required session restoration"
+                } else {
+                    "Agent no longer advertises required session restoration"
+                };
                 return Err(agent_client_protocol::Error::into_internal_error(
-                    io::Error::other("Agent no longer advertises required session restoration"),
+                    io::Error::other(message),
                 ));
             }
             let session_id = if let Some(existing) = existing_session_id.as_deref() {

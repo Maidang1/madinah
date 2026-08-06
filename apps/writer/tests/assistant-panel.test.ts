@@ -152,7 +152,7 @@ describe("Assistant discovery shell", () => {
     expect(permission).toContain("Access the network");
     expect(permission).toContain("Allow once");
     expect(permission).toContain("Reject");
-    expect(permission).toContain("Bound to this Runtime permanently");
+    expect(permission).toContain("Selected Conversation is bound to");
     expect(permission).toContain("Delete");
   });
 });

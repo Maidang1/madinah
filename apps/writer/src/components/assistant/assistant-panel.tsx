@@ -163,7 +163,9 @@ export function AssistantTurnView({
   const compatible = agents.filter((agent) => agent.status === "compatible");
   const isActive = isAssistantConversationActive(conversation);
   const restoreFailed = conversation?.restoreStatus === "failed";
-  const agentLocked = conversation !== null;
+  // Agent selection is only locked during an active turn. While idle, the user
+  // can pick a different Runtime and create a new Conversation bound to it.
+  const agentLocked = isActive;
 
   async function handleConsent() {
     setError(null);
@@ -211,6 +213,10 @@ export function AssistantTurnView({
   async function handleCreateConversation() {
     setError(null);
     try {
+      if (compatible.length > 1 && !selectedAgentId) {
+        setError("Choose which compatible Agent this Conversation should bind permanently.");
+        return;
+      }
       const name = window.prompt("Name this Assistant Conversation", "New conversation");
       if (name === null) return;
       await createConversation(name.trim() || undefined);
@@ -311,14 +317,17 @@ export function AssistantTurnView({
       </div>
       <form onSubmit={handleSend}>
         <label className="block text-xs text-text-secondary">
-          Agent
+          Agent for new Conversation
           <select
-            value={selectedAgentId ?? conversation?.agentId ?? ""}
+            value={selectedAgentId ?? ""}
             onChange={(event) => selectAgent(event.target.value)}
             disabled={agentLocked || compatible.length === 0}
             className="mt-1 w-full rounded-md border border-[var(--line-subtle)] bg-[var(--bg-base)] px-2 py-1.5 text-sm text-text-primary"
           >
             {compatible.length === 0 && <option value="">No compatible Agent</option>}
+            {compatible.length > 1 && !selectedAgentId && (
+              <option value="">Choose a compatible Agent…</option>
+            )}
             {compatible.map((agent) => (
               <option key={agent.id} value={agent.id}>
                 {agent.name}
@@ -326,9 +335,14 @@ export function AssistantTurnView({
             ))}
           </select>
         </label>
-        {agentLocked && (
+        {conversation && (
           <p className="mt-1 text-[11px] text-text-muted">
-            Bound to this Runtime permanently. Create a new Conversation to change Agents.
+            Selected Conversation is bound to{" "}
+            <span className="font-medium text-text-secondary">
+              {agents.find((agent) => agent.id === conversation.agentId)?.name ??
+                conversation.agentId}
+            </span>
+            . Create a new Conversation to bind a different Runtime.
           </p>
         )}
         <label className="mt-2 block text-xs text-text-secondary">

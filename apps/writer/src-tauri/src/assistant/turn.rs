@@ -106,6 +106,7 @@ pub struct RecordedPermissionDecision {
     pub request_id: String,
     pub title: String,
     pub option_id: Option<String>,
+    pub decided_at: u64,
 }
 
 #[derive(Clone)]
@@ -436,6 +437,10 @@ impl TurnReservation {
             request_id: request_id.into(),
             title,
             option_id: option_id.clone(),
+            decided_at: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|duration| duration.as_millis() as u64)
+                .unwrap_or(0),
         });
         drop(state);
         response

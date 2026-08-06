@@ -24,8 +24,8 @@ pub use consent::{grant_consent, load_consents, ConsentSnapshot, ConsentStatus};
 pub use conversation::{
     append_completed_turn, create_conversation, delete_conversation, list_workspace_conversations,
     load_conversation_for_workspace, mark_session_restore_failed, remember_last_agent,
-    rename_conversation, select_conversation, unix_millis, ConversationRecord,
-    ConversationRestoreStatus, PersistedPermissionDecision, TurnPersistenceInput,
+    rename_conversation, select_conversation, unix_millis, ConversationRestoreStatus,
+    ConversationWriteResult, PersistedPermissionDecision, TurnPersistenceInput,
     WorkspaceConversationSnapshot,
 };
 #[cfg(test)]

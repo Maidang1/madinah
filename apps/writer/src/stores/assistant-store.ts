@@ -175,15 +175,11 @@ export const useAssistantStore = create<AssistantState>((set, get) => ({
         return;
       }
       const compatible = response.agents.filter((agent) => agent.status === "compatible");
-      const compatibleAgentIds = new Set(compatible.map((agent) => agent.id));
-      const preferred =
-        (current.selectedAgentId && compatibleAgentIds.has(current.selectedAgentId)
-          ? current.selectedAgentId
-          : null) ??
-        (current.lastAgentId && compatibleAgentIds.has(current.lastAgentId)
-          ? current.lastAgentId
-          : null) ??
-        (compatible.length === 1 ? compatible[0].id : (compatible[0]?.id ?? null));
+      const preferred = resolvePreferredAgentId(
+        compatible.map((agent) => agent.id),
+        current.selectedAgentId,
+        current.lastAgentId,
+      );
       set({
         phase: "ready",
         agents: response.agents,
@@ -313,13 +309,16 @@ export const useAssistantStore = create<AssistantState>((set, get) => ({
         ? projectRecord(snapshot.activeConversation)
         : null;
       const compatible = current.agents.filter((agent) => agent.status === "compatible");
+      // Prefer remembered/selected agent for *new* conversations. The selected
+      // conversation's bound agent is shown separately and does not force multi-
+      // runtime auto-pick when no preference exists.
       const preferredAgent =
-        active?.agentId ??
-        (snapshot.lastAgentId && compatible.some((agent) => agent.id === snapshot.lastAgentId)
-          ? snapshot.lastAgentId
-          : null) ??
-        current.selectedAgentId ??
-        (compatible.length === 1 ? compatible[0].id : (compatible[0]?.id ?? null));
+        resolvePreferredAgentId(
+          compatible.map((agent) => agent.id),
+          current.selectedAgentId,
+          snapshot.lastAgentId ?? current.lastAgentId,
+        ) ??
+        (active && compatible.some((agent) => agent.id === active.agentId) ? active.agentId : null);
       set({
         conversations: snapshot.conversations,
         conversationRevision: snapshot.revision,
@@ -352,21 +351,17 @@ export const useAssistantStore = create<AssistantState>((set, get) => ({
     if (compatible.length === 0) {
       throw new Error("Choose a compatible Agent before creating a Conversation.");
     }
-    let agentId = before.selectedAgentId;
-    if (!agentId || !compatible.some((agent) => agent.id === agentId)) {
-      if (compatible.length === 1) {
-        agentId = compatible[0].id;
-      } else if (
-        before.lastAgentId &&
-        compatible.some((agent) => agent.id === before.lastAgentId)
-      ) {
-        agentId = before.lastAgentId;
-      } else {
-        throw new Error("Choose which compatible Agent this Conversation should bind permanently.");
-      }
+    const agentId = resolvePreferredAgentId(
+      compatible.map((agent) => agent.id),
+      before.selectedAgentId,
+      before.lastAgentId,
+    );
+    if (!agentId) {
+      throw new Error("Choose which compatible Agent this Conversation should bind permanently.");
     }
     const { workspaceRoot, workspaceGeneration } = before;
-    const record = await createAssistantConversation(workspaceRoot, agentId, name ?? null);
+    const written = await createAssistantConversation(workspaceRoot, agentId, name ?? null);
+    const record = written.conversation;
     const current = get();
     if (
       current.workspaceRoot !== workspaceRoot ||
@@ -390,7 +385,7 @@ export const useAssistantStore = create<AssistantState>((set, get) => ({
         },
         ...current.conversations.filter((item) => item.id !== record.id),
       ],
-      conversationRevision: current.conversationRevision + 1,
+      conversationRevision: written.revision,
       error: null,
     });
   },
@@ -399,7 +394,8 @@ export const useAssistantStore = create<AssistantState>((set, get) => ({
     const before = get();
     if (!before.workspaceRoot || before.workspaceGeneration === null) return;
     const { workspaceRoot, workspaceGeneration } = before;
-    const record = await renameAssistantConversation(workspaceRoot, conversationId, name);
+    const written = await renameAssistantConversation(workspaceRoot, conversationId, name);
+    const record = written.conversation;
     const current = get();
     if (
       current.workspaceRoot !== workspaceRoot ||
@@ -415,6 +411,7 @@ export const useAssistantStore = create<AssistantState>((set, get) => ({
       conversations: current.conversations.map((item) =>
         item.id === conversationId ? { ...item, name: record.name } : item,
       ),
+      conversationRevision: written.revision,
     });
   },
 
@@ -425,7 +422,8 @@ export const useAssistantStore = create<AssistantState>((set, get) => ({
       throw new Error("Finish the active Agent Turn before switching Conversations.");
     }
     const { workspaceRoot, workspaceGeneration } = before;
-    const record = await selectAssistantConversation(workspaceRoot, conversationId);
+    const written = await selectAssistantConversation(workspaceRoot, conversationId);
+    const record = written.conversation;
     const current = get();
     if (
       current.workspaceRoot !== workspaceRoot ||
@@ -435,8 +433,14 @@ export const useAssistantStore = create<AssistantState>((set, get) => ({
     }
     set({
       conversation: projectRecord(record),
-      selectedAgentId: record.agentId,
+      // Keep selectedAgentId as the draft agent for *new* conversations when the
+      // user already picked one; otherwise mirror the selected conversation's bind.
+      selectedAgentId:
+        current.selectedAgentId && current.selectedAgentId !== record.agentId
+          ? current.selectedAgentId
+          : record.agentId,
       lastAgentId: record.agentId,
+      conversationRevision: written.revision,
       error: null,
     });
   },
@@ -661,7 +665,7 @@ export const useAssistantStore = create<AssistantState>((set, get) => ({
           createdAt: Date.now(),
         });
       }
-      if (conversation.output || event.message) {
+      if (conversation.output || (event.status === "completed" && event.message)) {
         nextMessages.push({
           id: `local-assistant-${event.turnId}`,
           role: "assistant",
@@ -670,22 +674,27 @@ export const useAssistantStore = create<AssistantState>((set, get) => ({
           createdAt: Date.now(),
         });
       }
+      const restoreStatus =
+        event.restoreStatus ??
+        (event.status === "completed" && conversation.restoreStatus === "none"
+          ? "active"
+          : conversation.restoreStatus);
       set({
         conversation: {
           ...conversation,
           turnId: event.turnId,
           status: event.status,
-          message: event.message,
+          message: event.persistenceError
+            ? `${event.message} ${event.persistenceError}`
+            : event.message,
           permission: null,
           messages: nextMessages,
           changeSummaries: conversation.changeSummaries,
-          restoreStatus:
-            event.status === "failed" && event.message.includes("resume the Runtime session")
-              ? "failed"
-              : conversation.restoreStatus === "none"
-                ? "active"
-                : conversation.restoreStatus,
+          restoreStatus,
         },
+        error: event.persistenceError
+          ? `Could not save Conversation history: ${event.persistenceError}`
+          : current.error,
       });
     }
   },
@@ -782,6 +791,25 @@ function isActiveTurn(status: AssistantTurnStatus) {
     status === "reconciling" ||
     status === "reconciliation-blocked"
   );
+}
+
+/** Prefer explicit selection, then remembered last agent, then sole compatible. */
+function resolvePreferredAgentId(
+  compatibleIds: string[],
+  selectedAgentId: string | null,
+  lastAgentId: string | null | undefined,
+): string | null {
+  const compatible = new Set(compatibleIds);
+  if (selectedAgentId && compatible.has(selectedAgentId)) {
+    return selectedAgentId;
+  }
+  if (lastAgentId && compatible.has(lastAgentId)) {
+    return lastAgentId;
+  }
+  if (compatibleIds.length === 1) {
+    return compatibleIds[0];
+  }
+  return null;
 }
 
 export function isAssistantConversationActive(conversation: ActiveAssistantConversation | null) {

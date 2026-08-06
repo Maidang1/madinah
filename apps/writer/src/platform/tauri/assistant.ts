@@ -96,6 +96,7 @@ interface TurnLifecycleIdentity {
 }
 
 export type AgentTurnPhase = "preparing" | "running" | "awaiting-permission" | "reconciling";
+export type ConversationRestoreStatus = "none" | "active" | "failed";
 
 export type AgentTurnEvent =
   | ({ type: "prepare" } & TurnLifecycleIdentity)
@@ -144,6 +145,8 @@ export type AgentTurnEvent =
       workspaceRoot: string;
       status: "completed" | "failed";
       message: string;
+      restoreStatus: ConversationRestoreStatus;
+      persistenceError: string | null;
     };
 
 export interface StartAgentTurnResponse {
@@ -152,7 +155,6 @@ export interface StartAgentTurnResponse {
   workspaceRoot: string;
 }
 
-export type ConversationRestoreStatus = "none" | "active" | "failed";
 export type ConversationMessageRole = "user" | "assistant";
 
 export interface ConversationCitation {
@@ -255,11 +257,16 @@ export function listAssistantConversations(
   return invoke("list_assistant_conversations", { workspaceRoot });
 }
 
+export interface ConversationWriteResult {
+  revision: number;
+  conversation: ConversationRecord;
+}
+
 export function createAssistantConversation(
   workspaceRoot: string,
   agentId: string,
   name?: string | null,
-): Promise<ConversationRecord> {
+): Promise<ConversationWriteResult> {
   return invoke("create_assistant_conversation", {
     workspaceRoot,
     agentId,
@@ -271,7 +278,7 @@ export function renameAssistantConversation(
   workspaceRoot: string,
   conversationId: string,
   name: string,
-): Promise<ConversationRecord> {
+): Promise<ConversationWriteResult> {
   return invoke("rename_assistant_conversation", {
     workspaceRoot,
     conversationId,
@@ -282,7 +289,7 @@ export function renameAssistantConversation(
 export function selectAssistantConversation(
   workspaceRoot: string,
   conversationId: string,
-): Promise<ConversationRecord> {
+): Promise<ConversationWriteResult> {
   return invoke("select_assistant_conversation", {
     workspaceRoot,
     conversationId,

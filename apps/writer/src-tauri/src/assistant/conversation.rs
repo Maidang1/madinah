@@ -144,6 +144,13 @@ pub struct WorkspaceConversationSnapshot {
     pub active_conversation: Option<ConversationRecord>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ConversationWriteResult {
+    pub revision: u64,
+    pub conversation: ConversationRecord,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TurnPersistenceInput {
     pub turn_id: String,
@@ -227,7 +234,7 @@ pub fn list_workspace_conversations(
     workspace_root: &str,
 ) -> Result<WorkspaceConversationSnapshot, String> {
     validate_workspace_root(workspace_root)?;
-    let index = load_index(&index_path(app_data_dir))?;
+    let mut index = load_index(&index_path(app_data_dir))?;
     let prefs = index
         .workspace_prefs
         .iter()
@@ -240,19 +247,29 @@ pub fn list_workspace_conversations(
         });
     let conversations = index
         .conversations
-        .into_iter()
+        .iter()
         .filter(|summary| summary.workspace_root == workspace_root)
+        .cloned()
         .collect::<Vec<_>>();
-    let active_conversation = match prefs.active_conversation_id.as_deref() {
-        Some(id) if conversations.iter().any(|summary| summary.id == id) => {
-            Some(load_record(&record_path(app_data_dir, id))?)
-        }
-        _ => None,
-    };
-    let active_conversation_id = active_conversation
-        .as_ref()
-        .map(|record| record.id.clone())
+    let preferred_active_id = prefs
+        .active_conversation_id
+        .as_deref()
+        .filter(|id| conversations.iter().any(|summary| summary.id == *id))
+        .map(str::to_owned)
         .or_else(|| conversations.first().map(|summary| summary.id.clone()));
+    let active_conversation = match preferred_active_id.as_deref() {
+        Some(id) => Some(load_record(&record_path(app_data_dir, id))?),
+        None => None,
+    };
+    let active_conversation_id = active_conversation.as_ref().map(|record| record.id.clone());
+    // Repair prefs when we fell back to the first conversation so restart restore is stable.
+    if let Some(active_id) = active_conversation_id.as_ref() {
+        if prefs.active_conversation_id.as_deref() != Some(active_id.as_str()) {
+            index.revision = next_revision(index.revision)?;
+            upsert_prefs(&mut index, workspace_root, None, Some(active_id.clone()));
+            write_index(&index_path(app_data_dir), &index)?;
+        }
+    }
     Ok(WorkspaceConversationSnapshot {
         workspace_root: workspace_root.into(),
         revision: index.revision,
@@ -268,7 +285,7 @@ pub fn create_conversation(
     workspace_root: String,
     agent_id: String,
     name: Option<String>,
-) -> Result<ConversationRecord, String> {
+) -> Result<ConversationWriteResult, String> {
     validate_workspace_root(&workspace_root)?;
     validate_agent_id(&agent_id)?;
     let now = unix_millis();
@@ -321,7 +338,10 @@ pub fn create_conversation(
         Some(id.clone()),
     );
     write_index(&index_path(app_data_dir), &index)?;
-    Ok(record)
+    Ok(ConversationWriteResult {
+        revision: index.revision,
+        conversation: record,
+    })
 }
 
 pub fn rename_conversation(
@@ -329,7 +349,7 @@ pub fn rename_conversation(
     workspace_root: &str,
     conversation_id: &str,
     name: String,
-) -> Result<ConversationRecord, String> {
+) -> Result<ConversationWriteResult, String> {
     validate_workspace_root(workspace_root)?;
     validate_id(conversation_id, "conversation")?;
     let name = normalize_name(Some(name), unix_millis())?;
@@ -355,14 +375,17 @@ pub fn rename_conversation(
     index.revision = next_revision(index.revision)?;
     write_record(&path, &record)?;
     write_index(&index_path(app_data_dir), &index)?;
-    Ok(record)
+    Ok(ConversationWriteResult {
+        revision: index.revision,
+        conversation: record,
+    })
 }
 
 pub fn select_conversation(
     app_data_dir: &Path,
     workspace_root: &str,
     conversation_id: &str,
-) -> Result<ConversationRecord, String> {
+) -> Result<ConversationWriteResult, String> {
     validate_workspace_root(workspace_root)?;
     validate_id(conversation_id, "conversation")?;
     let mut index = load_index(&index_path(app_data_dir))?;
@@ -383,7 +406,10 @@ pub fn select_conversation(
         Some(conversation_id.into()),
     );
     write_index(&index_path(app_data_dir), &index)?;
-    Ok(record)
+    Ok(ConversationWriteResult {
+        revision: index.revision,
+        conversation: record,
+    })
 }
 
 pub fn delete_conversation(
@@ -401,16 +427,6 @@ pub fn delete_conversation(
     if index.conversations.len() == before {
         return Err("That Assistant Conversation no longer exists.".into());
     }
-    let path = record_path(app_data_dir, conversation_id);
-    match fs::remove_file(&path) {
-        Ok(()) => {}
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
-        Err(error) => {
-            return Err(format!(
-                "Assistant Conversation could not be deleted: {error}"
-            ))
-        }
-    }
     index.revision = next_revision(index.revision)?;
     if let Some(prefs) = index
         .workspace_prefs
@@ -426,7 +442,19 @@ pub fn delete_conversation(
                 .next();
         }
     }
+    // Commit the index first so a later record unlink failure cannot leave a
+    // dangling summary pointing at a removed file.
     write_index(&index_path(app_data_dir), &index)?;
+    let path = record_path(app_data_dir, conversation_id);
+    match fs::remove_file(&path) {
+        Ok(()) => {}
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) => {
+            return Err(format!(
+                "Assistant Conversation index was updated, but the record file could not be deleted: {error}"
+            ))
+        }
+    }
     list_workspace_conversations(app_data_dir, workspace_root)
 }
 
@@ -934,10 +962,15 @@ mod tests {
             Some("Drafting".into()),
         )
         .unwrap();
-        assert_eq!(created.agent_id, "claude-agent-acp");
-        assert_eq!(created.restore_status, ConversationRestoreStatus::None);
-        assert!(created.runtime_session_id.is_none());
-        assert!(created.messages.is_empty());
+        assert_eq!(created.revision, 1);
+        assert_eq!(created.conversation.agent_id, "claude-agent-acp");
+        assert_eq!(
+            created.conversation.restore_status,
+            ConversationRestoreStatus::None
+        );
+        assert!(created.conversation.runtime_session_id.is_none());
+        assert!(created.conversation.messages.is_empty());
+        let created_id = created.conversation.id.clone();
 
         // Storage must never land inside the Workspace directory.
         assert!(!Path::new(workspace).join(".writer").exists());
@@ -947,8 +980,9 @@ mod tests {
         assert_eq!(listed.conversations.len(), 1);
         assert_eq!(
             listed.active_conversation_id.as_deref(),
-            Some(created.id.as_str())
+            Some(created_id.as_str())
         );
+        assert!(listed.active_conversation.is_some());
         assert_eq!(listed.last_agent_id.as_deref(), Some("claude-agent-acp"));
 
         let foreign_list = list_workspace_conversations(app_data.path(), foreign).unwrap();
@@ -957,27 +991,34 @@ mod tests {
         let renamed = rename_conversation(
             app_data.path(),
             workspace,
-            &created.id,
+            &created_id,
             "Polish pass".into(),
         )
         .unwrap();
-        assert_eq!(renamed.name, "Polish pass");
+        assert_eq!(renamed.conversation.name, "Polish pass");
 
         let second =
             create_conversation(app_data.path(), workspace.into(), "codex-acp".into(), None)
                 .unwrap();
-        select_conversation(app_data.path(), workspace, &created.id).unwrap();
+        select_conversation(app_data.path(), workspace, &created_id).unwrap();
         let after_select = list_workspace_conversations(app_data.path(), workspace).unwrap();
         assert_eq!(
             after_select.active_conversation_id.as_deref(),
-            Some(created.id.as_str())
+            Some(created_id.as_str())
+        );
+        assert_eq!(
+            after_select
+                .active_conversation
+                .as_ref()
+                .map(|record| record.id.as_str()),
+            Some(created_id.as_str())
         );
 
-        let deleted = delete_conversation(app_data.path(), workspace, &created.id).unwrap();
+        let deleted = delete_conversation(app_data.path(), workspace, &created_id).unwrap();
         assert_eq!(deleted.conversations.len(), 1);
-        assert_eq!(deleted.conversations[0].id, second.id);
-        assert!(!record_path(app_data.path(), &created.id).exists());
-        assert!(record_path(app_data.path(), &second.id).exists());
+        assert_eq!(deleted.conversations[0].id, second.conversation.id);
+        assert!(!record_path(app_data.path(), &created_id).exists());
+        assert!(record_path(app_data.path(), &second.conversation.id).exists());
     }
 
     #[test]
@@ -990,7 +1031,8 @@ mod tests {
             "fake-agent".into(),
             Some("History".into()),
         )
-        .unwrap();
+        .unwrap()
+        .conversation;
 
         let finished = unix_millis();
         let record = append_completed_turn(
@@ -1053,7 +1095,8 @@ mod tests {
         let workspace = "/tmp/writer-restore-workspace";
         let created =
             create_conversation(app_data.path(), workspace.into(), "fake-agent".into(), None)
-                .unwrap();
+                .unwrap()
+                .conversation;
         let finished = unix_millis();
         append_completed_turn(
             app_data.path(),

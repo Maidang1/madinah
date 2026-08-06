@@ -73,7 +73,9 @@
       "conversationId": "conversation-1",
       "workspaceRoot": "/workspace",
       "status": "completed",
-      "message": "Turn complete"
+      "message": "Turn complete",
+      "restoreStatus": "active",
+      "persistenceError": null
     }
   ]
 }
