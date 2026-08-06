@@ -38,4 +38,8 @@ Rust serde models under `src-tauri/src/assistant/` own the wire. `src/platform/t
 
 The desktop command tests invoke the serialized Tauri adapters with a deterministic native fake ACP Agent. They cover per-Workspace consent, prepare failure before spawn, successful stream/permission/reconcile/unlock, write-then-crash reconciliation, partial-write visibility, process cleanup, bridge removal, and the real serialized write boundary's stale-path/prepare-identity enforcement. Frontend tests observe the public #10 prepare/reconcile/retained-release seam, exact generation-bound reconciliation state, and rendered consent/permission/output behavior.
 
-The single temporary Conversation is terminal after its first result; creating another Conversation, persistence/restore, focus context, quick actions, citations, and Agent Stop controls remain later tickets.
+The single temporary Conversation is terminal after its first result; creating another Conversation, persistence/restore, focus context, quick actions, and Agent Stop controls remain later tickets.
+
+## Grounded Answers (#13)
+
+Free-form sends prepend Writer-owned Workspace knowledge instructions so the Agent answers knowledge questions from Markdown/MDX Documents and emits relative `path[#heading-slug]` references. On a completed turn, the frontend extracts citation candidates from the final agent text, validates each against the live Workspace (inside root, supported Document extension, file exists, heading exists when anchored), and projects Grounded vs Ungrounded status onto the temporary Conversation. Valid citations open the Document and navigate to the supporting heading; invalid ones render as plain invalid-source text and never count as evidence. Non-document files may inform the Runtime but cannot satisfy the evidence contract. Writer does not build embeddings or a second retrieval index. See [grounded-answer-contract.md](./grounded-answer-contract.md).

@@ -12,6 +12,15 @@ import {
   type AgentDiscovery,
 } from "@/platform/tauri/assistant";
 import type { WorkspaceReconciliationOutcome } from "@/domain/workspace-turn-lifecycle";
+import {
+  buildKnowledgePrompt,
+  projectGroundedAnswer,
+  type GroundedAnswerProjection,
+  type GroundingDeps,
+  type GroundingStatus,
+  type ValidatedCitation,
+} from "@/lib/grounded-answer";
+import { readFile, fileExists } from "@/platform/tauri/fs";
 
 export type AssistantDiscoveryPhase = "idle" | "loading" | "ready" | "error";
 export type AssistantConsent = "unknown" | "loading" | "required" | "granted";
@@ -25,9 +34,17 @@ export type AssistantTurnStatus =
   | "completed"
   | "failed";
 
+export type ConversationGrounding = {
+  status: GroundingStatus;
+  citations: ValidatedCitation[];
+  /** True while filesystem validation is in flight after a terminal reply. */
+  validating: boolean;
+};
+
 export interface TemporaryAssistantConversation {
   id: string;
   turnId: string | null;
+  /** User-authored prompt shown in the UI (without Writer knowledge wrapper). */
   prompt: string;
   output: string;
   changeSummaries: string[];
@@ -40,6 +57,12 @@ export interface TemporaryAssistantConversation {
     options: Array<{ id: string; name: string; kind: string }>;
     responding: boolean;
   } | null;
+  /**
+   * Null until a completed terminal event. On completion, immediately becomes a
+   * validating placeholder (`status: "ungrounded", citations: [], validating: true`),
+   * then the final Grounded/Ungrounded projection once FS validation settles.
+   */
+  grounding: ConversationGrounding | null;
 }
 
 interface AssistantState {
@@ -79,6 +102,22 @@ interface AssistantState {
     outcome: WorkspaceReconciliationOutcome,
   ) => void;
   respondPermission: (optionId: string | null) => Promise<void>;
+}
+
+let groundingDepsOverride: GroundingDeps | null = null;
+
+export function setAssistantGroundingDepsForTests(deps: GroundingDeps | null) {
+  groundingDepsOverride = deps;
+}
+
+function liveGroundingDeps(): GroundingDeps {
+  return {
+    fileExists: (absolutePath) => fileExists(absolutePath),
+    readFile: async (absolutePath) => {
+      const file = await readFile(absolutePath);
+      return file.content;
+    },
+  };
 }
 
 const INITIAL_DISCOVERY_STATE = {
@@ -311,16 +350,18 @@ export const useAssistantStore = create<AssistantState>((set, get) => ({
         message: null,
         reconciliation: null,
         permission: null,
+        grounding: null,
       },
       error: null,
     });
     try {
+      const agentPrompt = buildKnowledgePrompt(trimmed);
       const started = await startAgentTurn(
         workspaceRoot,
         selectedAgentId,
         registrationRevision,
         conversationId,
-        trimmed,
+        agentPrompt,
       );
       const current = get();
       if (
@@ -425,15 +466,27 @@ export const useAssistantStore = create<AssistantState>((set, get) => ({
         },
       });
     } else if (event.type === "terminal") {
-      set({
-        conversation: {
-          ...conversation,
-          turnId: event.turnId,
-          status: event.status,
-          message: event.message,
-          permission: null,
-        },
-      });
+      const terminalStatus = event.status === "completed" ? "completed" : "failed";
+      const nextConversation: TemporaryAssistantConversation = {
+        ...conversation,
+        turnId: event.turnId,
+        status: terminalStatus,
+        message: event.message,
+        permission: null,
+        grounding:
+          terminalStatus === "completed"
+            ? { status: "ungrounded", citations: [], validating: true }
+            : null,
+      };
+      set({ conversation: nextConversation });
+      if (terminalStatus === "completed") {
+        void projectAndApplyGrounding(
+          event.workspaceRoot,
+          current.workspaceGeneration,
+          nextConversation.id,
+          nextConversation.output || event.message,
+        );
+      }
     }
   },
 
@@ -502,4 +555,41 @@ function errorMessage(error: unknown): string {
 
 function isTerminal(status: AssistantTurnStatus) {
   return status === "completed" || status === "failed";
+}
+
+async function projectAndApplyGrounding(
+  workspaceRoot: string,
+  workspaceGeneration: number | null,
+  conversationId: string,
+  agentOutput: string,
+) {
+  let projection: GroundedAnswerProjection;
+  try {
+    projection = await projectGroundedAnswer(
+      agentOutput,
+      workspaceRoot,
+      groundingDepsOverride ?? liveGroundingDeps(),
+    );
+  } catch (error) {
+    console.error("Could not validate Grounded Answer citations", error);
+    projection = { status: "ungrounded", citations: [], validCitations: [] };
+  }
+  const current = useAssistantStore.getState();
+  if (
+    current.workspaceRoot !== workspaceRoot ||
+    current.workspaceGeneration !== workspaceGeneration ||
+    current.conversation?.id !== conversationId
+  ) {
+    return;
+  }
+  useAssistantStore.setState({
+    conversation: {
+      ...current.conversation,
+      grounding: {
+        status: projection.status,
+        citations: projection.citations,
+        validating: false,
+      },
+    },
+  });
 }
