@@ -283,8 +283,10 @@ export const useAssistantStore = create<AssistantState>((set, get) => ({
 
   selectAgent: (id) => {
     set({ selectedAgentId: id });
-    const { workspaceRoot, conversation } = get();
-    if (!workspaceRoot || conversation) return;
+    // Remember the choice for this Workspace even when a Conversation is already
+    // selected: the selector is the draft Runtime for the next New Conversation.
+    const { workspaceRoot } = get();
+    if (!workspaceRoot) return;
     void rememberAssistantAgent(workspaceRoot, id).catch((error: unknown) => {
       console.error("Could not remember the selected Agent", error);
     });

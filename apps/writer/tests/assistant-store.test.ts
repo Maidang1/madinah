@@ -224,6 +224,36 @@ describe("Assistant discovery store", () => {
     expect(useAssistantStore.getState().lastAgentId).toBe("second");
   });
 
+  test("remembers an explicit Agent choice for New even while a Conversation is selected", () => {
+    useAssistantStore.getState().activateWorkspace("/workspace", 1);
+    useAssistantStore.setState({
+      agents: [compatibleAgent("first"), compatibleAgent("second")],
+      selectedAgentId: "first",
+      conversation: {
+        id: "conv-1",
+        name: "Bound to first",
+        agentId: "first",
+        restoreStatus: "active",
+        runtimeSessionId: "session-1",
+        messages: [],
+        turns: [],
+        turnId: null,
+        prompt: "",
+        output: "",
+        changeSummaries: [],
+        status: "idle",
+        message: null,
+        reconciliation: null,
+        permission: null,
+      },
+    });
+
+    useAssistantStore.getState().selectAgent("second");
+
+    expect(useAssistantStore.getState().selectedAgentId).toBe("second");
+    expect(assistantApi.rememberAssistantAgent).toHaveBeenCalledWith("/workspace", "second");
+  });
+
   test("creates a Conversation with an explicitly chosen Runtime while another Conversation is selected", async () => {
     createConversation.mockResolvedValue(written("/workspace", "conv-2", "second", 2));
     useAssistantStore.getState().activateWorkspace("/workspace", 1);

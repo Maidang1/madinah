@@ -101,7 +101,7 @@ pub enum AgentTurnEvent {
         message: String,
         /// Authoritative Conversation restore status after this turn's durable write.
         restore_status: String,
-        /// True when Writer could not persist retained conversation fields.
+        /// Present when Writer could not persist retained conversation fields.
         persistence_error: Option<String>,
     },
     ReconciliationBlocked {
