@@ -25,7 +25,12 @@ Other Workspace files may inform the Agent Runtime but never satisfy this contra
 
 ## Navigation
 
-Valid citations open the Document through the ordinary editor open path and, when anchored, use path-scoped TipTap heading scrollers (one registration per keep-alive file path). Same-active-document clicks scroll immediately and never rely on `openFile` (a same-path open is a no-op). Cross-document / keep-alive activation stages a pending heading slug for first load and also tries the path-scoped scroller after open. Unresolved anchors return `missing-anchor` so the UI can show the existing anchor warning. Heading slugs for validation strip common Markdown inline constructs so they match TipTap `textContent`.
+Valid citations open the Document through the ordinary editor open path and, when anchored:
+
+- **Same active Document:** path-scoped TipTap scroller scrolls immediately (never `openFile`, which is a same-path no-op).
+- **Cross-document:** stage a pending heading slug and `openFile` only. Writer navigates the active tab in place, so the active TipTap `pathChanged` effect consumes the pending slug. Do not scroll via a keep-alive Map entry for the target path (that would scroll an invisible pane and steal pending from the visible editor).
+
+Unresolved same-active anchors return `missing-anchor` so the UI can show the existing anchor warning. Heading slugs for validation strip common Markdown inline constructs so they match TipTap `textContent`.
 
 ## Persistence attachment
 

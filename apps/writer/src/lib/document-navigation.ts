@@ -1,6 +1,6 @@
 // Open a Workspace Document and optionally scroll to a heading slug.
 // Uses path-scoped editor registration + the pending-anchor bridge so
-// navigation works across keep-alive multi-tab sessions.
+// navigation works with navigate-in-place multi-tab sessions.
 
 import { getActiveFilePath, openFile } from "@/hooks/editor-api";
 import { consumePendingAnchor, setPendingAnchor } from "./pending-anchor";
@@ -19,6 +19,8 @@ const scrollersByPath = new Map<string, PathHeadingScroller>();
 /**
  * Register (or clear) a heading scroller for one absolute Document path.
  * Keep-alive TipTap panes each own their path; unmount deletes only that entry.
+ * Same-active citation clicks use this Map; cross-document opens rely on
+ * pending-anchor + the active tab's pathChanged consumer instead.
  */
 export function registerOpenEditorHeadingScroller(
   path: string,
@@ -45,8 +47,11 @@ export function clearOpenEditorHeadingScrollersForTests(): void {
  *
  * - Same active Document: scroll via the path-scoped scroller; never call openFile
  *   (it is a no-op when the path is already active and would leave pending anchors stuck).
- * - Other / unloaded Documents: stage pending-anchor, open/activate, then try the
- *   path-scoped scroller (covers keep-alive tabs whose path did not change).
+ * - Other Documents: stage pending-anchor and openFile only. Writer navigates the
+ *   active tab in place, so the active TipTap pathChanged effect must consume the
+ *   pending slug. Do not scroll via a keep-alive Map entry for the target path —
+ *   that would scroll an invisible pane and steal the pending anchor from the
+ *   visible active editor.
  *
  * Callers should surface `missing-anchor` results (e.g. anchor warning banner).
  */
@@ -66,18 +71,8 @@ export async function openDocumentAtCitation(
 
   setPendingAnchor(absolutePath, anchor);
   await openFile(absolutePath);
-
-  // Keep-alive editors for this path do not re-run pathChanged; scroll now if registered.
-  const scroller = scrollersByPath.get(absolutePath);
-  if (!scroller) {
-    // Still loading or no editor yet — pending-anchor remains for TipTap pathChanged.
-    return { status: "pending" };
-  }
-  consumePendingAnchor(absolutePath);
-  if (scroller(anchor)) {
-    return { status: "scrolled" };
-  }
-  return { status: "missing-anchor", path: absolutePath, anchor };
+  // Leave pending for the active tab's TipTap pathChanged consumer.
+  return { status: "pending" };
 }
 
 function scrollActiveDocumentToAnchor(absolutePath: string, anchor: string): OpenCitationResult {

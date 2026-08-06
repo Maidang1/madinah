@@ -112,17 +112,20 @@ describe("openDocumentAtCitation", () => {
     expect(runbook).toHaveBeenCalledWith("setup");
   });
 
-  test("after open, keep-alive scroller is used and pending is consumed", async () => {
-    const scroller = vi.fn(() => true);
-    registerOpenEditorHeadingScroller("/workspace/docs/deploy.md", scroller);
+  test("cross-document open does not scroll inactive keep-alive or steal pending", async () => {
+    // Target path already has a keep-alive editor registered (another tab),
+    // but Writer openFile navigates the *active* tab in place.
+    const inactiveKeepAlive = vi.fn(() => true);
+    registerOpenEditorHeadingScroller("/workspace/docs/deploy.md", inactiveKeepAlive);
     getActiveFilePath.mockReturnValue("/workspace/other.md");
 
     const result = await openDocumentAtCitation("/workspace/docs/deploy.md", "blue-gate");
 
     expect(openFile).toHaveBeenCalledWith("/workspace/docs/deploy.md");
-    expect(scroller).toHaveBeenCalledWith("blue-gate");
-    expect(result).toEqual({ status: "scrolled" });
-    expect(consumePendingAnchor("/workspace/docs/deploy.md")).toBeUndefined();
+    expect(inactiveKeepAlive).not.toHaveBeenCalled();
+    expect(result).toEqual({ status: "pending" });
+    // Pending must survive for the active TipTap pathChanged consumer.
+    expect(consumePendingAnchor("/workspace/docs/deploy.md")).toBe("blue-gate");
   });
 });
 
