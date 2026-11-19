@@ -1,5 +1,10 @@
 import { describe, expect, test } from "vite-plus/test";
-import { buildSlugIndex, parseDocumentHeadings } from "../src/hooks/use-document-headings";
+import {
+  buildSlugIndex,
+  parseDocumentHeadings,
+  plainHeadingTextForSlug,
+} from "../src/lib/document-headings";
+import { createHeadingSlugger } from "../src/lib/heading-slug";
 
 describe("parseDocumentHeadings", () => {
   test("returns empty array for empty content", () => {
@@ -85,6 +90,19 @@ describe("parseDocumentHeadings", () => {
       [1, "setup"],
       [2, "setup-3"],
     ]);
+  });
+
+  test("slug matches TipTap textContent for links, code, and emphasis in headings", () => {
+    // Raw ATX with inline MD should slug like the plain text TipTap would expose.
+    const raw = "## Hello [link](x.md) and `code` with **bold**";
+    const headings = parseDocumentHeadings(raw, { maxDepth: 6 });
+    const tipTapPlain = "Hello link and code with bold";
+    const tipTapSlug = createHeadingSlugger()(tipTapPlain);
+    expect(plainHeadingTextForSlug("Hello [link](x.md) and `code` with **bold**")).toBe(
+      tipTapPlain,
+    );
+    expect(headings[0]!.slug).toBe(tipTapSlug);
+    expect(headings[0]!.slug).toBe("hello-link-and-code-with-bold");
   });
 });
 

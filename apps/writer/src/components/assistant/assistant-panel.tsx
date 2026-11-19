@@ -22,6 +22,9 @@ import {
   useSendAssistantTurn,
   isAssistantConversationActive,
 } from "@/hooks/use-assistant";
+import type { ValidatedCitation } from "@/lib/grounded-answer";
+import { openDocumentAtCitation } from "@/lib/document-navigation";
+import { showAnchorWarning } from "@/components/editor-area/anchor-warning-store";
 
 interface AssistantPanelProps {
   onCollapse: () => void;
@@ -227,13 +230,44 @@ export function AssistantTurnView({
       )}
       {conversation && (
         <div aria-live="polite" className="mt-3 rounded-lg bg-surface-hover p-2.5">
-          <p className="text-[10px] font-medium uppercase tracking-wide text-text-muted">
-            {conversation.status}
-          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-[10px] font-medium uppercase tracking-wide text-text-muted">
+              {conversation.status}
+            </p>
+            {conversation.grounding && !conversation.grounding.validating && (
+              <span
+                className={
+                  conversation.grounding.status === "grounded"
+                    ? "rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-300"
+                    : "rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium text-amber-800 dark:text-amber-200"
+                }
+                data-grounding={conversation.grounding.status}
+              >
+                {conversation.grounding.status === "grounded" ? "Grounded" : "Ungrounded"}
+              </span>
+            )}
+            {conversation.grounding?.validating && (
+              <span className="text-[10px] text-text-muted">Checking sources…</span>
+            )}
+          </div>
+          {conversation.grounding?.status === "ungrounded" &&
+            !conversation.grounding.validating &&
+            conversation.status === "completed" && (
+              <p
+                role="status"
+                className="mt-2 rounded-md border border-amber-500/30 bg-amber-500/5 px-2 py-1.5 text-xs leading-5 text-amber-900 dark:text-amber-100"
+              >
+                Ungrounded answer: no valid Workspace Document reference was found. The reply is
+                still shown, but it is not presented as a Grounded Answer.
+              </p>
+            )}
           {conversation.output && (
             <p className="mt-1 whitespace-pre-wrap text-sm leading-5 text-text-primary">
               {conversation.output}
             </p>
+          )}
+          {conversation.grounding && conversation.grounding.citations.length > 0 && (
+            <GroundingCitations citations={conversation.grounding.citations} />
           )}
           {conversation.changeSummaries.length > 0 && (
             <div className="mt-2">
@@ -510,6 +544,63 @@ function statusLabel(status: AgentDiscovery["status"]): string {
     case "handshake-failed":
       return "Handshake failed";
   }
+}
+
+function GroundingCitations({ citations }: { citations: ValidatedCitation[] }) {
+  const valid = citations.filter((citation) => citation.status === "valid");
+  const invalid = citations.filter((citation) => citation.status === "invalid");
+  return (
+    <div className="mt-2">
+      {valid.length > 0 && (
+        <>
+          <p className="text-xs font-medium text-text-secondary">Sources</p>
+          <ul className="mt-1 space-y-1">
+            {valid.map((citation) => (
+              <li key={`valid-${citation.absolutePath}#${citation.anchor ?? ""}`}>
+                <button
+                  type="button"
+                  className="text-left text-xs font-medium text-[var(--accent)] hover:underline"
+                  onClick={() =>
+                    void openDocumentAtCitation(citation.absolutePath, citation.anchor).then(
+                      (result) => {
+                        if (result.status === "missing-anchor") {
+                          showAnchorWarning(
+                            `Heading “${result.anchor}” was not found in this document.`,
+                          );
+                        }
+                      },
+                    )
+                  }
+                >
+                  {citation.relativePath}
+                  {citation.anchor ? `#${citation.anchor}` : ""}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {invalid.length > 0 && (
+        <>
+          <p className="mt-2 text-xs font-medium text-text-secondary">Invalid sources</p>
+          <ul className="mt-1 space-y-1">
+            {invalid.map((citation, index) => (
+              <li
+                key={`invalid-${citation.raw}-${index}`}
+                className="text-xs text-text-muted"
+                data-invalid-source={citation.reason}
+              >
+                <span className="font-mono">{citation.raw}</span>
+                <span className="ml-1 text-[10px] uppercase tracking-wide text-red-600/80 dark:text-red-300/80">
+                  invalid ({citation.reason})
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
+  );
 }
 
 function errorMessage(error: unknown) {

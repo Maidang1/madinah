@@ -13,7 +13,11 @@ vi.mock("../src/platform/tauri/assistant", () => ({
 
 import * as assistantApi from "../src/platform/tauri/assistant";
 import type { AgentDiscovery, AgentDiscoveryResponse } from "../src/platform/tauri/assistant";
-import { useAssistantStore } from "../src/stores/assistant-store";
+import {
+  setAssistantGroundingDepsForTests,
+  useAssistantStore,
+} from "../src/stores/assistant-store";
+import { KNOWLEDGE_PROMPT_INSTRUCTIONS } from "../src/lib/grounded-answer";
 
 const discover = vi.mocked(assistantApi.discoverAgentRuntimes);
 
@@ -62,6 +66,7 @@ describe("Assistant discovery store", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(assistantApi.cancelAgentDiscovery).mockResolvedValue(1);
+    setAssistantGroundingDepsForTests(null);
     useAssistantStore.getState().deactivateWorkspace();
     vi.clearAllMocks();
   });
@@ -342,5 +347,134 @@ describe("Assistant discovery store", () => {
       "lifecycle is still connecting",
     );
     expect(assistantApi.startAgentTurn).not.toHaveBeenCalled();
+  });
+
+  test("wraps free-form sends with Workspace knowledge instructions", async () => {
+    vi.mocked(assistantApi.startAgentTurn).mockImplementation(
+      async (_root, _agent, _revision, conversationId) => ({
+        turnId: "turn-knowledge",
+        conversationId,
+        workspaceRoot: "/workspace",
+      }),
+    );
+    useAssistantStore.getState().activateWorkspace("/workspace", 6);
+    useAssistantStore.setState({
+      consent: "granted",
+      turnBridgeReady: true,
+      selectedAgentId: "agent",
+      registrationRevision: 1,
+    });
+
+    await useAssistantStore.getState().send("What is our deploy process?");
+
+    expect(assistantApi.startAgentTurn).toHaveBeenCalledWith(
+      "/workspace",
+      "agent",
+      1,
+      expect.any(String),
+      expect.stringContaining("What is our deploy process?"),
+    );
+    const sentPrompt = vi.mocked(assistantApi.startAgentTurn).mock.calls[0]![4] as string;
+    expect(sentPrompt.startsWith(KNOWLEDGE_PROMPT_INSTRUCTIONS)).toBe(true);
+    expect(useAssistantStore.getState().conversation?.prompt).toBe("What is our deploy process?");
+  });
+
+  test("projects a Grounded answer when a Workspace Document citation validates", async () => {
+    setAssistantGroundingDepsForTests({
+      fileExists: async (path: string) => path === "/workspace/docs/deploy.md",
+      readFile: async () => "# Deploy\n\n## Blue Gate\nUse blue.\n",
+    });
+    vi.mocked(assistantApi.startAgentTurn).mockImplementation(
+      async (_root, _agent, _revision, conversationId) => ({
+        turnId: "turn-grounded",
+        conversationId,
+        workspaceRoot: "/workspace",
+      }),
+    );
+    useAssistantStore.getState().activateWorkspace("/workspace", 7);
+    useAssistantStore.setState({
+      consent: "granted",
+      turnBridgeReady: true,
+      selectedAgentId: "agent",
+      registrationRevision: 2,
+    });
+    await useAssistantStore.getState().send("How do we deploy?");
+    const conversationId = useAssistantStore.getState().conversation!.id;
+
+    useAssistantStore.getState().receiveTurnEvent({
+      type: "stream-text",
+      turnId: "turn-grounded",
+      conversationId,
+      workspaceRoot: "/workspace",
+      text: "Use the blue gate.\n\nSources:\n- docs/deploy.md#blue-gate\n",
+    });
+    useAssistantStore.getState().receiveTurnEvent({
+      type: "terminal",
+      turnId: "turn-grounded",
+      conversationId,
+      workspaceRoot: "/workspace",
+      status: "completed",
+      message: "Done",
+    });
+
+    await vi.waitFor(() => {
+      expect(useAssistantStore.getState().conversation?.grounding?.validating).toBe(false);
+    });
+    expect(useAssistantStore.getState().conversation?.grounding).toMatchObject({
+      status: "grounded",
+      citations: [
+        expect.objectContaining({
+          status: "valid",
+          relativePath: "docs/deploy.md",
+          anchor: "blue-gate",
+        }),
+      ],
+    });
+  });
+
+  test("marks a completed reply Ungrounded when no citation validates", async () => {
+    setAssistantGroundingDepsForTests({
+      fileExists: async () => false,
+      readFile: async () => {
+        throw new Error("missing");
+      },
+    });
+    vi.mocked(assistantApi.startAgentTurn).mockImplementation(
+      async (_root, _agent, _revision, conversationId) => ({
+        turnId: "turn-ungrounded",
+        conversationId,
+        workspaceRoot: "/workspace",
+      }),
+    );
+    useAssistantStore.getState().activateWorkspace("/workspace", 8);
+    useAssistantStore.setState({
+      consent: "granted",
+      turnBridgeReady: true,
+      selectedAgentId: "agent",
+      registrationRevision: 2,
+    });
+    await useAssistantStore.getState().send("Invent something");
+    const conversationId = useAssistantStore.getState().conversation!.id;
+    useAssistantStore.getState().receiveTurnEvent({
+      type: "stream-text",
+      turnId: "turn-ungrounded",
+      conversationId,
+      workspaceRoot: "/workspace",
+      text: "No evidence.\n\nSources:\n- notes/missing.md\n",
+    });
+    useAssistantStore.getState().receiveTurnEvent({
+      type: "terminal",
+      turnId: "turn-ungrounded",
+      conversationId,
+      workspaceRoot: "/workspace",
+      status: "completed",
+      message: "Done",
+    });
+
+    await vi.waitFor(() => {
+      expect(useAssistantStore.getState().conversation?.grounding?.validating).toBe(false);
+    });
+    expect(useAssistantStore.getState().conversation?.grounding?.status).toBe("ungrounded");
+    expect(useAssistantStore.getState().conversation?.output).toContain("No evidence");
   });
 });
